@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { InstantSchema, SeasonSchema, SourceIdSchema, TeamIdSchema } from './ids';
+import type { SourceId, TeamId } from './ids';
 
 /** The two states of an alias. A LLM proposes; a person confirms (RN-09). */
 export const TEAM_ALIAS_STATUSES = ['proposed', 'confirmed'] as const;
@@ -51,3 +52,42 @@ export const TeamSchema = z.object({
 });
 
 export type Team = z.infer<typeof TeamSchema>;
+
+/**
+ * The only normalisation applied to an alias before comparing it: trim,
+ * collapse of internal whitespace, and Unicode NFC. Nothing else. Case,
+ * accents and punctuation are significant (SPEC-001 CA-5, gate 2026-08-29).
+ */
+export function normalizeAlias(alias: string): string {
+  return alias.trim().replace(/\s+/gu, ' ').normalize('NFC');
+}
+
+export interface AliasQuery {
+  readonly source: SourceId;
+  readonly season: string;
+  readonly alias: string;
+}
+
+/**
+ * Resolves an alias to a canonical team, or to `null`.
+ *
+ * RN-09: only an alias a person has confirmed resolves. There is deliberately
+ * no branch that returns a TeamId for a `proposed` alias, and no laxer match:
+ * matching on our own would be the system pairing a team nobody confirmed.
+ */
+export function resolveConfirmedAlias(
+  catalog: readonly TeamAlias[],
+  query: AliasQuery,
+): TeamId | null {
+  const wanted = normalizeAlias(query.alias);
+
+  for (const entry of catalog) {
+    if (entry.status !== 'confirmed') continue;
+    if (entry.source !== query.source) continue;
+    if (entry.season !== query.season) continue;
+    if (normalizeAlias(entry.alias) !== wanted) continue;
+    return entry.team_id;
+  }
+
+  return null;
+}
