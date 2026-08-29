@@ -1,13 +1,15 @@
 ---
 id: ADR-002
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-29, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-29, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # ADR-002: Fuentes de datos del spike
 
-- Deciders: propone sdd-arquitecto; aprueba el humano. **Sin aprobar todavía**: redactado antes de adoptar tremen-sdd y reabierto a propósito al migrar (2026-08-29).
+- Deciders: propone sdd-arquitecto. Redactado antes de adoptar tremen-sdd y reabierto al migrar. **Aprobado por Alberto Fojo el 2026-08-29.**
 - Specs relacionadas: pendientes (EPIC-001).
 
 ## Contexto

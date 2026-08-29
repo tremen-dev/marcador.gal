@@ -1,13 +1,15 @@
 ---
 id: ADR-004
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-29, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-29, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # ADR-004: Plataforma de despliegue — Vercel Pro
 
-- Deciders: propone sdd-arquitecto; aprueba el humano. **Sin firmar.**
+- Deciders: propone sdd-arquitecto. **Aprobado por Alberto Fojo el 2026-08-29.**
 - Specs relacionadas: pendientes (EPIC-001).
 - Relacionado: ADR-001 (stack), ADR-003 (SSE), ADR-005 (raw store).
 

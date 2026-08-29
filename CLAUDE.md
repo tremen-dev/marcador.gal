@@ -31,8 +31,8 @@ Fase: **spike de ingesta** (`EPIC-001`). Objetivo: medir latencia, cobertura,
 conflictos y minutos de operación manual con Tercera RFEF G1 + Preferente Futgal
 G1. Sin código todavía: no existe `src/`.
 
-Los tres ADRs están en **borrador**, no firmados. Se escribieron antes de adoptar
-el método y están a la espera de revalidación: no los trates como cerrados.
+Los cinco ADRs están **aprobados** y son inmutables. Para cambiar cualquiera de
+ellos, escribe otro ADR que lo supersede; no los edites.
 
 ## Reglas duras
 
@@ -63,7 +63,7 @@ añade allí **antes** de usarse.
 - Nombres de equipos y competiciones: los **canónicos de la RFGF**. No se traducen
   (ver `dominio.md`).
 
-## Stack y plataforma (ADR-001 y ADR-004, ambos en borrador)
+## Stack y plataforma (ADR-001 y ADR-004, aprobados)
 
 Node 22 · TypeScript estricto · Next.js (App Router) · cheerio · zod · grammY ·
 Postgres · vitest. Desplegado en **Vercel Pro**.

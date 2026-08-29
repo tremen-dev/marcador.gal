@@ -50,16 +50,17 @@ cuando cambie la lista de fuentes o la interfaz.
 ## Decisiones clave hasta hoy
 
 - `FOUNDATION.md` — D-1 a D-7, locked.
-- [ADR-001](../adr/ADR-001-stack.md) — Stack del spike · **borrador**
-- [ADR-002](../adr/ADR-002-fuentes-spike.md) — Fuentes del spike · **borrador**
-- [ADR-003](../adr/ADR-003-sse.md) — SSE en lugar de WebSocket · **borrador**
-- [ADR-004](../adr/ADR-004-plataforma.md) — Plataforma: Vercel Pro · **borrador**
-- [ADR-005](../adr/ADR-005-raw-store.md) — Raw store: puerto Blob + disco · **borrador**
+- [ADR-001](../adr/ADR-001-stack.md) — Stack del spike · **aprobada**
+- [ADR-002](../adr/ADR-002-fuentes-spike.md) — Fuentes del spike · **aprobada**
+- [ADR-003](../adr/ADR-003-sse.md) — SSE en lugar de WebSocket · **aprobada**
+- [ADR-004](../adr/ADR-004-plataforma.md) — Plataforma: Vercel Pro · **aprobada**
+- [ADR-005](../adr/ADR-005-raw-store.md) — Raw store: puerto Blob + disco · **aprobada**
 
 Los tres primeros se escribieron **antes** de adoptar tremen-sdd y se reabrieron a
 propósito al migrar (2026-08-29). ADR-001 se reescribió por completo —de Python a
-Node— al entrar Vercel en la ecuación. **Ninguno de los cinco está firmado**, y
-ninguno pasa a `aprobada` sin gate humano explícito.
+Node— al entrar Vercel en la ecuación. **Los cinco quedaron firmados por Alberto
+Fojo el 2026-08-29** y son ya inmutables: cambiarlos exige un ADR que los
+supersede.
 
 ## Riesgos y preguntas abiertas
 
