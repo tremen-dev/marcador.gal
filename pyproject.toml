@@ -1,0 +1,22 @@
+[project]
+name = "marcador"
+version = "0.0.1"
+description = "Marcador do fútbol galego nunha pantalla — spike de ingesta"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi",
+  "uvicorn[standard]",
+  "httpx",
+  "apscheduler",
+  "selectolax",
+  "pydantic>=2",
+  "python-telegram-bot",
+  "psycopg[binary]",
+  "sse-starlette",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "ruff", "respx"]
+
+[tool.ruff]
+line-length = 100
