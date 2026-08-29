@@ -4,7 +4,9 @@
   "private": true,
   "description": "Marcador do fútbol galego nunha pantalla — spike de ingesta",
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,7 +14,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "node src/db/cli.ts",
+    "test:db": "vitest run --config vitest.integration.config.ts tests/db",
+    "test:blob": "vitest run --config vitest.integration.config.ts tests/raw/blob.contract.test.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",
