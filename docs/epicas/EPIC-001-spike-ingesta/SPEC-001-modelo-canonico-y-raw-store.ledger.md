@@ -35,23 +35,23 @@ epica: EPIC-001
 |---|---|---|---|---|
 | CA-1 esquemas zod y tipos | `src/model/{ids,competition,team,match,observation,decision,index}.ts` | `tests/model/schemas.test.ts` — tabla generada por entidad (51 casos) | | ❌ |
 | CA-2 round-trip JSON y frontend | `src/model/*`, `src/app/_contract/model-client.tsx` | `tests/model/roundtrip.test.ts` (12) + `npx tsc --noEmit` | | ❌ |
-| CA-3 RN-12 nivel tipo | `src/model/decision.ts`, `src/model/ids.ts` (brands) | `tests/types/rn12.test-d.ts` (4 × `@ts-expect-error`) + `tests/model/rn12.test.ts` | | ❌ |
+| CA-3 RN-12 nivel tipo | `src/model/decision.ts`, `src/model/ids.ts` (brands) | `tests/types/rn12.test-d.ts` (**5** × `@ts-expect-error`: el caso 3 gana el literal `rule: 'RN-13'` por la enmienda) + `tests/model/rn12.test.ts` (6) | | ❌ |
 | CA-4 RN-09 nivel tipo | `src/model/team.ts` (unión discriminada) | `tests/types/rn09.test-d.ts` (3 × `@ts-expect-error`) + `tests/model/rn09.test.ts` | | ❌ |
 | CA-5 RN-09 resolución de alias | `src/model/team.ts` → `resolveConfirmedAlias`, `normalizeAlias` | `tests/model/alias.test.ts` (12, casos 1–6 de la spec) | | ❌ |
 | CA-6 RN-13 nivel tipo y runtime | `src/model/observation.ts`, `src/model/decision.ts` (`.readonly()`), `src/db/ports.ts` | `tests/types/rn13.test-d.ts` (7 × `@ts-expect-error`) + `tests/model/rn13.test.ts` | | ❌ |
-| CA-7 marcador según estado | `src/model/observation.ts` (unión discriminada por `status`) | `tests/model/scores.test.ts` (25) + `tests/types/scores.test-d.ts` | | ❌ |
+| CA-7 marcador según estado (tipo + zod + **Postgres**) | `src/model/observation.ts` (unión discriminada por `status`), `src/model/score.ts` (la regla de marcador, escrita una vez), `migrations/0001_canonical_model.sql` (`observations_score_matches_status`, `observations_scores_non_negative`) | `tests/model/scores.test.ts` (35, sobre la tabla compartida `tests/fixtures/score-cases.ts`) + `tests/types/scores.test-d.ts` + canario verde en `tests/migrations/discovery.test.ts`. Nivel Postgres: `tests/db/scores.test.ts` **PENDIENTE DE VERIFICACIÓN** | | ❌ |
 | CA-8 MatchQualifier en galego | `src/model/qualifier.ts`, `src/i18n/gl.ts` | `tests/model/qualifier.test.ts` + `tests/types/qualifier.test-d.ts` | | ❌ |
 | CA-9 contrato RawStore ×2 | `src/raw/store.ts`, `src/raw/disk.ts`, `src/raw/blob.ts` | Batería única `tests/raw/contract.ts`. Disco: `tests/raw/disk.test.ts` **VERDE**. Blob: `tests/raw/blob.contract.test.ts` **PENDIENTE DE VERIFICACIÓN** (`npm run test:blob`) | | ❌ |
 | CA-10 clave determinista y segura | `src/raw/key.ts`, `src/raw/store.ts` (`rawKey`) | `tests/raw/key.test.ts` (28) + `tests/raw/disk.test.ts` (CA-10.4) + bloque CA-10.3 de `contract.ts` | | ❌ |
 | CA-11 RN-10 orden raw→parse | `src/raw/capture.ts` | `tests/raw/capture.test.ts` (6, con store espía y cola de microtareas) | | ❌ |
 | CA-12 RN-10 raw_ref obligatorio | `src/raw/key.ts` (`RawRefSchema`), `src/model/observation.ts`; columna `not null` en `migrations/0001` | zod: `tests/model/raw-ref.test.ts` **VERDE**. Columna `NOT NULL`: **PENDIENTE DE VERIFICACIÓN** | | ❌ |
 | CA-13 migración idempotente | `migrations/0001_canonical_model.sql`, `src/db/migrate.ts`, `src/db/cli.ts` | `tests/db/migrate.test.ts` **PENDIENTE DE VERIFICACIÓN**; canario verde: `tests/migrations/discovery.test.ts` | | ❌ |
-| CA-14 paridad esquema↔zod | `migrations/0001_canonical_model.sql`, `tests/schema-keys.ts` | `tests/db/parity.test.ts` **PENDIENTE DE VERIFICACIÓN**; el extractor sí está verde: `tests/model/schema-keys.test.ts` | | ❌ |
+| CA-14 paridad esquema↔zod (contrato reescrito) | `migrations/0001_canonical_model.sql`, `tests/schema-keys.ts` | `tests/db/parity.test.ts` **reescrito contra la letra nueva** (mapas con motivo, `zodOnly` con tabla verificada y FK comprobada contra `information_schema`, fallo por entrada muerta, listas cerradas) — **PENDIENTE DE VERIFICACIÓN**; el extractor sí está verde: `tests/model/schema-keys.test.ts` | | ❌ |
 | CA-15 RN-12 nivel Postgres | `migrations/0001_canonical_model.sql` (CHECKs + trigger `decisions_supporting_observations_exist`) | `tests/db/rn12.test.ts` **PENDIENTE DE VERIFICACIÓN** | | ❌ |
 | CA-16 RN-13 nivel Postgres | `migrations/0001_canonical_model.sql` (`reject_amendment` + dos triggers FOR EACH ROW) | `tests/db/rn13.test.ts` **PENDIENTE DE VERIFICACIÓN** | | ❌ |
 | CA-17 RN-09 nivel Postgres | `migrations/0001_canonical_model.sql` (CHECKs de `team_aliases`, PK `(alias, source, season)`, `matches_two_different_teams`) | `tests/db/rn09.test.ts` **PENDIENTE DE VERIFICACIÓN** | | ❌ |
-| CA-18 coherencia marcador/estado de `Decision` (tipo + zod + Postgres) | | | | ❌ |
-| CA-19 `rule` restringido a RN-01..RN-07 (tipo + zod + Postgres) | | | | ❌ |
+| CA-18 coherencia marcador/estado de `Decision` (tipo + zod + Postgres) | `src/model/decision.ts` (unión discriminada por `status`, cinco ramas), `src/model/score.ts` (la misma regla que `Observation`), `migrations/0001_canonical_model.sql` (`decisions_score_matches_status`, `decisions_scores_non_negative`) | Tipo: `tests/types/ca18.test-d.ts` (4 × `@ts-expect-error` + 4 controles bien formados + estrechamiento) **VERDE**. Zod: `tests/model/ca18.test.ts` (31) sobre `tests/fixtures/score-cases.ts`, **el mismo fichero de datos que CA-7** — **VERDE**. Postgres: `tests/db/scores.test.ts` **PENDIENTE DE VERIFICACIÓN**; canario verde en `tests/migrations/discovery.test.ts` (incluida la comparación textual de los dos CHECK) | | ❌ |
+| CA-19 `rule` restringido a RN-01..RN-07 (tipo + zod + Postgres) | `src/model/decision.ts` (`DECISION_RULES` con siete miembros), `migrations/0001_canonical_model.sql` (`decisions_rule_shape` pasa a lista cerrada) | Tipo: `tests/types/ca19.test-d.ts` (2 × `@ts-expect-error`) + el caso 3-bis de `tests/types/rn12.test-d.ts` **VERDE**. Zod: `tests/model/ca19.test.ts` (15, tabla sobre RN-08..RN-13) **VERDE**. Postgres: `tests/db/ca19.test.ts` **PENDIENTE DE VERIFICACIÓN**; canario verde: el 0001 ya no contiene `rule ~ '^RN-` | | ❌ |
 
 > **Filas añadidas por sdd-arquitecto (enmienda 2026-08-29), sin rellenar
 > Implementado/Test/Verif.** CA-18 y CA-19 están **sin empezar**.
@@ -61,6 +61,13 @@ epica: EPIC-001
 > CA-14 (contrato reescrito: `tests/db/parity.test.ts` cumple hoy la letra
 > antigua, no la nueva) y CA-3 (su caso 3 gana el literal `rule: 'RN-13'` cuando
 > se aplique CA-19). El implementador tiene que volver sobre los tres.
+
+> **Al día por sdd-implementador (segunda tanda, 2026-08-29).** Los cinco
+> criterios que dejaba abiertos la nota anterior están implementados: CA-18 y
+> CA-19 completos en tipo y zod y escritos en Postgres, CA-7 con su nivel de
+> Postgres escrito, CA-14 reescrito contra la letra nueva y CA-3 con el literal
+> `rule: 'RN-13'` en su caso 3. La columna Estado sigue siendo del verificador y
+> no se toca.
 
 ### Estado de la verificación por tanda (sdd-implementador, 2026-08-29)
 
@@ -90,6 +97,36 @@ battery to run against a REAL Vercel Blob store; the gate of 2026-08-29 ruled
 that without it CA-9 is UNMET, not skipped.
  Test Files  1 failed (1)   → exit 1
 ```
+
+### Segunda tanda — aplicación de la enmienda (sdd-implementador, 2026-08-29)
+
+**Verificado de verdad ahora** (`npx tsc --noEmit` en 0 y `npx vitest run` con
+**23 ficheros / 270 casos** y typecheck activo, frente a los 19/205 de la
+primera tanda): la mitad de tipo y la mitad de zod de **CA-18** y de **CA-19**,
+el caso 3-bis de **CA-3**, y **CA-7** sigue verde tras pasar a la tabla de casos
+compartida. Los 205 casos anteriores siguen todos en verde; ninguno se ha
+borrado ni relajado.
+
+**Escrito y NO verificable**, por seguir sin `DATABASE_URL_TEST`: el nivel
+Postgres de CA-7 y de CA-18 (`tests/db/scores.test.ts`), el de CA-19
+(`tests/db/ca19.test.ts`) y el CA-14 reescrito (`tests/db/parity.test.ts`).
+`npm run test:db` pasa de 5 a **7 ficheros que fallan al importarse**, sigue
+saliendo con **exit 1** y sigue sin saltarse nada.
+
+Cómo está montada la simetría CA-7 ↔ CA-18, que es lo que pedía la spec:
+
+- **Un solo dato.** `tests/fixtures/score-cases.ts` es la tabla de verdad
+  (28 casos) y la consumen `tests/model/scores.test.ts` (CA-7),
+  `tests/model/ca18.test.ts` (CA-18) y `tests/db/scores.test.ts` (los dos
+  niveles de Postgres). Divergir exige editar ese fichero, que es justamente el
+  sitio donde una divergencia se lee como una decisión.
+- **Una sola regla.** `src/model/score.ts` contiene `ScoreSchema`,
+  `scoredShape` y `unscoredShape`, y de ahí salen las cinco ramas de
+  `Observation` y las cinco de `Decision`. No son la misma regla escrita dos
+  veces: son la misma regla.
+- **Un solo `CHECK`.** `decisions_score_matches_status` es carácter por carácter
+  `observations_score_matches_status`, y `tests/migrations/discovery.test.ts`
+  compara los dos textos y falla si dejan de coincidir (canario sin BD, verde).
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
@@ -263,19 +300,78 @@ arquitecto sobre una spec.
   y `rule` es la mitad de RN-12. Destino: spec del motor de decisiones, con
   `reglas.md` como fuente.
 
+Abiertas por sdd-implementador al aplicar la enmienda (2026-08-29, segunda
+tanda). La primera es un hueco de un documento de verdad; las otras tres son
+desviaciones de forma, resueltas y declaradas para que el verificador las juzgue.
+
+- **F-SPEC-001-16** — *La cabecera de `reglas.md` se contradice con su propio
+  cuerpo.* Dice «RN-08 a **RN-12** son invariantes del proyecto», pero el
+  documento define RN-08..**RN-13** y RN-13 está en la sección «Invariantes del
+  proyecto». Es exactamente el corte que CA-19 usa como fuente para decidir qué
+  puede citar una `Decision`, así que un off-by-one ahí es una trampa: leído al
+  pie de la letra, RN-13 no sería ni motor ni invariante. Se ha implementado
+  CA-19 según el **cuerpo** del documento y según el texto de la spec
+  (motor = RN-01..RN-07), que es lo que el gate arbitró. **No he tocado
+  `reglas.md`**: es documento de verdad y no es mío. Destino: el humano o
+  sdd-producto, una línea.
+
+- **F-SPEC-001-17** — *RN-01 y RN-05 cambiaron hoy y NO tocan esta spec.* RN-01
+  incorpora al operador humano con peso 1.0, su precedencia sobre la RFGF, la
+  distinción frente al corresponsal (0.8) y `resultados-futbol.com` (0.7); RN-05
+  añade que una discrepancia en la que interviene el operador no es conflicto.
+  Revisado `src/model/`: **no hay nada que cambiar**, y meterlo aquí sería
+  ampliar el alcance por mi cuenta. Razones, en orden:
+  1. la propia spec pone el **mapa de pesos por fuente** de RN-01 en *Fuera de
+     alcance* con nombre y apellidos: «aquí `confidence` es solo un número en
+     [0,1] y `source` un identificador. Quién vale 0.9 y quién 0.7 lo decide la
+     spec del motor, que es quien tiene que responder por ello»;
+  2. `source` es `SourceIdSchema`, una cadena marcada, **no un enum**: añadir
+     una fuente no toca el modelo. Que el operador sea una fuente más es
+     precisamente lo que hace que RN-08 y D-3 se sostengan (una corrección del
+     panel entra por la misma puerta, sin trasera);
+  3. `confidence` es `z.number().min(0).max(1)`, así que 1.0 ya es
+     representable, y la **precedencia** del operador sobre la RFGF no es un
+     número: es una regla de desempate, es decir, motor.
+  Lo que sí cierra RN-01 es **F-SPEC-001-13**, que estaba abierta contra esta
+  spec. Destino: spec del motor (junto con F-SPEC-001-4, que es el mismo mapa).
+
+- **F-SPEC-001-18** — *CA-18.1: dónde puede ir el `@ts-expect-error`.* La spec
+  pide la directiva «sobre cada uno de estos cuatro literales». Con
+  `DecisionSchema` ya convertido en unión discriminada, TypeScript reporta el
+  error de un literal que no encaja **en la declaración** y no en la propiedad
+  culpable (comprobado: la directiva sobre `home_score: 5` queda *sin usar* y
+  `tsc` falla). Las cuatro directivas van por tanto sobre la declaración. Una
+  directiva sobre toda una declaración es más ciega —se tragaría una errata en
+  otra parte del literal—, así que cada caso lleva al lado un **control bien
+  formado de la misma rama** que tiene que compilar limpio: si una rama se
+  rompiera por otro motivo, el par deja de cuadrar. El estrechamiento (la
+  segunda mitad de CA-18.1) sí va a nivel de propiedad, como en CA-7.
+  Destino: verificador.
+
+- **F-SPEC-001-19** — *Dos casos de la tabla compartida no bajan a Postgres.*
+  `tests/db/scores.test.ts` recorre la misma tabla que las mitades zod salvo dos
+  familias, y el motivo está escrito en el fichero: (a) los casos `absent`,
+  porque un `INSERT` que no nombra una columna manda `NULL` y Postgres no puede
+  distinguir «ausente» de «nulo» —el caso `null` ya los cubre—; y (b) los casos
+  `fractional`, porque `1.5` es irrepresentable en una columna `integer` y quien
+  lo rechaza es el tipo de la columna, no el `CHECK`. La lista de `INSERT` que
+  la propia CA-18.3 enumera tampoco los incluye. Destino: verificador.
+
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
-Rama `ft/SPEC-001-modelo-canonico-y-raw-store`, cuatro commits, **sin push**.
+Rama `ft/SPEC-001-modelo-canonico-y-raw-store`, **sin push**. La enmienda del
+2026-08-29 está aplicada entera.
 
-**Hecho y verde de verdad:** todo el modelo canónico (`src/model/`), el i18n
-galego mínimo (`src/i18n/gl.ts`), los puertos (`src/db/ports.ts`) y el raw store
-sobre disco (`src/raw/{key,store,disk,capture}.ts`). `npx tsc --noEmit` sale 0 y
-`npx vitest run` da 19 ficheros / 205 casos con el typecheck de los
+**Hecho y verde de verdad:** todo el modelo canónico (`src/model/`, ahora con
+`score.ts` y con `DecisionSchema` como unión discriminada), el i18n galego
+mínimo (`src/i18n/gl.ts`), los puertos (`src/db/ports.ts`) y el raw store sobre
+disco (`src/raw/{key,store,disk,capture}.ts`). `npx tsc --noEmit` sale 0 y
+`npx vitest run` da **23 ficheros / 270 casos** con el typecheck de los
 `.test-d.ts` activo.
 
 **Escrito y sin verificar, esperando credenciales:** `src/raw/blob.ts`,
 `migrations/0001_canonical_model.sql`, `src/db/{client,migrate,cli}.ts` y las
-suites `tests/db/*.test.ts` y `tests/raw/blob.contract.test.ts`.
+suites `tests/db/*.test.ts` (siete ficheros) y `tests/raw/blob.contract.test.ts`.
 
 **Lo siguiente, en cuanto existan `DATABASE_URL_TEST` (rama de test de Neon,
 desechable) y `BLOB_READ_WRITE_TOKEN`:**
@@ -288,29 +384,30 @@ desechable) y `BLOB_READ_WRITE_TOKEN`:**
    resueltas por interpretación. F-SPEC-001-9 y F-SPEC-001-10 **ya están
    resueltos** por la enmienda del arquitecto (2026-08-29).
 
-**Trabajo nuevo que deja la enmienda del 2026-08-29** (sdd-implementador; el
-arquitecto no toca código):
+**Trabajo de la enmienda del 2026-08-29: HECHO.** Los cuatro puntos que dejaba
+abiertos esta sección están aplicados —CA-18, CA-19, CA-14 y el nivel Postgres
+de CA-7— y sus ficheros están en la matriz. Todo entró **dentro de
+`migrations/0001_canonical_model.sql`**, que sigue sin aplicarse a ninguna base;
+no hay `0002` ni la debe haber.
 
-1. **CA-18** — convertir `DecisionSchema` en unión discriminada por `status`,
-   con las mismas cinco ramas que `ObservationSchema`; añadir
-   `tests/types/ca18.test-d.ts` (4 `@ts-expect-error` + estrechamiento), la
-   mitad zod compartiendo tabla de casos con `tests/model/scores.test.ts`, y en
-   `migrations/0001` los `CHECK` `decisions_score_matches_status` y
-   `decisions_scores_non_negative` con su suite de integración.
-2. **CA-19** — reducir `DECISION_RULES` a `RN-01..RN-07`, sustituir
-   `decisions_rule_shape` por una lista cerrada, y añadir `rule: 'RN-13'` al
-   caso 3 de CA-3.
-3. **CA-14** — reescribir `tests/db/parity.test.ts` contra el contrato nuevo:
-   mapas con motivo, `zodOnly` con tabla verificada y FK comprobada, y fallo por
-   entrada no usada.
-4. **CA-7** — test explícito del `CHECK` de `observations` a nivel Postgres (la
-   restricción ya está escrita en `migrations/0001`; le falta el caso).
+**Lo único que queda es infraestructura, no código.** En cuanto existan
+`DATABASE_URL_TEST` (rama de test de Neon, desechable) y `BLOB_READ_WRITE_TOKEN`:
 
-La migración `0001` todavía **no se ha aplicado a ninguna base**: los cambios de
-CA-18 y CA-19 van dentro de ella, no en una `0002`.
+1. `npm run db:migrate` contra la rama de Neon.
+2. `npm run test:db` (siete ficheros: `migrate`, `parity`, `rn09`, `rn12`,
+   `rn13`, `scores`, `ca19`) y `npm run test:blob`, y pegar la salida en el
+   veredicto. Ojo: `tests/db/_harness.ts` hace `drop schema public cascade` —
+   apuntar solo a una rama desechable.
+3. Los tres tests que nunca han corrido son los más nuevos y los más probables
+   de necesitar un retoque de forma —no de fondo— la primera vez:
+   `tests/db/parity.test.ts` (consulta `information_schema.constraint_column_usage`,
+   que exige que el rol sea dueño de las restricciones), `tests/db/scores.test.ts`
+   y `tests/db/ca19.test.ts`.
+4. Revisar F-SPEC-001-5 a F-SPEC-001-8 y F-SPEC-001-16 a F-SPEC-001-19: son
+   interpretaciones y desviaciones de forma declaradas, no trabajo pendiente.
 
-**No transicionado a `en-revision`:** faltan seis CA por verificar. El estado lo
-mueve el humano o el verificador cuando estén los diecisiete.
+**No transicionado a `en-revision`:** siguen faltando por verificar los CA que
+dependen de credenciales. El estado lo mueve el humano o el verificador.
 
 
 ## Arbitraje del gate humano — 2026-08-29 (Alberto Fojo)
