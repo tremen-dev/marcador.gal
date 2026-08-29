@@ -7,7 +7,7 @@ Actualizado: 2026-08-29
 
 | Spec | Estado | Último cambio |
 |---|---|---|
-| SPEC-001 — modelo-canonico-y-raw-store | borrador | 2026-08-29 (sdd-arquitecto) |
+| SPEC-001 — modelo-canonico-y-raw-store | aprobada | 2026-08-29 (Alberto Fojo) |
 
 ## ADRs
 
@@ -18,8 +18,8 @@ Actualizado: 2026-08-29
 | ADR-003 | aprobada | sse | 2026-08-29 (Alberto Fojo) |
 | ADR-004 | aprobada | plataforma | 2026-08-29 (Alberto Fojo) |
 | ADR-005 | aprobada | raw-store | 2026-08-29 (Alberto Fojo) |
-| ADR-006 | borrador | acceso-a-datos-migraciones-y-representacion-temporal | 2026-08-29 (sdd-arquitecto) |
+| ADR-006 | aprobada | acceso-a-datos-migraciones-y-representacion-temporal | 2026-08-29 (Alberto Fojo) |
 
 ## Resumen
 
-- borrador: 1
+- aprobada: 1

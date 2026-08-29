@@ -6,7 +6,20 @@ epica: EPIC-001
 # Ledger — SPEC-001 Modelo canónico y raw store
 
 ## Resumen
-- Fase: borrador — pendiente del gate humano. No se implementa nada hasta `aprobada`.
+- Fase: **aprobada** por Alberto Fojo el 2026-08-29. Lista para sdd-implementador.
+
+## Decisiones del gate humano (2026-08-29)
+
+- **Entorno de verificación:** rama de test de **Neon** (desechable por ejecución)
+  y store de **Vercel Blob real**. Mismo motor que producción. `DATABASE_URL_TEST`
+  y `BLOB_READ_WRITE_TOKEN` son requisito: sin ellos, CA-9 y CA-13..CA-17 están
+  **incumplidos**, no saltados. La salida del comando va pegada aquí, con los
+  casos ejecutados visibles.
+- **Normalización de alias (CA-5):** se mantiene tacaña. El spike mide el coste
+  real de RN-09; relajarla, si procede, será una decisión posterior con cifras y
+  por ADR.
+- **ADR-006:** se mantiene como ADR, no se pliega en esta spec. Aprobado el mismo
+  día.
 - Rama: `ft/SPEC-001-modelo-canonico-y-raw-store`
 
 ## Matriz de criterios de aceptación

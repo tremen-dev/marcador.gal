@@ -2,10 +2,11 @@
 id: SPEC-001
 tipo: spec
 epica: EPIC-001
-estado: borrador
-aprobada-por:
+estado: aprobada
+aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-08-29, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-29, por: Alberto Fojo}
 ---
 # SPEC-001 — Modelo canónico y raw store
 
@@ -394,6 +395,11 @@ que enseñar una cifra bonita bajo una regla relajada a escondidas.
 que pido es que se tome explícitamente y se anote, no que se relaje después
 cuando duela.
 
+> **RESUELTO EN EL GATE (2026-08-29, Alberto Fojo).** Se mantiene la normalización
+> tacaña. El spike mide el coste real de RN-09; si la métrica de operación se
+> dispara por variantes ortográficas, ese dato es un resultado del spike y la
+> relajación se decide entonces, con cifras y por ADR — no sobre la marcha.
+
 **2. `raw_ref` obligatorio también para el corresponsal y para el panel (CA-12).**
 dominio.md no dice si `raw_ref` admite nulo. Lo hago obligatorio para todas las
 fuentes, lo que implica que **una corrección hecha a mano desde el panel escribe
@@ -410,9 +416,15 @@ Estos tests se saltan si faltan `DATABASE_URL_TEST` o `BLOB_READ_WRITE_TOKEN`, l
 que crea el peor fallo posible en un gate: una suite **verde porque no probó
 nada**. Por eso lo digo aquí en vez de dejarlo al criterio del verificador:
 **CA-9 y CA-13..CA-17 solo se dan por cumplidos con la salida del comando pegada
-en el ledger**, mostrando los casos ejecutados y no saltados. El humano tiene que
-decidir, antes de aprobar, contra qué Postgres se corre (Neon branch de test o un
-contenedor local) — es la única dependencia de entorno que esta spec añade.
+en el ledger**, mostrando los casos ejecutados y no saltados.
+
+> **RESUELTO EN EL GATE (2026-08-29, Alberto Fojo).** La verificación corre contra
+> una **rama de test de Neon**, desechable por ejecución, y contra un **store de
+> Vercel Blob real**. Se verifica sobre el mismo motor que producción, no sobre un
+> contenedor que puede diferir en el comportamiento de triggers o de `timestamptz`.
+> `DATABASE_URL_TEST` y `BLOB_READ_WRITE_TOKEN` son requisito de la
+> implementación, no opcionales: si faltan, los CA afectados están **incumplidos**,
+> no saltados.
 
 **4. Escribo un ADR que no me pidieron: ADR-006.**
 Se me encargó "solo la spec". Al redactarla aparecieron dos decisiones que

@@ -1,13 +1,15 @@
 ---
 id: ADR-006
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-29, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-29, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # ADR-006: Acceso a datos — migraciones y representación temporal
 
-- Deciders: propone sdd-arquitecto. **Pendiente de aprobación humana.**
+- Deciders: propone sdd-arquitecto. **Aprobado por Alberto Fojo el 2026-08-29**, mantenido como ADR y no plegado en SPEC-001: ata a todas las specs que toquen esquema o contrato.
 - Specs relacionadas: SPEC-001 (modelo canónico y raw store), que lo origina.
 - Relacionado: ADR-001 (stack), ADR-004 (plataforma), ADR-005 (raw store).
 
