@@ -311,3 +311,23 @@ CA-18 y CA-19 van dentro de ella, no en una `0002`.
 
 **No transicionado a `en-revision`:** faltan seis CA por verificar. El estado lo
 mueve el humano o el verificador cuando estén los diecisiete.
+
+
+## Arbitraje del gate humano — 2026-08-29 (Alberto Fojo)
+
+- **CA-19 se mantiene.** El motor nace con vocabulario cerrado: si aparece un caso
+  que ninguna de RN-01..RN-07 describe, se añade una RN a `reglas.md` en vez de
+  reciclar una etiqueta que no lo explica. RN-12 es la mitad del valor del spike y
+  no se sostiene con `rule` mintiendo.
+- **F-SPEC-001-13 RESUELTO.** RN-01 incorpora al **operador humano con peso 1.0** y
+  una cláusula de precedencia sobre la RFGF. Detalle que hubo que resolver al
+  escribirlo: 1.0 no está *por encima* de la RFGF sino empatado, y con RN-05 tal
+  como estaba el empate lo ganaba la oficial — el operador no habría podido
+  corregir a futgal. Se añadió precedencia explícita en RN-01 y una salvedad en
+  RN-05 (una discrepancia con el operador no es conflicto: se resuelve y se
+  publica). Coherente con RN-04 y RN-06, que ya trataban a «la fuente oficial o un
+  humano» como pares. Desbloquea la spec del motor.
+- **F-SPEC-001-14 y F-SPEC-001-15 siguen abiertos.** Qué significa *provisional* en
+  una Decision sin marcador, y cuál de las reglas concurrentes se registra en
+  `rule`. Ninguno bloquea SPEC-001; ambos son de `reglas.md` y hay que cerrarlos
+  antes de la spec del motor.
