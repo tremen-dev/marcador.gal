@@ -1,4 +1,8 @@
-# 02 — Análisis de retos
+# Retos — marcador.gal
+
+> Movido de `docs/02-analisis-retos.md` (2026-08-29), contenido intacto.
+> Los riesgos que condicionan el trabajo inmediato están resumidos en
+> `contexto.md`; aquí vive el análisis completo.
 
 ## Legal / marca
 - Nombre e imagen propios: elimina la dependencia del titular anterior. Registrar dominio (.gal) y marca (OEPM) al decidir el nombre.

@@ -1,4 +1,7 @@
-# 03 — Monetización
+# Monetización — marcador.gal
+
+> Movido de `docs/03-monetizacion.md` (2026-08-29), contenido intacto.
+> Sostiene la decisión locked **D-7** de `FOUNDATION.md`.
 
 Condición necesaria del proyecto. El aficionado no paga, pero es la audiencia que hace que patrocinadores y medios paguen.
 

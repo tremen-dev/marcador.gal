@@ -1,4 +1,16 @@
-# Spike de ingesta — propuesta técnica
+# Spike de ingesta — propuesta técnica (documento fuente)
+
+> Movido de `docs/05-spike-ingesta.md` (2026-08-29), contenido intacto.
+>
+> **Este documento es la fuente, no el plan vivo.** Su contenido se ha repartido:
+> la §5 (motor de decisiones) es ahora **RN-01..RN-07** en `reglas.md`; la §4
+> (modelo de datos) es el glosario de `dominio.md`; las §§1, 8 y 9 son
+> **EPIC-001** en `docs/epicas/`; las §§3, 6 y 7 alimentan ADR-001..003 y las
+> specs que aún hay que escribir.
+>
+> Se conserva como referencia hasta que las specs de EPIC-001 lo absorban por
+> completo. **Si hay discrepancia, mandan `reglas.md`, `dominio.md` y las specs**,
+> no este fichero.
 
 ## 1. Objetivo
 
