@@ -1,12 +1,18 @@
 /**
  * CA-7 — scoreboard and status are coherent by construction.
  *
+ * The cases come from `tests/fixtures/score-cases.ts`, the SAME file CA-18 uses
+ * for `Decision`. One dataset, two schemas: what we publish is protected by the
+ * same rule as what we observe, and if the two ever diverge it has to be a
+ * written decision and not a maintenance slip.
+ *
  * `suspended` carries a scoreboard because a match suspended at minute 60 has
  * one; `postponed` does not, because it was never played.
  */
 import { describe, expect, test } from 'vitest';
 import { ObservationSchema } from '@/model';
 import { MATCH_ID, OBSERVATION_ID, RAW_REF, SOURCE_FUTGAL } from '../fixtures/model';
+import { SCORE_CASES, UNKNOWN_STATUS } from '../fixtures/score-cases';
 
 const base = {
   id: OBSERVATION_ID,
@@ -17,50 +23,26 @@ const base = {
   raw_ref: RAW_REF,
 };
 
-const WITH_SCORE = ['live', 'finished', 'suspended'] as const;
-const WITHOUT_SCORE = ['scheduled', 'postponed'] as const;
-
-const accepts = (value: unknown) => ObservationSchema.safeParse(value).success;
+const accepts = (value: unknown): boolean => ObservationSchema.safeParse(value).success;
 
 describe('CA-7 — scoreboard per status', () => {
-  test.each(WITH_SCORE)('%s accepts non-negative integers', (status) => {
-    expect(accepts({ ...base, status, home_score: 2, away_score: 0 })).toBe(true);
+  test('the shared table is not empty (the generated cases would be vacuous)', () => {
+    expect(SCORE_CASES.length).toBeGreaterThan(0);
   });
 
-  test.each(WITH_SCORE)('%s rejects a null scoreboard', (status) => {
-    expect(accepts({ ...base, status, home_score: null, away_score: null })).toBe(false);
-  });
-
-  test.each(WITH_SCORE)('%s rejects an absent scoreboard', (status) => {
-    expect(accepts({ ...base, status })).toBe(false);
-  });
-
-  test.each(WITHOUT_SCORE)('%s accepts a null scoreboard', (status) => {
-    expect(accepts({ ...base, status, home_score: null, away_score: null })).toBe(true);
-  });
-
-  test.each(WITHOUT_SCORE)('%s rejects any number as a scoreboard', (status) => {
-    expect(accepts({ ...base, status, home_score: 0, away_score: 0 })).toBe(false);
-    expect(accepts({ ...base, status, home_score: 3, away_score: 1 })).toBe(false);
-  });
-
-  test.each(WITH_SCORE)('%s rejects a negative score', (status) => {
-    expect(accepts({ ...base, status, home_score: -1, away_score: 0 })).toBe(false);
-  });
-
-  test.each(WITH_SCORE)('%s rejects a fractional score', (status) => {
-    expect(accepts({ ...base, status, home_score: 1.5, away_score: 0 })).toBe(false);
+  test.each(SCORE_CASES)('$label', ({ status, scores, accepts: expected }) => {
+    expect(accepts({ ...base, status, ...scores })).toBe(expected);
   });
 
   test('an unknown status is not a status', () => {
-    expect(accepts({ ...base, status: 'aprazado', home_score: null, away_score: null })).toBe(
+    expect(accepts({ ...base, status: UNKNOWN_STATUS, home_score: null, away_score: null })).toBe(
       false,
     );
   });
 });
 
 describe('CA-7 — confidence is a probability', () => {
-  const withConfidence = (confidence: unknown) =>
+  const withConfidence = (confidence: unknown): boolean =>
     accepts({ ...base, status: 'live', home_score: 1, away_score: 0, confidence });
 
   test.each([0, 0.5, 1])('accepts %s', (value) => {

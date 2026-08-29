@@ -41,7 +41,10 @@ describe('0001 declares the invariants the Postgres criteria will check', () => 
   });
 
   test.each([
-    ['CA-15 the rule shape CHECK', "rule ~ '^RN-[0-9]{2}$'"],
+    [
+      'CA-19 the closed list of engine rules',
+      "rule in ('RN-01', 'RN-02', 'RN-03', 'RN-04', 'RN-05', 'RN-06', 'RN-07')",
+    ],
     ['CA-15 the cardinality CHECK', 'cardinality(supporting_observation_ids) >= 1'],
     ['CA-15 the supporting-observations trigger', 'decisions_supporting_observations_exist'],
     ['CA-16 the observations immutability trigger', 'observations_are_immutable'],
@@ -50,8 +53,37 @@ describe('0001 declares the invariants the Postgres criteria will check', () => 
     ['CA-17 the proposed CHECK', 'team_aliases_proposed_has_no_person'],
     ['CA-17 the two-different-teams CHECK', 'matches_two_different_teams'],
     ['CA-12 raw_ref is NOT NULL', 'raw_ref      text             not null'],
+    ['CA-7 the observations scoreboard CHECK', 'observations_score_matches_status'],
+    ['CA-7 the observations non-negativity CHECK', 'observations_scores_non_negative'],
+    ['CA-18 the decisions scoreboard CHECK', 'decisions_score_matches_status'],
+    ['CA-18 the decisions non-negativity CHECK', 'decisions_scores_non_negative'],
   ])('%s is present', async (_what, fragment) => {
     expect(await sql()).toContain(fragment);
+  });
+
+  /**
+   * CA-19: a shape CHECK would let `RN-13` through — it matches `^RN-[0-9]{2}$`
+   * and is a real rule of reglas.md, just not one of the engine.
+   */
+  test('the rule CHECK is a closed list and not a shape', async () => {
+    expect(await sql()).not.toContain("rule ~ '^RN-");
+  });
+
+  /**
+   * CA-18: the two tables carry the SAME scoreboard rule. Comparing the text of
+   * the two CHECKs is crude, but it is the level at which a divergence would
+   * appear as a diff and not as a silent hole in what we publish.
+   */
+  test('decisions and observations carry the same scoreboard rule', async () => {
+    const text = await sql();
+    const pattern =
+      /constraint (?:observations|decisions)_score_matches_status\s+check\s+\(([\s\S]*?)\),\s*\n\s*\n/g;
+    const bodies = [...text.matchAll(pattern)].map((match) =>
+      (match[1] ?? '').replace(/\s+/gu, ' ').trim(),
+    );
+
+    expect(bodies).toHaveLength(2);
+    expect(bodies[0]).toBe(bodies[1]);
   });
 
   test('the immutability triggers are FOR EACH ROW, so TRUNCATE still works', async () => {

@@ -48,6 +48,18 @@ export const decisionWithUnknownRule: Decision = {
   supporting_observation_ids: [OBSERVATION_ID],
 };
 
+/**
+ * 3-bis. RN-12 after CA-19: the rule cited must be a rule of the ENGINE.
+ * 'RN-13' IS in reglas.md, which is exactly why it is the dangerous case: it
+ * looks like traceability and is not (dominio.md: «la regla del motor»).
+ */
+export const decisionCitingAnInvariant: Decision = {
+  ...base,
+  // @ts-expect-error 'RN-13' is a project invariant, not an engine rule (CA-19).
+  rule: 'RN-13',
+  supporting_observation_ids: [OBSERVATION_ID],
+};
+
 /** 4. RN-12: the supporting ids are Observation ids, not Match ids. */
 export const decisionWithMatchIdAsSupport: Decision = {
   ...base,

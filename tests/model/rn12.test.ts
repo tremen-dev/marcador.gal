@@ -5,6 +5,7 @@
 import { describe, expect, test } from 'vitest';
 import { DecisionSchema } from '@/model';
 import {
+  decisionCitingAnInvariant,
   decisionWithMatchIdAsSupport,
   decisionWithNoSupport,
   decisionWithUnknownRule,
@@ -16,6 +17,7 @@ describe('CA-3 — RN-12 at runtime', () => {
     ['a Decision without rule', decisionWithoutRule],
     ['a Decision with no supporting observations', decisionWithNoSupport],
     ['a Decision citing a rule that does not exist', decisionWithUnknownRule],
+    ['a Decision citing a project invariant instead of an engine rule', decisionCitingAnInvariant],
   ])('DecisionSchema rejects %s', (_name, value) => {
     expect(DecisionSchema.safeParse(value).success).toBe(false);
   });

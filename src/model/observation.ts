@@ -1,9 +1,7 @@
 import { z } from 'zod';
 import { RawRefSchema } from '../raw/key';
 import { InstantSchema, MatchIdSchema, ObservationIdSchema, SourceIdSchema } from './ids';
-
-/** A goal count: a non-negative integer. `-1` and `1.5` are not scores. */
-const ScoreSchema = z.int().min(0);
+import { scoredShape, unscoredShape } from './score';
 
 const observationBase = {
   id: ObservationIdSchema,
@@ -15,44 +13,35 @@ const observationBase = {
   raw_ref: RawRefSchema,
 };
 
-const scored = {
-  home_score: ScoreSchema,
-  away_score: ScoreSchema,
-};
-
-const unscored = {
-  home_score: z.null(),
-  away_score: z.null(),
-};
-
 /**
- * `suspended` carries a scoreboard because a match suspended at minute 60 has
- * one; `postponed` does not, because it was never played.
+ * The five branches. The scoreboard rule lives in `./score.ts` and is shared
+ * with `Decision` (CA-18): what we publish is protected by the same rule as
+ * what we observe.
  */
 export const LiveObservationSchema = z.object({
   ...observationBase,
   status: z.literal('live'),
-  ...scored,
+  ...scoredShape,
 });
 export const FinishedObservationSchema = z.object({
   ...observationBase,
   status: z.literal('finished'),
-  ...scored,
+  ...scoredShape,
 });
 export const SuspendedObservationSchema = z.object({
   ...observationBase,
   status: z.literal('suspended'),
-  ...scored,
+  ...scoredShape,
 });
 export const ScheduledObservationSchema = z.object({
   ...observationBase,
   status: z.literal('scheduled'),
-  ...unscored,
+  ...unscoredShape,
 });
 export const PostponedObservationSchema = z.object({
   ...observationBase,
   status: z.literal('postponed'),
-  ...unscored,
+  ...unscoredShape,
 });
 
 /**

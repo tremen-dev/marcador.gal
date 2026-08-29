@@ -130,10 +130,29 @@ create table decisions (
   constraint decisions_status_known
     check (status in ('scheduled', 'live', 'finished', 'postponed', 'suspended')),
 
-  constraint decisions_rule_shape check (rule ~ '^RN-[0-9]{2}$'),
+  -- CA-19 — a Decision can only cite a rule of the ENGINE. This is a closed
+  -- list and not a shape (`~ '^RN-[0-9]{2}$'`) on purpose: 'RN-13' matches the
+  -- shape, is a real rule of reglas.md, and still cannot have produced a
+  -- Decision. dominio.md says «la regla DEL MOTOR»; reglas.md keeps
+  -- RN-08..RN-13 in a separate section, «Invariantes del proyecto».
+  constraint decisions_rule_shape
+    check (rule in ('RN-01', 'RN-02', 'RN-03', 'RN-04', 'RN-05', 'RN-06', 'RN-07')),
 
   constraint decisions_has_support
-    check (cardinality(supporting_observation_ids) >= 1)
+    check (cardinality(supporting_observation_ids) >= 1),
+
+  -- CA-18 — what we publish is protected at least as much as what we observe.
+  -- Character for character the same rule as `observations_score_matches_status`
+  -- above; there is a test that fails if the two texts stop agreeing.
+  constraint decisions_score_matches_status
+    check ((status in ('live', 'finished', 'suspended')
+            and home_score is not null and away_score is not null)
+           or (status in ('scheduled', 'postponed')
+               and home_score is null and away_score is null)),
+
+  constraint decisions_scores_non_negative
+    check ((home_score is null or home_score >= 0)
+           and (away_score is null or away_score >= 0))
 );
 
 -- RN-12, the half a CHECK cannot express: an array admits no foreign key, so

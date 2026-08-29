@@ -32,7 +32,8 @@ export function requireTestDatabaseUrl(env: NodeJS.ProcessEnv = process.env): st
   if (url === undefined || url.length === 0) {
     throw new MissingDatabaseUrlError(
       'DATABASE_URL_TEST',
-      'SPEC-001 CA-13..CA-17 must run against a real (Neon test branch) Postgres; ' +
+      'SPEC-001 CA-7 (Postgres half), CA-13..CA-17, CA-18.3 and CA-19.3 must run ' +
+        'against a real (Neon test branch) Postgres; ' +
         'the gate of 2026-08-29 ruled that without it those criteria are UNMET, ' +
         'not skipped. Set it and run `npm run test:db` again.',
     );
