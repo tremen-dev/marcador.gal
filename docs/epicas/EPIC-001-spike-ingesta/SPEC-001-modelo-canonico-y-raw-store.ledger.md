@@ -7,6 +7,11 @@ epica: EPIC-001
 
 ## Resumen
 - Fase: **aprobada** por Alberto Fojo el 2026-08-29. Lista para sdd-implementador.
+- **Enmendada el 2026-08-29 por sdd-arquitecto** (F-SPEC-001-9 y F-SPEC-001-10,
+  arbitrados por el humano). La spec gana **CA-18** y **CA-19**, reescribe
+  **CA-14** y amplía **CA-7**. El contrato contra el que verifica
+  `sdd-verificador` es el texto **enmendado**; ver *Historial de enmiendas* al
+  final de la spec. `estado` sigue `en-progreso`, sin tocar.
 
 ## Decisiones del gate humano (2026-08-29)
 
@@ -45,6 +50,17 @@ epica: EPIC-001
 | CA-15 RN-12 nivel Postgres | `migrations/0001_canonical_model.sql` (CHECKs + trigger `decisions_supporting_observations_exist`) | `tests/db/rn12.test.ts` **PENDIENTE DE VERIFICACIÓN** | | ❌ |
 | CA-16 RN-13 nivel Postgres | `migrations/0001_canonical_model.sql` (`reject_amendment` + dos triggers FOR EACH ROW) | `tests/db/rn13.test.ts` **PENDIENTE DE VERIFICACIÓN** | | ❌ |
 | CA-17 RN-09 nivel Postgres | `migrations/0001_canonical_model.sql` (CHECKs de `team_aliases`, PK `(alias, source, season)`, `matches_two_different_teams`) | `tests/db/rn09.test.ts` **PENDIENTE DE VERIFICACIÓN** | | ❌ |
+| CA-18 coherencia marcador/estado de `Decision` (tipo + zod + Postgres) | | | | ❌ |
+| CA-19 `rule` restringido a RN-01..RN-07 (tipo + zod + Postgres) | | | | ❌ |
+
+> **Filas añadidas por sdd-arquitecto (enmienda 2026-08-29), sin rellenar
+> Implementado/Test/Verif.** CA-18 y CA-19 están **sin empezar**.
+> **Criterios reabiertos por la misma enmienda, aunque su fila ya estuviera
+> escrita:** CA-7 (gana el nivel Postgres para `observations` — el `CHECK` ya
+> está en `migrations/0001`, pero no estaba especificado ni tiene test propio),
+> CA-14 (contrato reescrito: `tests/db/parity.test.ts` cumple hoy la letra
+> antigua, no la nueva) y CA-3 (su caso 3 gana el literal `rule: 'RN-13'` cuando
+> se aplique CA-19). El implementador tiene que volver sobre los tres.
 
 ### Estado de la verificación por tanda (sdd-implementador, 2026-08-29)
 
@@ -157,6 +173,28 @@ para poder avanzar; el verificador y el humano tienen la última palabra.
   con `aliases` como única entrada de la segunda y el motivo escrito al lado.
   Destino: el arquitecto, si quiere que CA-14 recoja la excepción.
 
+  > **RESUELTO por sdd-arquitecto (2026-08-29). CA-14 reescrito.** La solución de
+  > dos listas es la dirección correcta —la excepción tiene que estar declarada,
+  > no inferida— pero tal como estaba, `zodOnly` es una lista abierta: cualquier
+  > campo que alguien olvide migrar se calla añadiendo su nombre ahí, y el test
+  > deja de ser la red antideriva y pasa a ser un formulario. CA-14 conserva las
+  > dos listas y les pone tres cierres:
+  > 1. cada entrada lleva **motivo escrito** (mapa, no array de nombres) y el
+  >    motivo vacío falla;
+  > 2. cada entrada de `zodOnly` declara la **tabla** donde vive el dato, y el
+  >    test comprueba contra `information_schema` que existe y tiene **FK** hacia
+  >    la tabla de la que se excluye la clave. Un campo sin migrar no tiene tabla
+  >    a la que apuntar: la única salida sigue siendo migrarlo;
+  > 3. una entrada **no usada** falla, en las dos listas. Las excepciones no
+  >    sobreviven al campo que las justificaba.
+  > Se descartó la alternativa de sacar `aliases` de `TeamSchema` (con un
+  > `TeamWithAliases` aparte): contradice `dominio.md`, que define `Team` como
+  > `(id, canonical_name, aliases[])`, y compra la paridad al precio de deformar
+  > el modelo canónico para que se parezca a las tablas — que es exactamente lo
+  > contrario de lo que CA-14 defiende.
+  > Trabajo para el implementador: `tests/db/parity.test.ts` cumple la letra
+  > antigua, no la nueva.
+
 - **F-SPEC-001-10** — *La coherencia marcador/estado de `Decision` no está
   especificada.* CA-7 habla solo de `Observation`. Se ha implementado
   `Decision.home_score`/`away_score` como `int >= 0` **nullable sin más**, es
@@ -164,6 +202,24 @@ para poder avanzar; el verificador y el humano tienen la última palabra.
   consecuencia es que hoy `DecisionSchema` acepta `status: 'scheduled'` con
   marcador `5`, que es lo que publicamos y probablemente no debería pasar.
   Destino: decisión del arquitecto (¿se extiende CA-7 a `Decision`?).
+
+  > **RESUELTO por sdd-arquitecto (2026-08-29), tras el arbitraje del humano
+  > («no me gusta, déjalo bien hecho»). Añadido CA-18.** El hallazgo tiene razón
+  > en no inventar, y la spec tenía el agujero: lo que se publica estaba **menos**
+  > protegido que lo que se observa, al revés de como debe ser, y en contra del
+  > principio rector de la propia spec. `DecisionSchema` pasa a ser unión
+  > discriminada por `status`, con las mismas cinco ramas y la misma tabla de
+  > verdad que `ObservationSchema`, y con red en los tres niveles: tipo
+  > (`@ts-expect-error`), zod (`safeParse`) y Postgres
+  > (`decisions_score_matches_status` + `decisions_scores_non_negative`).
+  > Se ha creado CA-18 en vez de ampliar CA-7 para no reabrir un criterio ya
+  > implementado a medio verificar y para que el nivel Postgres viva junto a
+  > CA-15..CA-17. CA-7 sí gana una línea: el `CHECK` de `observations` estaba
+  > implementado sin estar especificado.
+  > **La segunda mitad de la pregunta —`provisional` y `rule` frente al estado—**
+  > se responde así: `rule` **sí** se restringe (CA-19, RN-01..RN-07: `dominio.md`
+  > dice «la regla del motor»); `provisional` **no**, porque `reglas.md` no da el
+  > dato. Ver F-SPEC-001-13/14/15.
 
 - **F-SPEC-001-11** — *`RawObjectMeta` es mínima a propósito*: `source`,
   `competition_id`, `fetched_at` y `ext`, que es lo que la clave necesita. Los
@@ -175,6 +231,37 @@ para poder avanzar; el verificador y el humano tienen la última palabra.
   TypeScript directamente y `npm run db:migrate` lo necesita), los `exclude` de
   `vitest.config.ts`, `vitest.integration.config.ts` y los scripts `db:migrate`,
   `test:db`, `test:blob` y `test:integration`. Ninguna dependencia nueva.
+
+Abiertas por sdd-arquitecto al enmendar (2026-08-29). Las tres son **huecos de
+`reglas.md`** detectados al preguntarse si `provisional` interactúa con el
+estado. **No se han rellenado**: son reglas de negocio y no las escribe el
+arquitecto sobre una spec.
+
+- **F-SPEC-001-13** — *RN-01 no da peso a la corrección humana del panel.* La
+  tabla de pesos cubre RFGF 1.0, API de pago 0.9, corresponsal confirmado 0.8,
+  agregador 0.7 y tuit de club 0.5. El **operador corrigiendo desde el panel** no
+  aparece, y no es lo mismo que un corresponsal. Sin ese peso, RN-02 y RN-03 no
+  pueden decidir si una `Decision` nacida del panel sale *confirmado* o
+  *provisional* — y RN-04 y RN-06 le dan a ese humano poder de bajar un marcador
+  y de aplazar un partido. Destino: `reglas.md`, vía sdd-producto o el humano;
+  bloquea de hecho a la spec del motor.
+
+- **F-SPEC-001-14** — *RN-03 no define* provisional *para una `Decision` sin
+  marcador.* RN-03 habla de publicar un marcador; `scheduled` y `postponed` no
+  publican ninguno. No se ha fijado nada en CA-18: `provisional` sigue siendo un
+  `boolean` libre en las cinco ramas. Prohibir `provisional` sin marcador sería
+  inventar; y hoy, con RN-01 y RN-06 tal como están, una `Decision` `postponed`
+  **provisional** es derivable (un corresponsal de peso 0.8 aplaza), así que
+  prohibirla contradiría `reglas.md` en vez de completarlo. Destino: `reglas.md`.
+
+- **F-SPEC-001-15** — *`rule` es una sola y las reglas concurren.* `dominio.md`
+  fija **una** `rule` por `Decision`, pero `reglas.md` dice que RN-01..RN-07 se
+  aplican **en orden** y varias pueden satisfacerse a la vez: una transición
+  `scheduled → live` con una única fuente de peso 0.8 cumple RN-06 *y* RN-03.
+  `reglas.md` no dice cuál se registra. Si se resuelve tarde, el spike acaba con
+  un campo `rule` cuyo valor depende de quién escribió cada rama del motor —
+  y `rule` es la mitad de RN-12. Destino: spec del motor de decisiones, con
+  `reglas.md` como fuente.
 
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
@@ -197,9 +284,30 @@ desechable) y `BLOB_READ_WRITE_TOKEN`:**
 2. `npm run test:db` y `npm run test:blob`, y pegar la salida en el veredicto.
    Ojo: `tests/db/_harness.ts` hace `drop schema public cascade` — apuntar solo
    a una rama desechable.
-3. Revisar F-SPEC-001-5 a F-SPEC-001-10: son contradicciones reales de la spec
-   resueltas por interpretación, y la de CA-14 (`aliases`) y la de `Decision`
-   (F-SPEC-001-10) merecen una decisión explícita antes de cerrar.
+3. Revisar F-SPEC-001-5 a F-SPEC-001-8: son contradicciones reales de la spec
+   resueltas por interpretación. F-SPEC-001-9 y F-SPEC-001-10 **ya están
+   resueltos** por la enmienda del arquitecto (2026-08-29).
+
+**Trabajo nuevo que deja la enmienda del 2026-08-29** (sdd-implementador; el
+arquitecto no toca código):
+
+1. **CA-18** — convertir `DecisionSchema` en unión discriminada por `status`,
+   con las mismas cinco ramas que `ObservationSchema`; añadir
+   `tests/types/ca18.test-d.ts` (4 `@ts-expect-error` + estrechamiento), la
+   mitad zod compartiendo tabla de casos con `tests/model/scores.test.ts`, y en
+   `migrations/0001` los `CHECK` `decisions_score_matches_status` y
+   `decisions_scores_non_negative` con su suite de integración.
+2. **CA-19** — reducir `DECISION_RULES` a `RN-01..RN-07`, sustituir
+   `decisions_rule_shape` por una lista cerrada, y añadir `rule: 'RN-13'` al
+   caso 3 de CA-3.
+3. **CA-14** — reescribir `tests/db/parity.test.ts` contra el contrato nuevo:
+   mapas con motivo, `zodOnly` con tabla verificada y FK comprobada, y fallo por
+   entrada no usada.
+4. **CA-7** — test explícito del `CHECK` de `observations` a nivel Postgres (la
+   restricción ya está escrita en `migrations/0001`; le falta el caso).
+
+La migración `0001` todavía **no se ha aplicado a ninguna base**: los cambios de
+CA-18 y CA-19 van dentro de ella, no en una `0002`.
 
 **No transicionado a `en-revision`:** faltan seis CA por verificar. El estado lo
 mueve el humano o el verificador cuando estén los diecisiete.
