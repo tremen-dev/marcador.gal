@@ -42,19 +42,29 @@ es éxito**: la épica falla solo si termina sin cifras fiables.
 **Dentro:**
 - Dos competiciones: **Tercera RFEF grupo 1** (representa lo nacional) y
   **Preferente Futgal grupo 1** (representa lo galego).
-- Modelo canónico, raw store (RN-10) y scheduler con calendario cargado a mano.
-- Adaptadores de futgal.es y ceroacero.es; bot de Telegram con parseo LLM y
-  confirmación humana (ADR-002).
+- Modelo canónico (zod), raw store (RN-10, ADR-005) y planificación por Vercel
+  Cron a 1/min con calendario cargado a mano.
+- **Test de espejo el día 2** (ADR-002): una hora de observación para saber si
+  ceroacero y resultados-futbol.com son independientes de futgal *antes* de
+  construir el motor sobre esa hipótesis.
+- Adaptadores de futgal.es, ceroacero.es y resultados-futbol.com; bot de Telegram
+  con parseo LLM y confirmación humana (ADR-002).
 - Catálogo de alias de los 36 equipos, confirmado por una persona (RN-09).
 - Motor de decisiones con RN-01..RN-07 y tests de replay sobre HTML guardado.
-- Snapshot + SSE (ADR-003) y **una página HTML sin diseño**: tabla de partidos,
-  marcador, estado, hora del último dato y color para provisional / confirmado /
-  *sen sinal*.
+- Snapshot y **una página HTML sin diseño** que lo lee **por polling**: tabla de
+  partidos, marcador, estado, hora del último dato y color para provisional /
+  confirmado / *sen sinal*.
+- **Instrumentación de las cuatro métricas.** Es el entregable, no un extra: sin
+  ella la épica no produce nada.
 - Panel mínimo de alertas y correcciones, usable desde el móvil.
 - Exploración del tráfico de la app de la RFGF (proxy local), **solo** para
   conocer datos y latencia.
 
 **Fuera (aparcado a propósito, no por descuido):**
+- **La implementación de SSE** (ADR-003). La decisión del protocolo está tomada,
+  pero ninguna de las cuatro métricas la necesita: todas salen de cruzar
+  `Observation` y `Decision`, y «publicado» se mide como «Decision escrita». El
+  día que el plan original le dedicaba se reasigna a instrumentar las métricas.
 - Interfaz definitiva, identidad visual, landing.
 - Usuarios, cuentas, notificaciones push.
 - Más competiciones (Primeira/Segunda Galega, femenino, Primera, Segunda).
@@ -66,9 +76,13 @@ es éxito**: la épica falla solo si termina sin cifras fiables.
 <!-- El estado por spec vive en el frontmatter de cada spec; el tablero agregado se regenera con /sdd-tablero (docs/tablero.md). No mantengas listas de specs a mano aquí. -->
 
 Sin specs todavía. Descomposición prevista, a redactar por `/sdd-arquitecto`:
-modelo canónico + raw store · scheduler y calendario · adaptador futgal ·
-adaptador ceroacero · bot de Telegram · motor de decisiones · snapshot + SSE +
-página mínima · panel de alertas · instrumentación de las cuatro métricas.
+modelo canónico (zod) + raw store · cron de planificación y calendario ·
+**test de espejo (día 2)** · adaptador futgal · adaptador ceroacero · adaptador
+resultados-futbol.com · bot de Telegram · motor de decisiones · snapshot + página
+mínima por polling · panel de alertas · instrumentación de las cuatro métricas.
+
+Las specs no pueden empezar hasta que ADR-001 (stack) y ADR-004 (plataforma) estén
+firmados: ambos determinan la forma de casi todas ellas.
 
 ## Riesgos
 
@@ -77,9 +91,12 @@ página mínima · panel de alertas · instrumentación de las cuatro métricas.
 - **La app de la RFGF no expone nada usable.** Entonces futgal.es es la única
   oficial y la latencia será la que sea; el dato va al informe y a la conversación
   con la federación.
-- **ceroacero resulta ser espejo de futgal.** RN-02 deja de ser aplicable y casi
-  todo se publica provisional. Es un hallazgo, no un fallo, pero cambia el diseño
-  del motor.
+- **Todas las fuentes automáticas resultan espejos de futgal.** RN-02 deja de ser
+  aplicable y casi todo se publica provisional. Es un hallazgo, no un fallo, pero
+  cambia el diseño del motor — y por eso se comprueba el día 2, no el lunes final.
+- **Los límites de Vercel muerden más de lo previsto** (ADR-004): frecuencia mínima
+  de 1/min en vez de 30–60 s, y sin proceso vivo hay que escribir a mano la lógica
+  de ventanas por partido que APScheduler daba hecha.
 - **Horarios cambiados y aplazamientos.** Refresco de calendario cada 6 h;
   `postponed` solo por fuente oficial (RN-06).
 - **El humano no está.** El corresponsal en el spike es el autor. Medir los

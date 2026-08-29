@@ -33,12 +33,15 @@ en el ledger de cada spec. Empieza por `FOUNDATION.md`.
 | `docs/fundacion/retos.md` | Análisis de retos: legal, datos, técnico, diseño, operativo |
 | `docs/fundacion/spike-ingesta-propuesta.md` | Documento fuente del spike (referencia histórica) |
 | `docs/epicas/` | Épicas |
-| `docs/adr/` | ADRs (los tres actuales, en **borrador**: sin firmar) |
+| `docs/adr/` | ADRs (los cinco actuales, en **borrador**: sin firmar) |
 | `docs/negocio/` | Monetización y marca |
 
 ## Arranque
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
+npm install
+npm run dev
 ```
+
+Node 22 o superior. Stack y plataforma en `docs/adr/ADR-001-stack.md` y
+`ADR-004-plataforma.md` — ambos **sin firmar**.

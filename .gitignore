@@ -1,7 +1,11 @@
-.venv/
-__pycache__/
-*.pyc
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
 .env
+.env.local
+.vercel
+coverage/
 raw/*
 !raw/.gitkeep
-.pytest_cache/

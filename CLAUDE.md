@@ -63,21 +63,31 @@ añade allí **antes** de usarse.
 - Nombres de equipos y competiciones: los **canónicos de la RFGF**. No se traducen
   (ver `dominio.md`).
 
-## Stack (ADR-001, en borrador)
+## Stack y plataforma (ADR-001 y ADR-004, ambos en borrador)
 
-Python 3.12 · FastAPI · httpx · APScheduler · selectolax · python-telegram-bot ·
-pydantic · Postgres. Sin colas, sin Kubernetes, sin Redis hasta que un ADR lo
-justifique.
+Node 22 · TypeScript estricto · Next.js (App Router) · cheerio · zod · grammY ·
+Postgres · vitest. Desplegado en **Vercel Pro**.
+
+Consecuencias que se olvidan y rompen cosas:
+- **No hay scheduler en proceso.** La ingesta va en Vercel Cron a 1/minuto, que
+  coincide con el techo de RN-11. Las ventanas por partido se calculan dentro del
+  tick.
+- **No hay disco.** Sistema de ficheros efímero: el raw store es un puerto con
+  Vercel Blob en producción y disco en local y tests (ADR-005).
+- **No hay `LISTEN/NOTIFY`.** Sin proceso vivo no hay bus interno.
+- `zod` define el modelo canónico, valida la salida JSON del LLM (RN-09) **y
+  exporta el tipo que consume el frontend**. Ese contrato único es la razón de
+  elegir Node; no lo dupliques a mano.
 
 ## Estructura
 
 ```
-src/ingest/   adaptadores por fuente + scheduler
-src/decide/   modelo canónico + motor de decisiones
-src/api/      snapshot + stream SSE
+src/ingest/   adaptadores por fuente + cron de planificación
+src/decide/   modelo canónico (zod) + motor de decisiones
+src/api/      snapshot (+ stream SSE, fuera de EPIC-001)
 src/admin/    panel mínimo de correcciones y alertas (móvil)
 tests/        replay de jornadas sobre HTML guardado
-raw/          respuestas crudas de fuentes (no versionar contenido)
+raw/          respuestas crudas en local; en producción, Vercel Blob
 
 FOUNDATION.md            constitución (D-1..D-8 locked)
 docs/tablero.md          estado agregado (GENERADO)

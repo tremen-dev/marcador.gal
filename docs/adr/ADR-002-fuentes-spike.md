@@ -22,13 +22,27 @@ fuentes disponibles son realmente independientes o espejos unas de otras.
 
 ## Decisión
 
-Tres fuentes en el spike:
+**Cuatro** fuentes en el spike:
 
 1. **futgal.es** — fuente oficial para Preferente Futgal G1 y Tercera RFEF G1. HTML, sin API.
 2. **ceroacero.es** — contraste para ambas competiciones, a ritmo bajo.
-3. **Bot de Telegram** — corresponsal humano, push, gratis.
+3. **resultados-futbol.com (BeSoccer)** — segundo contraste, por HTML. Un adaptador
+   más sobre una interfaz que ya existe.
+4. **Bot de Telegram** — corresponsal humano, push, gratis.
 
-Quedan **fuera** del spike: API-Football, BeSoccer API y X API.
+Quedan **fuera** del spike: las APIs de pago (API-Football, BeSoccer API) y X API.
+
+### Test de espejo, día 2 — antes de construir el motor
+
+Toda la métrica de conflictos depende de que las fuentes automáticas sean
+**independientes**. Eso se comprueba con una hora de observación el **día 2**:
+registrar, en una tanda de partidos en juego, quién cambia primero y si alguna
+fuente cambia *siempre* después de futgal y *nunca* antes.
+
+Es un entregable con fecha propia, no un hallazgo del informe final. Si ceroacero
+y BeSoccer resultan ser espejos de futgal, hay **una sola fuente automática
+independiente** y RN-02 no es aplicable: el motor se diseña sabiéndolo, no se
+descubre el lunes siguiente.
 
 El backend de la app de la RFGF se explora observando el tráfico de la app
 (proxy local) **solo** para conocer qué datos publica y con qué latencia. No se
@@ -39,14 +53,21 @@ construye nada sobre él.
 ### Positivas
 - Cobertura oficial de las dos competiciones con una sola fuente.
 - Coste cero en licencias durante el spike.
+- Con tres fuentes automáticas, RN-02 sigue siendo aplicable aunque una de ellas
+  resulte ser espejo. Es lo que compra el tercer adaptador.
 - Se mide directamente si ceroacero es fuente independiente o espejo de futgal,
   que es lo que decide si RN-02 (dos fuentes ≥ 0.7 coincidentes) es aplicable.
 
 ### Negativas / follow-ups
-- Si ceroacero resulta ser espejo de futgal, el spike se queda con **una** fuente
-  automática independiente por competición y el motor solo podrá publicar
-  provisional sin intervención del corresponsal. Ese resultado es un hallazgo del
-  spike, no un fallo.
+- Si ceroacero **y** BeSoccer resultan espejos de futgal, el spike se queda con una
+  sola fuente automática independiente y el motor solo podrá publicar provisional
+  sin intervención del corresponsal. Sigue siendo un hallazgo, no un fallo — pero
+  con el test del día 2 se sabe a tiempo de rediseñar.
+- Un adaptador más que escribir y mantener durante una semana de plazo apretado.
+  El coste es bajo porque la interfaz `fetch(competition, round) -> Observation[]`
+  ya existe, pero no es cero.
+- Las ToS de resultados-futbol.com hay que revisarlas igual que las de ceroacero
+  (consultar a `sdd-legal-datos`).
 - Producción con datos de la RFGF requiere **acuerdo con la federación**. El
   objetivo del spike es llegar a esa conversación con números: "vuestro dato,
   nuestra pantalla".
@@ -65,3 +86,6 @@ construye nada sobre él.
   merece la pena más adelante.
 - **Solo futgal.es.** Rechazado: sin segunda fuente no se puede medir la métrica
   de conflictos, que es una de las cuatro que deciden el proyecto.
+- **Dos fuentes y comprobar la independencia al final** (la decisión original).
+  Rechazado: deja que todo el motor se construya sobre una hipótesis que puede
+  estar muerta, y el coste de descubrirlo tarde es rehacer el trabajo de la semana.
