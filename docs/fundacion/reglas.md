@@ -4,8 +4,12 @@
 > se marcan derogadas con fecha y motivo.
 >
 > RN-01 a RN-07 son el **motor de decisiones**, extraídas de la §5 de la
-> propuesta de spike (`spike-ingesta-propuesta.md`). RN-08 a RN-12 son
+> propuesta de spike (`spike-ingesta-propuesta.md`). RN-08 a RN-13 son
 > **invariantes del proyecto**, extraídas de las reglas duras de `CLAUDE.md`.
+>
+> **El corte importa:** solo una regla del motor puede producir una `Decision`,
+> y por eso `rule` está restringida a RN-01..RN-07 (SPEC-001 CA-19). Un
+> invariante no decide nada; citarlo en `rule` sería trazabilidad falsa.
 > Los umbrales de RN-01 a RN-07 son hipótesis que el spike (EPIC-001) debe
 > validar: pueden cambiar con evidencia, y ese cambio se registra aquí con fecha.
 
