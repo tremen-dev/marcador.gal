@@ -78,16 +78,28 @@ Consecuencias que se olvidan y rompen cosas:
 - `zod` define el modelo canónico, valida la salida JSON del LLM (RN-09) **y
   exporta el tipo que consume el frontend**. Ese contrato único es la razón de
   elegir Node; no lo dupliques a mano.
+- **El modelo canónico vive en `src/model/`, no en `src/decide/`.** Lo importa el
+  frontend; no puede colgar del motor.
+- **Los instantes son cadenas ISO 8601 UTC, nunca `Date`** (ADR-006). `Date` no
+  sobrevive a `JSON.stringify`/`parse` y el tipo cruza al cliente por JSON.
+- Acceso a datos con `postgres.js` y SQL etiquetado. **Sin ORM**: RN-12 y RN-13
+  viven en triggers de plpgsql y en `CHECK` sobre arrays (ADR-006).
+- Migraciones: `migrations/NNNN_slug.sql` en orden, sin rollback automático.
+  Deshacer es escribir la migración siguiente.
 
 ## Estructura
 
 ```
+src/model/    modelo canónico en zod + tipos derivados (SPEC-001)
+src/raw/      puerto RawStore: store.ts, disk.ts, blob.ts, capture.ts (SPEC-001)
+src/db/       cliente postgres.js, runner de migraciones, puertos (SPEC-001)
+migrations/   SQL numerado, aplicado en orden (ADR-006)
 src/ingest/   adaptadores por fuente + cron de planificación
-src/decide/   modelo canónico (zod) + motor de decisiones
+src/decide/   motor de decisiones (RN-01..RN-07)
 src/api/      snapshot (+ stream SSE, fuera de EPIC-001)
 src/admin/    panel mínimo de correcciones y alertas (móvil)
-tests/        replay de jornadas sobre HTML guardado
-raw/          respuestas crudas en local; en producción, Vercel Blob
+tests/        model/ raw/ db/ types/ · fixtures/raw/ HTML versionado del replay
+raw/          raíz de DiskRawStore en local; NO versionado
 
 FOUNDATION.md            constitución (D-1..D-8 locked)
 docs/tablero.md          estado agregado (GENERADO)
