@@ -29,9 +29,11 @@ Roles de dominio consultivos: `/sdd-competicion`, `/sdd-legal-datos`,
 
 Fase: **spike de ingesta** (`EPIC-001`). Objetivo: medir latencia, cobertura,
 conflictos y minutos de operación manual con Tercera RFEF G1 + Preferente Futgal
-G1. Sin código todavía: no existe `src/`.
+G1. Ya hay código: `src/model/`, `src/raw/` y `src/db/` implementados y
+`migrations/0001` aplicada — SPEC-001, hecha y verificada GREEN. `src/ingest/`,
+`src/decide/` y `src/api/` siguen sin existir.
 
-Los cinco ADRs están **aprobados** y son inmutables. Para cambiar cualquiera de
+Los siete ADRs están **aprobados** y son inmutables. Para cambiar cualquiera de
 ellos, escribe otro ADR que lo supersede; no los edites.
 
 ## Reglas duras
@@ -63,10 +65,15 @@ añade allí **antes** de usarse.
 - Nombres de equipos y competiciones: los **canónicos de la RFGF**. No se traducen
   (ver `dominio.md`).
 
-## Stack y plataforma (ADR-001 y ADR-004, aprobados)
+## Stack y plataforma (ADR-001, ADR-004, ADR-006, ADR-007, aprobados)
 
 Node 22 · TypeScript estricto · Next.js (App Router) · cheerio · zod · grammY ·
-Postgres · vitest. Desplegado en **Vercel Pro**.
+Postgres · vitest. Linter: **oxlint** con reglas type-aware (`.oxlintrc.json`,
+ADR-007). Desplegado en **Vercel Pro**.
+
+Gate de calidad: `npm run lint` → `oxlint --type-aware`. Lo exige `.sdd.json`
+(`gates.calidad`) y lo ejecuta el Verificador. **No hay CI todavía**: hoy solo
+corre en local, así que nadie lo pasa por ti.
 
 Consecuencias que se olvidan y rompen cosas:
 - **No hay scheduler en proceso.** La ingesta va en Vercel Cron a 1/minuto, que
