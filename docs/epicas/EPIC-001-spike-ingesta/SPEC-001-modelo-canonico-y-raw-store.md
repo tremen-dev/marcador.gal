@@ -2,11 +2,14 @@
 id: SPEC-001
 tipo: spec
 epica: EPIC-001
-estado: aprobada
+estado: hecho
 aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-08-29, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-29, por: Alberto Fojo}
+  - {estado: en-progreso, fecha: 2026-08-29, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-08-29, por: sdd-verificador}
+  - {estado: hecho, fecha: 2026-08-29, por: sdd-verificador}
 ---
 # SPEC-001 — Modelo canónico y raw store
 
@@ -167,6 +170,12 @@ Reglas que esta spec debe hacer cumplir y verificar:
   `suspended` lleva marcador porque un partido suspendido en el minuto 60 tiene
   uno; `postponed` no, porque no se jugó.
   `confidence` es `z.number().min(0).max(1)`; rechaza `1.5` y `-0.1`.
+  **Añadido por la enmienda 2026-08-29 §1 (nivel Postgres).** La tabla
+  `observations` lleva además `CHECK` con la misma tabla de verdad —marcador no
+  nulo si y solo si `status in ('live','finished','suspended')`— y `CHECK` de no
+  negatividad. Estaba implementado sin estar especificado; queda especificado
+  para que CA-7 y CA-18 sean el mismo criterio aplicado a las dos tablas, y para
+  que el verificador tenga contra qué juzgarlo.
 
 - **CA-8 — Los cualificadores de dominio.md son un tipo, y en galego.**
   Dado `src/model/qualifier.ts`, entonces exporta
@@ -253,13 +262,47 @@ Reglas que esta spec debe hacer cumplir y verificar:
   Cuando se ejecuta **por segunda vez**, entonces termina con éxito, no aplica
   nada y `schema_migrations` sigue con una sola fila.
 
-- **CA-14 — El esquema y los esquemas zod no pueden separarse en silencio.**
+- **CA-14 — El esquema y los esquemas zod no pueden separarse en silencio, y
+  cada excepción se justifica de una en una.**
+  *(Reescrito por la enmienda 2026-08-29 §2. Ver Historial de enmiendas.)*
   Dado el esquema aplicado, cuando un test consulta `information_schema.columns`
   para cada tabla, entonces el conjunto de nombres de columna es **igual** al
-  conjunto de claves del esquema zod correspondiente, salvo una lista explícita
-  y declarada en el propio test de columnas solo-BD (`created_at`).
+  conjunto de claves del esquema zod correspondiente —tomando la **unión** de las
+  ramas cuando el esquema es una unión discriminada—, salvo las excepciones
+  declaradas en el propio test como **dos mapas con motivo escrito**, nunca como
+  listas de nombres sueltos:
+  1. `dbOnly: Record<columna, motivo>` — columnas que existen solo en Postgres.
+     Hoy, `created_at` en las seis tablas.
+  2. `zodOnly: Record<clave, { table: string; reason: string }>` — claves del
+     modelo canónico que **no** son una columna porque son una **relación
+     materializada en su propia tabla**. Hoy la única entrada legítima es
+     `Team.aliases → team_aliases`, que nace del refinamiento §1 de esta spec
+     junto con CA-17.
+  Y el test hace cumplir estas cuatro condiciones, que son las que convierten la
+  excepción en un puente declarado y no en un agujero:
+  1. **La excepción de zod tiene que señalar dónde vive el dato.** Para cada
+     entrada de `zodOnly`, el test comprueba contra `information_schema` que la
+     tabla declarada en `table` **existe** y que tiene una clave foránea hacia la
+     tabla de la que se excluye la clave. Un campo que alguien olvidó migrar no
+     tiene tabla a la que apuntar, así que no puede esconderse aquí: la única
+     forma de silenciarlo sería inventarse una tabla y su FK, que es
+     exactamente el trabajo que se estaba olvidando.
+  2. **No hay excepciones muertas.** Toda entrada de `dbOnly` y de `zodOnly`
+     tiene que ser *usada*: si la columna declarada en `dbOnly` ya no existe, o
+     si la clave declarada en `zodOnly` ya no está en el esquema zod, el test
+     **falla**. Una lista de excepciones que sobrevive al campo que la
+     justificaba es la forma en que estas redes se pudren.
+  3. **Sin motivo no hay excepción.** `motivo` y `reason` son cadenas con
+     `.length > 0`; una entrada con el motivo vacío falla el test.
+  4. **Las dos listas son cerradas.** Cualquier diferencia entre columnas y
+     claves que no esté en uno de los dos mapas falla, sin nivel de aviso
+     intermedio.
   Este es el test que falla el día que alguien añade un campo a `Observation` y
-  se olvida de la migración, o al revés.
+  se olvida de la migración, o al revés. La condición 1 es la que impide que ese
+  mismo día alguien lo "arregle" metiendo el campo en `zodOnly`.
+  **Si algún día aparece una relación legítima que no puede llevar FK**, se
+  enmienda CA-14 explícitamente para admitirla; no se relaja la comprobación
+  sobre la marcha.
 
 - **CA-15 (RN-12, nivel Postgres) — La base de datos también sabe RN-12.**
   Dada la tabla `decisions`, entonces estos cuatro `INSERT` fallan y el quinto
@@ -299,6 +342,94 @@ Reglas que esta spec debe hacer cumplir y verificar:
      equipos;
   4. `INSERT` con `status` fuera de `('proposed','confirmed')` falla.
   Y en `matches`, `CHECK (home_id <> away_id)`.
+
+### Coherencia de lo que publicamos (enmienda 2026-08-29)
+
+- **CA-18 (D-6, simetría con CA-7) — Lo que se publica está protegido al menos
+  tanto como lo que se observa.**
+  Hoy la asimetría va al revés: `ObservationSchema` es una unión discriminada que
+  hace imposible un marcador sin partido jugado, y `DecisionSchema` lleva
+  `home_score` / `away_score` como `z.int().min(0).nullable()` sueltos, de modo
+  que una `Decision` con `status: 'scheduled'` y marcador `5-3` parsea sin
+  protestar. Es el agujero justo en la entidad que sale a pantalla.
+  Dado que `DecisionSchema` pasa a ser una **unión discriminada por `status`**
+  con exactamente las mismas cinco ramas y la misma regla de marcador que
+  `ObservationSchema`, entonces:
+  1. **Nivel tipo — no compila.** `tests/types/ca18.test-d.ts` pasa
+     `npm run typecheck` con un `// @ts-expect-error` sobre cada uno de estos
+     cuatro literales:
+     a. una `Decision` con `status: 'scheduled'` y `home_score: 5`;
+     b. una `Decision` con `status: 'postponed'` y `away_score: 0`;
+     c. una `Decision` con `status: 'live'` y `home_score: null`;
+     d. una `Decision` con `status: 'finished'` sin `home_score`.
+     Y el mismo fichero demuestra el estrechamiento: dentro de
+     `if (decision.status === 'live')`, `decision.home_score` es `number` y no
+     `number | null`, comprobado con un `// @ts-expect-error` sobre una
+     asignación a `null`.
+  2. **Nivel zod — no parsea.** `DecisionSchema.safeParse` acepta y rechaza
+     según la **misma** tabla de CA-7:
+     | `status` | `home_score` / `away_score` | resultado |
+     |---|---|---|
+     | `live`, `finished`, `suspended` | enteros ≥ 0 | acepta |
+     | `live`, `finished`, `suspended` | `null` o ausentes | **rechaza** |
+     | `scheduled`, `postponed` | `null` | acepta |
+     | `scheduled`, `postponed` | cualquier número | **rechaza** |
+     | cualquiera | `-1` o `1.5` | **rechaza** |
+     El test comparte la tabla de casos con el de CA-7 —un solo fichero de datos,
+     dos esquemas— porque si un día divergen tiene que ser una decisión escrita y
+     no un descuido de mantenimiento.
+  3. **Nivel Postgres — no entra.** La tabla `decisions` lleva
+     `constraint decisions_score_matches_status` con la misma forma que
+     `observations_score_matches_status`, y `constraint
+     decisions_scores_non_negative`. **Test:** cuatro `INSERT` que fallan
+     (`scheduled` con marcador; `postponed` con marcador; `live` con marcador
+     nulo; `finished` con `home_score = -1`) y dos que pasan (`live` 1-0 y
+     `scheduled` con marcador nulo).
+  **Por qué un CA nuevo y no una ampliación de CA-7:** CA-7 está implementado y
+  cerrado en su mitad de tipos; reabrirlo dejaría el criterio a medio verificar
+  en la matriz del ledger. CA-18 es un criterio con su propia fila, su propia
+  evidencia y su propio nivel de Postgres, junto a CA-15..CA-17, que es donde
+  vive el resto de la red de la base de datos.
+  **Efecto sobre criterios ya escritos:** CA-1 (el fixture de `Decision` pasa a
+  ser el de una rama), CA-2 (round-trip sobre la unión), CA-6 (`.readonly()` se
+  aplica sobre la unión, como en `Observation`) y CA-14 (`schemaKeys` toma la
+  unión de ramas, cosa que ya hace para `Observation` y `TeamAlias`) siguen
+  cumpliéndose sin cambio de texto. La forma del cambio en `src/model/decision.ts`
+  es la de `src/model/observation.ts`, no una nueva.
+  Cierra F-SPEC-001-10.
+
+- **CA-19 (RN-12, alcance de `rule`) — Una `Decision` solo puede citar una regla
+  del motor.**
+  Dado que `rule` pasa a ser `z.enum(['RN-01', … , 'RN-07'])` —siete miembros, no
+  trece—, entonces:
+  1. **Nivel tipo:** `tests/types/ca19.test-d.ts` pasa `npm run typecheck` con
+     `// @ts-expect-error` sobre `rule: 'RN-13'` y sobre `rule: 'RN-99'`.
+  2. **Nivel zod:** `DecisionSchema.safeParse` rechaza `'RN-08'` … `'RN-13'` y
+     `'RN-99'`, y acepta las siete restantes. El test recorre
+     `['RN-08','RN-09','RN-10','RN-11','RN-12','RN-13']` como tabla, para que
+     añadir una RN nueva a `reglas.md` no lo deje a medias.
+  3. **Nivel Postgres:** `constraint decisions_rule_shape` deja de ser
+     `CHECK (rule ~ '^RN-[0-9]{2}$')` y pasa a ser
+     `CHECK (rule in ('RN-01','RN-02','RN-03','RN-04','RN-05','RN-06','RN-07'))`.
+     **Test:** `INSERT` con `rule = 'RN-13'` falla; con `rule = 'RN-06'` pasa.
+     El caso `'RN-99'` de CA-15.2 sigue fallando, ahora por la lista y no por la
+     forma.
+  **No es una regla de negocio nueva; es leer el glosario.** `dominio.md` define
+  `rule` como «la regla **del motor** (RN-xx) que produjo una Decision», y
+  `reglas.md` separa por secciones RN-01..RN-07 («Motor de decisiones») de
+  RN-08..RN-13 («Invariantes del proyecto»). Ninguna de las invariantes puede
+  producir una `Decision`: RN-08 dice por dónde pasa, RN-09 y RN-10 dicen cuándo
+  **no** se publica y qué se guarda antes, RN-11 es cortesía de red, y RN-12 y
+  RN-13 hablan de la propia `Decision`. Una `Decision` con `rule: 'RN-13'` es
+  trazabilidad de mentira: cumple CA-3 y no dice nada.
+  Las decisiones originadas por una corrección humana del panel sí tienen regla
+  del motor a la que apuntar: RN-04 («salvo que lo diga la fuente oficial o un
+  humano») y RN-06 («`postponed` / `suspended` **solo** por fuente oficial o
+  humano»). No hace falta ninguna RN de fuera del motor para ellas.
+  **Constriñe la spec del motor**, y por eso va en criterio propio: si el gate
+  prefiere mantener las trece, se retira CA-19 sin tocar CA-18 ni ningún otro
+  criterio. Ver *Notas para el gate humano* §7.
+  Cierra la segunda mitad de la pregunta de F-SPEC-001-10.
 
 ## Entidades y reglas afectadas
 
@@ -374,6 +505,15 @@ Aparcado a propósito:
   crece de forma monótona. No es un problema en una semana de spike; sí antes de
   producción.
 - **Migraciones 0002 en adelante.**
+
+- **La relación entre `provisional` y `status` en una `Decision`** (añadido por
+  la enmienda 2026-08-29 §3). Se ha buscado y **no está en `reglas.md`**: RN-03
+  define *provisional* solo sobre la publicación de un **marcador**, y no dice
+  nada de una `Decision` sin marcador (`scheduled`, `postponed`). Fijar aquí
+  «`provisional` es `false` cuando no hay marcador» sería inventarse una regla de
+  negocio, así que `provisional` sigue siendo un `boolean` libre en las cinco
+  ramas de CA-18. Los huecos concretos están descritos en *Notas para el gate
+  humano* §8, y abiertos como salvedades en el ledger.
 
 ## Notas para el gate humano
 
@@ -457,3 +597,80 @@ tampoco contempla `src/model/`, `src/raw/`, `src/db/` ni `migrations/`, y coloca
 modelo lo importa el frontend y no debería colgar del motor.
 No lo toco: no es mío ni es esta spec. Lo dejo señalado para que lo arregle quien
 corresponda.
+
+---
+
+*Notas añadidas por la enmienda del 2026-08-29 (ver Historial de enmiendas).*
+
+**7. CA-19 constriñe una spec que todavía no existe.**
+Reducir `rule` a RN-01..RN-07 es, en mi lectura, lo que `dominio.md` ya dice
+(«la regla **del motor**»). Pero el efecto práctico es que la spec del motor de
+decisiones nace con el vocabulario cerrado: cuando llegue el caso raro que no
+encaja en las siete, no podrá etiquetarlo con una RN de las otras, tendrá que
+**añadir una RN nueva a `reglas.md`** — lo cual, dicho sea de paso, es lo que
+quiero que pase, porque obliga a escribir la regla en vez de a reutilizar una
+etiqueta que no la describe.
+Lo que pido en el gate es que se mire eso concretamente. Si se prefiere dejar las
+trece, CA-19 se retira entero y no arrastra nada: CA-18 no depende de él.
+
+**8. Dos huecos de `reglas.md` que he encontrado y NO he rellenado.**
+Se me pidió pensar si `provisional` interactúa con el estado. Sí interactúa, y la
+respuesta honesta es que `reglas.md` no da el dato para fijarlo:
+
+- **H-1 — RN-01 no da peso a una corrección hecha desde el panel.** La tabla de
+  pesos cubre RFGF 1.0, API de pago 0.9, *corresponsal confirmado* 0.8, agregador
+  0.7 y tuit de club 0.5. El **operador humano corrigiendo desde el panel** no
+  está, y no es lo mismo que un corresponsal (uno envía, el otro arbitra). Sin
+  ese número, RN-02 y RN-03 no pueden decir si una `Decision` originada en el
+  panel sale *confirmado* o *provisional*. Consecuencia directa para esta spec:
+  no puedo fijar ninguna relación entre `provisional` y `status`, porque el caso
+  «aplazado por un humano» cae justo dentro del hueco.
+- **H-2 — RN-03 no define *provisional* para una `Decision` sin marcador.**
+  «Si solo hay una fuente con peso < 0.9 se publica igualmente, marcado
+  *provisional*» habla de publicar un marcador. Una `Decision` `scheduled` o
+  `postponed` no publica marcador. ¿Es `provisional = true` ahí un valor
+  imposible, o simplemente uno que la UI ignora? Lo primero sería una restricción
+  más que meter en CA-18; lo segundo, un campo con un valor sin sentido pero
+  inocuo. No lo decido: es una regla de negocio y no es mía.
+  Nótese que hoy, con RN-01 y RN-06 tal como están, una `Decision` `postponed`
+  **provisional** es perfectamente derivable —un corresponsal (0.8) aplaza y
+  RN-03 la marca provisional—, así que prohibirla sería contradecir `reglas.md`,
+  no completarlo.
+- **H-3, relacionado y para la spec del motor** — `rule` es **una** sola regla
+  (`dominio.md`), pero las reglas se aplican **en orden** y varias pueden
+  concurrir: una transición `scheduled → live` por una única fuente de peso 0.8
+  satisface RN-06 *y* RN-03 a la vez. `reglas.md` no dice cuál se registra.
+  No lo resuelvo aquí porque no es del modelo, es del motor; pero si se resuelve
+  tarde, el spike acaba con un campo `rule` cuyo valor depende de quién escribió
+  cada rama.
+
+Los tres quedan abiertos en el ledger como salvedades. **Rellenarlos es de
+`sdd-producto` o del humano sobre `reglas.md`, no del arquitecto sobre una
+spec.**
+
+## Historial de enmiendas
+
+- **2026-08-29 — enmienda 1 (sdd-arquitecto).** Motivo: hallazgos
+  **F-SPEC-001-9** y **F-SPEC-001-10** del ledger, arbitrados por Alberto Fojo
+  («déjalo bien hecho» para el segundo; «que decida el arquitecto» para el
+  primero). La spec estaba `aprobada` y en curso, así que el cambio se registra
+  aquí y en el ledger, y `sdd-verificador` juzga contra **este** texto. El
+  frontmatter `estado` no se toca: sigue `en-progreso`.
+  1. **Añadido CA-18** — coherencia marcador/estado de `Decision` en los tres
+     niveles (tipo, zod, Postgres). Cierra F-SPEC-001-10. Se añade además a CA-7
+     el nivel Postgres para `observations`, que estaba implementado sin estar
+     especificado.
+  2. **Reescrito CA-14** — la paridad esquema↔zod admite ahora dos mapas de
+     excepciones (`dbOnly`, `zodOnly`), cada entrada con motivo escrito; una
+     entrada de `zodOnly` tiene que nombrar la tabla que sostiene el dato y el
+     test comprueba que existe y tiene FK; las entradas no usadas fallan. Cierra
+     F-SPEC-001-9.
+  3. **Añadido CA-19** — `rule` restringido a las siete reglas del motor
+     (RN-01..RN-07). Retirable en el gate sin arrastrar nada.
+  4. **Declarado fuera de alcance** el vínculo `provisional` × `status`, con los
+     tres huecos de `reglas.md` que lo impiden descritos en *Notas para el gate
+     humano* §8. No se rellenan.
+  Criterios tocados: CA-7 (ampliado), CA-14 (reescrito), CA-18 y CA-19 (nuevos).
+  Criterios afectados sin cambio de texto: CA-1, CA-2, CA-3 (su caso 3 gana el
+  literal `rule: 'RN-13'` por CA-19), CA-6, CA-15.2 (su `CHECK` lo sustituye
+  CA-19.3).

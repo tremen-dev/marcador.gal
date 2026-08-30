@@ -4,8 +4,12 @@
 > se marcan derogadas con fecha y motivo.
 >
 > RN-01 a RN-07 son el **motor de decisiones**, extraídas de la §5 de la
-> propuesta de spike (`spike-ingesta-propuesta.md`). RN-08 a RN-12 son
+> propuesta de spike (`spike-ingesta-propuesta.md`). RN-08 a RN-13 son
 > **invariantes del proyecto**, extraídas de las reglas duras de `CLAUDE.md`.
+>
+> **El corte importa:** solo una regla del motor puede producir una `Decision`,
+> y por eso `rule` está restringida a RN-01..RN-07 (SPEC-001 CA-19). Un
+> invariante no decide nada; citarlo en `rule` sería trazabilidad falsa.
 > Los umbrales de RN-01 a RN-07 son hipótesis que el spike (EPIC-001) debe
 > validar: pueden cambiar con evidencia, y ese cambio se registra aquí con fecha.
 
@@ -15,8 +19,26 @@ Un reducer por partido: recibe una `Observation` nueva, lee la `Decision` vigent
 y emite (o no) una `Decision` nueva. Las reglas se aplican **en orden**.
 
 - **RN-01 — Pesos de confianza.** Cada fuente tiene un peso fijo:
-  RFGF 1.0 · API de pago 0.9 · corresponsal confirmado 0.8 ·
-  BeSoccer / ceroacero 0.7 · tuit de club 0.5.
+  **operador humano 1.0** · RFGF 1.0 · API de pago 0.9 · corresponsal confirmado 0.8 ·
+  BeSoccer / ceroacero / resultados-futbol.com 0.7 · tuit de club 0.5.
+
+  **Precedencia del operador.** El operador humano y la RFGF comparten peso 1.0,
+  pero no son intercambiables: **si discrepan, gana el operador**, y la Decision
+  registra que se resolvió por precedencia humana. Sin esta cláusula el empate lo
+  ganaría la fuente oficial y el operador no podría corregir a futgal — lo que
+  contradiría RN-04 y RN-06, que ya nombran a «la fuente oficial **o un humano**»
+  como pares.
+
+  **Operador ≠ corresponsal.** El corresponsal *envía* una observación desde el
+  campo (0.8, y solo tras confirmación). El operador *arbitra* desde el panel, con
+  el contexto de todas las fuentes y del histórico delante. Por eso una Decision
+  nacida del panel se publica **confirmada, nunca provisional** (RN-02).
+
+  <!-- Decidido por Alberto Fojo el 2026-08-29, resolviendo F-SPEC-001-13. El hueco
+       lo detectó sdd-arquitecto al enmendar SPEC-001: sin peso del operador,
+       RN-02 y RN-03 no podían derivar si una corrección del panel sale
+       confirmada, y RN-04 y RN-06 ya le daban poder de bajar marcadores y
+       aplazar partidos. -->
 
 - **RN-02 — Publicación confirmada.** Se publica como *confirmado* si la
   observación tiene peso ≥ 0.9, **o** si dos fuentes **independientes** con peso
@@ -33,7 +55,9 @@ y emite (o no) una `Decision` nueva. Las reglas se aplican **en orden**.
 
 - **RN-05 — Conflicto.** Si dos fuentes con peso ≥ 0.7 discrepan y ninguna es
   oficial: se mantiene la última confirmada y se genera alerta al panel.
-  **El conflicto no se publica.**
+  **El conflicto no se publica.** Una discrepancia en la que interviene el
+  operador humano **no es un conflicto**: se resuelve por precedencia (RN-01) y
+  se publica.
 
 - **RN-06 — Transiciones de estado.**
   `scheduled → live` con la primera observación de juego después de kickoff − 2 min.

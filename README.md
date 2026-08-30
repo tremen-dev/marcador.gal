@@ -26,6 +26,7 @@ en el ledger de cada spec. Empieza por `FOUNDATION.md`.
 | `FOUNDATION.md` | Constitución: decisiones locked D-1..D-8, alcance, no-negociables |
 | `docs/tablero.md` | Estado agregado (**generado**, no editar; `/sdd-tablero`) |
 | `docs/roadmap.md` | Secuencia de épicas e intención |
+| `docs/runbook-configuracion.md` | **Cómo levantar el entorno en una máquina limpia** |
 | `docs/fundacion/contexto.md` | Contexto maestro: dónde estamos y por qué |
 | `docs/fundacion/vision.md` | Problema, público, promesa, qué no somos |
 | `docs/fundacion/dominio.md` | Glosario canónico (Observation, Decision, *sen sinal*…) |
@@ -39,9 +40,14 @@ en el ledger de cada spec. Empieza por `FOUNDATION.md`.
 ## Arranque
 
 ```bash
+git checkout ft/SPEC-001-modelo-canonico-y-raw-store   # el código NO está en main
 npm install
-npm run dev
+npm test
 ```
+
+**El código vive en la rama de su spec, no en `main`** — lo exige el gate
+`require-spec`. Para configurar Neon y Blob en una máquina limpia, sigue
+`docs/runbook-configuracion.md`.
 
 Node 22 o superior. Stack y plataforma en `docs/adr/ADR-001-stack.md` y
 `ADR-004-plataforma.md`.

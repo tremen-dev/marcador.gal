@@ -4,15 +4,21 @@
   "private": true,
   "description": "Marcador do fútbol galego nunha pantalla — spike de ingesta",
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "lint": "oxlint --type-aware",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "node --env-file-if-exists=.env.local src/db/cli.ts",
+    "test:db": "node --env-file-if-exists=.env.local ./node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts tests/db",
+    "test:blob": "node --env-file-if-exists=.env.local ./node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts tests/raw/blob.contract.test.ts",
+    "test:integration": "node --env-file-if-exists=.env.local ./node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",
@@ -27,7 +33,8 @@
   "devDependencies": {
     "@types/node": "^22",
     "@types/react": "^19",
-    "eslint": "^9",
+    "oxlint": "^1.80.0",
+    "oxlint-tsgolint": "^7.0.2001",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   }
