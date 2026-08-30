@@ -45,7 +45,7 @@ sobrevive a `JSON.stringify` / `JSON.parse`.
 | Término | Significado | Notas |
 |---|---|---|
 | **provisional** | Publicado con una sola fuente de peso < 0.9 (RN-03). Califica la `Decision` entera: el marcador en las ramas que lo tienen, el **estado** en `scheduled` y `postponed`, que no lo tienen. | La interfaz lo distingue (p. ej. marcador en gris; sin marcador, el estado). Mejor provisional a tiempo que confirmado tarde. |
-| **confirmado** | Publicado con fuente de peso ≥ 0.9, o dos fuentes independientes ≥ 0.7 coincidentes (RN-02). | |
+| **confirmado** | Publicado con fuente de peso ≥ 0.9, o dos fuentes independientes ≥ 0.7 coincidentes (RN-02). | Qué cuenta como **independientes** no se presume: se mide. Ver *Independencia entre fuentes*. |
 | **pendente de confirmar** | `finished` alcanzado por timeout, sin fuente que lo cierre. | Literal en galego, va a i18n. |
 | **sen sinal** | Partido `live` sin observación nueva en 15 min (RN-07). | Literal en galego, va a i18n. Genera alerta en el panel. |
 
@@ -55,10 +55,36 @@ sobrevive a `JSON.stringify` / `JSON.parse`.
 |---|---|---|
 | **RFGF** | Real Federación Galega de Fútbol. Organiza Preferente Futgal **y** Tercera RFEF G1. | Fuente oficial. Objetivo estratégico: acuerdo de datos. |
 | **futgal.es** | Web pública de la RFGF. | Fuente oficial del spike, HTML sin API (ADR-002). |
-| **ceroacero.es** | Agregador. | Contraste del spike. Parte del spike es medir si es fuente independiente o **espejo** de futgal. |
+| **ceroacero.es** | Agregador. Fuente de **contraste** del spike para las dos competiciones, a ritmo bajo (ADR-002). | Peso 0.7 (RN-01). Si es **espejo** de futgal, **independiente** o **inconcluso** lo dicta SPEC-002; mientras no lo dicte, RN-02 la trata como espejo (SPEC-002 CA-12). Sus ToS restringen el scraping: en el spike es medición (RN-11). |
+| **resultados-futbol.com** (BeSoccer) | Agregador. **Segundo** contraste del spike, por HTML (ADR-002). | Peso 0.7 (RN-01). Mismo veredicto pendiente de SPEC-002 que ceroacero, y además se cruza **con ella** (SPEC-002 CA-15): dos agregadores pueden ser independientes de futgal y espejos **entre sí**, y ese es el caso que dejaría a RN-02 sin segunda vía sin que nadie lo viese. ToS por revisar con `sdd-legal-datos` (ADR-002). |
 | **corresponsal** | Persona que *envía* una observación desde el campo, por el bot de Telegram. | Fuente push, la más barata y rápida. Peso 0.8 solo tras confirmación. Es **humano** a efectos de RN-04 y RN-06: puede bajar un marcador y aplazar un partido, y lo que publica sale *provisional* porque 0.8 < 0.9 (RN-01). |
 | **operador** | Persona que *arbitra* desde el panel, con todas las fuentes y el histórico delante. | Peso 1.0 y **precedencia sobre la RFGF** si discrepan (RN-01). También es **humano** a efectos de RN-04 y RN-06; lo que le distingue del corresponsal no es el permiso sino el peso, y por eso una Decision nacida del panel se publica **confirmada, nunca provisional**. |
 | **alias** | Nombre de un equipo tal como lo escribe una fuente concreta. | Catálogo por temporada. Un LLM propone, **una persona confirma una vez** (RN-09). |
+
+## Independencia entre fuentes
+
+> **Relación entre dos fuentes, no propiedad de una sola.** La mide **SPEC-002**
+> (test de espejo) y la consume **RN-02**, cuya segunda vía —la única forma de
+> publicar *confirmado* sin una fuente de peso ≥ 0.9— exige dos fuentes
+> **independientes** con peso ≥ 0.7.
+
+| Término | Definición | Notas |
+|---|---|---|
+| **espejo** | Fuente cuyos datos vienen de otra en lugar de observar el hecho: es *espejo de* ella. Dos espejos coinciden siempre, y su coincidencia no confirma nada. | Se prueba por **contenido**, no por tiempo: un error transitorio replicado —el mismo marcador equivocado y la misma corrección— es huella de origen común. Dos fuentes independientes coinciden en los aciertos, porque el marcador real es uno; en los fallos, no (SPEC-002 CA-10). |
+| **independiente** | Fuente que observa el hecho por su cuenta. | Se prueba por **tiempo** —adelantar a la otra, cosa que un espejo no puede hacer— o por **discrepancia persistente** de contenido que no converge (SPEC-002 CA-9, CA-10). **La ausencia de adelantos NO prueba espejo:** una fuente independiente pero lenta produce exactamente la misma señal. |
+| **inconcluso** | Tercer veredicto: no hay prueba ni de espejo ni de independencia. | **Resultado legítimo del test, no fallo suyo** (SPEC-002 CA-11). A efectos de RN-02 se trata como espejo: su segunda vía exige independencia *demostrada*, y lo desconocido no satisface la precondición (SPEC-002 CA-12). |
+
+**Techo de resolución del instrumento.** RN-11 limita a 1 petición/minuto por
+fuente y competición, así que el test no distingue diferencias menores de un
+minuto: **un espejo cuyo retardo de propagación sea inferior a un minuto es
+invisible** para él. Es el precio de una regla dura, no un defecto corregible
+(SPEC-002, *Diseño* §2 y §3).
+
+**Entre dos fuentes del mismo peso, ninguna es «la fuente».** Cuando se comparan
+dos candidatas entre sí —y no contra la oficial—, la independencia **mutua**
+exige que **cada una adelante a la otra**. Adelantos en una sola dirección no
+prueban independencia: prueban que la rezagada podría ser espejo de la otra
+(SPEC-002 CA-15).
 
 ## Competición y calendario
 
