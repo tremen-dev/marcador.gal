@@ -1,9 +1,11 @@
 ---
 id: EPIC-001
 tipo: epica
-estado: borrador
+estado: aprobada
+aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-08-29, por: sdd-producto}
+  - {estado: aprobada, fecha: 2026-08-31, por: Alberto Fojo}
 ---
 # EPIC-001 — Spike de ingesta
 

@@ -1,9 +1,9 @@
 <!-- GENERADO por tremen-sdd (scripts/tablero.mjs). NO EDITAR A MANO. -->
 # Tablero
 
-Actualizado: 2026-08-30
+Actualizado: 2026-08-31
 
-## EPIC-001 — spike-ingesta (borrador)
+## EPIC-001 — spike-ingesta (aprobada)
 
 | Spec | Estado | Último cambio |
 |---|---|---|
