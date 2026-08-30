@@ -45,4 +45,6 @@ Qué haría subir o bajar una épica de sección:
   30 min por jornada, el problema no es de interfaz sino de modelo de negocio, y
   la siguiente épica es "comunidad de corresponsales", no "producto".
 - **Corte duro de conflictos:** > 15 % obliga a rediseñar el motor antes de
-  ampliar competiciones.
+  ampliar competiciones — salvo que SPEC-002 dicte que ninguna fuente automática
+  es independiente de futgal: entre espejos no hay desacuerdo posible, así que en
+  ese escenario la cifra no mide lo que su nombre dice y el corte no aplica.
