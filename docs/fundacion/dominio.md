@@ -44,7 +44,7 @@ sobrevive a `JSON.stringify` / `JSON.parse`.
 
 | Término | Significado | Notas |
 |---|---|---|
-| **provisional** | Publicado con una sola fuente de peso < 0.9 (RN-03). | La interfaz lo distingue (p. ej. marcador en gris). Mejor provisional a tiempo que confirmado tarde. |
+| **provisional** | Publicado con una sola fuente de peso < 0.9 (RN-03). Califica la `Decision` entera: el marcador en las ramas que lo tienen, el **estado** en `scheduled` y `postponed`, que no lo tienen. | La interfaz lo distingue (p. ej. marcador en gris; sin marcador, el estado). Mejor provisional a tiempo que confirmado tarde. |
 | **confirmado** | Publicado con fuente de peso ≥ 0.9, o dos fuentes independientes ≥ 0.7 coincidentes (RN-02). | |
 | **pendente de confirmar** | `finished` alcanzado por timeout, sin fuente que lo cierre. | Literal en galego, va a i18n. |
 | **sen sinal** | Partido `live` sin observación nueva en 15 min (RN-07). | Literal en galego, va a i18n. Genera alerta en el panel. |
@@ -56,7 +56,8 @@ sobrevive a `JSON.stringify` / `JSON.parse`.
 | **RFGF** | Real Federación Galega de Fútbol. Organiza Preferente Futgal **y** Tercera RFEF G1. | Fuente oficial. Objetivo estratégico: acuerdo de datos. |
 | **futgal.es** | Web pública de la RFGF. | Fuente oficial del spike, HTML sin API (ADR-002). |
 | **ceroacero.es** | Agregador. | Contraste del spike. Parte del spike es medir si es fuente independiente o **espejo** de futgal. |
-| **corresponsal** | Persona que envía marcadores por el bot de Telegram. | Fuente push, la más barata y rápida. Peso 0.8 solo tras confirmación. |
+| **corresponsal** | Persona que *envía* una observación desde el campo, por el bot de Telegram. | Fuente push, la más barata y rápida. Peso 0.8 solo tras confirmación. Es **humano** a efectos de RN-04 y RN-06: puede bajar un marcador y aplazar un partido, y lo que publica sale *provisional* porque 0.8 < 0.9 (RN-01). |
+| **operador** | Persona que *arbitra* desde el panel, con todas las fuentes y el histórico delante. | Peso 1.0 y **precedencia sobre la RFGF** si discrepan (RN-01). También es **humano** a efectos de RN-04 y RN-06; lo que le distingue del corresponsal no es el permiso sino el peso, y por eso una Decision nacida del panel se publica **confirmada, nunca provisional**. |
 | **alias** | Nombre de un equipo tal como lo escribe una fuente concreta. | Catálogo por temporada. Un LLM propone, **una persona confirma una vez** (RN-09). |
 
 ## Competición y calendario
