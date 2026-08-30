@@ -7,7 +7,7 @@ Actualizado: 2026-08-29
 
 | Spec | Estado | Último cambio |
 |---|---|---|
-| SPEC-001 — modelo-canonico-y-raw-store | aprobada | 2026-08-29 (Alberto Fojo) |
+| SPEC-001 — modelo-canonico-y-raw-store | en-progreso | 2026-08-29 (sdd-implementador) |
 
 ## ADRs
 
@@ -19,7 +19,8 @@ Actualizado: 2026-08-29
 | ADR-004 | aprobada | plataforma | 2026-08-29 (Alberto Fojo) |
 | ADR-005 | aprobada | raw-store | 2026-08-29 (Alberto Fojo) |
 | ADR-006 | aprobada | acceso-a-datos-migraciones-y-representacion-temporal | 2026-08-29 (Alberto Fojo) |
+| ADR-007 | aprobada | linter-oxlint-en-lugar-de-eslint | 2026-08-30 (Alberto Fojo) |
 
 ## Resumen
 
-- aprobada: 1
+- en-progreso: 1

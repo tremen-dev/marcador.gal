@@ -33,25 +33,41 @@ epica: EPIC-001
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 esquemas zod y tipos | `src/model/{ids,competition,team,match,observation,decision,index}.ts` | `tests/model/schemas.test.ts` — tabla generada por entidad (51 casos) | | ❌ |
-| CA-2 round-trip JSON y frontend | `src/model/*`, `src/app/_contract/model-client.tsx` | `tests/model/roundtrip.test.ts` (12) + `npx tsc --noEmit` | | ❌ |
-| CA-3 RN-12 nivel tipo | `src/model/decision.ts`, `src/model/ids.ts` (brands) | `tests/types/rn12.test-d.ts` (**5** × `@ts-expect-error`: el caso 3 gana el literal `rule: 'RN-13'` por la enmienda) + `tests/model/rn12.test.ts` (6) | | ❌ |
-| CA-4 RN-09 nivel tipo | `src/model/team.ts` (unión discriminada) | `tests/types/rn09.test-d.ts` (3 × `@ts-expect-error`) + `tests/model/rn09.test.ts` | | ❌ |
-| CA-5 RN-09 resolución de alias | `src/model/team.ts` → `resolveConfirmedAlias`, `normalizeAlias` | `tests/model/alias.test.ts` (12, casos 1–6 de la spec) | | ❌ |
-| CA-6 RN-13 nivel tipo y runtime | `src/model/observation.ts`, `src/model/decision.ts` (`.readonly()`), `src/db/ports.ts` | `tests/types/rn13.test-d.ts` (7 × `@ts-expect-error`) + `tests/model/rn13.test.ts` | | ❌ |
-| CA-7 marcador según estado (tipo + zod + **Postgres**) | `src/model/observation.ts` (unión discriminada por `status`), `src/model/score.ts` (la regla de marcador, escrita una vez), `migrations/0001_canonical_model.sql` (`observations_score_matches_status`, `observations_scores_non_negative`) | `tests/model/scores.test.ts` (35, sobre la tabla compartida `tests/fixtures/score-cases.ts`) + `tests/types/scores.test-d.ts` + canario verde en `tests/migrations/discovery.test.ts`. Nivel Postgres: `tests/db/scores.test.ts` **PENDIENTE DE VERIFICACIÓN** | | ❌ |
-| CA-8 MatchQualifier en galego | `src/model/qualifier.ts`, `src/i18n/gl.ts` | `tests/model/qualifier.test.ts` + `tests/types/qualifier.test-d.ts` | | ❌ |
-| CA-9 contrato RawStore ×2 | `src/raw/store.ts`, `src/raw/disk.ts`, `src/raw/blob.ts` | Batería única `tests/raw/contract.ts`. Disco: `tests/raw/disk.test.ts` **VERDE**. Blob: `tests/raw/blob.contract.test.ts` **PENDIENTE DE VERIFICACIÓN** (`npm run test:blob`) | | ❌ |
-| CA-10 clave determinista y segura | `src/raw/key.ts`, `src/raw/store.ts` (`rawKey`) | `tests/raw/key.test.ts` (28) + `tests/raw/disk.test.ts` (CA-10.4) + bloque CA-10.3 de `contract.ts` | | ❌ |
-| CA-11 RN-10 orden raw→parse | `src/raw/capture.ts` | `tests/raw/capture.test.ts` (6, con store espía y cola de microtareas) | | ❌ |
-| CA-12 RN-10 raw_ref obligatorio | `src/raw/key.ts` (`RawRefSchema`), `src/model/observation.ts`; columna `not null` en `migrations/0001` | zod: `tests/model/raw-ref.test.ts` **VERDE**. Columna `NOT NULL`: **PENDIENTE DE VERIFICACIÓN** | | ❌ |
-| CA-13 migración idempotente | `migrations/0001_canonical_model.sql`, `src/db/migrate.ts`, `src/db/cli.ts` | `tests/db/migrate.test.ts` **PENDIENTE DE VERIFICACIÓN**; canario verde: `tests/migrations/discovery.test.ts` | | ❌ |
-| CA-14 paridad esquema↔zod (contrato reescrito) | `migrations/0001_canonical_model.sql`, `tests/schema-keys.ts` | `tests/db/parity.test.ts` **reescrito contra la letra nueva** (mapas con motivo, `zodOnly` con tabla verificada y FK comprobada contra `information_schema`, fallo por entrada muerta, listas cerradas) — **PENDIENTE DE VERIFICACIÓN**; el extractor sí está verde: `tests/model/schema-keys.test.ts` | | ❌ |
-| CA-15 RN-12 nivel Postgres | `migrations/0001_canonical_model.sql` (CHECKs + trigger `decisions_supporting_observations_exist`) | `tests/db/rn12.test.ts` **PENDIENTE DE VERIFICACIÓN** | | ❌ |
-| CA-16 RN-13 nivel Postgres | `migrations/0001_canonical_model.sql` (`reject_amendment` + dos triggers FOR EACH ROW) | `tests/db/rn13.test.ts` **PENDIENTE DE VERIFICACIÓN** | | ❌ |
-| CA-17 RN-09 nivel Postgres | `migrations/0001_canonical_model.sql` (CHECKs de `team_aliases`, PK `(alias, source, season)`, `matches_two_different_teams`) | `tests/db/rn09.test.ts` **PENDIENTE DE VERIFICACIÓN** | | ❌ |
-| CA-18 coherencia marcador/estado de `Decision` (tipo + zod + Postgres) | `src/model/decision.ts` (unión discriminada por `status`, cinco ramas), `src/model/score.ts` (la misma regla que `Observation`), `migrations/0001_canonical_model.sql` (`decisions_score_matches_status`, `decisions_scores_non_negative`) | Tipo: `tests/types/ca18.test-d.ts` (4 × `@ts-expect-error` + 4 controles bien formados + estrechamiento) **VERDE**. Zod: `tests/model/ca18.test.ts` (31) sobre `tests/fixtures/score-cases.ts`, **el mismo fichero de datos que CA-7** — **VERDE**. Postgres: `tests/db/scores.test.ts` **PENDIENTE DE VERIFICACIÓN**; canario verde en `tests/migrations/discovery.test.ts` (incluida la comparación textual de los dos CHECK) | | ❌ |
-| CA-19 `rule` restringido a RN-01..RN-07 (tipo + zod + Postgres) | `src/model/decision.ts` (`DECISION_RULES` con siete miembros), `migrations/0001_canonical_model.sql` (`decisions_rule_shape` pasa a lista cerrada) | Tipo: `tests/types/ca19.test-d.ts` (2 × `@ts-expect-error`) + el caso 3-bis de `tests/types/rn12.test-d.ts` **VERDE**. Zod: `tests/model/ca19.test.ts` (15, tabla sobre RN-08..RN-13) **VERDE**. Postgres: `tests/db/ca19.test.ts` **PENDIENTE DE VERIFICACIÓN**; canario verde: el 0001 ya no contiene `rule ~ '^RN-` | | ❌ |
+| CA-1 esquemas zod y tipos | `src/model/{ids,competition,team,match,observation,decision,index}.ts` | `tests/model/schemas.test.ts` — tabla generada por entidad (51 casos) | `npm test` → 23 ficheros / 270 casos, 0 saltados. Tabla (b) generada recorriendo `Object.keys(fixture)`: no es lista a mano. Las seis entidades presentes en `src/model/index.ts`, tipos por `z.infer`. | ✅ |
+| CA-2 round-trip JSON y frontend | `src/model/*`, `src/app/_contract/model-client.tsx` | `tests/model/roundtrip.test.ts` (12) + `npx tsc --noEmit` | Round-trip verde para las seis. `npx tsc --noEmit --listFiles` confirma que `src/app/_contract/model-client.tsx` está DENTRO del programa de tsc; `npm run typecheck` sale 0. | ✅ |
+| CA-3 RN-12 nivel tipo | `src/model/decision.ts`, `src/model/ids.ts` (brands) | `tests/types/rn12.test-d.ts` (**5** × `@ts-expect-error`: el caso 3 gana el literal `rule: 'RN-13'` por la enmienda) + `tests/model/rn12.test.ts` (6) | 5 × `@ts-expect-error` vivos: `tsc` sale 0, luego cada directiva SE USA (una directiva sin usar rompería el build). Caso 4 NO se rechaza en runtime — `.brand()` no existe en runtime (F-SPEC-001-6); el test lo fija explícitamente y la red real es el trigger de CA-15.4, verificado en Postgres. | ⚠️ |
+| CA-4 RN-09 nivel tipo | `src/model/team.ts` (unión discriminada) | `tests/types/rn09.test-d.ts` (3 × `@ts-expect-error`) + `tests/model/rn09.test.ts` | 3 × `@ts-expect-error` vivos + runtime: `confirmed_by: ''` y `proposed` con confirmador rechazados por `safeParse`. | ✅ |
+| CA-5 RN-09 resolución de alias | `src/model/team.ts` → `resolveConfirmedAlias`, `normalizeAlias` | `tests/model/alias.test.ts` (12, casos 1–6 de la spec) | 12 casos verdes; los seis de la spec presentes uno a uno, incluidos NFD/NFC (5b) y acentos/mayúsculas/puntuación → `null` (6, 6b). `resolveConfirmedAlias` no tiene rama que devuelva TeamId desde `proposed`: `continue` sobre `status !== 'confirmed'`. | ✅ |
+| CA-6 RN-13 nivel tipo y runtime | `src/model/observation.ts`, `src/model/decision.ts` (`.readonly()`), `src/db/ports.ts` | `tests/types/rn13.test-d.ts` (7 × `@ts-expect-error`) + `tests/model/rn13.test.ts` | 7 × `@ts-expect-error` vivos + `Equals<keyof ObservationStore, 'append'|'getById'|'listByMatch'>` (igualdad invariante, sin holgura). Runtime: `Object.isFrozen` true y asignación lanza, en Observation y en Decision. | ✅ |
+| CA-7 marcador según estado (tipo + zod + **Postgres**) | `src/model/observation.ts` (unión discriminada por `status`), `src/model/score.ts` (la regla de marcador, escrita una vez), `migrations/0001_canonical_model.sql` (`observations_score_matches_status`, `observations_scores_non_negative`) | `tests/model/scores.test.ts` (35, sobre la tabla compartida `tests/fixtures/score-cases.ts`) + `tests/types/scores.test-d.ts` + canario verde en `tests/migrations/discovery.test.ts`. Nivel Postgres: `tests/db/scores.test.ts` **PENDIENTE DE VERIFICACIÓN** | zod: 35 casos sobre `tests/fixtures/score-cases.ts`. Tipo: estrechamiento verificado. **Postgres verificado contra Neon**: 21 casos de la tabla compartida + los 6 `INSERT` nominales; `observations_score_matches_status` y `observations_scores_non_negative` rechazan y aceptan según la tabla. | ✅ |
+| CA-8 MatchQualifier en galego | `src/model/qualifier.ts`, `src/i18n/gl.ts` | `tests/model/qualifier.test.ts` + `tests/types/qualifier.test-d.ts` | Unión exacta en ambos sentidos (`Exclude` × 2) + `@ts-expect-error` sobre `pending_confirmation`. Runtime: `MATCH_QUALIFIERS` == claves de `gl.qualifiers`, y los literales coinciden con `dominio.md` líneas 47-50. | ✅ |
+| CA-9 contrato RawStore ×2 | `src/raw/store.ts`, `src/raw/disk.ts`, `src/raw/blob.ts` | Batería única `tests/raw/contract.ts`. Disco: `tests/raw/disk.test.ts` **VERDE**. Blob: `tests/raw/blob.contract.test.ts` **PENDIENTE DE VERIFICACIÓN** (`npm run test:blob`) | **Blob real verificado**: `npm run test:blob` → 22/22, 0 saltados, contra el store `marcador-gal`. La batería es el MISMO fichero `tests/raw/contract.ts` invocado dos veces. Cubiertos byte no-UTF-8, trampa de prefijo `preferente` vs `preferente-b`, metadatos `deepEqual`, idempotencia y 300 KB íntegros. Salvedad: la rama `RawKeyConflictError` de CA-9.6 es inalcanzable por el puerto (clave direccionable por contenido, F-SPEC-001-8) y solo se ejercita en disco; en `BlobRawStore` la guarda existe pero no está probada. | ⚠️ |
+| CA-10 clave determinista y segura | `src/raw/key.ts`, `src/raw/store.ts` (`rawKey`) | `tests/raw/key.test.ts` (28) + `tests/raw/disk.test.ts` (CA-10.4) + bloque CA-10.3 de `contract.ts` | 28 casos puros + bloque CA-10.3 en las DOS implementaciones (validación antes de cualquier E/S: los rechazos en Blob tardan 0 ms) + CA-10.4 comparando el árbol del padre del raíz antes/después. Salvedad: el instante de la clave va normalizado (`2026-03-21t17-00-00.000z`) y no en ISO literal, porque el ISO literal viola el charset que exige la propia CA-10.3 (F-SPEC-001-7). `addRandomSuffix: false` presente en `src/raw/blob.ts`. | ⚠️ |
+| CA-11 RN-10 orden raw→parse | `src/raw/capture.ts` | `tests/raw/capture.test.ts` (6, con store espía y cola de microtareas) | 6 casos con store espía: orden `['put','parse']`, `put` pendiente → `parse` no llamada tras agotar micro y macrotareas, `put` que rechaza → `parse` nunca llamada y el error propaga, y `parse` recibe el `RawRef` de `put`. | ✅ |
+| CA-12 RN-10 raw_ref obligatorio | `src/raw/key.ts` (`RawRefSchema`), `src/model/observation.ts`; columna `not null` en `migrations/0001` | zod: `tests/model/raw-ref.test.ts` **VERDE**. Columna `NOT NULL`: **PENDIENTE DE VERIFICACIÓN** | zod: ausente, `null`, `''`, solo espacios y clave con forma inválida rechazados. **Postgres verificado**: `raw_ref text not null check (length(raw_ref) > 0)` aplicado en la rama de Neon; paridad CA-14 verde sobre `observations`. | ✅ |
+| CA-13 migración idempotente | `migrations/0001_canonical_model.sql`, `src/db/migrate.ts`, `src/db/cli.ts` | `tests/db/migrate.test.ts` **PENDIENTE DE VERIFICACIÓN**; canario verde: `tests/migrations/discovery.test.ts` | **Verificado con el comando literal.** Sobre la rama de test vaciada (`drop schema public cascade` → 0 tablas): 1ª ejecución de `npm run db:migrate` → `applied: 0001`, seis tablas + `schema_migrations`; 2ª ejecución → `schema is up to date; nothing applied`, `schema_migrations` con una sola fila `0001`. Además `tests/db/migrate.test.ts` 3/3. | ✅ |
+| CA-14 paridad esquema↔zod (contrato reescrito) | `migrations/0001_canonical_model.sql`, `tests/schema-keys.ts` | `tests/db/parity.test.ts` **reescrito contra la letra nueva** (mapas con motivo, `zodOnly` con tabla verificada y FK comprobada contra `information_schema`, fallo por entrada muerta, listas cerradas) — **PENDIENTE DE VERIFICACIÓN**; el extractor sí está verde: `tests/model/schema-keys.test.ts` | 36 casos verdes contra `information_schema`. Las cuatro condiciones de la letra nueva comprobadas: listas cerradas (igualdad de conjuntos), entradas muertas fallan, motivo vacío falla, y cada `zodOnly` verifica tabla existente + FK real (`team_aliases → teams`). El extractor tiene test propio y lanza si devuelve 0 claves, así que CA-14 no puede pasar comparando dos conjuntos vacíos. | ✅ |
+| CA-15 RN-12 nivel Postgres | `migrations/0001_canonical_model.sql` (CHECKs + trigger `decisions_supporting_observations_exist`) | `tests/db/rn12.test.ts` **PENDIENTE DE VERIFICACIÓN** | 9 casos verdes en Postgres real: `NOT NULL`, `decisions_rule_shape`, `decisions_has_support`, y el trigger rechazando tanto un id inexistente como uno que existe pero es de OTRO partido. `UNIQUE (match_id, version)` implementado como PK (más fuerte) + `decisions_version_positive`. | ✅ |
+| CA-16 RN-13 nivel Postgres | `migrations/0001_canonical_model.sql` (`reject_amendment` + dos triggers FOR EACH ROW) | `tests/db/rn13.test.ts` **PENDIENTE DE VERIFICACIÓN** | 5 casos verdes: `UPDATE` y `DELETE` lanzan `append-only` en `observations` y en `decisions`, y la fila se relee con su valor original. `TRUNCATE ... CASCADE` sí funciona y tiene test explícito; los triggers son `FOR EACH ROW` y el canario falla si aparece `or truncate`. | ✅ |
+| CA-17 RN-09 nivel Postgres | `migrations/0001_canonical_model.sql` (CHECKs de `team_aliases`, PK `(alias, source, season)`, `matches_two_different_teams`) | `tests/db/rn09.test.ts` **PENDIENTE DE VERIFICACIÓN** | 9 casos verdes: confirmado sin `confirmed_by`, sin `confirmed_at` y con cadena vacía fallan; `proposed` con confirmador falla; `(alias, source, season)` duplicado falla (PK); `status` desconocido falla; `matches_two_different_teams` falla. Control positivo incluido. | ✅ |
+| CA-18 coherencia marcador/estado de `Decision` (tipo + zod + Postgres) | `src/model/decision.ts` (unión discriminada por `status`, cinco ramas), `src/model/score.ts` (la misma regla que `Observation`), `migrations/0001_canonical_model.sql` (`decisions_score_matches_status`, `decisions_scores_non_negative`) | Tipo: `tests/types/ca18.test-d.ts` (4 × `@ts-expect-error` + 4 controles bien formados + estrechamiento) **VERDE**. Zod: `tests/model/ca18.test.ts` (31) sobre `tests/fixtures/score-cases.ts`, **el mismo fichero de datos que CA-7** — **VERDE**. Postgres: `tests/db/scores.test.ts` **PENDIENTE DE VERIFICACIÓN**; canario verde en `tests/migrations/discovery.test.ts` (incluida la comparación textual de los dos CHECK) | Tipo: 4 × `@ts-expect-error` vivos, cada uno emparejado con un control bien formado de la misma rama que compila limpio (F-SPEC-001-18), más el estrechamiento en las cuatro ramas. Zod: 31 casos sobre el MISMO `tests/fixtures/score-cases.ts` que CA-7. **Postgres verificado**: 21 casos + los seis `INSERT` que CA-18.3 nombra, cada uno fallando por la constraint que la spec nombra. El canario compara texto a texto los dos CHECK. | ✅ |
+| CA-19 `rule` restringido a RN-01..RN-07 (tipo + zod + Postgres) | `src/model/decision.ts` (`DECISION_RULES` con siete miembros), `migrations/0001_canonical_model.sql` (`decisions_rule_shape` pasa a lista cerrada) | Tipo: `tests/types/ca19.test-d.ts` (2 × `@ts-expect-error`) + el caso 3-bis de `tests/types/rn12.test-d.ts` **VERDE**. Zod: `tests/model/ca19.test.ts` (15, tabla sobre RN-08..RN-13) **VERDE**. Postgres: `tests/db/ca19.test.ts` **PENDIENTE DE VERIFICACIÓN**; canario verde: el 0001 ya no contiene `rule ~ '^RN-` | Tipo: 2 × `@ts-expect-error` vivos + el 3-bis de CA-3. Zod: tabla completa RN-08..RN-13 + RN-99 rechazadas, las siete del motor aceptadas. **Postgres verificado**: `decisions_rule_shape` es lista cerrada (14 casos), `rule ~ '^RN-` ya no aparece en 0001. | ✅ |
+
+> **Columnas Verif. y Estado reconfirmadas por sdd-verificador en la SEGUNDA
+> reverificación del 2026-08-30**, con evidencia obtenida de cero: los cinco
+> gates reejecutados y medidos por **cobertura**, no solo por código de salida;
+> los 19 CA releídos contra el texto enmendado; el esquema aplicado leído
+> directamente de `pg_constraint` / `information_schema` en la rama de Neon; y
+> **31 mutaciones** sobre una copia aislada del repositorio para comprobar que
+> cada suite se pone roja cuando el invariante que dice defender se rompe
+> (tabla en el veredicto). 16 ✅ y 3 ⚠️ (CA-3, CA-9, CA-10), las tres con
+> salvedad declarada, motivo escrito y control compensatorio verificado.
+>
+> La columna **Test** de CA-9, CA-12, CA-13..CA-19 conserva marcas
+> «PENDIENTE DE VERIFICACIÓN» escritas por el implementador cuando no había
+> credenciales. Están **caducas**: esas suites han corrido contra Neon y Vercel
+> Blob reales. No las toco porque esa columna no es del verificador
+> (F-SPEC-001-26).
 
 > **Filas añadidas por sdd-arquitecto (enmienda 2026-08-29), sin rellenar
 > Implementado/Test/Verif.** CA-18 y CA-19 están **sin empezar**.
@@ -131,18 +147,201 @@ Cómo está montada la simetría CA-7 ↔ CA-18, que es lo que pedía la spec:
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
 
-Pendiente. Requisito explícito de la spec (Notas para el gate humano §3):
-**CA-9 y CA-13..CA-17 no pueden marcarse ✅ con la suite en modo `skip`.**
-El verificador debe pegar aquí la salida de:
+**GREEN — 2026-08-30 (segunda reverificación), sdd-verificador.**
+
+Evidencia obtenida de cero, sin apoyarme en los dos veredictos anteriores ni en
+su mapa de evidencia. Los **19 CA están satisfechos**: 16 ✅ y 3 ⚠️ con salvedad
+declarada, motivo escrito y control compensatorio verificado. El bloqueante del
+veredicto anterior —**F-SPEC-001-22**, el gate de lint ciego sobre `src/raw/` y
+`tests/raw/`— **está reparado y lo he comprobado por trampa**, no por lectura
+del diff.
+
+### Los gates, medidos por cobertura y no solo por exit code
 
 ```
-DATABASE_URL_TEST=... npm run test -- tests/db
-BLOB_READ_WRITE_TOKEN=... npm run test -- tests/raw
-npm run typecheck
+$ npm run lint        → exit 0
+  npx oxlint --type-aware --format=github
+  Found 0 warnings and 0 errors.
+  Finished in 155ms on 61 files with 185 rules using 14 threads.
+$ npm run typecheck   → exit 0
+$ npm test            → 23 ficheros / 270 casos, 0 saltados, Type Errors: no errors
+$ npm run test:db     → 7 ficheros / 130 casos, 0 saltados
+$ npm run test:blob   → 1 fichero / 22 casos, 0 saltados
 ```
 
-mostrando los casos **ejecutados**, no saltados. Una suite verde por ausencia de
-credenciales es un RED, no un GREEN.
+**61 de 61.** El árbol tiene exactamente 61 ficheros `.ts`/`.tsx` fuera de
+`node_modules`, y oxlint analiza los 61 — antes eran 51, con `src/raw/` y
+`tests/raw/` fuera. `.oxlintrc.json` lleva hoy el patrón anclado (`"/raw/"`,
+junto a `/.next/`, `/out/`, `/dist/`, `/coverage/`), que era el arreglo de una
+línea que pedía F-SPEC-001-22.
+
+No me basta con contar ficheros: **planté errores obvios en seis puntos del
+árbol a la vez** (`src/raw/capture.ts`, `tests/raw/contract.ts`,
+`src/model/score.ts`, `tests/db/parity.test.ts`, `src/app/page.tsx`,
+`tests/types/rn12.test-d.ts`) y el gate reportó **los seis**, 14 hallazgos, exit
+1. En la tanda anterior los de `raw/` pasaban callando.
+
+Y **`--type-aware` no es decorativo**: una promesa flotante en `src/raw/capture.ts`
+—precisamente la forma que tendría una regresión de CA-11/RN-10— sale como
+`typescript(no-floating-promises)` con el flag y no sale sin él.
+
+Los dos hallazgos `vitest(require-mock-type-parameters)` que el veredicto
+anterior destapó en `tests/raw/capture.test.ts:55` y `:68` están resueltos
+(`vi.fn<RawParser<string>>`), no silenciados: la regla sigue en `deny` vía
+`categories.correctness: "error"`.
+
+**Ningún gate mira menos que todo el árbol.** Comprobado además que los 31
+ficheros de test del repositorio corren bajo algún comando (23 en `npm test`, 8
+en la configuración de integración; conjuntos comparados fichero a fichero, sin
+huérfanos), y que **no hay un solo** `.skip`, `.todo`, `.only`, `.skipIf` ni
+`.runIf` en `tests/`. `npx tsc --noEmit --listFiles` mete los 61 ficheros en el
+programa, incluidos los siete `tests/types/*.test-d.ts` y
+`src/app/_contract/model-client.tsx`; `tsconfig.json` lleva `strict: true` y
+`exactOptionalPropertyTypes: true`, sin los cuales varios CA no morderían.
+
+### Por qué las suites cuentan como evidencia: 31 mutaciones
+
+Una suite verde no prueba nada por sí sola. Copia aislada del repositorio, una
+mutación cada vez, restaurando entre mutaciones. **Las 31 fueron detectadas**,
+salvo las dos que se señalan abajo como huecos y que no incumplen ningún CA:
+
+| Mutación | Rompe | Detectada por |
+|---|---|---|
+| `Competition.name` pasa a `.optional()` | CA-1 | 1 caso (tabla generada) |
+| `InstantSchema` parsea a `Date` | CA-2 | 15 casos + `tsc` exit 1 |
+| tupla → `z.array().nonempty()` | CA-3 | `tsc` exit 1 (directiva sin usar) |
+| `confirmed_by` pierde `.min(1)` | CA-4 | 1 caso |
+| `resolveConfirmedAlias` acepta `proposed` | CA-5.2 | 1 caso |
+| `normalizeAlias` añade `toLowerCase()` | CA-5.6 | 1 caso |
+| `ObservationSchema` pierde `.readonly()` | CA-6 | 2 casos + `tsc` exit 1 |
+| `ScoreSchema` pierde `.min(0)` | CA-7, CA-18 | 6 casos zod |
+| `ScoreSchema` pasa de `z.int()` a `z.number()` | CA-7, CA-18 | 6 casos zod |
+| `confidence` pierde el rango [0,1] | CA-7 | 2 casos |
+| `pendente_de_confirmar` → `pending_confirmation` | CA-8 | 3 casos + `tsc` exit 1 |
+| la clave i18n galega se desvía de `MATCH_QUALIFIERS` | CA-8 | 3 casos + `tsc` exit 1 |
+| `keyHasPrefix` pasa a `startsWith` textual | CA-9.3 | 1 caso |
+| `put` deja de lanzar `RawKeyConflictError` | CA-9.6 | 1 caso |
+| `addRandomSuffix: true` en Blob | CA-9 (Blob) | 9 casos contra el store real |
+| `rawKey` pierde el sha256 del cuerpo | CA-10.2 | 4 casos |
+| `assertValidRawKey` deja de validar | CA-10.3, CA-10.4 | 15 casos |
+| `assertValidRawPrefix` deja de validar | CA-10.3 | 15 casos |
+| `parse` arranca antes de que resuelva `put` | CA-11 | 3 casos |
+| `RawRefSchema` pierde el regex de forma de clave | CA-12 | 2 casos |
+| `observations.raw_ref` pierde `NOT NULL` | CA-12 (Postgres) | 1 caso (canario de `0001`) |
+| `migrate` deja de filtrar lo ya aplicado | CA-13 | 1 caso en Postgres |
+| `observations` gana una columna no declarada | CA-14 | 1 caso en Postgres |
+| `rule` pierde `NOT NULL` | CA-15.1 | 1 caso en Postgres |
+| `decisions_has_support` neutralizado | CA-15.3 | 1 caso en Postgres |
+| se cae el trigger de observaciones de apoyo | CA-15.4 | 2 casos en Postgres |
+| `decisions_version_positive` neutralizado | CA-15 | 1 caso en Postgres |
+| se cae `observations_are_immutable` | CA-16 | 2 casos en Postgres |
+| se cae `decisions_are_immutable` | CA-16 | 2 casos en Postgres |
+| `team_aliases_confirmed_needs_person` neutralizado | CA-17.1 | 2 casos en Postgres |
+| `team_aliases_proposed_has_no_person` neutralizado | CA-17.2 | 1 caso en Postgres |
+| `team_aliases_confirmer_not_empty` neutralizado | CA-17 | 1 caso en Postgres |
+| `team_aliases_status_known` neutralizado | CA-17.4 | 1 caso en Postgres |
+| PK `(alias, source, season)` ensanchada | CA-17.3 | 1 caso en Postgres |
+| `matches_two_different_teams` neutralizado | CA-17 | 1 caso en Postgres |
+| se cae `observations_score_matches_status` | CA-7 (Postgres) | 10 casos en Postgres |
+| se cae `decisions_score_matches_status` | CA-18.3 | 10 casos en Postgres |
+| `observations_scores_non_negative` neutralizado | CA-7 (Postgres) | 4 casos en Postgres |
+| `decisions_scores_non_negative` neutralizado | CA-18.3 | 4 casos en Postgres |
+| `decisions_rule_shape` vuelve al regex | CA-19.3 | 7 casos en Postgres |
+| `DECISION_RULES` gana `'RN-13'` | CA-19 | 3 casos + `tsc` exit 1 |
+
+**La puerta trasera de CA-14 sigue cerrada.** Añadí `minute` a
+`ObservationSchema` sin migrarlo y traté de callar el test declarándolo en
+`zodOnly` apuntando a `team_aliases` —una tabla que sí existe—. Falla:
+`zodOnly["minute"]: "team_aliases" has no foreign key towards "observations"`.
+La única salida sigue siendo migrar el campo.
+
+**Dos mutaciones NO detectadas**, ninguna de ellas un incumplimiento de CA:
+ensanchar la PK de `decisions` a `(match_id, version, decided_at)` deja las 270
++ 130 verdes (ver F-SPEC-001-25), y quitar `'use client'` de
+`model-client.tsx` no rompe nada (CA-2 pide que el fichero exista con la
+directiva y que `typecheck` pase; lo he verificado leyéndolo, pero nada lo
+defiende de una regresión).
+
+### El esquema aplicado, leído de la base y no del fichero
+
+Sobre la rama de test de Neon (**PostgreSQL 18.6**) vaciada y remigrada, leído
+de `pg_constraint`, `information_schema` y `pg_trigger`:
+
+- `observations.raw_ref` → `is_nullable = NO` (CA-12).
+- PK `decisions (match_id, version)` y PK `team_aliases (alias, source, season)`
+  (CA-15, CA-17.3).
+- Los CHECK que la spec nombra, uno a uno: `observations_score_matches_status` y
+  `decisions_score_matches_status` **con el mismo texto normalizado**,
+  `observations_scores_non_negative`, `decisions_scores_non_negative`,
+  `decisions_has_support`, `decisions_version_positive`,
+  `decisions_rule_shape` como **lista cerrada** de RN-01..RN-07 (ya no un
+  regex), `team_aliases_confirmed_needs_person`,
+  `team_aliases_proposed_has_no_person`, `team_aliases_confirmer_not_empty`,
+  `team_aliases_status_known`, `matches_two_different_teams`.
+- Los tres triggers, `FOR EACH ROW`: `decisions_supporting_observations_exist`,
+  `observations_are_immutable`, `decisions_are_immutable`.
+
+### CA-13, con el comando literal de la spec
+
+Rama de test vaciada (`drop schema public cascade` → **0 tablas**), y después el
+comando que nombra el criterio, no la función que hay debajo:
+
+```
+$ npm run db:migrate     → applied: 0001
+$ npm run db:migrate     → schema is up to date; nothing applied
+tables: competitions, decisions, matches, observations, schema_migrations,
+        team_aliases, teams
+schema_migrations rows: [{"version":"0001", ...}]      pg: 18.6
+```
+
+### CA-9, contra Vercel Blob real
+
+`npm run test:blob` → **22/22, 0 saltados**, contra el store `marcador-gal`. Es
+el **mismo fichero** `tests/raw/contract.ts` que corre contra disco: una sola
+batería invocada dos veces, sin segunda copia. Cubiertos el byte no válido en
+UTF-8, la trampa de prefijo `preferente` vs `preferente-b`, los metadatos
+`deepEqual`, la idempotencia y los 300 KB íntegros. Que corre de verdad lo prueba
+la mutación `addRandomSuffix: true`, que tumba 9 de los 22.
+
+### Salvedades aceptadas (⚠️, no ✅)
+
+Reexaminadas de cero y confirmadas. Las tres nacen de contradicciones internas
+del texto de la spec, están declaradas por el implementador y tienen control
+compensatorio verificado:
+
+- **CA-3** (F-SPEC-001-6) — el caso 4 no puede ser de runtime: `.brand()` de zod
+  no existe en tiempo de ejecución. `tests/model/rn12.test.ts` **fija** ese hecho
+  con una aserción explícita (`safeParse(...).success` es `true`) en vez de
+  ocultarlo, y la red real es el trigger de CA-15.4, verificado en Postgres
+  rechazando tanto un id inexistente como uno de otro partido.
+- **CA-9** (F-SPEC-001-8) — la rama `RawKeyConflictError` es inalcanzable por el
+  puerto (la clave es direccionable por contenido) y solo se ejercita contra
+  disco, con un archivo editado desde fuera. En `BlobRawStore` la guarda existe
+  y no tiene test.
+- **CA-10** (F-SPEC-001-7) — el instante de la clave va normalizado
+  (`2026-03-21t17-00-00.000z`), no en ISO literal, porque el ISO literal viola el
+  charset que exige la propia CA-10.3. Es la única lectura consistente de la spec.
+
+**F-SPEC-001-5** (tupla en vez de `.nonempty()`, por el cambio de zod 4),
+**F-SPEC-001-18** (la directiva de CA-18.1 va sobre la declaración, emparejada
+con un control bien formado de la misma rama) y **F-SPEC-001-19** (los casos
+`absent` y `fractional` no bajan a Postgres) se aceptan sin salvedad: leídos uno
+a uno en el fichero, con su motivo escrito, y confirmados por mutación o por
+lectura directa.
+
+### Lo que queda abierto y NO bloquea
+
+- **F-SPEC-001-24 — `.oxlintrc.json` y ADR-007 siguen sin versionar.** Es el
+  único punto que hay que resolver antes de que la rama salga de esta máquina.
+- **F-SPEC-001-25** — la PK `(match_id, version)` no está discriminada por su
+  propio test.
+- **F-SPEC-001-26** — marcas «PENDIENTE DE VERIFICACIÓN» caducas en la columna
+  Test de la matriz.
+- **F-SPEC-001-21** — nada en Postgres rechaza un marcador fraccionario: lo
+  redondea. El comentario del test ya lo dice; el hueco es del motor.
+
+Ninguno toca un CA. El estado pasa a **hecho**.
+
 
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-001/. Informe HTML opcional: _qa/SPEC-001/informe.html -->
@@ -356,6 +555,126 @@ desviaciones de forma, resueltas y declaradas para que el verificador las juzgue
   `fractional`, porque `1.5` es irrepresentable en una columna `integer` y quien
   lo rechaza es el tipo de la columna, no el `CHECK`. La lista de `INSERT` que
   la propia CA-18.3 enumera tampoco los incluye. Destino: verificador.
+
+Abiertas por sdd-verificador al verificar (2026-08-30).
+
+- **F-SPEC-001-20 — `npm run lint` no ha corrido nunca. BLOQUEANTE del
+  veredicto anterior.** `package.json` declara el script, `eslint@9` está
+  instalado y `.sdd.json` pide gate de calidad, pero no hay `eslint.config.*` en
+  el repositorio y nunca lo ha habido. Sale con exit 2 sin analizar un solo
+  fichero. Destino: el implementador o el humano, antes de reverificar.
+
+  > **CERRADO por reparación, verificado el 2026-08-30 (reverificación).** El
+  > script es hoy `oxlint --type-aware`, con `.oxlintrc.json` en el repositorio y
+  > ADR-007 registrando la decisión. Comprobado que el linter analiza de verdad y
+  > no calla: sobre un fichero trampa fuera del proyecto reporta
+  > `no-const-assign`, `no-dupe-keys` y `no-unused-vars` y sale con exit 1.
+  > **Ojo:** la reparación llegó con un agujero propio, F-SPEC-001-22, que es el
+  > bloqueante nuevo. `.oxlintrc.json` y ADR-007 están **sin versionar** (`??` en
+  > `git status`): sin commitear, el gate no existe para nadie más.
+
+- **F-SPEC-001-21 — un marcador fraccionario NO se rechaza en Postgres: se
+  redondea.** El motivo escrito en `tests/db/scores.test.ts` y en
+  F-SPEC-001-19 dice que `1.5` «es irrepresentable en una columna `integer`».
+  Comprobado contra la rama de Neon: `select 1.5::integer` devuelve **2**.
+  Postgres no rechaza, redondea, así que un `INSERT` con `home_score = 1.5`
+  entraría como `2`. No incumple ningún CA —ni CA-7 ni CA-18.3 piden ese caso en
+  Postgres, y zod sí lo rechaza en las dos entidades—, pero el motivo escrito en
+  el test es **falso** y quien lo lea creerá que hay una red que no existe.
+  Es el único punto donde la doctrina «imposible antes que validable» tiene un
+  hueco en la capa de Postgres. Destino: corregir el comentario, y decidir en la
+  spec del motor si el hueco merece un `CHECK` o si zod basta.
+
+  > **Comentario CORREGIDO, verificado el 2026-08-30.** `tests/db/scores.test.ts`
+  > dice ahora que «Postgres does NOT refuse `1.5` in an `integer` column: it
+  > rounds it». Comprobado de nuevo contra la rama de Neon: `select 1.5::integer`
+  > → **2**, `select 2.5::integer` → **3**, y `insert ... home_score = -1` sí
+  > rebota contra `observations_scores_non_negative`. El texto del test ya
+  > describe la realidad. **El hueco sigue abierto**: nada en Postgres rechaza un
+  > marcador fraccionario, lo redondea. No incumple ningún CA —ni CA-7 ni CA-18.3
+  > lo piden en Postgres, y zod lo rechaza en las dos entidades—. Destino: spec
+  > del motor.
+
+Abiertas por sdd-verificador en la reverificación (2026-08-30).
+
+- **F-SPEC-001-22 — el gate de lint es ciego sobre `src/raw/` y `tests/raw/`.
+  BLOQUEANTE de este veredicto.** `.oxlintrc.json` lleva `"raw"` en
+  `ignorePatterns` sin anclar a la raíz, así que casa con cualquier directorio
+  llamado `raw`. Resultado: `npm run lint` sale 0 **sobre 51 de los 61** ficheros
+  `.ts`/`.tsx` del árbol, y los 10 excluidos son exactamente
+  `src/raw/{store,key,disk,blob,capture}.ts` y
+  `tests/raw/{contract,disk,key,capture,blob.contract}.ts` — la implementación de
+  CA-9..CA-12 y su batería de contrato. Comprobado que un `const` reasignado y
+  una clave duplicada dentro de `src/raw/capture.ts` **pasan** el gate mientras
+  los mismos errores en `src/model/score.ts` lo rompen. Y anclando el patrón
+  (`"raw"` → `"/raw/"`), sin tocar nada más, el proyecto **no pasa su propio
+  lint**: dos `vitest(require-mock-type-parameters)` en
+  `tests/raw/capture.test.ts:55` y `:68`, regla que el propio proyecto pone en
+  `deny` vía `categories.correctness: "error"`.
+  El `raw/` de la raíz que el patrón quería excluir contiene solo `.gitkeep` y
+  ningún TypeScript, así que el patrón no protege nada.
+  Destino: el implementador o el humano, antes de reverificar. Arreglo: anclar el
+  patrón (o borrarlo) y resolver los dos hallazgos que aparecen debajo.
+
+  > **CERRADO por reparación, verificado el 2026-08-30 (segunda
+  > reverificación).** `.oxlintrc.json` lleva hoy `"/raw/"` anclado y
+  > `npm run lint` analiza **61 de 61** ficheros con 185 reglas, exit 0. No lo
+  > doy por bueno por leer el diff: planté errores obvios simultáneos en
+  > `src/raw/capture.ts`, `tests/raw/contract.ts`, `src/model/score.ts`,
+  > `tests/db/parity.test.ts`, `src/app/page.tsx` y
+  > `tests/types/rn12.test-d.ts`, y el gate reportó **los seis** (14 hallazgos,
+  > exit 1). Los dos `vitest(require-mock-type-parameters)` de
+  > `tests/raw/capture.test.ts:55` y `:68` están **resueltos**
+  > (`vi.fn<RawParser<string>>`), no silenciados: la regla sigue en `deny`.
+  > Comprobado además que `--type-aware` engancha de verdad —una promesa
+  > flotante en `src/raw/capture.ts` sale como
+  > `typescript(no-floating-promises)` con el flag y no sale sin él—.
+
+- **F-SPEC-001-23 — el cuerpo de ADR-007 contradice su frontmatter.** El
+  frontmatter dice `estado: aprobada` y `aprobada-por: Alberto Fojo` (2026-08-30),
+  pero el cuerpo mantiene «Deciders: propone sdd-arquitecto. **Pendiente de
+  aprobación humana.**» y «la decisión está implementada y verificada, pero **no
+  aprobada**». No toca ningún CA de SPEC-001 y no bloquea; es una línea que
+  corregir para que el ADR no se lea al revés de como está firmado. Destino: el
+  arquitecto o el humano.
+
+  > **CERRADO, verificado el 2026-08-30 (segunda reverificación).** El cuerpo dice
+  > hoy «Deciders: propone sdd-arquitecto. **Aprobado por Alberto Fojo el
+  > 2026-08-30.**», coherente con su frontmatter. El ADR añade además, por su
+  > cuenta, la nota de que se escribió después del cambio y que eso es una
+  > desviación registrada del método, no un precedente.
+
+Abiertas por sdd-verificador en la segunda reverificación (2026-08-30).
+
+- **F-SPEC-001-24 — `.oxlintrc.json` y ADR-007 siguen SIN VERSIONAR.** `git status`
+  los da como `??`. No incumple ningún CA y no impide el GREEN —la verificación
+  juzga el árbol de trabajo tal como está, y en él el gate existe y muerde—, pero
+  **es lo único que hay que resolver antes de que la rama salga de esta máquina**.
+  Medido el coste real de que falten: sin `.oxlintrc.json`, `npm run lint` sigue
+  saliendo 0 pero con **111 reglas en vez de 185**; entre las 74 que se pierden
+  está todo el plugin `vitest`, que es justo el que destapó los dos hallazgos de
+  `tests/raw/capture.test.ts`. Es decir: quien clone el repositorio hoy hereda un
+  gate materialmente más flojo que el que ADR-007 describe, y ADR-007 tampoco
+  está ahí para contarlo. Destino: el humano — un commit.
+
+- **F-SPEC-001-25 — el `UNIQUE (match_id, version)` de CA-15 no está
+  discriminado por su test.** `insertDecision` de `tests/db/rn12.test.ts` fija
+  `decided_at` a un literal constante en todas las filas, así que el caso «dos
+  decisiones no pueden compartir `(match_id, version)`» seguiría pasando aunque
+  alguien ensanchara la PK. Comprobado: con
+  `primary key (match_id, version, decided_at)` las 270 + 130 quedan verdes. El
+  invariante **sí está** en el esquema —lo he leído en `information_schema`— y el
+  test sí prueba el rechazo del duplicado; lo que falta es la red contra esa
+  regresión concreta. Arreglo de una línea: variar `decided_at` entre las dos
+  inserciones del caso. Destino: el implementador, sin prisa.
+
+- **F-SPEC-001-26 — marcas «PENDIENTE DE VERIFICACIÓN» caducas en la matriz.** La
+  columna Test de CA-9, CA-12, CA-13, CA-14, CA-15, CA-16, CA-17, CA-18 y CA-19
+  todavía dice «PENDIENTE DE VERIFICACIÓN», texto escrito cuando no había
+  credenciales. Esas suites han corrido contra Neon y Vercel Blob reales
+  (130 + 22 casos, 0 saltados) en las dos últimas reverificaciones. No lo corrijo
+  yo: la columna Test es del implementador. Un ledger que se contradice consigo
+  mismo se lee mal a la tercera lectura. Destino: el implementador.
 
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->

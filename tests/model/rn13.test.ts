@@ -13,7 +13,7 @@ describe('CA-6 — RN-13 at runtime', () => {
     expect(Object.isFrozen(obs)).toBe(true);
     expect(() => {
       (obs as { home_score: number }).home_score = 9;
-    }).toThrow();
+    }).toThrow(TypeError);
     expect(obs.home_score).toBe(observationFixture.home_score);
   });
 
@@ -22,7 +22,7 @@ describe('CA-6 — RN-13 at runtime', () => {
 
     expect(() => {
       (obs as { status: string }).status = 'finished';
-    }).toThrow();
+    }).toThrow(TypeError);
     expect(obs.status).toBe('live');
   });
 
@@ -32,7 +32,7 @@ describe('CA-6 — RN-13 at runtime', () => {
     expect(Object.isFrozen(decision)).toBe(true);
     expect(() => {
       (decision as { version: number }).version = 99;
-    }).toThrow();
+    }).toThrow(TypeError);
     expect(decision.version).toBe(1);
   });
 });

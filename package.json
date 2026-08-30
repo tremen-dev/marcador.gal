@@ -13,7 +13,7 @@
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint .",
+    "lint": "oxlint --type-aware",
     "typecheck": "tsc --noEmit",
     "db:migrate": "node --env-file-if-exists=.env.local src/db/cli.ts",
     "test:db": "node --env-file-if-exists=.env.local ./node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts tests/db",
@@ -33,7 +33,8 @@
   "devDependencies": {
     "@types/node": "^22",
     "@types/react": "^19",
-    "eslint": "^9",
+    "oxlint": "^1.80.0",
+    "oxlint-tsgolint": "^7.0.2001",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   }

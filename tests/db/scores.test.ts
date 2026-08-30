@@ -17,9 +17,10 @@ import { SEED, connect, resetAndMigrate, seed, truncateFacts } from './_harness'
  *
  * - `absent` — an INSERT that does not name a column sends NULL, so Postgres
  *   cannot tell "absent" from "null"; the `null` case already covers it.
- * - `fractional` — `1.5` is unrepresentable in an `integer` column, so it is
- *   the column type and not the CHECK that refuses it. How the driver phrases
- *   that is a driver detail, not this criterion. The spec's own list of
+ * - `fractional` — Postgres does NOT refuse `1.5` in an `integer` column: it
+ *   rounds it (`select 1.5::integer` is `2`, and the INSERT stores 2), so the
+ *   case cannot exercise a rejection at this level at all. The refusal is
+ *   zod's, and the zod halves already cover it. The spec's own list of
  *   Postgres cases (CA-18.3) does not include it either.
  */
 const DB_CASES = SCORE_CASES.filter(
@@ -81,18 +82,16 @@ describe.each(tables)('$criterion — $table, the shared truth table', ({ table,
     expect(DB_CASES.length).toBeGreaterThan(0);
   });
 
-  test.each(DB_CASES)('$label', async ({ status, scores, accepts }) => {
-    const attempt = insert(
-      status,
-      scores['home_score'] as Score,
-      scores['away_score'] as Score,
-    );
+  test.each(DB_CASES.filter((item) => item.accepts))('$label', async ({ status, scores }) => {
+    await expect(
+      insert(status, scores['home_score'] as Score, scores['away_score'] as Score),
+    ).resolves.toBeDefined();
+  });
 
-    if (accepts) {
-      await expect(attempt).resolves.toBeDefined();
-    } else {
-      await expect(attempt).rejects.toThrow(new RegExp(`${table}_score`));
-    }
+  test.each(DB_CASES.filter((item) => !item.accepts))('$label', async ({ status, scores }) => {
+    await expect(
+      insert(status, scores['home_score'] as Score, scores['away_score'] as Score),
+    ).rejects.toThrow(new RegExp(`${table}_score`));
   });
 });
 

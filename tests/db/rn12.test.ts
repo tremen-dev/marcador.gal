@@ -31,16 +31,22 @@ interface DecisionRow {
   readonly rule: string | null;
   readonly support: readonly string[];
   readonly version?: number;
+  readonly decidedAt?: string;
 }
 
-function insertDecision({ rule, support, version = 1 }: DecisionRow): Promise<unknown> {
+function insertDecision({
+  rule,
+  support,
+  version = 1,
+  decidedAt = '2026-03-21T17:35:01Z',
+}: DecisionRow): Promise<unknown> {
   return sql`
     insert into decisions
       (match_id, status, home_score, away_score, provisional,
        rule, decided_at, supporting_observation_ids, version)
     values
       (${SEED.matchId}, 'live', 1, 0, false,
-       ${rule}, '2026-03-21T17:35:01Z', ${sql.array([...support])}, ${version})
+       ${rule}, ${decidedAt}, ${sql.array([...support])}, ${version})
   `;
 }
 
@@ -92,10 +98,24 @@ describe('CA-15 — decisions', () => {
 
 describe('CA-15 — version', () => {
   test('two decisions cannot share (match_id, version)', async () => {
-    await insertDecision({ rule: 'RN-02', support: [SEED.observationA], version: 1 });
+    await insertDecision({
+      rule: 'RN-02',
+      support: [SEED.observationA],
+      version: 1,
+      decidedAt: '2026-03-21T17:35:01Z',
+    });
 
     await expect(
-      insertDecision({ rule: 'RN-03', support: [SEED.observationB], version: 1 }),
+      insertDecision({
+        rule: 'RN-03',
+        support: [SEED.observationB],
+        version: 1,
+        // A DIFFERENT instant on purpose. With both inserts sharing one
+        // `decided_at`, a key of (match_id, version, decided_at) would collide
+        // too and this test would pass without discriminating the invariant
+        // CA-15 actually asks for: the pair, and nothing else, is unique.
+        decidedAt: '2026-03-21T17:40:12Z',
+      }),
     ).rejects.toThrow(/decisions_pkey|duplicate key/i);
   });
 

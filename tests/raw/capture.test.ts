@@ -6,6 +6,7 @@
  */
 import { describe, expect, test, vi } from 'vitest';
 import { captureThenParse } from '@/raw/capture';
+import type { RawParser } from '@/raw/capture';
 import { rawKey } from '@/raw/store';
 import type { RawObject, RawObjectMeta, RawRef, RawStore } from '@/raw/store';
 
@@ -52,7 +53,7 @@ describe('CA-11 — RN-10, the order of raw and parse', () => {
 
   test('2. while put is still pending, parse has not been called', async () => {
     const { store } = spyStore(() => new Promise<RawRef>(() => {}));
-    const parse = vi.fn(() => '1-0');
+    const parse = vi.fn<RawParser<string>>(() => '1-0');
 
     void captureThenParse(store, meta, body, parse);
     await settle();
@@ -65,7 +66,7 @@ describe('CA-11 — RN-10, the order of raw and parse', () => {
   test('3. if put rejects, parse is never called and the error propagates', async () => {
     const failure = new Error('blob store unreachable');
     const { store } = spyStore(() => Promise.reject(failure));
-    const parse = vi.fn(() => '1-0');
+    const parse = vi.fn<RawParser<string>>(() => '1-0');
 
     await expect(captureThenParse(store, meta, body, parse)).rejects.toThrow(failure);
     expect(parse).not.toHaveBeenCalled();

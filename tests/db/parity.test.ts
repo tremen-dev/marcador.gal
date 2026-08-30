@@ -186,7 +186,6 @@ describe('CA-14 — every exception is justified, one at a time', () => {
   });
 
   test.each(tables)('$table — every zodOnly entry points at a real table', async ({
-    table,
     zodOnly,
   }) => {
     for (const [key, entry] of Object.entries(zodOnly)) {
