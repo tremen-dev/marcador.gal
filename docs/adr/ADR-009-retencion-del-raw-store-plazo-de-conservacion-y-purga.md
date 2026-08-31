@@ -1,10 +1,12 @@
 ---
 id: ADR-009
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-31, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-31, por: Alberto Fojo}
 supersede: ADR-005 (parcialmente; ver §Alcance de la supersesión)
+aprobada-por: Alberto Fojo
 ---
 # ADR-009: Retención del raw store — plazo de conservación y purga
 
@@ -150,6 +152,33 @@ indefinido; por eso:
 **El gate elige A, B o C nombrándolo en la línea de aprobación.** El resto de
 este ADR —qué sobrevive, quién purga, qué queda fuera— **no cambia con la
 elección**: es el mismo mecanismo con otro número.
+
+---
+
+**ELEGIDA: opción B, firmada por el gate humano (Alberto Fojo) el 2026-08-31.**
+30 días desde el fin de la ventana, **una** prórroga escrita y motivada en el
+ledger antes de que expire el plazo original, techo duro de 90 días.
+
+Al firmar B, el gate acepta explícitamente estas cuatro consecuencias, que están
+desarrolladas en las secciones que se citan y no son letra pequeña:
+
+1. **Al expirar se pierde SPEC-002 CA-7 sobre esa ventana** (§3): nadie podrá
+   reproducir su informe byte a byte desde el archivo. Las citas de CA-14
+   sobreviven como *verificables contra una copia* —el digest va dentro de la
+   clave— pero dejan de ser recuperables.
+2. **Pasado el techo de 90 días se purga igual y la ventana se pierde**, aunque
+   haya una verificación en curso. Se vuelve a capturar.
+3. **La purga la ejecuta una persona** (§4), porque `RawStore` no tiene operación
+   de borrado y el archivo del spike vive en disco local. **Ningún test se pondrá
+   rojo si no se ejecuta.** Es la parte débil de esta decisión y se firma
+   sabiéndolo.
+4. **Las dos restricciones de la §3** sobre lo derivado: la calibración de
+   extractores no apunta a alineaciones, goleadores ni árbitros, y **no se
+   versiona HTML real de terceros en el repositorio**. La segunda es
+   **irreversible si se incumple**: git no se purga, se reescribe.
+
+Y acepta que **no se fija plazo de producción**: **F-SPEC-001-1 se estrecha, no
+se cierra**, y la ingesta continua no arranca sin su propia decisión (§6).
 
 ### §3. Qué pasa al expirar: **borrado duro de los bytes, supervivencia de lo derivado**
 
