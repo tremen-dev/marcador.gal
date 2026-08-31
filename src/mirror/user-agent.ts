@@ -7,13 +7,16 @@
  * `USER_AGENT_PATTERN` is that requirement written as something a test can
  * fail on — a UA that quietly degrades to `marcador/1.0` stops matching.
  *
- * The contact has to resolve before the real window runs; while the domain is
- * not contracted it points at the repository (F-SPEC-002-1).
+ * The contact is a mailbox that is read, chosen over a repository URL because
+ * RN-11 wants a site operator to have somewhere to complain, not somewhere to
+ * browse. It is deliberately not on marcador.gal: that domain is not contracted
+ * yet, and a contact that does not resolve is worse than none (F-SPEC-002-1,
+ * closed by the gate on 2026-08-31).
  */
 
 export const USER_AGENT_PRODUCT = 'marcador.gal';
 export const USER_AGENT_VERSION = '0.0.1';
-export const USER_AGENT_CONTACT = 'https://github.com/tremen-dev/marcador.gal';
+export const USER_AGENT_CONTACT = 'mailto:ola@tremen.dev';
 
 /**
  * `<producto>/<versión> (+<contacto>; <propósito>)`, the shape the crawler
