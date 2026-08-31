@@ -648,3 +648,62 @@ ventana, contra el archivo.
 4. Merge de SPEC-002 (PR #2) antes o después de este trabajo: esta rama sale de
    la suya, así que el PR de SPEC-003 la incluirá si aquel no se ha mergeado
    antes.
+
+## Dictamen de `sdd-competicion` — 2026-08-31 (mapeo de competiciones de la ventana)
+
+Consulta previa a escribir `ventanas/jornada-1/config.json`. **Fecha de consulta
+de las fuentes en línea: 2026-08-31.** Advisory: no implementa.
+
+**Veredicto: CORRECTO.** Los cuatro objetivos apuntan a las dos competiciones que
+EPIC-001 declara, y no a otras parecidas.
+
+### 1. Preferente Futgal G1 — las tres fuentes hablan de lo mismo
+
+Cada sitio la llama distinto: la RFGF **Preferente Futgal**, ceroacero
+**«Galicia - Preferente Autonómica Grupo 1»**, besoccer **«Preferente Galicia»**.
+No se dictamina por parecido de nombres —eso es justo lo que RN-09 prohíbe— sino
+por **coincidencia de calendario**: la página de ceroacero muestra `SD Pol` vs
+`CF Noia` el 2026-09-05, y la jornada 1 publicada de Preferente Futgal G1 incluye
+*Pol–Noia* entre sus emparejamientos, con **18 equipos** en el bloque norte. Es
+la misma competición.
+
+**El nombre canónico sigue siendo *Preferente Futgal*** (`dominio.md`): los tres
+nombres de fuente son **alias**, y un alias no se convierte en canónico.
+
+### 2. Tercera RFEF G1 es el grupo gallego — y ojo con la trampa
+
+El propio título de ceroacero lo dice: «Tercera División **Grupo 1 - Galicia**
+2026/27». Coherente con `dominio.md` y con ADR-002, que hace de futgal.es fuente
+oficial también para ella porque **la organiza la RFGF**.
+
+**Trampa evitada, y queda escrita para que nadie la repita:** ceroacero publica
+además una **«Tercera Futgal»** (`/edicion/tercera-futgal-2026-27/223062` y sus
+grupos por provincia). **No es la Tercera RFEF**: es la tercera categoría
+**regional** galega. Los dos nombres se parecen, viven en el mismo sitio y llevan
+a competiciones de nivel distinto. Confundirlas habría capturado una ventana
+entera de la competición equivocada sin que nada fallara.
+
+### 3. Calendario
+
+**Jornada 1 de la temporada 2026/27: fin de semana del 5-6 de septiembre de
+2026**, partidos repartidos entre los dos días. Las cuatro páginas objetivo
+muestran ya esa jornada. En besoccer la temporada 2026/27 se identifica como
+**`2027`** (usa el año de cierre), y en ceroacero como `26-27` / `2026-27` según
+la competición: son ids de sitio, no dato de dominio, y por eso viven en el
+`config.json` y no en el código.
+
+### 4. Un error de `dominio.md` que este dictamen encuentra y NO corrige
+
+La ficha de **Tercera RFEF grupo 1** dice «**Cuarta** categoría nacional». Es la
+**quinta**: por debajo de Primera, Segunda, Primera Federación y Segunda
+Federación. Desde la reforma de 2021/22, Tercera Federación es el quinto nivel
+del sistema español.
+
+No lo edito —`dominio.md` es documento de verdad y este rol avisa y propone— pero
+conviene arreglarlo: es el tipo de dato que se copia a una landing o a una nota
+de prensa. **Fila propuesta:**
+
+> | **Tercera RFEF grupo 1** | **Quinta** categoría nacional, grupo galego, organizado por la RFGF. | Representa "lo nacional" en el spike. |
+
+**Invariantes tocados:** RN-09 (alias de fuente nunca son nombre canónico),
+`dominio.md` (fichas de las dos competiciones). **Nada que revisar en specs.**
