@@ -11,15 +11,21 @@ import { describe, expect, test } from 'vitest';
 import { es } from '@/i18n/es';
 import { gl } from '@/i18n/gl';
 import { SITE_LOCALES, siteBundle } from '@/i18n/site';
-import type { SiteBundle } from '@/i18n/site-bundle';
+import type { SiteBundle, SiteLocale } from '@/i18n/site-bundle';
 import { MAILBOX } from '@/site/contact';
 
 /**
- * CA-8.2, F-SPEC-004-5. La página no puede afirmar una medición EN CURSO: la
- * ventana de observación no se ha corrido y una de las dos competiciones no es
- * capturable hoy (ADR-008 §1, RN-11). La carta a la RFGF dice «hoxe non o
- * fago»; si el sitio dice lo contrario, la desmiente su propio enlace, que es
- * el daño que EPIC-003 existe para evitar.
+ * CA-8.2, F-SPEC-004-5 y F-SPEC-004-8. La página no puede afirmar una medición
+ * EN CURSO —la ventana de observación no se ha corrido— ni atribuir a UNA de
+ * las dos competiciones lo que le pasa a una FUENTE. La carta a la RFGF dice
+ * «hoxe non o fago» sobre las dos; si el sitio dice lo contrario, la desmiente
+ * su propio enlace, que es el daño que EPIC-003 existe para evitar.
+ *
+ * Las dos últimas formas son la recaída concreta de F-SPEC-004-8: decir «unha
+ * das dúas competicións non se pode ler» insinúa que la otra sí se está
+ * leyendo, y de la fuente que la carta nombra. Es falso: el hallazgo
+ * `docs/epicas/EPIC-001-spike-ingesta/hallazgos/fontes-capturables.md` mide 50
+ * nombres de equipo en CADA una de las dos (líneas 34–35).
  *
  * CA-8.2 fija el CONTENIDO —las cuatro cifras y las dos competiciones—, no el
  * tiempo verbal, así que la redacción veraz lo cumple entero. Esta lista es la
@@ -36,7 +42,25 @@ const NOT_MEASURING_YET = [
   'competiciones medidas',
   'fontes medidas',
   'fuentes medidas',
+  'unha das duas competicions',
+  'una de las dos competiciones',
 ];
+
+/**
+ * F-SPEC-004-8. El hecho verdadero, y el que sostiene la carta: lo que hoy no
+ * se puede rastrear no es una competición, es la FUENTE OFICIAL de las dos
+ * (`fontes-capturables.md:66` — «`futgal.es`, la oficial y de peso 1.0, no es
+ * capturable: su `robots.txt` prohíbe el rastreo (ADR-008 §1)»).
+ *
+ * Se fijan los tramos que cargan el hecho, no la frase entera: la redacción
+ * puede mejorarse, pero no puede dejar de decir «fuente oficial», «las dos
+ * competiciones» y `robots.txt`. Sin ningún tercero nombrado, que es otra
+ * exigencia del finding.
+ */
+const OFFICIAL_SOURCE_NOT_CRAWLED: Record<SiteLocale, readonly string[]> = {
+  gl: ['a fonte oficial', 'das duas competicions', 'robots.txt'],
+  es: ['la fuente oficial', 'de las dos competiciones', 'robots.txt'],
+};
 
 /** CA-7: la lista negra atrapa el descuido; el verificador lee y atrapa la insinuación. */
 const NOT_A_SUCCESSION = [
@@ -156,12 +180,19 @@ describe('CA-8.2 — lo que se mide, sin afirmar que ya se está midiendo', () =
     expect(hits).toEqual([]);
   });
 
-  test('10. dice por qué una de las dos competiciones no se puede leer hoy', () => {
-    // Es la afirmación que sostiene la carta —«respectar o robots.txt é unha
-    // norma do proxecto»— y la única razón por la que el sitio puede nombrar
-    // las dos competiciones sin contradecirla.
-    for (const locale of SITE_LOCALES) {
-      expect(siteBundle(locale).measuring).toContain('robots.txt');
-    }
+  test('10. dice que la fuente oficial de las DOS competiciones no se rastrea, y por qué', () => {
+    // Es la afirmación que sostiene la carta —«necesito ler as páxinas
+    // públicas de Terceira RFEF G1 e Preferente Futgal G1 … hoxe non o fago,
+    // precisamente porque o seu robots.txt non mo permite e respectalo é unha
+    // norma do proxecto» (docs/negocio/carta-rfgf-acceso.md:49-52)—: las dos,
+    // no una. Así el sitio refuerza la carta en vez de desmentirla.
+    const missing = SITE_LOCALES.flatMap((locale) => {
+      const measuring = deaccent(siteBundle(locale).measuring);
+      return OFFICIAL_SOURCE_NOT_CRAWLED[locale]
+        .filter((fragment) => !measuring.includes(deaccent(fragment)))
+        .map((fragment) => `${locale}: ${fragment}`);
+    });
+
+    expect(missing).toEqual([]);
   });
 });

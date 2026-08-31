@@ -25,9 +25,10 @@ export const es = {
       'resultados: la latencia con la que aparece cada marcador, la cobertura de los ' +
       'partidos, los conflictos entre fuentes y los minutos de operación manual que hacen ' +
       'falta. Las competiciones del estudio son Terceira RFEF G1 y Preferente Futgal G1. ' +
-      'La medición todavía no ha empezado y no hay ninguna cifra: una de las dos ' +
-      'competiciones no se puede leer hoy, porque el fichero robots.txt de su fuente no lo ' +
-      'permite y respetarlo es una norma del proyecto.',
+      'La medición todavía no ha empezado y no hay ninguna cifra. ' +
+      'La fuente oficial de las dos competiciones no se rastrea, porque su fichero ' +
+      'robots.txt no lo permite y respetarlo es una norma del proyecto: esa es una de las ' +
+      'razones por las que el estudio está parado.',
 
     purposeHeading: 'Para qué',
     purpose:
