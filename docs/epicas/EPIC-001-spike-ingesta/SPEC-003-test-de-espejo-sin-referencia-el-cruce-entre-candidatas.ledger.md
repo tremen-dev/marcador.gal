@@ -6,9 +6,22 @@ epica: EPIC-001
 # Ledger — SPEC-003 Test de espejo sin referencia: el cruce entre candidatas
 
 ## Resumen
-- Fase: **en revisión**. Spec **aprobada por Alberto Fojo el 2026-08-31** e
-  implementada por `sdd-implementador` el mismo día. Los 15 CA tienen código y
-  test; falta la verificación adversarial.
+- Fase: **en revisión, segunda vuelta**. Spec **aprobada por Alberto Fojo el
+  2026-08-31** e implementada por `sdd-implementador` el mismo día. Los 15 CA
+  tienen código y test.
+- **2026-08-31, cierre del RED (`sdd-implementador`).** La verificación devolvió
+  RED con **una sola causa raíz**: ningún test de nivel informe construía un
+  desenlace INCONCLUSO. Cerrado **sin tocar `src/`** — el diff de esta vuelta son
+  tres ficheros de `tests/`—, porque la conducta ya era correcta y lo que faltaba
+  era la red. Los seis planes de CA-6 viven ahora en **una sola tabla**
+  (`REASON_PLANS`, en `tests/mirror/support/referenceless.ts`) que consumen a la
+  vez el barrido de veredicto y los cuatro barridos de nivel informe: tenerla dos
+  veces es cómo se llegó a que el veredicto se recorriese entero y el informe se
+  probase sobre dos planes que daban los dos ESPEJO. Suite: **55 ficheros / 498
+  casos**. Las **tres mutaciones** de esta vuelta se reprodujeron y muerden (ver
+  *Los tests muerden*). Las columnas *Verif.* y *Estado* y el *Veredicto* siguen
+  siendo del verificador y describen el RED de la vuelta anterior; no los he
+  tocado.
 - **El bloqueante previo está levantado:** ADR-008 §5 (capturar `besoccer.es`)
   quedó firmado por el gate el 2026-08-31, con sus cuatro límites, y ADR-009
   levantó el §5.3.
@@ -43,25 +56,31 @@ epica: EPIC-001
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 modo declarado y no inferible | `src/mirror/analysis/mode.ts` (`ModalReportSchema`, `analyzeInMode`) · `src/mirror/analysis/referenceless/report.ts` (`modo`, `referencia`) | `tests/mirror/analysis/referenceless-report.test.ts` 1-3 (las cuatro combinaciones) · `tests/mirror/analysis/modes.test-d.ts` (`undeclared`, `invented`) | | 🚧 |
-| CA-2 veredictos por candidata: no medidos | `src/mirror/analysis/referenceless/report.ts` (`UnmeasuredCandidateVerdictsSchema`, `UNMEASURED_CANDIDATE_VERDICTS`) | `tests/mirror/analysis/referenceless-report.test.ts` 4-7 | | 🚧 |
-| CA-3 origen comun probado vs atribuido | `src/mirror/analysis/referenceless/verdict.ts` (`verdictWithoutReference`, un solo parámetro) · `.../referenceless/report.ts` (`origen_comun_probado`, `atribucion_de_origen`, `origen_atribuido_a`) · `.../referenceless/analyze.ts` (`replicated_errors_total`, sin las dos categorías de la referencia) | `tests/mirror/analysis/referenceless-report.test.ts` 8-10 · `tests/mirror/analysis/referenceless-verdict.test.ts` 15-16 (estructural: arity 1, sin `errorSignature`) | | 🚧 |
-| CA-4 INDEPENDIENTE no es emitible | `src/mirror/analysis/referenceless/verdict.ts` (`ReferencelessVerdict`, `decide`) | `tests/mirror/analysis/referenceless-verdict.test.ts` 1-2, 11 · `tests/mirror/analysis/modes.test-d.ts` (`independiente`, `fromReport`) | | 🚧 |
-| CA-5 (RN-02) la bandera es false siempre | `src/mirror/analysis/referenceless/verdict.ts` (literal `false`) · `.../referenceless/prose.ts` (`whyFalse`) | `tests/mirror/analysis/referenceless-verdict.test.ts` 11 (tabla de 6 motivos × 2 veredictos), 12 (estructural: ninguna rama escribe `true`) · `modes.test-d.ts` (`flag`) | | 🚧 |
-| CA-6 regla de decision del modo | `src/mirror/analysis/referenceless/verdict.ts` (`decide`, cinco ramas en orden) | `tests/mirror/analysis/referenceless-verdict.test.ts` 3-10 (una por rama + desempate 2 sobre 3 + orden 3 antes que 4) | | 🚧 |
-| CA-7 adelanto en una sola direccion no nombra espejo | `src/mirror/analysis/referenceless/verdict.ts` (`espejo_de: null`) · `.../referenceless/report.ts` (`espejo_de: z.null()`) | `tests/mirror/analysis/referenceless-verdict.test.ts` 7, 13-14 · `modes.test-d.ts` (`mirrorOf`) | | 🚧 |
-| CA-8 pares declarados; cero intentos = 0 % | `src/mirror/window.ts` (`DeclaredPair`, `WindowLog.declared_pairs`, `windowCoverage`) · `src/mirror/capture/capturer.ts` (`log()`) | `tests/mirror/analysis/declared-pairs.test.ts` 1-4, 7 (el 2 es el que demuestra que arregla algo) | | 🚧 |
-| CA-9 la negativa de CA-5 sobre los pares declarados | `src/mirror/window.ts` (`InvalidWindowError`, sin la constante «seis») · `src/mirror/cli/analizar-sin-referencia.ts` | `tests/mirror/analysis/declared-pairs.test.ts` 5-6 · `tests/mirror/cli/referenceless-cli.test.ts` 2 (sale con error y no crea `hallazgos/`) | | 🚧 |
-| CA-10 (RN-11) ninguna peticion cambia de host en silencio | `src/mirror/capture/http.ts` (`RedirectNotFollowedError`, `politeFetch`, `globalFetcher` con `redirect: 'manual'`) · `src/mirror/capture/ports.ts` (`HttpResponse.location`) | `tests/mirror/capture/redirects.test.ts` 1-4 (301 real contra servidor local; 200 sin regresión; estructural de puerta única) | | 🚧 |
-| CA-11 limitaciones declaradas, en JSON y en prosa | `src/mirror/analysis/referenceless/report.ts` (`DECLARED_LIMITATIONS`) · `.../referenceless/prose.ts` | `tests/mirror/analysis/referenceless-report.test.ts` 11-13 | | 🚧 |
-| CA-12 advertencia de conflictos incondicional | `src/mirror/analysis/referenceless/report.ts` (`REFERENCELESS_CONFLICT_WARNING`, no nulable) | `tests/mirror/analysis/referenceless-report.test.ts` 14-15 | | 🚧 |
-| CA-13 fichero de hallazgo propio | `src/mirror/analysis/referenceless/findings.ts` | `tests/mirror/analysis/referenceless-findings.test.ts` 1-7 · `tests/mirror/cli/referenceless-cli.test.ts` 1 | | 🚧 |
-| CA-14 lo heredado se hereda, y se prueba | `src/mirror/analysis/referenceless/analyze.ts` (reutiliza `comparePair`, `readArchive`, `DECLARED_THRESHOLDS`) | `tests/mirror/analysis/referenceless-inherited.test.ts` 1-9 · suite de SPEC-001+SPEC-002 aislada: **47 ficheros / 415 casos**, sin una sola expectativa cambiada (ver *Gates*) | | 🚧 |
-| CA-15 (ADR-009) el informe declara su fecha de purga | `src/mirror/analysis/referenceless/retention.ts` · `.../referenceless/report.ts` (`ArchiveRetentionSchema`, `end` no nulable) · `.../referenceless/prose.ts` (`proseRetention`) | `tests/mirror/analysis/retention.test.ts` 1-7 · `tests/mirror/analysis/referenceless-report.test.ts` 16-22 · `tests/mirror/analysis/referenceless-inherited.test.ts` 3 (determinismo con dos relojes) | | 🚧 |
+| CA-1 modo declarado y no inferible | `src/mirror/analysis/mode.ts` (`ModalReportSchema`, `analyzeInMode`) · `src/mirror/analysis/referenceless/report.ts` (`modo`, `referencia`) | `tests/mirror/analysis/referenceless-report.test.ts` 1-3 (las cuatro combinaciones) · `tests/mirror/analysis/modes.test-d.ts` (`undeclared`, `invented`) | Las cuatro combinaciones pasan. **La prueba invertida muerde**: retirando las cinco directivas `@ts-expect-error` de `modes.test-d.ts`, `npx tsc --noEmit` da `modes.test-d.ts(28,47): error TS2379 … Property 'modo' is missing`. Residual F-SPEC-003-5 (el sobre `con-referencia`) aceptado: no lo ejecuta nadie hoy. | ✅ |
+| CA-2 veredictos por candidata: no medidos | `src/mirror/analysis/referenceless/report.ts` (`UnmeasuredCandidateVerdictsSchema`, `UNMEASURED_CANDIDATE_VERDICTS`) | `tests/mirror/analysis/referenceless-report.test.ts` 4-7 y **25** (el bloque entero, `motivo` incluido, sobre los **seis** desenlaces de `REASON_PLANS`, INCONCLUSO incluido; y el barrido de claves `sources`/`reference` en los seis) | Bloque exigido por el esquema, `sources: []` no representable, y mi barrido propio de claves sobre **20 formas** (incluidas INCONCLUSO) no encuentra `sources` ni `reference` en ningún JSON. **Salvedad:** los casos 4-5 solo corren sobre un informe ESPEJO; mutando `motivo`/`dictamen` **solo cuando el veredicto es INCONCLUSO** la suite sigue **55 ficheros / 495 casos en verde**. Presencia y literales sí están garantizados por el esquema en toda ruta; el contenido del `motivo` no. | ⚠️ |
+| CA-3 origen comun probado vs atribuido | `src/mirror/analysis/referenceless/verdict.ts` (`verdictWithoutReference`, un solo parámetro) · `.../referenceless/report.ts` (`origen_comun_probado`, `atribucion_de_origen`, `origen_atribuido_a`) · `.../referenceless/analyze.ts` (`replicated_errors_total`, sin las dos categorías de la referencia) | `tests/mirror/analysis/referenceless-report.test.ts` 8-10 · `tests/mirror/analysis/referenceless-verdict.test.ts` 15-16 (estructural: arity 1, sin `errorSignature`) | `analyzeWithoutReference` no tiene parámetro de referencia y `verdictWithoutReference.length === 1`. Sobre **20 formas + 300 fuzz** propios: `origen_comun_probado === (replicated_errors_total > 0)` siempre, `atribucion_de_origen === 'no_comprobada'` y `origen_atribuido_a === null` siempre. **Mutación reproducida:** `origen_comun_probado = true` fijo → 2 casos en rojo (`referenceless-report` 9, `referenceless-verdict` 3). | ✅ |
+| CA-4 INDEPENDIENTE no es emitible | `src/mirror/analysis/referenceless/verdict.ts` (`ReferencelessVerdict`, `decide`) | `tests/mirror/analysis/referenceless-verdict.test.ts` 1-2, 11 · `tests/mirror/analysis/modes.test-d.ts` (`independiente`, `fromReport`) | **Búsqueda adversarial propia sin resultado**: 20 formas construidas para forzar el sí (adelantos mutuos 4/8/20/40, discrepancias persistentes 1/5/12, mutuos+persistentes+exclusivos, error replicado + mutuos + persistentes) más **300 planes al azar** → veredicto siempre en {ESPEJO, INCONCLUSO}. **Mutación reproducida:** admitir `'INDEPENDIENTE'` en el tipo → `tsc`: `analyze.ts(150,5) TS2322` + `modes.test-d.ts(39,1) TS2578`. Sin la directiva: `TS2322: Type '"INDEPENDIENTE"' is not assignable to type 'ReferencelessVerdict'`. | ✅ |
+| CA-5 (RN-02) la bandera es false siempre | `src/mirror/analysis/referenceless/verdict.ts` (literal `false`) · `.../referenceless/prose.ts` (`whyFalse`) | `tests/mirror/analysis/referenceless-verdict.test.ts` 11 (`REASON_PLANS`: los 6 motivos y los 2 veredictos), 12 (estructural: ninguna rama escribe `true`) · `modes.test-d.ts` (`flag`) | **`true` no es representable por los dos caminos, comprobado:** en el tipo (`typeof report.pair.rn02_…` es `false`; sin la directiva, `modes.test-d.ts(50,7): error TS2322: Type 'true' is not assignable to type 'false'`) y en zod (`z.literal(false)`). En las **320** ejecuciones adversariales la bandera es `false` y la prosa lleva «Por qué la bandera de RN-02 es false». **Mutación reproducida:** una rama escribe `true` en INCONCLUSO → 3 casos en rojo (`muestra_insuficiente`, `independencia_no_demostrable_sin_referencia`, `sin_senal`) **más** `modes.test-d.ts`. El tercer clause de la spec dice «cinco motivos» y el test recorre **seis**: superconjunto, no incumplimiento (F-SPEC-003-3). | ✅ |
+| CA-6 regla de decision del modo | `src/mirror/analysis/referenceless/verdict.ts` (`decide`, cinco ramas en orden) | `tests/mirror/analysis/referenceless-verdict.test.ts` 3-10 (una por rama + desempate 2 sobre 3 + orden 3 antes que 4) | Ocho casos: una por rama, el desempate 2>3 y el orden 3>4, y cada uno asserta **primero** que la señal está y supera su mínimo. **Mutación reproducida** (rama 2 deja de mandar sobre la 3): `1 failed / 494 passed`, y el rojo es exactamente el caso 9. | ✅ |
+| CA-7 adelanto en una sola direccion no nombra espejo | `src/mirror/analysis/referenceless/verdict.ts` (`espejo_de: null`) · `.../referenceless/report.ts` (`espejo_de: z.null()`) | `tests/mirror/analysis/referenceless-verdict.test.ts` 7, 13-14 · `modes.test-d.ts` (`mirrorOf`) | `espejo_de` es `null` en las **320** ejecuciones adversariales, recorriendo el JSON entero a cualquier profundidad. Sin la directiva: `modes.test-d.ts(54,7): error TS2322: Type '"ceroacero"' is not assignable to type 'null'`. | ✅ |
+| CA-8 pares declarados; cero intentos = 0 % | `src/mirror/window.ts` (`DeclaredPair`, `WindowLog.declared_pairs`, `windowCoverage`) · `src/mirror/capture/capturer.ts` (`log()`) | `tests/mirror/analysis/declared-pairs.test.ts` 1-4, 7 (el 2 es el que demuestra que arregla algo) | Los declarados entran primero y a cero, `attempted === 0 → ratio 0`, que cae bajo cualquier umbral. El caso 2 (mismo registro sin el conjunto declarado → válido) demuestra que arregla algo. El caso 7 comprueba que quien declara es el capturador. Residual F-SPEC-003-7 (un `targets` mal escrito en el config) aceptado y con destino. | ✅ |
+| CA-9 la negativa de CA-5 sobre los pares declarados | `src/mirror/window.ts` (`InvalidWindowError`, sin la constante «seis») · `src/mirror/cli/analizar-sin-referencia.ts` | `tests/mirror/analysis/declared-pairs.test.ts` 5-6 · `tests/mirror/cli/referenceless-cli.test.ts` 2 (sale con error y no crea `hallazgos/`) | El mensaje nombra los cuatro pares con ratio, marca `BELOW`/`ok` y el umbral. El caso de CLI arranca `node` como subproceso: sale con error, `stderr` lleva `2 of 4 (source, competition) pairs` y `90 %`, y `hallazgos/` **no existe**. | ✅ |
+| CA-10 (RN-11) ninguna peticion cambia de host en silencio | `src/mirror/capture/http.ts` (`RedirectNotFollowedError`, `politeFetch`, `globalFetcher` con `redirect: 'manual'`) · `src/mirror/capture/ports.ts` (`HttpResponse.location`) | `tests/mirror/capture/redirects.test.ts` 1-4 (301 real contra servidor local; 200 sin regresión; estructural de puerta única) | Verificado con **servidores reales, no dobles**, y ampliado por mí a **301, 302, 303, 307 y 308**: en los cinco, 0 capturas archivadas, tick `failed`, `raw_ref: null`, motivo con el código, la URL pedida y el `Location`. Y el contador del host de destino queda **en cero**: el otro host nunca recibe una petición. Un 200 se sigue archivando. La puerta es única: `globalThis.fetch` solo aparece en `http.ts` y siempre con `redirect: 'manual'`; `robots.txt` se lee de fichero, no de red. | ✅ |
+| CA-11 limitaciones declaradas, en JSON y en prosa | `src/mirror/analysis/referenceless/report.ts` (`DECLARED_LIMITATIONS`) · `.../referenceless/prose.ts` | `tests/mirror/analysis/referenceless-report.test.ts` 11-13 y **24** · los seis planes en `tests/mirror/support/referenceless.ts` (`REASON_PLANS`) | **RED.** El CA exige «un informe de **cada uno de los cinco motivos** de CA-6, incluido el ESPEJO por error replicado». El caso 11 recorre **dos** planes (`MIRRORED`, `REPLICATED`) y los dos dan **ESPEJO** (`sin_contenido_propio` y `error_replicado`): ningún informe INCONCLUSO se construye en toda la suite. **Medido:** degradando el texto de `independiente_no_emitible` **solo cuando el veredicto es INCONCLUSO**, la suite sigue en **55 ficheros / 495 casos verde** — y en esa mutación el JSON y la prosa se contradicen sin que nada lo vea. La conducta implementada es correcta (lo he comprobado sobre las seis ramas); lo que falta es la red que el CA pide. | ❌ |
+| CA-12 advertencia de conflictos incondicional | `src/mirror/analysis/referenceless/report.ts` (`REFERENCELESS_CONFLICT_WARNING`, no nulable) | `tests/mirror/analysis/referenceless-report.test.ts` 14-15 y **24** | **RED.** El CA exige que la advertencia aparezca «en los informes de **los dos veredictos** y de los cinco motivos». El caso 14 recorre los mismos dos planes, **ambos ESPEJO**: no se comprueba ni un solo informe INCONCLUSO, que es justo el desenlace en que un lector podría creer que la advertencia no aplica. **Medido:** sustituyendo `text` por `'texto degradado para INCONCLUSO'` **solo en los desenlaces INCONCLUSO**, la suite sigue **55 / 495 verde**. El caso 15 (no nulable) sí muerde y se mantiene. | ❌ |
+| CA-13 fichero de hallazgo propio | `src/mirror/analysis/referenceless/findings.ts` | `tests/mirror/analysis/referenceless-findings.test.ts` 1-7 · `tests/mirror/cli/referenceless-cli.test.ts` 1 | Los dos ficheros propios se escriben, los de SPEC-002 quedan byte a byte intactos, el `.md` declara el modo en su primera línea y el `.json` lleva `modo`/`referencia: null`. **Salvedad sobre la cláusula «cada uno de los cuatro»:** el `.md` de SPEC-002 no nombra su modo. La justificación registrada en F-SPEC-003-4 —«tocar la cabecera movería su salida y CA-14 exige que su suite siga verde sin cambiar una sola expectativa»— es **falsa, y lo he medido**: añadiendo `(modo \`con-referencia\`, SPEC-002)` a esa cabecera la suite sale **55 / 495 verde**, porque ninguna expectativa de SPEC-002 asserta esa línea. La decisión de no tocarla sigue siendo defendible por «no reabrir SPEC-002» (spec §Diseño 1 y §8), pero el motivo escrito hay que corregirlo. | ⚠️ |
+| CA-14 lo heredado se hereda, y se prueba | `src/mirror/analysis/referenceless/analyze.ts` (reutiliza `comparePair`, `readArchive`, `DECLARED_THRESHOLDS`) | `tests/mirror/analysis/referenceless-inherited.test.ts` 1-9 · suite de SPEC-001+SPEC-002 aislada: **47 ficheros / 415 casos**, sin una sola expectativa cambiada (ver *Gates*) | **Ni un test de SPEC-002 se ha tocado:** `git diff --name-status 3b633e9..HEAD` no marca ningún fichero de `tests/` como `M`; los 10 de SPEC-003 son `A`. Suite aislada reproducida por mí: **47 ficheros / 415 casos**, idéntica a la base. El renombrado `pair.sources` → `pair.candidatas` vive **solo** en el esquema nuevo (`referenceless/report.ts`): `src/mirror/analysis/report.ts` no está en el diff y su informe sigue validando contra `MirrorReportSchema` sin `modo` (caso 23). Determinismo verificado por mí con **cuatro relojes** (2026-01-01, 2026-12-31, 2027-06-15, 2099-01-01): un solo JSON y un solo `.md`. Todas las claves citadas resuelven con `store.get()`. | ✅ |
+| CA-15 (ADR-009) el informe declara su fecha de purga | `src/mirror/analysis/referenceless/retention.ts` · `.../referenceless/report.ts` (`ArchiveRetentionSchema`, `end` no nulable) · `.../referenceless/prose.ts` (`proseRetention`) | `tests/mirror/analysis/retention.test.ts` 1-7 · `tests/mirror/analysis/referenceless-report.test.ts` 16-22 y **26** (las ocho claves y las tres fechas, recomputadas a mano, sobre los **seis** desenlaces) · `tests/mirror/analysis/referenceless-inherited.test.ts` 3 (determinismo con dos relojes) | **Aritmética recomputada a mano, sin las utilidades del proyecto:** `end = 2026-09-05T17:09:00.000Z` → `purga_prevista = 2026-10-05T17:09:00.000Z` (`Date.parse(end)+30·86 400 000`) y `purga_maxima = 2026-12-04T17:09:00.000Z` (+90 d); coinciden al milisegundo. `fin_de_ventana === window.end`. **El ancla es el archivo y no el log**, comprobado por mí con un tick `failed` **seis horas** posterior a la última captura `ok`: las tres fechas no se mueven. **Ninguna ruta consulta el reloj**, comprobado con cuatro `vi.setSystemTime` distintos → JSON y `.md` byte a byte idénticos. **Mutación reproducida:** anclar en `Date.now()` → **10 casos en rojo en 4 ficheros** (el ledger declaraba 9 en 3), incluidos los tres de determinismo y el estructural de `Date.now()`. **Salvedad:** el CA dice «Dado **cualquier** informe de este modo» y ningún informe INCONCLUSO se prueba; degradando `purga_prevista` y `plazo_dias` **solo en INCONCLUSO** la suite sigue **55 / 495 verde**. La presencia y la forma del bloque sí están garantizadas por el esquema en toda ruta. | ⚠️ |
 
 ## Gates de calidad (los ejecutó `sdd-implementador`; no hay CI)
 
-Base antes de tocar nada: **46 ficheros / 415 casos**. Salida literal al cerrar:
+Base antes de tocar nada: **46 ficheros / 415 casos**. Al cerrar la primera
+vuelta: **55 ficheros / 495 casos**.
+
+**Segunda vuelta (cierre del RED).** Base de esta vuelta: **55 / 495**. Los tres
+casos nuevos (24, 25 y 26 de `referenceless-report.test.ts`) suman **498**; los
+casos 11, 12 y 14 se extendieron en su sitio, así que no cambian el conteo.
+Salida literal al cerrar:
 
 ```
 $ npm run lint
@@ -79,9 +98,17 @@ $ npx vitest run
 
 
  Test Files  55 passed (55)
-      Tests  495 passed (495)
+      Tests  498 passed (498)
 Type Errors  no errors
 ```
+
+**`src/` no se ha tocado en esta vuelta.** `git diff --name-only 8445cc4..HEAD`
+son tres ficheros, los tres de `tests/`:
+`tests/mirror/analysis/referenceless-report.test.ts`,
+`tests/mirror/analysis/referenceless-verdict.test.ts` y
+`tests/mirror/support/referenceless.ts`. Nada en `src/` lo exigía: el veredicto y
+el informe ya se comportaban bien en las seis ramas —lo comprobó el verificador y
+lo he vuelto a comprobar—, y lo que faltaba era la red.
 
 **Cobertura del linter, medida y no supuesta** (F-SPEC-001-22: en SPEC-001 el
 bloqueante fue un `npm run lint` en verde que no miraba los ficheros nuevos).
@@ -108,6 +135,10 @@ tests/mirror/capture/redirects.test.ts
 tests/mirror/cli/referenceless-cli.test.ts
 tests/mirror/support/referenceless.ts
 ```
+
+(Los 19 ficheros nuevos y `tests/mirror/support/referenceless.ts` siguen
+listados uno por uno tras el cambio; los tres ficheros tocados en esta vuelta
+están en esa lista.)
 
 **CA-14, la suite de SPEC-002 aislada.** Excluyendo solo los nueve ficheros
 nuevos, la suite anterior sale exactamente como estaba, con el mismo número de
@@ -147,11 +178,178 @@ Los CA-8, CA-9, CA-10 y CA-13 no necesitaron mutación: se escribieron en RED
 ciclo (`declared_pairs` inexistente, `outcome: 'ok'` donde debía haber `failed`,
 `redirect: 'manual'` ausente de `http.ts`, módulo de hallazgo inexistente).
 
+### Segunda vuelta: las mutaciones del RED, y que ahora sí muerden
+
+El encargo es explícito y tiene razón: **un test que existe no es un test que
+muerde.** Las dos mutaciones que el verificador describe se reprodujeron **antes**
+de escribir nada, para ver el fallo con mis propios ojos, y **después** con los
+tests puestos. Se corrieron por separado, una por hallazgo. Todas revertidas
+(`git checkout --`; árbol limpio, comprobado).
+
+**Paso 0 — reproducir el fallo.** Con las dos degradaciones a la vez y los tests
+de la primera vuelta, la suite entera sigue verde, exactamente como se midió:
+
+```
+$ npx vitest run          # mutación V1+V2, tests de la vuelta anterior
+
+ Test Files  55 passed (55)
+      Tests  495 passed (495)
+Type Errors  no errors
+```
+
+**Mutación A (F-SPEC-003-V1) — CA-11 y CA-12.** En `analyze.ts`, con
+`MUT = pair.verdict === 'INCONCLUSO'`: la afirmación `independiente_no_emitible`
+pierde su texto (41 caracteres, para que el esquema siga validando) y
+`conflict_metric_warning.text` se sustituye por `'texto degradado para
+INCONCLUSO'` — **solo en la rama INCONCLUSO**.
+
+```
+ ❯ tests/mirror/analysis/referenceless-report.test.ts (26 tests | 3 failed) 481ms
+     × 11. las cinco afirmaciones están en el JSON de los SEIS motivos, íntegras 87ms
+     × 12. y la prosa las repite en castellano corrido, en los seis 5ms
+     × 14. está en los DOS veredictos y en los seis motivos, y su texto no es el de SPEC-002 1ms
+
+ Test Files  1 failed | 54 passed (55)
+      Tests  3 failed | 495 passed (498)
+Type Errors  no errors
+```
+
+**Mutación B (F-SPEC-003-V2) — CA-2 y CA-15.** Con el mismo interruptor:
+`veredictos_por_candidata.motivo` pasa a `'no medidos'` —una cadena no vacía, así
+que el esquema la acepta— y `purga_prevista` se falsea a `purga_maxima`. Otra vez
+**solo en INCONCLUSO**.
+
+```
+ ❯ tests/mirror/analysis/referenceless-report.test.ts (26 tests | 2 failed) 601ms
+     × 25. (CA-2) el bloque de veredictos no medidos es el mismo en los seis 3ms
+     × 26. (CA-15) las tres fechas se sostienen en los seis, recomputadas a mano 0ms
+
+ Test Files  1 failed | 54 passed (55)
+      Tests  2 failed | 496 passed (498)
+Type Errors  no errors
+```
+
+```
+AssertionError: expected 'no medidos' to contain 'robots.txt'
+
+Expected: "robots.txt"
+Received: "no medidos"
+
+ ❯ tests/mirror/analysis/referenceless-report.test.ts:405:28
+```
+
+**Mutación C — la red de la red, que no estaba en los hallazgos y hace falta.**
+Las dos anteriores prueban que los barridos muerden *mientras la tabla siga
+cubriendo los seis motivos*. Si alguien la degrada, los barridos volverían a
+pasar sin mirar nunca un INCONCLUSO, que es literalmente el fallo de la primera
+vuelta reaparecido por otra puerta. Mutación: en `REASON_PLANS`, la entrada
+`independencia_no_demostrable_sin_referencia` pasa a un plan que da ESPEJO.
+
+```
+ ❯ tests/mirror/analysis/referenceless-verdict.test.ts (21 tests | 1 failed) 343ms
+     × 11. independencia_no_demostrable_sin_referencia no habilita la segunda vía 10ms
+ ❯ tests/mirror/analysis/referenceless-report.test.ts (26 tests | 5 failed) 664ms
+     × 11. las cinco afirmaciones están en el JSON de los SEIS motivos, íntegras 83ms
+     × 14. está en los DOS veredictos y en los seis motivos, y su texto no es el de SPEC-002 1ms
+     × 24. el barrido cubre de verdad los dos veredictos y los seis motivos 0ms
+     × 25. (CA-2) el bloque de veredictos no medidos es el mismo en los seis 1ms
+     × 26. (CA-15) las tres fechas se sostienen en los seis, recomputadas a mano 2ms
+
+ Test Files  2 failed | 53 passed (55)
+      Tests  6 failed | 492 passed (498)
+Type Errors  no errors
+```
+
+Que la mutación C ponga rojos **los dos** ficheros es el punto de haber dejado
+una sola tabla: el barrido de veredicto y los de informe comparten planes, así
+que no pueden volver a divergir en silencio.
+
+**Un error mío, y lo dejo escrito porque el caso 24 lo cazó.** Escribí primero
+`toHaveLength(4)` para los INCONCLUSO de la tabla; son **tres**
+(`muestra_insuficiente`, `independencia_no_demostrable_sin_referencia` y
+`sin_senal`) frente a tres ESPEJO. El caso falló contra la conducta real antes de
+que yo corrigiese la cuenta, que es para lo que sirve escribir el test primero.
+
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
 
+**RED — 2026-08-31, `sdd-verificador`.** 11 CA en ✅, 2 en ⚠️ y **2 en ❌**.
+
+**Los gates automáticos pasan y no son el problema.** `npm run lint` (oxlint
+`--type-aware`) sale limpio y su **cobertura está medida y no supuesta**
+(F-SPEC-001-22): `npx oxlint --type-aware --debug=files` lista los 19 ficheros
+nuevos **y los 4 tocados de SPEC-002**, uno por uno. `npx tsc --noEmit` sin
+salida. `npx vitest run`: **55 ficheros / 495 casos**, sin un solo `.skip`,
+`.only` ni `.todo` en `tests/` ni en `src/`. La suite de SPEC-001+SPEC-002
+aislada sale en **47 ficheros / 415 casos**, idéntica a la base, y **ningún
+fichero de test suyo aparece como modificado** en `git diff --name-status
+3b633e9..HEAD`.
+
+**Las tres declaraciones que el gate firmó se sostienen, y las he atacado.**
+Construí 20 fixtures adversariales —adelantos mutuos de 4, 8, 20 y 40 partidos;
+discrepancias persistentes de 1, 5 y 12; las dos a la vez; error replicado
+concurriendo con las dos— más **300 planes generados al azar**, y en las 320
+ejecuciones el veredicto cae siempre en {ESPEJO, INCONCLUSO}, la bandera de RN-02
+es `false` recorriendo el JSON a cualquier profundidad, y `espejo_de` es `null`.
+`true` no es representable **por los dos caminos**: en el tipo
+(`TS2322: Type 'true' is not assignable to type 'false'` al retirar la directiva)
+y en zod (`z.literal(false)`). Ninguna ruta consume firmas de la referencia: el
+parámetro no existe, `verdictWithoutReference.length === 1`, y `analyze.ts` del
+modo no importa nada de futgal. **Las siete mutaciones declaradas se reprodujeron
+todas** (una de ellas más severa de lo anunciado: la de `Date.now()` pone 10
+casos en rojo en 4 ficheros, no 9 en 3), y las cinco directivas
+`@ts-expect-error` de `modes.test-d.ts` muerden: retiradas, `tsc` da los cinco
+errores esperados. CA-10 lo verifiqué contra **servidores reales** y en los cinco
+códigos 3xx (301, 302, 303, 307, 308): cero bytes archivados, tick `failed` con
+código + URL + `Location`, y **el host de destino no recibe ni una petición**.
+
+**Por qué es RED, y es una sola causa raíz.** *Ningún test de nivel informe
+construye jamás un desenlace INCONCLUSO.* Los tres únicos planes que llegan a
+`analyzeWithoutReference` en toda la suite —`MIRRORED`, `REPLICATED` y `rich()`—
+dan los tres **ESPEJO** (`sin_contenido_propio`, `error_replicado`,
+`error_replicado`). Y CA-11 («un informe de **cada uno de los cinco motivos**»),
+CA-12 («los informes de **los dos veredictos** y de los cinco motivos»), CA-2
+(«dado **el** informe de este modo») y CA-15 («dado **cualquier** informe de este
+modo») son criterios sobre *todo* informe. Lo medí con dos mutaciones que
+degradan el informe **solo cuando el veredicto es INCONCLUSO**: la suite se queda
+en **55 ficheros / 495 casos verde** mientras `limitaciones_declaradas` pierde una
+afirmación, `conflict_metric_warning.text` se sustituye, el `motivo` de
+`veredictos_por_candidata` se vacía y `purga_prevista` se falsea. Es exactamente
+el fallo que costó una vuelta en SPEC-002 —conducta implementada y sin red— y
+cae sobre la mitad del dominio de veredictos que la propia spec llama la más
+probable de leer con desconfianza.
+
+**Lo que NO es un hallazgo.** F-SPEC-003-3 (la spec dice «cinco motivos» y CA-6
+define seis) no es incumplimiento: los tests de CA-5 recorren los seis, que es
+superconjunto. F-SPEC-003-8 (la fecha de purga no está escrita) tampoco: ADR-009
+§4.1 es una **precondición del operador antes de correr la ventana**, la spec la
+declara fuera de alcance y la ventana no se ha corrido; queda como bloqueante
+operativo del humano, no del código. F-SPEC-003-5 y F-SPEC-003-6 se aceptan como
+residuales declarados.
+
+**Cómo se cierra.** Tres cosas, ninguna de ellas un cambio de conducta:
+1. **CA-11 y CA-12** — extender los casos 11, 12 y 14 de
+   `referenceless-report.test.ts` a un informe **por cada uno de los seis
+   motivos** de CA-6, con al menos un INCONCLUSO. Los planes ya existen en
+   `referenceless-verdict.test.ts` caso 11.
+2. **CA-2 y CA-15** — añadir a esos mismos barridos la comprobación del `motivo`
+   («robots.txt», «RN-11») y de las tres fechas del bloque de retención sobre un
+   informe INCONCLUSO.
+3. **CA-13 / F-SPEC-003-4** — corregir el motivo registrado: la cabecera del
+   hallazgo de SPEC-002 **se puede** tocar sin romper su suite (medido: 55/495
+   verde). Si se decide no tocarla, el motivo es «no reabrir SPEC-002» (§Diseño 1,
+   §8), no CA-14.
+
+Nada de esto exige tocar `src/`. Con esas tres, y con la mutación
+correspondiente comprobada, la spec vuelve a verificación.
+
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-003/. Informe HTML opcional: _qa/SPEC-003/informe.html -->
+
+No aplica: SPEC-003 no tiene superficie de UI. La evidencia es de línea de
+comandos y está transcrita en la matriz y en el veredicto. La verificación se
+hizo sobre un `git worktree` aislado en `HEAD` (`8445cc4`) para poder mutar sin
+tocar el árbol de trabajo, que queda como estaba salvo este ledger.
 
 ## Salvedades / follow-ups
 <!-- IDs F-SPEC-003-1, F-SPEC-003-2… con destino (spec futura o EPIC-MEJORA). -->
@@ -184,15 +382,35 @@ ciclo (`declared_pairs` inexistente, `outcome: 'ok'` donde debía haber `failed`
   tocado el texto de la spec. **Destino:** aclaración en una eventual enmienda de
   SPEC-003, o nota del verificador. No cambia ninguna conducta.
 - **F-SPEC-003-4 — CA-13 pide que «cada uno» de los cuatro ficheros diga en su
-  primera línea qué modo lo produjo, y el `.md` de SPEC-002 no lo dice.** Su
-  *Test* solo exige que «el `.md` y el `.json`» de **este** modo lleven el modo, y
-  eso está hecho; tocar la cabecera del hallazgo de SPEC-002 movería su salida, y
-  CA-14 exige que su suite siga verde sin cambiar una sola expectativa. Hoy los
-  dos ficheros se distinguen igual por su **nombre**
+  primera línea qué modo lo produjo, y el `.md` de SPEC-002 no lo dice.**
+  *(Motivo corregido el 2026-08-31 tras F-SPEC-003-V3; lo que sigue sustituye al
+  texto anterior, que era falso.)*
+
+  Su *Test* solo exige que «el `.md` y el `.json`» de **este** modo lleven el
+  modo, y eso está hecho.
+
+  **Lo que decía este follow-up y no es cierto:** que tocar la cabecera del
+  hallazgo de SPEC-002 rompería su suite y que CA-14 lo impide. **No lo impide, y
+  está medido:** el verificador añadió `(modo con-referencia, SPEC-002)` a esa
+  primera línea y la suite entera salió **55 / 495 verde**, porque ninguna
+  expectativa de SPEC-002 asserta esa línea. CA-14 no dice nada de esto.
+
+  **El motivo verdadero, que es el que se sostiene:** **no reabrir SPEC-002.**
+  SPEC-002 está en `hecho`, que es terminal, y su **PR #2 está abierto, verificado
+  GREEN y esperando merge humano**. Su salida es el artefacto contra el que se
+  emitió ese GREEN; cambiarla ahora —aunque ningún test se ponga rojo— mueve lo
+  verificado por debajo de una verificación ya firmada, que es exactamente el
+  argumento del §Diseño 1 de esta spec y el mismo que sostiene a F-SPEC-003-1 y
+  F-SPEC-003-5. **Que se pueda no es que se deba.**
+
+  Mientras tanto los dos ficheros se distinguen igual por su **nombre**
   (`test-de-espejo.md` frente a `test-de-espejo-sin-referencia.md`) y el de este
   modo dice además, en su segundo párrafo, que **no** es el informe de SPEC-002.
-  **Destino:** el mismo que F-SPEC-003-1 — enmienda 2 de SPEC-002 o la spec que
-  reabra ese modo.
+
+  **La cabecera no se ha tocado, y no es mía la decisión de tocarla**: queda para
+  el gate humano, con el coste real ya medido (ninguno técnico, y uno de
+  procedimiento). **Destino:** el mismo que F-SPEC-003-1 — enmienda 2 de SPEC-002
+  o la spec que reabra ese modo.
 - **F-SPEC-003-5 — La rama `con-referencia` de la unión de CA-1 es un sobre, no
   el informe que SPEC-002 emite hoy.** CA-1 exige una unión discriminada con las
   dos ramas, y la rama del modo con referencia se ha construido extendiendo
@@ -232,12 +450,42 @@ ciclo (`declared_pairs` inexistente, `outcome: 'ok'` donde debía haber `failed`
   **Lo sostiene el humano, no el código.** **Destino:** el operador, antes de la
   ventana; y el acuse, después.
 
+### Hallazgos de `sdd-verificador` (2026-08-31)
+
+- **F-SPEC-003-V1 — BLOQUEANTE (CA-11, CA-12): ningún test de nivel informe
+  construye un desenlace INCONCLUSO.** Los tres planes que llegan a
+  `analyzeWithoutReference` en toda la suite dan ESPEJO. CA-11 pide un informe por
+  cada motivo de CA-6 y CA-12 pide los dos veredictos; se prueban dos motivos, los
+  dos ESPEJO. **Medido:** degradando `limitaciones_declaradas` y
+  `conflict_metric_warning.text` **solo** cuando el veredicto es INCONCLUSO, la
+  suite sigue en 55 ficheros / 495 casos verde. **Destino:** esta spec, antes de
+  volver a verificación.
+- **F-SPEC-003-V2 — CA-2 y CA-15 comparten la misma causa raíz.** Con la misma
+  técnica, mutar `veredictos_por_candidata.motivo` y `retencion_del_archivo`
+  **solo en INCONCLUSO** deja la suite verde. La presencia y los literales de los
+  dos bloques sí están garantizados por el esquema en toda ruta; su contenido, no.
+  **Destino:** el mismo barrido de F-SPEC-003-V1.
+- **F-SPEC-003-V3 — el motivo registrado en F-SPEC-003-4 es falso.** Añadir el
+  modo a la primera línea del hallazgo de SPEC-002 **no rompe ninguna
+  expectativa**: la suite entera sale 55 / 495 verde con la cabecera cambiada,
+  porque ningún test suyo asserta esa línea. La decisión de no tocarla puede
+  mantenerse, pero su motivo es «no reabrir SPEC-002» (§Diseño 1, §8), no CA-14.
+  **Destino:** corregir el texto de F-SPEC-003-4.
+
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
 
-**Dónde está todo.** Rama `ft/SPEC-003-test-de-espejo-sin-referencia`, cinco
-commits sobre `3b633e9` (la aprobación de la spec). Árbol limpio, sin push y sin
-PR: eso es del humano.
+**Dónde está todo.** Rama `ft/SPEC-003-test-de-espejo-sin-referencia`, **siete**
+commits sobre `3b633e9` (la aprobación de la spec): los cinco de la primera
+vuelta, el ledger del verificador y el de esta. Árbol limpio, sin push y sin PR:
+eso es del humano.
+
+**Qué cambió en la segunda vuelta, en dos frases.** Los seis planes de CA-6 son
+ahora **una sola tabla** (`REASON_PLANS` en
+`tests/mirror/support/referenceless.ts`) y los barridos de nivel informe la
+recorren entera, así que hay un informe por motivo y **tres de ellos son
+INCONCLUSO**; el caso 24 impide que la tabla vuelva a degenerar en solo-ESPEJO.
+**`src/` no se tocó**: el diff son tres ficheros de `tests/`.
 
 **Qué hay de nuevo, en dos frases.** El modo sin referencia vive entero bajo
 `src/mirror/analysis/referenceless/` —esquema, veredicto, retención, prosa,
@@ -262,8 +510,14 @@ calibración es un fichero de datos que el operador escribe **después** de la
 ventana, contra el archivo.
 
 **Qué falta, en orden:**
-1. `sdd-verificador`, contra el texto de SPEC-003. Las columnas *Verif.* y
-   *Estado* de la matriz y el veredicto son suyos; no los he tocado.
+1. `sdd-verificador`, **segunda pasada**, contra el texto de SPEC-003. Las
+   columnas *Verif.* y *Estado* de la matriz y el veredicto son suyos y siguen
+   describiendo el RED anterior; no los he tocado. Lo que hay que rejuzgar son
+   **CA-11 y CA-12** (❌) y **CA-2, CA-13 y CA-15** (⚠️), más la regresión de
+   CA-14 (suite de SPEC-002: 47 / 415, sin cambios, y ningún test suyo como `M`).
+   Para CA-13 lo que cambió es el **texto** de F-SPEC-003-4, no la conducta: la
+   cabecera del hallazgo de SPEC-002 sigue sin tocarse, y por qué está escrito
+   arriba.
 2. **El operador, antes de capturar:** escribir aquí la fecha de purga
    (F-SPEC-003-8). Sin eso la ventana no se corre, por ADR-009 §4.
 3. `sdd-documentalista`: la segunda entrada de runbook para el modo sin
