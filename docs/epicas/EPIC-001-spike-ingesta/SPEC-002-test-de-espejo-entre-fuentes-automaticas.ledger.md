@@ -702,6 +702,11 @@ bloque final de este ledger.)*
   informe en absoluto), por contraste deliberado con CA-11, donde la muestra
   corta **sí** es un veredicto. Si el gate prefiere un informe con veredictos
   INCONCLUSO y la ventana marcada inválida, es un cambio de tres líneas.
+- **F-SPEC-002-1 — CERRADA del todo el 2026-08-31.** El contacto es
+  `mailto:ola@tremen.dev` (commit `82eaeb7`, CA-2 verificado ✅ midiendo la
+  cabecera que recibe un servidor real), y **el gate confirma que lee ese
+  buzón** — la única mitad que ningún test podía comprobar. RN-11 queda cumplida
+  en su cláusula de identificación. *Texto original, para el registro:*
 - **F-SPEC-002-1 — el contacto de la User-Agent es un marcador de posición.**
   `src/mirror/user-agent.ts` emite
   `marcador.gal/0.0.1 (+https://github.com/tremen-dev/marcador.gal; medicion SPEC-002, RN-11)`.
@@ -1049,6 +1054,30 @@ sobre las ToS de ceroacero), ADR-005 (retención), F-SPEC-001-1.
 **Specs a revisar:** SPEC-002 (configuración de la ventana) y la spec del motor,
 que hereda la lista de fuentes y sus pesos.
 
+
+- **F-SPEC-002-23 — `parseRobots` trata el `*` de una ruta como carácter
+  literal, no como comodín, y por eso **incumple un `Disallow` real**.**
+  Levantado por el gate el 2026-08-31 al preparar la ventana, ejecutando el
+  parser del proyecto contra los `robots.txt` reales. `besoccer.es` publica
+  `Disallow: /scripts*` y `Disallow: /ajax*`; nuestro `isAllowed()` devuelve
+  **`true`** para `https://www.besoccer.es/scripts/x.js` y para
+  `https://www.besoccer.es/ajax/algo`. Causa exacta: el emparejamiento es
+  `path.startsWith(rule.path)` (`src/mirror/capture/robots.ts`), y la ruta
+  `/scripts/x.js` no empieza por la cadena literal `/scripts*`, así que la regla
+  **no casa** y gana el `Allow: /` del mismo grupo. El comodín `*` y el ancla `$`
+  son parte del estándar de facto (RFC 9309) y `Disallow: /foo*` es un idioma
+  común.
+  **No muerde en la ventana de SPEC-003**: los objetivos son páginas HTML de
+  competición, y las dos rutas afectadas quedan fuera. **Sí muerde en EPIC-002**,
+  y de la peor manera: los marcadores en vivo de los agregadores suelen venir de
+  endpoints `/ajax…`, que es exactamente lo que besoccer prohíbe y lo que
+  nuestro parser deja pasar. Un adaptador de EPIC-002 que los use **incumpliría
+  RN-11 sin que ningún test se pusiera rojo**.
+  Nota adicional: el acumulado de varios grupos `User-agent: *` **sí** funciona
+  —las reglas se suman por agente—, así que el fallo es solo el comodín.
+  **Destino:** `sdd-arquitecto`, como CA de la primera spec de adaptador de
+  EPIC-002. No se arregla aquí: SPEC-002 está `hecho` y mergeada, y esto es
+  código con contrato verificado.
 
 ## Cómo retomar (handoff)
 
