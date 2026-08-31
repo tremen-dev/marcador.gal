@@ -2,11 +2,13 @@
 id: SPEC-002
 tipo: spec
 epica: EPIC-001
-estado: aprobada
+estado: en-revision
 aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-08-31, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-31, por: Alberto Fojo}
+  - {estado: en-progreso, fecha: 2026-08-31, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-08-31, por: sdd-implementador}
 ---
 # SPEC-002 — Test de espejo entre fuentes automáticas
 
@@ -108,6 +110,7 @@ De ahí la asimetría de los veredictos:
 | S replica un error **transitorio** de F y su corrección | **ESPEJO** | Sólida. Dos fuentes independientes no se equivocan igual y se corrigen igual. | En la práctica sí: los errores se cometen y se corrigen durante los partidos |
 | S nunca adelanta | Nada por sí solo | Compatible con espejo **y** con independiente-lento. | — |
 | S no tiene nada que F no tenga | Indicio de espejo | Débil solo; fuerte junto a lo anterior. | No |
+| S y F escriben distinto el nombre del equipo | **Nada, ni en un sentido ni en el otro** | Nula. Un agregador copia el marcador y **rinde el nombre desde su propia base de equipos**, así que la señal dispara igual con espejo que con independencia. Se registra por CA-10.4; no dicta. *(enmienda 2026-08-31 §1)* | No |
 
 Y por eso existe un tercer veredicto, INCONCLUSO, que no es un fallo del test
 sino su resultado honesto cuando la ventana no dio para más.
@@ -139,7 +142,7 @@ alternativa abierta.
 
 | Mitad | Cuándo | Qué mide | CA |
 |---|---|---|---|
-| **Contenido** | **Día 2**, sin partidos en vivo | Estado en reposo de las tres fuentes: qué partidos existen, resultados de la jornada anterior, horarios, grafías de equipo. Discrepancias persistentes y contenido exclusivo. | CA-1..CA-7, CA-10, CA-11, CA-12, CA-13, CA-14, CA-15 |
+| **Contenido** | **Día 2**, sin partidos en vivo | Estado en reposo de las tres fuentes: qué partidos existen, resultados de la jornada anterior, horarios. Discrepancias persistentes y contenido exclusivo. Las grafías de equipo se **registran** y no dictan (CA-10.4). | CA-1..CA-7, CA-10, CA-11, CA-12, CA-13, CA-14, CA-15 |
 | **Tiempo** | Primera ventana con partidos en vivo | Quién publica antes cada cambio de valor. | CA-8, CA-9, y la mitad temporal de CA-15 |
 
 **Por qué el día 2 siempre basta para arrancar el motor.** No es que la mitad de
@@ -226,6 +229,26 @@ Convenciones que usan varios CA:
   *Por qué:* si a ceroacero se le cayeron 20 minutos, futgal «adelanta» en todos
   los eventos de esos 20 minutos. Sin este criterio, una caída de red se lee como
   prueba de espejo.
+  **Qué significa «se niega», precisado por la enmienda 2026-08-31 §6:** se niega
+  de verdad. La fase B **aborta con `InvalidWindowError` y no escribe informe**;
+  no emite un informe con veredictos INCONCLUSO. **No es simetría rota con
+  CA-11, es la distinción que importa:** CA-11 habla del **mundo** —la ventana
+  fue buena y el fútbol estuvo tranquilo—, y ahí «N = 9 < 10» es el hallazgo y la
+  respuesta es ampliar la ventana. CA-5 habla del **instrumento**: nuestra
+  captura falló, el dato está contaminado justo en la dirección peligrosa (un
+  hueco fabrica adelantos, y los adelantos son lo que se lee como independencia)
+  y **ninguna afirmación sobre las fuentes está justificada**. Un informe bien
+  formado sobre una ventana rota es indistinguible en el fichero de uno legítimo:
+  quien escriba la spec del motor lee `hallazgos/test-de-espejo.json`, y si una
+  ventana rota puede producir ese fichero, el motor puede nacer sobre una
+  no-medición. La ausencia del fichero, en cambio, no se malinterpreta.
+  **Pero la negativa no puede ser muda:** el error lleva la **cobertura de los
+  seis pares**, no solo la de los que bajaron del umbral, más el umbral exigido,
+  para que el operador vea de un vistazo la salud de la ventana entera y sepa
+  qué repetir.
+  **Test añadido:** el mensaje del error nombra los pares **por debajo y por
+  encima** del umbral con su ratio, y sobre una ventana inválida no se crea
+  ningún fichero en `hallazgos/`.
 
 ### Fase B — identidad de los partidos
 
@@ -269,9 +292,18 @@ Convenciones que usan varios CA:
   un τ mal elegido se vea en los datos y se pueda recalcular sin volver a capturar.
 
 - **CA-9 — Un adelanto prueba independencia; la ausencia de adelantos no prueba nada.**
-  Dado el análisis de S contra F, entonces se dicta **INDEPENDIENTE** si y solo si
-  S adelanta a F en **≥ 2 eventos de ≥ 2 partidos distintos**; y una S que no
-  adelanta nunca **no puede** ser dictada ESPEJO por esa sola razón.
+  *(Reescrita su primera frase por la enmienda 2026-08-31 §3. Ver Historial de
+  enmiendas.)*
+  Dado el análisis de S contra F, entonces **la señal temporal** dicta
+  **INDEPENDIENTE** si y solo si S adelanta a F en **≥ 2 eventos de ≥ 2 partidos
+  distintos**; y una S que no adelanta nunca **no puede** ser dictada ESPEJO por
+  esa sola razón.
+  El «si y solo si» acota **esta señal**, no el veredicto entero: el otro camino
+  a INDEPENDIENTE es la discrepancia persistente de CA-10.2, y **no hay más que
+  esos dos** (tabla del *Diseño §2*, cuyas dos primeras filas prueban
+  INDEPENDIENTE). La combinación de los caminos, y qué pasa cuando concurren con
+  una señal de espejo, está en la **regla de decisión de CA-10**, que es donde
+  manda y es total.
   **Test:** tres fixtures. (a) S adelanta 2 veces en 2 partidos → INDEPENDIENTE.
   (b) S adelanta 2 veces en **el mismo** partido → no INDEPENDIENTE (un partido
   mal parseado no basta). (c) **S siempre 5 min por detrás de F, sin ningún error
@@ -282,24 +314,113 @@ Convenciones que usan varios CA:
   dos partidos distintos compra robustez frente a un extractor roto en un partido.
 
 - **CA-10 (mitad de contenido, día 2) — Las señales que no dependen del reloj.**
-  Dado el análisis, entonces se computan y registran **tres** señales de
-  contenido, todas verificables sobre datos en reposo:
-  1. **Error replicado.** F reporta para `m` un valor `v` y después lo sustituye
-     por `v'`; S reporta también `v` y después `v'`. Cada caso se registra con las
-     claves raw de las cuatro capturas que lo sostienen. → **ESPEJO**.
+  *(Reescritos 10.1, 10.2 y la regla de decisión, y añadido 10.4, por la enmienda
+  2026-08-31 §§1, 2, 4 y 5. Ver Historial de enmiendas.)*
+  Dado el análisis, entonces se computan y registran **cuatro** señales de
+  contenido, todas verificables sobre datos en reposo. Tres dictan; la cuarta se
+  registra y no dicta.
+  1. **Error replicado = retractación replicada.** F sustituye para `m` un valor
+     `v` por un `v'` que va **hacia atrás** —un marcador que **baja** (lo que
+     RN-04 prohíbe sin fuente oficial o humano, así que una fuente que lo hace se
+     está retractando) o un estado que **regresa** (`finished` o `postponed` que
+     dejan de serlo, o `live → scheduled`)—, y S hace la **misma** sustitución
+     `v → v'` en el **mismo** partido. Cada caso se registra con las claves raw
+     de las cuatro capturas que lo sostienen. → **ESPEJO**.
+     *Por qué «hacia atrás» y no «cualquier sustitución»:* leído a la letra,
+     **cada gol** es un valor sustituido por otro y cada gol lo reportan todas
+     las fuentes, así que cualquier par saldría ESPEJO por el camino fuerte y el
+     criterio quedaría vacío. Lo que nombran el *Diseño §2* y `dominio.md` es
+     otra cosa: «un error **transitorio** … el mismo marcador equivocado y la
+     misma corrección».
+     **Dos límites declarados, no descuidos.** (a) Un error corregido **hacia
+     arriba** —S muestra 0-0 cuando el real es 1-0 y luego salta a 1-0— es
+     indistinguible de un retardo de refresco con este instrumento, y llamarlo
+     error sería inventar: quien mide el retardo es la mitad temporal. (b) Una
+     retractación **real del mundo** —un gol anulado que las dos fuentes
+     deshacen honestamente— produce un falso ESPEJO. Se acepta porque yerra
+     hacia el lado seguro de CA-12 (ESPEJO cierra la segunda vía de RN-02, no la
+     abre) y porque las cuatro claves quedan citadas para que una persona lo
+     mire; y si concurre con un adelanto probado, la regla de decisión de abajo
+     lo manda a INCONCLUSO, no a ESPEJO.
   2. **Discrepancia persistente.** F y S sostienen valores distintos para el mismo
-     hecho —resultado de un partido acabado, hora de comienzo, existencia del
-     partido, grafía del equipo— durante **≥ 3 capturas consecutivas de ambas**,
-     sin converger. → **INDEPENDIENTE**.
+     hecho —**resultado de un partido acabado, hora de comienzo, existencia del
+     partido**— durante **≥ 3 capturas consecutivas de ambas**, sin converger.
+     → **INDEPENDIENTE**. Son **tres** hechos y no cuatro: la grafía del equipo
+     **sale de aquí** y pasa a 10.4, que explica por qué.
   3. **Contenido exclusivo.** Hechos que S tiene y F nunca, y al revés.
-  Y se dicta **ESPEJO** si hay **≥ 1 error replicado**, o si hay **0 exclusivos
-  de S con N ≥ N_min y 0 adelantos**; se dicta **INDEPENDIENTE** si hay
-  **≥ 1 discrepancia persistente**.
-  **Test:** cuatro fixtures —error transitorio replicado → ESPEJO citando las
-  cuatro claves; S con un hecho que F no tiene → no ESPEJO; horarios distintos en
-  2 capturas que luego convergen → **no** cuenta como discrepancia persistente
-  (es retardo de refresco, justo lo que hace un espejo); los mismos horarios
-  distintos en 3 capturas → INDEPENDIENTE.
+  4. **Divergencia de grafía — se registra, no dicta.** F y S escriben distinto
+     el nombre de un equipo del mismo partido (tras la normalización tacaña de
+     `normalizeAlias`). Se cuenta, se cita con sus claves raw como cualquier otra
+     afirmación (CA-14) y **viaja en el informe en su propio contador, separado
+     de las discrepancias persistentes**. **No entra en ningún veredicto, ni
+     hacia ESPEJO ni hacia INDEPENDIENTE.**
+     *Por qué no dicta:* la fuerza probatoria de 10.2 está en que **un espejo
+     converge**. La grafía es justo el campo donde un espejo **no converge por
+     construcción**: un agregador copia el marcador y **rinde el nombre desde su
+     propia base de equipos**, así que dos sitios distintos escriben los nombres
+     distinto casi siempre. La señal dispara con la misma probabilidad bajo las
+     dos hipótesis, o sea que **no lleva información**, y dictar con ella daría
+     INDEPENDIENTE de todo contra todo: exactamente la confianza falsa del
+     §Problema, y con RN-02 abriendo su segunda vía sobre una independencia no
+     demostrada. Es además el único de los cuatro hechos que **no** aparece en la
+     tabla del *Diseño §2*, que es la sección que gobierna; estaba en 10.2 por
+     error de redacción mío.
+     *Para qué sirve entonces, y por qué no se borra:* es la superficie de
+     auditoría del emparejamiento manual de CA-6 —quien lo escribió puede
+     comprobar contra el archivo qué llamaba cada fuente a cada equipo— y es el
+     primer insumo real del catálogo de alias de RN-09, que esta spec deja fuera
+     de alcance pero que alguien tendrá que escribir.
+     *Coste de la enmienda, dicho entero:* la mitad de contenido pierde una de
+     sus cuatro señales y por tanto encontrará menos INDEPENDIENTE el día 2. Eso
+     **no rompe el *Diseño §4***, lo restaura: «si no las encuentra → INCONCLUSO»,
+     que por CA-12 se trata como espejo y deja el motor con una sola vía, que es
+     lo que hay que hacer mientras no haya prueba.
+
+  **Regla de decisión (total y ordenada).** Sean: *fuerte-independiente* =
+  adelantos suficientes (CA-9) **o** ≥ 1 discrepancia persistente (10.2);
+  *fuerte-espejo* = ≥ 1 error replicado (10.1); *indicio-espejo* = **sincronía**,
+  definida como **cero eventos exclusivos de S, N ≥ N_min, la mitad temporal
+  `completa` y ningún adelanto en ninguna de las dos direcciones** —todo evento
+  comparable, empate dentro de τ—. Entonces, en este orden:
+  1. N < N_min → **INCONCLUSO por muestra insuficiente** (CA-11).
+  2. *fuerte-independiente* **y** *fuerte-espejo* a la vez → **INCONCLUSO por
+     señales contradictorias**. No es un empate que romper: un espejo no puede
+     adelantar y dos fuentes independientes no se retractan igual, así que una de
+     las dos señales está mal y no sabemos cuál. Por CA-12 es el lado seguro.
+  3. *fuerte-independiente* → **INDEPENDIENTE**.
+  4. *fuerte-espejo* **o** *indicio-espejo* → **ESPEJO**. Un indicio **cede** ante
+     una señal fuerte en vez de contradecirla: si no, «S no aporta nada propio»
+     cancelaría un adelanto probado. Cuando el veredicto se sostiene solo en el
+     indicio, el informe lo dice (`mirror_indication`).
+  5. En otro caso → **INCONCLUSO sin señal**.
+
+  **Por qué *sincronía* y no «0 adelantos» a secas.** «0 adelantos **de S**»
+  contradice frontalmente a CA-9 (c) —una S cinco minutos por detrás tiene 0
+  exclusivos, N alto y 0 adelantos suyos, y CA-9 (c) exige que eso sea
+  INCONCLUSO y no ESPEJO—. Leído en las **dos** direcciones, las dos reglas son
+  verdad a la vez: la fuente meramente lenta acumula **retrasos**, la sincronía
+  no se cumple y la cláusula no dispara; el espejo que va acompasado sí. Y es
+  además la única lectura bajo la cual la cláusula lleva información: «nunca es
+  más rápida» es compatible con espejo y con independiente-lento —lo dice el
+  *Diseño §2*—, mientras que «nunca se desacompasa, en ningún sentido, teniendo
+  algo que medir» es lo que el *Diseño §2* llama indicio «fuerte junto a lo
+  anterior».
+  **Y por qué exige la mitad temporal `completa`.** En una ventana en reposo no
+  hay ningún cambio de valor: todo evento es el estado inicial, todo sale empate
+  y no hay exclusivos, así que la cláusula dispararía **siempre** y el día 2
+  dictaría ESPEJO de todo. Sin al menos un cambio de valor que vieran las dos
+  fuentes, «no hay adelantos» **no es un hecho sobre las fuentes: es un hecho
+  sobre la ventana**.
+  **Test:** siete fixtures —error transitorio replicado (marcador que baja) →
+  ESPEJO citando las cuatro claves; un gol normal (marcador que sube) en las dos
+  fuentes → **no** es error replicado; S con un hecho que F no tiene → no ESPEJO;
+  horarios distintos en 2 capturas que luego convergen → **no** cuenta como
+  discrepancia persistente (es retardo de refresco, justo lo que hace un espejo);
+  los mismos horarios distintos en 3 capturas → INDEPENDIENTE; **grafías
+  distintas y persistentes en 3 capturas, sin ninguna otra señal → NO
+  INDEPENDIENTE (INCONCLUSO), y la divergencia aparece contada y citada en el
+  informe** —este es el corazón de la enmienda y no puede faltar—; adelanto
+  probado y error replicado a la vez → INCONCLUSO por señales contradictorias.
   *Por qué el error replicado pesa tanto:* dos fuentes independientes pueden
   coincidir en todos los aciertos —el marcador real es uno—, pero no en los
   fallos. Un mismo marcador equivocado y una misma corrección es la huella
@@ -308,8 +429,8 @@ Convenciones que usan varios CA:
   refresco discrepa de su origen **de forma transitoria** todo el rato. Lo que
   distingue al dato propio es que la diferencia **no converge**. El umbral de 3
   capturas es hipótesis declarada, como τ y N_min (§5 de las notas del gate).
-  *Reparto entre mitades:* las señales 2 y 3 corren el **día 2** sobre datos en
-  reposo. La 1 necesita observar una corrección, que en la práctica ocurre
+  *Reparto entre mitades:* las señales 2, 3 y 4 corren el **día 2** sobre datos
+  en reposo. La 1 necesita observar una corrección, que en la práctica ocurre
   durante los partidos; si el día 2 no la produce, se registra como no observada
   y se reintenta en la ventana en vivo, sin que eso invalide el informe del día 2
   (CA-13).
@@ -350,11 +471,17 @@ Convenciones que usan varios CA:
   Dado un análisis, entonces produce un informe **JSON validado por un esquema
   zod** con, por cada fuente candidata y por el par de candidatas (CA-15): el
   veredicto de los tres, los contadores (N, adelantos, retrasos, empates,
-  exclusivos, errores replicados, discrepancias persistentes), los umbrales
-  usados (τ, N_min, mínimos de CA-9 y CA-15, las 3 capturas de CA-10.2), la
-  ventana (inicio, fin, cobertura de ticks por par) y
+  exclusivos, errores replicados, discrepancias persistentes y —**contadas
+  aparte y en su propia clave, enmienda 2026-08-31 §1**— divergencias de
+  grafía), los umbrales usados (τ, N_min, mínimos de CA-9 y CA-15, las 3
+  capturas de CA-10.2), la ventana (inicio, fin, cobertura de ticks por par) y
   `rn02_segunda_via_entre_automaticas`. Y **un párrafo en prosa por fuente** que
   dice qué se hace en consecuencia.
+  **Las divergencias de grafía no se suman a las discrepancias persistentes en
+  ninguna clave del JSON ni en la prosa**, y la prosa dice de ellas, cuando las
+  hay, que se registran y no dictan y por qué. Un contador compartido con un
+  discriminador booleano sería una invitación a que el primer consumidor que
+  olvide filtrar reintroduzca justo el fallo que la enmienda quita.
   **Cada mitad lleva su propio estado**, `completa` o `pendiente`: un informe con
   la mitad de contenido `completa` y la temporal `pendiente` es **válido y
   accionable**, no un informe a medias. Cuando la temporal está `pendiente` el
@@ -415,6 +542,11 @@ Convenciones que usan varios CA:
      **origen común aguas arriba que no es futgal**. El informe los cuenta
      separados y nombra el segundo como tal.
   3. **Discrepancia persistente y contenido exclusivo.** Simétricos, sin cambio.
+  4. **Divergencia de grafía.** Simétrica, y **tampoco dicta aquí** (CA-10.4,
+     enmienda 2026-08-31 §1). Si acaso el argumento es más fuerte en este cruce:
+     las dos candidatas son dos agregadores, cada uno con su propia base de
+     equipos, así que la señal dispararía incluso para dos reventas literales del
+     mismo feed.
 
   **τ y N_min no cambian.** τ = 90 s sale del intervalo de muestreo de RN-11, que
   es idéntico para las tres fuentes; N_min = 10 es tamaño de muestra y no depende
@@ -482,8 +614,8 @@ Aparcado a propósito, no por descuido:
 
 El gate del **2026-08-31** resolvió §2, §3 y §4. Se conservan aquí, resueltas y
 con su motivo, porque son lo que explica la forma de la spec. §1 y §5 son
-declaraciones que quien firma asume al firmar. §6 es lo único abierto, y no es de
-esta spec.
+declaraciones que quien firma asume al firmar. §6 quedó cerrado después (ver ahí).
+**§7 es lo abierto hoy** y es lo que trae la enmienda del 2026-08-31.
 
 **§1. DECLARACIÓN, load-bearing — interpretación de RN-11.** «Máximo 1
 petición/minuto **por competición**» se lee como **por fuente y competición**.
@@ -539,8 +671,13 @@ los cinco se registran en el informe junto al reparto de datos observados, para
 poder recalcularlos **sin volver a capturar**. Misma disciplina que `reglas.md`
 aplica a los umbrales de RN-01..RN-07.
 
-**§6. PREGUNTA NUEVA, y no es de esta spec — §3 obliga a tocar dos documentos de
-`sdd-producto`.** En mi opinión **sí**, y por eso no los he editado. El gate ha
+**§6. CERRADO el 2026-08-31 (commit `da9c6dc`), y no era de esta spec — §3
+obligaba a tocar dos documentos de `sdd-producto`.** La coletilla que propuse
+abajo está añadida en los dos documentos: `docs/roadmap.md:50` y
+`_epica.md:39`. **Nada pendiente aquí**; se conserva el texto porque explica por
+qué se tocaron dos documentos aprobados. *(El ledger, en su F-SPEC-002-13, sigue
+dándolo por abierto: el implementador trabajaba con contexto aislado y no vio el
+commit. Esa entrada es de su mitad y no la toco.)* El gate había
 decidido que el corte del 15 % no aplica en un escenario concreto, pero ese corte
 está afirmado **sin condición** en dos sitios que son de `sdd-producto` y del
 humano:
@@ -562,7 +699,107 @@ en los dos, como coletilla de la frase existente:
 Es una épica **aprobada**, así que ni la toco ni decido si el cambio merece
 rehacer su firma. Te lo devuelvo señalado.
 
+**§7. LO QUE HAY QUE FIRMAR HOY — la enmienda del 2026-08-31.** La spec estaba
+`aprobada` y ya implementada cuando aparecieron cinco cosas que su texto no
+resolvía o resolvía mal. Están escritas en el cuerpo y listadas en *Historial de
+enmiendas*; aquí, lo que quien firma tiene que mirar con lupa, en orden de
+riesgo:
+
+1. **La única que cambia un veredicto: la grafía deja de dictar (CA-10.4).**
+   Es lo que se pidió dictaminar. Sin ella el test saca INDEPENDIENTE de todo
+   contra todo y RN-02 abre su segunda vía sobre una independencia no
+   demostrada, que es la falta que el §Problema llama confianza falsa. **Coste
+   declarado:** la mitad de contenido pierde una de sus cuatro señales y
+   encontrará menos INDEPENDIENTE el día 2; el resultado por defecto pasa a ser
+   INCONCLUSO, que por CA-12 deja el motor con una sola vía. Es el lado seguro y
+   es lo que el *Diseño §4* ya decía. **Si el gate prefiere que la grafía siga
+   dictando**, hay que decirlo aquí y asumir que el veredicto del test será
+   INDEPENDIENTE casi con seguridad y no significará nada.
+2. **La retractación como definición de «error replicado» (CA-10.1)** trae dos
+   límites que quien firma asume: un error corregido *hacia arriba* es invisible
+   para este instrumento, y un gol anulado de verdad que las dos fuentes
+   deshacen produce un falso ESPEJO. Los dos yerran hacia el lado seguro.
+3. **La sincronía (CA-10, regla de decisión)** hace que la cláusula débil de
+   ESPEJO exija cero desajuste en las **dos** direcciones y la mitad temporal
+   `completa`. Sin lo primero contradice a CA-9 (c); sin lo segundo, el día 2
+   dictaría ESPEJO siempre.
+4. **La regla de decisión es ahora total y ordenada**, y dice qué pasa cuando
+   concurren una señal fuerte de cada signo: INCONCLUSO. Antes no lo decía nadie.
+5. **La negativa de CA-5 es una negativa** (sin informe), y no un informe de
+   INCONCLUSOs. La razón está en CA-5: CA-11 habla del mundo, CA-5 del
+   instrumento.
+
 **Si apruebas**, dos términos —**espejo** e **independiente**— pasan a
 `dominio.md`, que hoy solo los usa de pasada en la ficha de ceroacero. No los he
-añadido aún porque la spec está en `borrador` y el glosario no debe adelantarse a
-lo que el gate no ha firmado.
+añadido aún porque el glosario no debe adelantarse a lo que el gate no ha
+firmado. Con la enmienda, el término que hay que definir con cuidado es
+**espejo**: una fuente puede copiar el marcador y no copiar los nombres, así que
+«espejo» es una afirmación sobre **los valores**, no sobre la página.
+
+## Historial de enmiendas
+
+- **2026-08-31 — enmienda 1 (sdd-arquitecto).** Motivo: los follow-ups
+  **F-SPEC-002-4, -5, -6, -7, -8, -9 y -10** del ledger. Alberto Fojo encargó el
+  dictamen de F-9 al arquitecto sin dirigir la respuesta, y la ratificación o
+  enmienda de las cuatro interpretaciones que el implementador resolvió por su
+  cuenta. La spec estaba `aprobada` y ya implementada, así que el cambio se
+  registra aquí y `sdd-verificador` juzga contra **este** texto. El frontmatter
+  `estado` no se toca: sigue `en-revision`. **La enmienda la ratifica el humano,
+  no el arquitecto.**
+  1. **La grafía del equipo deja de dictar veredicto** (F-SPEC-002-9, el
+     dictamen pedido). Sale de la lista de hechos de **CA-10.2**, que pasa de
+     cuatro hechos a tres, y entra como señal nueva **CA-10.4**: se computa, se
+     cuenta **en su propia clave**, se cita con sus claves raw y **no entra en
+     ningún veredicto**. Motivo: un agregador copia el marcador y rinde el
+     nombre desde su propia base de equipos, así que la divergencia de grafía es
+     compatible con espejo *por construcción* —dispara con la misma probabilidad
+     bajo las dos hipótesis y no lleva información—, mientras que toda la fuerza
+     de 10.2 está en que un espejo converge. Además, la grafía era el único de
+     los cuatro hechos que **no** aparecía en la tabla del *Diseño §2*, que es la
+     sección que gobierna: estaba en 10.2 por error de redacción mío. Se
+     conserva registrada porque es la superficie de auditoría del emparejamiento
+     manual de CA-6 y el primer insumo del catálogo de alias de RN-09.
+     Criterios tocados: CA-10.2, CA-10.4 (nueva), CA-13 (contador propio),
+     CA-15.4 (nueva), tabla del *Diseño §2*, tabla del *Diseño §4*.
+  2. **«Error replicado» se define como retractación replicada** (F-SPEC-002-4,
+     **ratificada** la lectura del implementador). **CA-10.1** reescrito: la
+     sustitución tiene que ir hacia atrás —marcador que baja (RN-04) o estado que
+     regresa—. La lectura literal convertía cada gol en error replicado y sacaba
+     ESPEJO de cualquier par. Se añaden los dos límites declarados: el error
+     corregido hacia arriba es indistinguible del retardo de refresco con este
+     instrumento, y una retractación real del mundo replicada por dos fuentes
+     independientes es un falso ESPEJO aceptado por caer del lado seguro de
+     CA-12.
+  3. **El «si y solo si» de CA-9 acota la señal temporal, no el veredicto**
+     (F-SPEC-002-6, **ratificado** el O lógico). **CA-9** reescrito, y la
+     disyunción se cierra: los caminos a INDEPENDIENTE son exactamente dos
+     —adelantos y discrepancia persistente—, y la regla de decisión vive en
+     CA-10.
+  4. **«0 adelantos» pasa a ser «sincronía»** (F-SPEC-002-5 y F-SPEC-002-7,
+     **ratificadas** las dos lecturas). La cláusula débil de ESPEJO exige ahora,
+     escrito en la **regla de decisión de CA-10**: cero exclusivos de S, N ≥
+     N_min, mitad temporal `completa` y **ningún adelanto en ninguna de las dos
+     direcciones**. Sin la bidireccionalidad, CA-10 contradecía a CA-9 (c) —«el
+     corazón del criterio»— sobre el mismo dato; sin la mitad temporal
+     `completa`, una ventana en reposo dictaría ESPEJO siempre, contra el
+     *Diseño §4*.
+  5. **La regla de decisión se escribe entera, total y ordenada** (F-SPEC-002-8,
+     **ratificado**): muestra insuficiente, señales fuertes contradictorias →
+     INCONCLUSO, fuerte-independiente, fuerte-espejo o indicio, y si no,
+     INCONCLUSO sin señal. Antes la spec listaba señales sueltas y no decía qué
+     pasa cuando concurren.
+  6. **«La fase B se niega» se precisa como negativa sin informe**
+     (F-SPEC-002-10, decisión del arquitecto). **CA-5** ampliado con el motivo
+     —CA-11 habla del mundo, CA-5 del instrumento— y con una obligación nueva:
+     el error lleva la cobertura de **los seis pares**, no solo la de los que
+     bajaron del umbral, y sobre una ventana inválida no se escribe nada en
+     `hallazgos/`.
+  Criterios tocados: **CA-5** (ampliado), **CA-9** (reescrita su primera frase),
+  **CA-10** (10.1 y 10.2 reescritos, 10.4 nuevo, regla de decisión nueva),
+  **CA-13** (contador y prosa de la grafía), **CA-15** (10.4 simétrico como
+  15.4). Criterios afectados sin cambio de texto: CA-11 (la puerta de N_min es
+  ahora el paso 1 de la regla de decisión), CA-12 (sin cambio: la bandera sigue
+  siendo `true` solo con INDEPENDIENTE), CA-14 (las divergencias de grafía citan
+  sus capturas como todo lo demás). Secciones tocadas: *Diseño §2* (fila nueva en
+  la tabla), *Diseño §4* (tabla de mitades), *Notas para el gate humano* §6
+  (cerrado) y §7 (nueva).
