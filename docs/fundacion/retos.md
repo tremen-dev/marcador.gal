@@ -12,7 +12,7 @@
 - Comunicación: inspiración en Marcador Galego, nunca sucesión. Contactar con el titular anterior por cortesía y por la comunidad.
 
 ## Datos (el reto de verdad)
-- Fuente oficial galega: RFGF (futgal.es y su app). Cubre Preferente y también Tercera RFEF G1.
+- Fuente oficial galega: RFGF (futgal.es y su app). Cubre Preferente y también Terceira RFEF G1.
 - Agregadores: ceroacero (todo, en directo), BeSoccer (Preferente y nacional), futbolme.
 - Nacional: proveedor de pago (API-Football, Sportmonks, BeSoccer API).
 - Clubes en redes y corresponsales humanos como fuentes rápidas.

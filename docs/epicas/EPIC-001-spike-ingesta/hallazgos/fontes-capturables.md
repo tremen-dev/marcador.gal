@@ -25,16 +25,16 @@ de resultados que no nombra a ningún equipo no contiene resultados.
 
 Equipos buscados: `Negreira`, `Paiosaco`, `Noia`, `Betanzos`, `Chantada` para
 Preferente; `Arenteiro`, `Alondras`, `Boiro`, `Estradense`, `Somozas` para
-Tercera RFEF. Salidos del calendario publicado de la jornada 1.
+Terceira RFEF. Salidos del calendario publicado de la jornada 1.
 
 ## Resultado
 
 | Fuente | Competición | HTML servido | Equipos encontrados |
 |---|---|---|---|
 | **ceroacero.es** | Preferente Futgal G1 | 227 KB | **50** |
-| **ceroacero.es** | Tercera RFEF G1 | 251 KB | **50** |
+| **ceroacero.es** | Terceira RFEF G1 | 251 KB | **50** |
 | **besoccer.es** | Preferente Futgal G1 | 130 KB | **0** |
-| **besoccer.es** | Tercera RFEF G1 | 146 KB | **0** |
+| **besoccer.es** | Terceira RFEF G1 | 146 KB | **0** |
 
 **besoccer.es responde 200, con el título correcto y 130-146 KB de HTML, y no
 contiene un solo nombre de equipo.** Sus 13 bloques JSON-LD no incluyen ningún

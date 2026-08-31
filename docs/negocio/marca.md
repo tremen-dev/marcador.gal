@@ -15,8 +15,7 @@ reconocimiento de categoría sin heredar la marca anterior (D-1: inspiración, n
 sucesión — el parecido con "marcadorgalego.gal" es un riesgo a vigilar en la
 comunicación, no una sucesión).
 
-**Pendiente y bloqueante: contratar el dominio `.gal` y los handles.** Hasta que
-eso ocurra el nombre no es seguro. Es riesgo abierto en `docs/fundacion/contexto.md`.
+**Dominio contratado (2026-08-31, Dinahosting; expira 2027-08-31).** Siguen pendientes los handles en redes sociales.
 
 Sigue pendiente: comprobar que no haya registro previo en OEPM antes de invertir
 en identidad visual.
@@ -45,6 +44,8 @@ que era su encaje natural.
 
 ## Landing
 Una página en galego con un objetivo: lista de espera. Secciones: hero con mockup real del marcador, qué es en tres frases, ligas cubiertas, formulario, "queres patrocinar?", "quen está detrás" con tremen.dev. Analítica desde el día uno.
+> **Nota:** Esta landing es distinta de la página técnica de EPIC-003. Aquí la sección "quén está detrás" es parte de una estrategia de captación. EPIC-003 (`docs/epicas/EPIC-003-paxina-de-proxecto-e-respaldo-publico-da-carta/`) es un sitio pequeño y verificable que respalda la carta a la RFGF, **sin formulario, sin mockup y sin captación**; su único propósito es que cualquiera pueda comprobar quién está detrás y cómo se rastrea.
+
 
 ## Salida
 Redes, Código Cero, Praza, Nós Diario, mensaje al titular anterior, clubes de Tercera y Preferente. Objetivo: 500 en lista de espera antes del producto.

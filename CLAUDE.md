@@ -27,11 +27,9 @@ Roles de dominio consultivos: `/sdd-competicion`, `/sdd-legal-datos`,
 
 ## Estado actual
 
-Fase: **spike de ingesta** (`EPIC-001`). Objetivo: medir latencia, cobertura,
-conflictos y minutos de operación manual con Tercera RFEF G1 + Preferente Futgal
-G1. Ya hay código: `src/model/`, `src/raw/` y `src/db/` (SPEC-001) y `src/mirror/`
-(SPEC-002 y SPEC-003), con `migrations/0001` aplicada. Las tres specs están hechas
-y verificadas GREEN. `src/ingest/`, `src/decide/` y `src/api/` siguen sin existir.
+Fase: **spike de ingesta** (`EPIC-001`), paralelo con **sitio público de proyecto** (`EPIC-003`).
+- EPIC-001: Objetivo: medir latencia, cobertura, conflictos y minutos de operación manual con Terceira RFEF G1 + Preferente Futgal G1. Código: `src/model/`, `src/raw/`, `src/db/` (SPEC-001), `src/mirror/` (SPEC-002 y SPEC-003), `migrations/0001` aplicada. Las tres specs están hechas y verificadas GREEN. `src/ingest/`, `src/decide/` y `src/api/` siguen sin existir.
+- EPIC-003: **SPEC-004 está `hecho`** (verificada GREEN, 2026-08-31): sitio público en `marcador.gal` con soporte galego/castellano, respaldo de la carta a la RFGF. Código: `src/app/(gl)/`, `src/app/(es)/` (rutas del sitio), `src/site/` (componentes reutilizables), `src/i18n/` (bundles gl/es). SPEC-005 `aprobada` (2026-08-31), aguardando implementación.
 
 **La ventana de observación no se ha corrido, y hoy no se puede correr entera.**
 `futgal.es` prohíbe el rastreo en su `robots.txt` y RN-11 obliga a respetarlo, así
@@ -39,8 +37,7 @@ que la fuente oficial **no es capturable** (ADR-008). SPEC-002 queda a la espera
 que lo sea; SPEC-003 mide lo que sí se puede medir sin ella. EPIC-001 **no tiene
 todavía ninguna de sus cuatro cifras**.
 
-Los ADRs están **aprobados** y son inmutables — hoy son **nueve**, ADR-001 a
-ADR-009. Para cambiar cualquiera, escribe otro ADR que lo supersede; no los
+Los ADRs están **aprobados** (ADR-001 a ADR-009) y son inmutables — dos nuevos en EPIC-003 (ADR-010 y ADR-011), en borrador. Para cambiar cualquiera, escribe otro ADR que lo supersede; no los
 edites. ADR-008 y ADR-009 superseden **parcialmente** a ADR-002 y ADR-005: lee
 siempre el que supersede antes de apoyarte en el viejo.
 
@@ -122,7 +119,18 @@ src/ingest/   adaptadores por fuente + cron de planificación
 src/decide/   motor de decisiones (RN-01..RN-07)
 src/api/      snapshot (+ stream SSE, fuera de EPIC-001)
 src/admin/    panel mínimo de correcciones y alertas (móvil)
-tests/        model/ raw/ db/ types/ mirror/ · fixtures/ SOLO sintéticos
+src/app/      Next.js App Router (ADR-001, ADR-004)
+  (gl)/       rutas en galego: /proxecto, /robot (SPEC-004, SPEC-005, EPIC-003)
+  (es)/       rutas en castellano: /es/proxecto, /es/robot (SPEC-004, SPEC-005)
+  robots.txt/ ruta dinámica que genera robots.txt (SPEC-004 CA-11)
+  globals.css estilos globales, sin dependencias externas (SPEC-004 CA-9)
+src/site/     componentes y utilidades compartidas por el sitio público (EPIC-003)
+              contact.ts, redirects.ts, routes.ts, document.tsx, project-page.tsx, robots-txt.ts
+src/i18n/     bundles de i18n con paridad galego/castellano (SPEC-004 CA-4, EPIC-003)
+              gl.ts, es.ts (bundles del sitio público, D-2)
+              site-bundle.ts, site.ts (tipos y contrato)
+              El bundle para la interfaz del marcador vive aquí también; cada spec aporta su espacio de nombres
+tests/        model/ raw/ db/ types/ mirror/ site/ · fixtures/ SOLO sintéticos
 raw/          raíz de DiskRawStore en local; NO versionado
 
 FOUNDATION.md            constitución (D-1..D-8 locked)
@@ -148,5 +156,5 @@ docs/negocio/            monetización y marca
 ## Lo que NO está en alcance del spike
 
 Interfaz definitiva, usuarios, notificaciones push, más competiciones,
-patrocinio, logo. El nombre ya está decidido (marcador.gal); el dominio, sin
-contratar.
+patrocinio, logo. El nombre y dominio ya están decididos y contratados (marcador.gal,
+2026-08-31, Dinahosting; expira 2027-08-31).

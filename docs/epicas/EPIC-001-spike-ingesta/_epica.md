@@ -73,7 +73,7 @@ y verificada esperando exactamente eso.
 ## Alcance
 
 **Dentro:**
-- Dos competiciones: **Tercera RFEF grupo 1** (representa lo nacional) y
+- Dos competiciones: **Terceira RFEF grupo 1** (representa lo nacional) y
   **Preferente Futgal grupo 1** (representa lo galego).
 - **Modelo canónico** (zod), **raw store** (RN-10, ADR-005) y **acceso a datos**
   (ADR-006). Es lo que menos se tira al pasar a producción.
@@ -169,7 +169,7 @@ aritmética, no por espejo: no hay dos fuentes de 0.7.
 ### Fechas que nadie va a recordar solo
 
 - **Domingo 6 de septiembre de 2026** — única ventana con partidos suficientes:
-  **17** (8 de Preferente y 9 de Tercera RFEF). El sábado 5 hay **uno**, así que
+  **17** (8 de Preferente y 9 de Terceira RFEF). El sábado 5 hay **uno**, así que
   no sirve: N_min es 10. Los horarios de comienzo **no estaban publicados** el
   2026-08-31; hay que mirarlos más cerca.
 - **30 de septiembre de 2026 — purga del archivo** (ADR-009, opción B). Las 12

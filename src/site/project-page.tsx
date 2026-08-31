@@ -10,27 +10,12 @@
  *
  * Every visible string comes from an i18n bundle (D-2) and the mailbox comes
  * from `src/site/contact.ts` (CA-13) — it is interpolated into the literal,
- * never written inside it.
+ * never written inside it, through the shared helper that `/robot` uses too.
  */
-import type { ReactNode } from 'react';
 import { otherLocale, siteBundle } from '@/i18n/site';
 import type { SiteLocale } from '@/i18n/site-bundle';
-import { MAILBOX } from '@/site/contact';
+import { withMailbox } from '@/site/mailbox-link';
 import { CRAWLER_PATH, PROJECT_PATH } from '@/site/routes';
-
-const MAILBOX_PLACEHOLDER = '{mailbox}';
-
-/** Splits a literal on its mailbox slot and puts the address in as a link. */
-function withMailbox(value: string): ReactNode {
-  const [before, after] = value.split(MAILBOX_PLACEHOLDER);
-  return (
-    <>
-      {before}
-      <a href={`mailto:${MAILBOX}`}>{MAILBOX}</a>
-      {after}
-    </>
-  );
-}
 
 export function ProjectPage({ locale }: { locale: SiteLocale }) {
   const t = siteBundle(locale);
