@@ -12,5 +12,5 @@ raw/*
 
 # robots.txt de terceros, guardados por el operador antes de la ventana
 # (RN-11, F-SPEC-002-2). Contenido ajeno: fuera del repo por ADR-009 §3.
-robots/*
-!robots/.gitkeep
+**/robots/*
+!**/robots/.gitkeep

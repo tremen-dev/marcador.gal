@@ -744,3 +744,43 @@ la jornada 1 reparte **1 partido el sábado** (Preferente: `SD Pol – CF Noia`)
 comienzo aún no están publicados** —las páginas muestran `01:00`, marcador de
 posición de hora sin confirmar—, así que la hora exacta de la ventana temporal
 hay que fijarla más cerca de la fecha.
+
+## Follow-ups levantados al correr la ventana por primera vez — 2026-08-31
+
+Los tres salen de intentar correrla de verdad, no de leer el código. Ninguno es
+incumplimiento de un CA: son huecos de operación que solo aparecen usándolo.
+
+- **F-SPEC-003-9 — el capturador no da señal de vida durante una hora, y por eso
+  se abortó una ventana que iba bien.** `capturar.ts` no imprime nada hasta el
+  final y escribe `ventana.json` **solo al terminar**. Con la ventana en marcha,
+  quien la vigila no puede distinguir «funcionando» de «colgado» más que
+  adivinando dónde mira. Pasó: se dio por muerta a los 18 minutos, se mató el
+  proceso y **se perdió el registro de ticks de esos 18 minutos** — los bytes se
+  habían archivado, pero sin log no hay ventana analizable, porque la fase B
+  necesita saber qué se pidió y qué cobertura hubo. **Propuesta:** una línea por
+  tick a stdout, o un `ventana.json` incremental. Lo segundo además salvaría una
+  ventana interrumpida en vez de tirarla. **Destino:** `sdd-arquitecto`.
+- **F-SPEC-003-10 — `.env.local` decide en silencio dónde se archiva, y el
+  runbook no avisa.** `capturar.ts:49` elige `BlobRawStore` si existe
+  `BLOB_READ_WRITE_TOKEN`, y el script de npm carga `.env.local`, que **en este
+  proyecto ya tiene ese token** desde la verificación de SPEC-001. Consecuencia:
+  el operador sigue el runbook, mira `raw/`, lo ve vacío y concluye que la
+  captura falla — cuando está funcionando contra Vercel Blob. El runbook dice
+  «sin token archiva en `raw/`; con él, en Blob», pero no dice que **el token ya
+  está puesto**. Para una ventana de medición conviene disco: es inspeccionable y
+  la purga de ADR-009 §4 es un borrado de prefijo local. **Propuesta:** que el
+  CLI **imprima al arrancar qué store ha elegido y con qué raíz**; una decisión
+  silenciosa entre dos destinos es la clase de cosa que cuesta una ventana.
+  **Destino:** `sdd-arquitecto` + `sdd-documentalista` (runbook).
+- **F-SPEC-003-11 — `robots_files` se resuelve relativo al fichero de config, y
+  el runbook no lo decía.** Es un buen diseño —el `config.json` queda
+  autocontenido— pero costó un arranque fallido (`ENOENT`). Resuelto en la
+  práctica poniendo los `robots.txt` **dentro del directorio de la ventana**, que
+  además es mejor evidencia: cada ventana archiva la política que obedeció.
+  **Destino:** `sdd-documentalista` (runbook), ya aplicado en `ventanas/jornada-1/`.
+
+**Nota de método, para que no se repita:** las cuatro URL se habían verificado
+con `curl -L`, que sigue redirecciones en silencio — justo lo que CA-10 prohíbe
+al capturador. Comprobadas después **sin** `-L`, las cuatro dan 200 directo. Una
+verificación previa que usa opciones más permisivas que el sistema real no
+verifica el sistema real.
