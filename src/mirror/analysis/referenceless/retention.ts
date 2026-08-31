@@ -35,7 +35,7 @@ import type { Instant } from '@/model/ids';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** ADR-009 §2, opción B, firmada por el gate humano el 2026-08-31. */
-export const ARCHIVE_RETENTION_ADR = 'ADR-009';
+export const ARCHIVE_RETENTION_ADR = 'ADR-009' as const;
 export const ARCHIVE_RETENTION_DAYS = 30;
 export const ARCHIVE_RETENTION_EXTENSIONS = 1;
 export const ARCHIVE_RETENTION_CEILING_DAYS = 90;
@@ -46,7 +46,7 @@ export const SPEC_003_LEDGER =
   'SPEC-003-test-de-espejo-sin-referencia-el-cruce-entre-candidatas.ledger.md';
 
 export interface ArchiveRetention {
-  readonly adr: string;
+  readonly adr: typeof ARCHIVE_RETENTION_ADR;
   /** Idéntico a `window.end`: el mayor `fetched_at` archivado. */
   readonly fin_de_ventana: Instant;
   readonly plazo_dias: number;

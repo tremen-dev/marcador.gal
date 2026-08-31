@@ -13,11 +13,14 @@
  * expectation.
  */
 import { comparePair } from '@/mirror/analysis/compare';
+import { analyzeWithoutReference } from '@/mirror/analysis/referenceless/analyze';
 import { competitionId, sourceId } from '@/mirror/ids';
 import { buildFixture } from './archive';
 import { CEROACERO } from './targets';
-import type { Plan } from './archive';
+import type { Fixture, Plan, Shot } from './archive';
 import type { PairAnalysis } from '@/mirror/analysis/compare';
+import type { ReferencelessReport } from '@/mirror/analysis/referenceless/report';
+import type { WindowLog } from '@/mirror/window';
 import type { CompetitionId, SourceId } from '@/model/ids';
 
 export const BESOCCER = sourceId('besoccer');
@@ -37,11 +40,8 @@ export const REFERENCELESS_PAIRS: readonly {
   { source: BESOCCER, competition_id: PREFERENTE_G1 },
 ];
 
-/** `plan` with only the two candidates in it: no futgal bytes exist here. */
-export function candidatesPlan(
-  first: Parameters<typeof buildFixture>[0] extends ReadonlyMap<SourceId, infer S> ? S : never,
-  second: typeof first,
-): Plan {
+/** A plan with only the two candidates in it: no futgal bytes exist here. */
+export function candidatesPlan(first: readonly Shot[], second: readonly Shot[]): Plan {
   return new Map([
     [CEROACERO, first],
     [BESOCCER, second],
@@ -52,4 +52,36 @@ export function candidatesPlan(
 export async function analyseCandidates(plan: Plan): Promise<PairAnalysis> {
   const fixture = await buildFixture(plan);
   return comparePair(fixture.timeline, CEROACERO, BESOCCER);
+}
+
+export interface AnalysedReferenceless {
+  readonly fixture: Fixture;
+  readonly report: ReferencelessReport;
+}
+
+/** The whole of phase B in the referenceless mode, over a fixture archive. */
+export async function analyseReferenceless(
+  plan: Plan,
+  options: {
+    readonly temporalWindow?: string;
+    readonly start?: string;
+    readonly log?: (base: WindowLog) => WindowLog;
+  } = {},
+): Promise<AnalysedReferenceless> {
+  const fixture = await buildFixture(
+    plan,
+    options.start === undefined ? {} : { start: options.start },
+  );
+
+  const report = await analyzeWithoutReference({
+    store: fixture.store,
+    keys: fixture.keys,
+    log: options.log === undefined ? fixture.log : options.log(fixture.log),
+    extractors: fixture.extractors,
+    pairing: fixture.pairing,
+    candidates: [CEROACERO, BESOCCER],
+    ...(options.temporalWindow === undefined ? {} : { temporalWindow: options.temporalWindow }),
+  });
+
+  return { fixture, report };
 }
