@@ -9,7 +9,7 @@ Actualizado: 2026-08-31
 |---|---|---|
 | SPEC-001 — modelo-canonico-y-raw-store | hecho | 2026-08-29 (sdd-verificador) |
 | SPEC-002 — test-de-espejo-entre-fuentes-automaticas | hecho | 2026-08-31 (sdd-verificador) |
-| SPEC-003 — test-de-espejo-sin-referencia-el-cruce-entre-candidatas | aprobada | 2026-08-31 (Alberto Fojo) |
+| SPEC-003 — test-de-espejo-sin-referencia-el-cruce-entre-candidatas | hecho | 2026-08-31 (sdd-verificador) |
 
 ## ADRs
 
@@ -27,5 +27,4 @@ Actualizado: 2026-08-31
 
 ## Resumen
 
-- hecho: 2
-- aprobada: 1
+- hecho: 3
