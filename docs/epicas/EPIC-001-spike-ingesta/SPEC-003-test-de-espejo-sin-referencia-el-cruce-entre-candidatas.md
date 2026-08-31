@@ -2,10 +2,11 @@
 id: SPEC-003
 tipo: spec
 epica: EPIC-001
-estado: borrador
-aprobada-por:
+estado: aprobada
+aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-08-31, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-31, por: Alberto Fojo}
 ---
 # SPEC-003 — Test de espejo sin referencia: el cruce entre candidatas
 
