@@ -837,6 +837,219 @@ F-SPEC-002-V5).
   en los tres desenlaces posibles—, así que no bloquea nada. **Destino:**
   `sdd-arquitecto`, para una eventual enmienda 2, junto con F-SPEC-002-16.
 
+
+- **F-SPEC-002-22 — el capturador sigue redirecciones y comprueba robots.txt
+  sobre la URL pedida, no sobre la final.** Levantado por `sdd-legal-datos` el
+  2026-08-31. `globalFetcher` (`src/mirror/capture/http.ts`) llama a
+  `globalThis.fetch` sin `redirect: 'manual'`, así que sigue un 3xx en silencio;
+  `capturer.#capture` consulta `this.#robots.isAllowed(target.url)` **antes** de
+  pedir, sobre la URL de destino declarada. Si un objetivo redirige a otro origen
+  —y hoy pasa: `resultados-futbol.com` hace 301 entero a `besoccer.es`—
+  pedimos permiso a un robots.txt y descargamos de otro host, archivando su HTML
+  bajo el `SourceId` equivocado. **Incumple RN-11 sin que ningún test se ponga
+  rojo**, y mete en el archivo una fuente mal etiquetada, que es la clase de
+  contaminación que esta spec existe para evitar. Arreglo previsible: `redirect:
+  'manual'`, y tratar un 3xx como tick fallido con motivo, o revalidar robots
+  sobre la URL final antes de archivar. **Destino:** `sdd-arquitecto` — toca CA-2
+  y CA-3, así que es enmienda, no fix.
+
+## Dictamen de `sdd-legal-datos` — 2026-08-31 (cierra F-SPEC-002-15)
+
+Consulta encargada por el gate al cerrar la spec. **Fecha de consulta de todas
+las fuentes en línea: 2026-08-31.** Advisory: aquí no se implementa nada.
+
+### Veredicto en una línea
+
+**INCORRECTO para futgal.es. CORRECTO, con condiciones, para ceroacero.es.
+DUDOSO para la fuente que la spec llama resultados-futbol.com, que ya no
+existe.** La ventana **no se puede correr como está configurada**, y el motivo no
+es legal fino: es RN-11, regla dura del proyecto.
+
+### 1. futgal.es prohíbe el rastreo a todo el mundo menos a tres bots
+
+`https://www.futgal.es/robots.txt` (HTTP 200, `Last-Modified: Fri, 27 Mar 2026`),
+literal:
+
+```
+User-agent: Twitterbot
+Disallow:
+
+User-agent: Mediapartners-Google
+Disallow:
+
+User-agent: AmazonAdBot
+
+Allow: /
+
+User-agent: *
+Disallow: /
+```
+
+Nuestro user-agent cae en `*`. **`Disallow: /` es todo el sitio.** RN-11 obliga a
+respetar robots.txt y el no-negociable de `FOUNDATION.md` lo repite para el
+spike, así que esto no admite ponderación: **capturar futgal.es hoy incumple una
+regla dura propia**, antes que cualquier consideración de ToS o de derecho de
+bases de datos.
+
+**El código hace lo correcto y por eso duele.** `robotsRegistry` resuelve por
+origen y `capturer.#capture` consulta `isAllowed` antes de pedir nada, así que
+los seis ticks por minuto de futgal saldrían **todos** como `skipped`. Con
+cobertura 0 % en dos pares, **CA-5 declara la ventana inválida y la fase B se
+niega a escribir informe**. El sistema se protege solo; lo que no puede es
+inventar permiso.
+
+**Consecuencia de diseño, y es de producto, no mía:** futgal es la **referencia**
+contra la que se miden las dos candidatas. Sin referencia no hay test de espejo,
+y sin test de espejo no se sabe si RN-02 tiene segunda vía. Caminos posibles, por
+orden de limpieza: **(a)** autorización escrita de la RFGF —que es de todos modos
+el objetivo estratégico declarado en `retos.md`, y una autorización entre partes
+sí desplaza al robots.txt—; **(b)** otra superficie oficial cuyo robots lo
+permita; **(c)** rediseñar el test con otra referencia, lo que cambia lo que mide.
+El roadmap dice que la conversación con la RFGF «solo tiene sentido con el informe
+en la mano», y el informe necesita a la RFGF: **ese círculo hay que romperlo por
+decisión de producto**, no de ingeniería. Destino: `sdd-producto`, y
+probablemente un ADR que supersede la lista de fuentes de ADR-002.
+
+### 2. resultados-futbol.com ya no existe: es besoccer.es
+
+`https://www.resultados-futbol.com/robots.txt` → **HTTP 301** (`Location:
+https://www.besoccer.es/robots.txt?redirected=rf`, `server: Varnish`). La raíz
+del dominio hace lo mismo. **El dominio entero está redirigido**; ADR-002 ya
+anotaba «resultados-futbol.com (BeSoccer)», pero hoy no es una marca de BeSoccer:
+es un 301.
+
+Operador real, de su propia página legal: **BESOCCER SOLUTIONS S.L.**, CIF
+B-93693042, Calle Jesús Arambarri 1, 29004 Málaga.
+
+**Riesgo técnico que esto crea, y que ningún test detecta.** `globalFetcher` usa
+`globalThis.fetch` sin `redirect: 'manual'`, o sea que **sigue el 301 en
+silencio**. La comprobación de robots se hace sobre la URL **pedida**
+(`isAllowed(target.url)`), no sobre la final. Resultado: pediríamos permiso al
+robots.txt de un origen y descargaríamos de **otro**, archivando HTML de
+besoccer.es bajo el `SourceId` `resultados-futbol`. Eso es **incumplir RN-11 sin
+que nada se ponga rojo**, y además contamina el archivo con una fuente mal
+etiquetada — precisamente lo que el §Problema de esta spec llama confianza falsa.
+Levanto **F-SPEC-002-22** por ello.
+
+`https://www.besoccer.es/robots.txt`: `User-agent: *` con `Allow: /` y solo
+`/scripts*` y `/ajax*` prohibidos; bloquea por nombre a `Fetch`, `ia_archiver`,
+`MSIECrawler`, `WebStripper` y `WebZIP`. **Nuestro UA no está bloqueado.** El
+robots, por sí solo, permite.
+
+**Pero su página legal no.** `https://www.besoccer.es/legal`, literal: «El
+contenido dispuesto en el sitio web no podrá ser reproducido ni en todo ni en
+parte, ni transmitido, **ni registrado por ningún sistema de recuperación de
+información**, en ninguna forma ni en ningún medio, a menos que se cuente con la
+autorización previa, por escrito, de BESOCCER SOLUTIONS.» Guardar la respuesta
+cruda en el raw store **es** registrarla en un sistema de recuperación de
+información. Es decir: **RN-10 choca de frente con esta cláusula**, y es la
+respuesta a la pregunta (4) del encargo — sí, el archivo crudo cambia las cosas,
+y cambia solo aquí.
+
+Matiz que no es coartada: son condiciones *browse-wrap* (no hay clic de
+aceptación ni registro), y su oponibilidad a quien no las acepta está discutida.
+No me apoyo en eso para dar un correcto: lo dejo como **dudoso** y marcado para
+**revisión profesional**.
+
+### 3. ceroacero.es: robots permisivo, y la afirmación de ADR-002 no la he podido verificar
+
+`https://www.ceroacero.es/robots.txt` (HTTP 200, Cloudflare) prohíbe **una sola
+ruta**: `Disallow: /zzmap_v3.php`. Todo lo demás está permitido para `*`. Las
+páginas de competición que la ventana necesita **no están prohibidas**.
+
+Operador: **ZOS, Lda.**, Rua 28 de Janeiro 350 T17, 4400-335 Vila Nova de Gaia
+(Portugal), NIF 508 565 804.
+
+**Aviso sobre un documento de verdad.** ADR-002 afirma: «Las ToS de ceroacero
+restringen el scraping». **He buscado esa página y no la he encontrado.** El pie
+del sitio ofrece `quemsomos.php`, `helpdesk.php`, `pub.php`, `privacidade.php`,
+`enviar_sugest.php` y `rss.php`; `privacidade.php` es política de privacidad
+(RGPD) y **no contiene ninguna cláusula sobre acceso automatizado, robots,
+scraping ni reutilización de la base de datos**. No digo que la afirmación de
+ADR-002 sea falsa —ausencia de prueba no es prueba de ausencia, y pudo haber
+una ToS que ya no está—: digo que **hoy no tiene fuente**, y un ADR aprobado
+sostiene con ella una parte de su razonamiento. Los ADR son inmutables, así que
+esto no se corrige editándolo: se anota aquí y, si importa, se supersede.
+
+### 4. Derecho *sui generis*: la inversión que casi nadie espera
+
+Directiva 96/9/CE art. 7; en España, LPI arts. 133-137. Protege contra la
+extracción/reutilización de una parte sustancial, **y también** contra la
+extracción «repetida y sistemática» de partes no sustanciales que entre en
+conflicto con la explotación normal (art. 7.5).
+
+La jurisprudencia que gobierna este caso es del mismo deporte: **TJUE,
+*Fixtures Marketing* (C-46/02, C-338/02, C-444/02) y *British Horseracing Board
+v. William Hill* (C-203/02), todas de 9 de noviembre de 2004.** Doctrina: los
+recursos empleados en **crear** los datos no cuentan para la «inversión
+sustancial»; solo cuentan los de **obtenerlos, verificarlos y presentarlos**. El
+calendario y los resultados que genera el propio organizador de la competición
+**no** fundan un derecho *sui generis*.
+
+**La consecuencia se lee al revés de lo que uno esperaría, y conviene que el
+proyecto la interiorice:** la **RFGF/futgal**, que *crea* el dato, es la que
+probablemente **no** tiene derecho *sui generis* sobre él; **ceroacero y
+BeSoccer**, que lo *obtienen y verifican* de terceros, son quienes plausiblemente
+**sí** lo tienen. O sea: la fuente que legalmente es más segura de reutilizar es
+justo la que nos cierra la puerta por robots.txt, y las que la abren son las que
+tienen el derecho más fuerte. No es una paradoja: es que robots.txt y el derecho
+de bases de datos protegen cosas distintas.
+
+Sobre el volumen: una ventana de una hora, dos competiciones, 8-16 partidos, 60
+capturas por par, es **cuantitativamente insustancial** y difícilmente entra en
+conflicto con la explotación normal de nadie. **En producción, un sondeo continuo
+sobre muchas competiciones es exactamente el art. 7.5** y ahí no hay lectura
+benigna: se licencia o se acuerda. Es lo que ya dice el no-negociable de
+`FOUNDATION.md`, y este dictamen lo confirma en vez de ampliarlo.
+
+**Excepción de minería de datos (TDM).** Directiva (UE) 2019/790 art. 4,
+transpuesta por el RDL 24/2021. Permite reproducciones para minería de obras
+lícitamente accesibles **salvo reserva expresa del titular «de manera adecuada,
+como medios de lectura mecánica» para contenidos en línea**. Aplicado a cada
+fuente: ceroacero **no reserva** (robots permisivo) → la excepción ampara la
+medición; **futgal reserva de la forma más legible por máquina que existe**
+(`Disallow: /`) → la excepción **no** está disponible; besoccer no reserva por
+robots pero sí por texto legal, que no es lectura mecánica → **discutido**. El
+art. 4 exige además conservar las copias **solo mientras sean necesarias para la
+minería**, lo que conecta con el punto siguiente.
+
+### 5. Datos personales, y una deuda de SPEC-001 que se vuelve legal
+
+Las páginas de competición que la fase A archiva contienen, según el sitio,
+**nombres de jugadores, árbitros y entrenadores**: datos personales de personas
+identificables. No he inspeccionado el HTML real de las tres páginas —no se ha
+corrido ninguna ventana— así que esto es una **advertencia condicionada**: si esos
+nombres aparecen, entran al raw store.
+
+Y el raw store **no tiene política de retención**: ADR-005 la deja explícitamente
+abierta («no está definida») y **F-SPEC-001-1** sigue viva por eso. Mientras fue
+higiene, era deuda técnica. Con datos personales dentro, es **minimización y
+plazo de conservación del RGPD (art. 5.1.c y 5.1.e)**, y además es lo que el art.
+4 TDM exige para no perder la excepción. Base legal defendible para la medición:
+interés legítimo (art. 6.1.f). **La retención indefinida no es defendible.**
+Recomendación: fijar plazo antes de la ventana, aunque sea uno corto y groseramente
+conservador; es más barato que discutirlo después con datos dentro.
+
+### Nivel de riesgo y revisión profesional
+
+| Fuente | robots.txt | ToS | *Sui generis* | Dictamen |
+|---|---|---|---|---|
+| futgal.es | **prohíbe todo** | no consultadas | improbable (*Fixtures*) | **INCORRECTO — no capturar** |
+| ceroacero.es | permite | no encontradas | plausible | **CORRECTO** para la ventana acotada |
+| besoccer.es | permite | prohíben registrar | plausible | **DUDOSO** — revisión profesional |
+
+**Requieren revisión profesional antes de exponerse:** la cláusula de BeSoccer
+contra RN-10, y cualquier acuerdo con la RFGF. No soy abogado y el proyecto no
+tiene uno.
+
+**Invariantes afectados:** RN-10, RN-11, el no-negociable de legalidad de la
+obtención del dato (`FOUNDATION.md`), ADR-002 (lista de fuentes y afirmación
+sobre las ToS de ceroacero), ADR-005 (retención), F-SPEC-001-1.
+
+**Specs a revisar:** SPEC-002 (configuración de la ventana) y la spec del motor,
+que hereda la lista de fuentes y sus pesos.
+
+
 ## Cómo retomar (handoff)
 
 **Qué hay.** Todo bajo `src/mirror/`, dos fases que no se importan la una a la

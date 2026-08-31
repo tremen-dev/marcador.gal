@@ -5,7 +5,7 @@
   "description": "Marcador do fútbol galego nunha pantalla — spike de ingesta",
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.15"
   },
   "scripts": {
     "dev": "next dev",
