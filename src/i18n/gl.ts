@@ -6,10 +6,15 @@
  * step with `MATCH_QUALIFIERS` (SPEC-001 CA-8). The VALUES are what the
  * interface shows.
  *
- * SPEC-001 only needs the qualifiers; the castellano bundle and the rest of
- * the interface literals belong to the spec that builds the UI.
+ * `qualifiers` belongs to SPEC-001 and to the spec that builds the scoreboard
+ * interface; it is NOT part of the site namespace and does not take part in
+ * its bundle parity (SPEC-004 CA-4).
+ *
+ * `site` is the namespace of the public project site (SPEC-004). Its shape is
+ * `SiteBundle`, shared with `es.ts`, so a missing key is a typecheck failure.
  */
 import type { MatchQualifier } from '../model/qualifier';
+import type { SiteBundle } from './site-bundle';
 
 export const gl = {
   qualifiers: {
@@ -18,6 +23,40 @@ export const gl = {
     pendente_de_confirmar: 'Pendente de confirmar',
     sen_sinal: 'Sen sinal',
   } satisfies Record<MatchQualifier, string>,
+
+  site: {
+    documentTitle: 'O proxecto — marcador.gal',
+    heading: 'marcador.gal',
+
+    aboutHeading: 'Quen está detrás',
+    about:
+      'marcador.gal é un proxecto de tremen.dev, levado por Alberto Fojo. ' +
+      'Non hai empresa nin equipo detrás: unha soa persoa traballando por conta propia. ' +
+      'O enderezo de contacto é {mailbox}.',
+
+    measuringHeading: 'Que se está a medir',
+    measuring:
+      'Agora mesmo o proxecto está a medir catro cousas sobre as fontes públicas de ' +
+      'resultados: a latencia con que aparece cada marcador, a cobertura dos partidos, ' +
+      'os conflitos entre fontes e os minutos de operación manual que fan falta. ' +
+      'As competicións medidas son Terceira RFEF G1 e Preferente Futgal G1.',
+
+    purposeHeading: 'Para que',
+    purpose:
+      'A medición serve para decidir unha soa cousa: se o proxecto é viable. ' +
+      'O resultado é un informe interno, non un produto.',
+
+    noProductHeading: 'Aínda non hai produto',
+    noProduct:
+      'Hoxe non hai nada que usar: nin marcador público, nin aplicación, nin conta que ' +
+      'crear. Esta páxina existe para dicir quen está detrás e que se está a medir, ' +
+      'e nada máis.',
+
+    crawlerHeading: 'O rastrexador',
+    crawlerLink: 'Como se len as páxinas públicas, e como pedir que pare',
+
+    otherLanguage: 'Castellano',
+  } satisfies SiteBundle,
 } as const;
 
 export type GalegoBundle = typeof gl;
