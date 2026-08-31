@@ -111,4 +111,56 @@ describe('CA-15 — independencia mutua', () => {
     expect(report.pair.counters.temporal!.leads_first_over_second).toBe(2);
     expect(report.pair.verdict).not.toBe('INDEPENDIENTE');
   });
+
+  /**
+   * The pair has the same step 2 as the crossings against futgal, and it is
+   * reached by its own route: mutual adelantos (the fuerte-independiente of
+   * CA-15.1) concurring with a replicated error (CA-15.2). The decision rule
+   * is total and ordered for the pair too, so the contradiction wins over the
+   * mutual independence and by CA-12 the pair does NOT open RN-02's second
+   * route.
+   */
+  test('(g) adelantos mutuos y error replicado a la vez → INCONCLUSO por señales contradictorias', async () => {
+    const futgal = merge(
+      goalAt('m1', 5),
+      goalAt('m2', 5),
+      goalAt('m3', 5),
+      goalAt('m4', 5),
+      constant('e1'),
+      padding(3),
+    );
+    const c1 = merge(
+      goalAt('m1', 2),
+      goalAt('m2', 2),
+      goalAt('m3', 8),
+      goalAt('m4', 8),
+      transientError('e1', 2),
+      padding(3),
+    );
+    const c2 = merge(
+      goalAt('m1', 8),
+      goalAt('m2', 8),
+      goalAt('m3', 2),
+      goalAt('m4', 2),
+      transientError('e1', 2),
+      padding(3),
+    );
+
+    const { report } = await analyseFixture(plan([FUTGAL, futgal], [CEROACERO, c1], [RESULTADOS, c2]));
+
+    // Both strong signals clear their declared minimum, in both directions.
+    expect(report.pair.counters.temporal!.lead_matches_first).toBeGreaterThanOrEqual(2);
+    expect(report.pair.counters.temporal!.lead_matches_second).toBeGreaterThanOrEqual(2);
+    expect(report.pair.counters.replicated_errors_total).toBe(1);
+
+    expect(report.pair.verdict).toBe('INCONCLUSO');
+    expect(report.pair.reason).toBe('senales_contradictorias');
+    expect(report.pair.rn02_segunda_via_entre_automaticas).toBe(false);
+    // Not a mirror either: nobody is dictated the mirror of anybody.
+    expect(report.pair.espejo_de).toBeNull();
+    // The finding of CA-15.2 survives the INCONCLUSO: the verdict is undecided,
+    // the evidence is not, and the four keys stay cited for a person to look at.
+    expect(report.pair.origen_comun_distinto_de_futgal).toBe(true);
+    expect(report.pair.evidence.replicated_errors[0]!.raw_keys).toHaveLength(4);
+  });
 });

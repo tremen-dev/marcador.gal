@@ -17,7 +17,8 @@ import { comparePair, isRetraction } from '@/mirror/analysis/compare';
 import { verdictAgainstReference } from '@/mirror/analysis/verdict';
 import { MIN_PERSISTENT_CAPTURES } from '@/mirror/thresholds';
 import { buildFixture, everyMinute, merge, plan } from '../support/archive';
-import { CEROACERO, FUTGAL } from '../support/targets';
+import { analyseFixture } from '../support/report';
+import { CEROACERO, FUTGAL, RESULTADOS } from '../support/targets';
 import type { Cell, Shot } from '../support/archive';
 
 const live = (home: number, away: number): Omit<Cell, 'id'> => ({
@@ -171,5 +172,100 @@ describe('CA-10.2 — discrepancia persistente', () => {
     expect(
       analysis.persistent_discrepancies.some((discrepancy) => discrepancy.fact === 'existence'),
     ).toBe(true);
+  });
+});
+
+/**
+ * The seventh fixture CA-10 enumerates, and the step of the decision rule it
+ * is the only net for.
+ *
+ * The rule is total and ORDERED (enmienda 2026-08-31 §5, ratified as
+ * F-SPEC-002-8): the contradiction of step 2 wins over the independence of
+ * step 3. Two STRONG signals of opposite sign is not a tie to break — a mirror
+ * cannot lead, and two independent sources do not retract the same value the
+ * same way, so one of the two is wrong and we do not know which. By CA-12,
+ * INCONCLUSO is the safe side and the flag stays `false`.
+ *
+ * Without this fixture the step disappears in silence: deleting the branch
+ * leaves the whole suite green and turns this very window into
+ * `INDEPENDIENTE / adelantos` with
+ * `rn02_segunda_via_entre_automaticas: true` — a `true` in the flag that
+ * governs RN-02, which is the dangerous direction of the spec's §Problema.
+ */
+describe('CA-10, regla de decisión paso 2 — señales fuertes contradictorias', () => {
+  /**
+   * S leads F in two matches (m1, m2) AND replicates a retraction with it
+   * (m3). The retraction is at the same minute in both, so it contributes no
+   * lead of its own: the two adelantos are m1 and m2, and nothing else.
+   */
+  const contradictory = () => {
+    const futgal = merge(goalAt('m1', 6), goalAt('m2', 6), transientError('m3', 2), padding(4));
+    const candidate = merge(goalAt('m1', 2), goalAt('m2', 2), transientError('m3', 2), padding(4));
+    return { futgal, candidate };
+  };
+
+  test('(g) adelanto probado y error replicado a la vez → INCONCLUSO por señales contradictorias', async () => {
+    const { futgal, candidate } = contradictory();
+    const { analysis, verdict } = await analyse(futgal, candidate);
+
+    // Both signals are actually there, and both clear their declared minimum:
+    // otherwise the test would be asserting INCONCLUSO for the wrong reason.
+    expect(analysis.n_comparable).toBeGreaterThanOrEqual(10);
+    expect(analysis.leads_b).toBe(2);
+    expect(analysis.lead_matches_b).toBe(2);
+    expect(analysis.replicated_errors).toHaveLength(1);
+
+    expect(verdict.verdict).toBe('INCONCLUSO');
+    expect(verdict.reason).toBe('senales_contradictorias');
+    expect(verdict.rn02_segunda_via_entre_automaticas).toBe(false);
+  });
+
+  test('(g-bis) el mismo archivo, por el camino real del informe: la bandera de RN-02 sale en false', async () => {
+    const { futgal, candidate } = contradictory();
+    const { report } = await analyseFixture(
+      plan([FUTGAL, futgal], [CEROACERO, candidate], [RESULTADOS, candidate]),
+    );
+
+    for (const source of report.sources) {
+      expect(source.verdict).toBe('INCONCLUSO');
+      expect(source.reason).toBe('senales_contradictorias');
+      expect(source.rn02_segunda_via_entre_automaticas).toBe(false);
+      // CA-14: the contradiction is auditable — the four captures of the
+      // replicated error and the captures of each adelanto are cited, so a
+      // person can open the archive and decide which of the two signals lied.
+      expect(source.evidence.replicated_errors).toHaveLength(1);
+      expect(source.evidence.replicated_errors[0]!.raw_keys).toHaveLength(4);
+      expect(source.evidence.leads.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  test('(g-ter) un INDICIO de espejo no dispara el paso 2: cede ante la señal fuerte', async () => {
+    // Sincronía in full — zero exclusives, zero leads in EITHER direction,
+    // temporal half `completa` — concurring with a persistent discrepancy.
+    // The indication yields (step 4 never runs) instead of contradicting, and
+    // the verdict is the INDEPENDIENTE of step 3, not the INCONCLUSO of step 2.
+    const futgal = merge(
+      everyMinute('m1', Array.from({ length: 10 }, () => scheduled('17:00'))),
+      padding(5),
+    );
+    const candidate = merge(
+      everyMinute('m1', Array.from({ length: 10 }, () => scheduled('18:00'))),
+      padding(5),
+    );
+
+    const { analysis, verdict } = await analyse(futgal, candidate);
+
+    expect(analysis.persistent_discrepancies.length).toBeGreaterThan(0);
+    expect(analysis.replicated_errors).toHaveLength(0);
+    // The indication is really present: this is what "cede" is measured against.
+    expect(analysis.temporal_half).toBe('completa');
+    expect(analysis.exclusives_b).toBe(0);
+    expect(analysis.leads_a).toBe(0);
+    expect(analysis.leads_b).toBe(0);
+    expect(analysis.n_comparable).toBeGreaterThanOrEqual(10);
+
+    expect(verdict.verdict).toBe('INDEPENDIENTE');
+    expect(verdict.reason).toBe('discrepancia_persistente');
+    expect(verdict.rn02_segunda_via_entre_automaticas).toBe(true);
   });
 });
