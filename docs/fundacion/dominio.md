@@ -70,7 +70,7 @@ sobrevive a `JSON.stringify` / `JSON.parse`.
 
 | Término | Definición | Notas |
 |---|---|---|
-| **espejo** | Fuente cuyos datos vienen de otra en lugar de observar el hecho: es *espejo de* ella. Dos espejos coinciden siempre, y su coincidencia no confirma nada. | Se prueba por **contenido**, no por tiempo: un error transitorio replicado —el mismo marcador equivocado y la misma corrección— es huella de origen común. Dos fuentes independientes coinciden en los aciertos, porque el marcador real es uno; en los fallos, no (SPEC-002 CA-10). |
+| **espejo** | Fuente cuyos datos vienen de otra en lugar de observar el hecho: es *espejo de* ella. Dos espejos coinciden siempre, y su coincidencia no confirma nada. | Se prueba por **contenido**, no por tiempo: un error transitorio replicado —el mismo marcador equivocado y la misma corrección— es huella de **origen común**, que prueba que hay una tercera fuente detrás pero no cuál es (ver *Origen común y atribución*). Dos fuentes independientes coinciden en los aciertos, porque el marcador real es uno; en los fallos, no (SPEC-002 CA-10). |
 | **independiente** | Fuente que observa el hecho por su cuenta. | Se prueba por **tiempo** —adelantar a la otra, cosa que un espejo no puede hacer— o por **discrepancia persistente** de contenido que no converge (SPEC-002 CA-9, CA-10). **La ausencia de adelantos NO prueba espejo:** una fuente independiente pero lenta produce exactamente la misma señal. |
 | **inconcluso** | Tercer veredicto: no hay prueba ni de espejo ni de independencia. | **Resultado legítimo del test, no fallo suyo** (SPEC-002 CA-11). A efectos de RN-02 se trata como espejo: su segunda vía exige independencia *demostrada*, y lo desconocido no satisface la precondición (SPEC-002 CA-12). |
 
@@ -85,6 +85,19 @@ dos candidatas entre sí —y no contra la oficial—, la independencia **mutua*
 exige que **cada una adelante a la otra**. Adelantos en una sola dirección no
 prueban independencia: prueban que la rezagada podría ser espejo de la otra
 (SPEC-002 CA-15).
+
+### Origen común y atribución
+
+| Término | Definición | Notas |
+|---|---|---|
+| **origen común** | Relación entre dos fuentes que **derivan de una tercera** en lugar de observar el hecho cada una por su cuenta. **No exige saber cuál es esa tercera.** | Se prueba por **contenido**: un error transitorio replicado por las dos —misma retractación, mismo partido— es prueba sólida. Los adelantos en una sola dirección y la sincronía son solo **indicio** (SPEC-003 CA-3, CA-6). |
+| **atribución de origen** | Identificar **cuál** es esa tercera fuente. Paso distinto y posterior a probar que hay origen común. | **Exige observar a la candidata a origen.** Si no se ha capturado, no se afirma ni se niega: se declara **no comprobada** (`atribucion_de_origen: 'no_comprobada'`, `origen_atribuido_a: null`, `espejo_de: null`). No vale sustituirla por un `false`, que afirmaría lo contrario sin haberlo mirado tampoco (SPEC-003 CA-3, CA-7). |
+
+**Probar un origen común no lo atribuye.** El cruce entre dos candidatas del
+mismo peso puede probar que hay una tercera fuente detrás y **no** puede
+nombrarla: por eso un veredicto ESPEJO sin referencia se emite sin `espejo_de`.
+Confundir las dos cosas es lo que llevaría a afirmar «el origen no es futgal» a
+partir de no haber mirado a futgal (SPEC-003, *Problema* y CA-3).
 
 ## Competición y calendario
 
