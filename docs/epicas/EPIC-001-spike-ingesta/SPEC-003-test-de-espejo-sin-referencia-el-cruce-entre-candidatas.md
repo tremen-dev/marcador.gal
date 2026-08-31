@@ -473,6 +473,108 @@ Convenciones, además de las que hereda de SPEC-002:
   cambiar una sola expectativa**, que es la única forma de demostrar que este modo
   se añadió y no reescribió el otro.
 
+### El archivo que sostiene el informe
+
+*Aviso de lectura:* en esta spec, **CA-15 a secas es el criterio de abajo**. Los
+`CA-15.1`, `CA-15.2`, `CA-15.3` y `CA-15.4` que aparecen en el resto del documento
+son **de SPEC-002** y van siempre subnumerados; este no tiene subniveles.
+
+- **CA-15 (ADR-009) — El informe declara cuándo dejan de existir las capturas que
+  lo sostienen.**
+  Dado **cualquier** informe de este modo, entonces lleva un bloque
+  `retencion_del_archivo` **obligatorio y no nulable**, con exactamente estas
+  claves y todas derivadas del propio archivo:
+  ```
+  retencion_del_archivo: {
+    adr: 'ADR-009',
+    fin_de_ventana: <Instant>,     // idéntico a window.end
+    plazo_dias: 30,
+    purga_prevista: <Instant>,     // fin_de_ventana + 30 días
+    prorrogas_permitidas: 1,
+    techo_dias: 90,
+    purga_maxima: <Instant>,       // fin_de_ventana + 90 días, y es duro
+    nota: <texto>
+  }
+  ```
+  Con cuatro condiciones que son el criterio y no adorno:
+  1. **El ancla es el archivo: ni el reloj, ni el log.** `fin_de_ventana` es
+     **exactamente** `window.end`, que este modo hereda sin cambio y que ya es el
+     mayor `fetched_at` de las capturas archivadas — que es literalmente lo que
+     ADR-009 §2 llama fin de la ventana. Las otras dos fechas se derivan de él por
+     aritmética de milisegundos UTC (ADR-006). **Ninguna ruta consulta el reloj.**
+  2. **`window.end` nulo no es un informe de este modo.** Un informe con
+     `window.end: null` **no valida**. Por CA-5 de SPEC-002 y CA-8 de esta, una
+     ventana válida tiene capturas; y una fecha de purga `null` sería justo el
+     valor indistinguible de «no lo hemos comprobado» que el §Problema prohíbe.
+  3. **`plazo_dias`, `techo_dias` y `prorrogas_permitidas` son constantes
+     declaradas que viajan en el informe**, igual que los umbrales (SPEC-002 §5):
+     si mañana otro ADR supersede a ADR-009 con otro plazo, los informes ya
+     emitidos siguen diciendo bajo qué política se emitieron.
+  4. **La prosa lo repite** (SPEC-002 CA-13, misma disciplina que CA-11): el `.md`
+     dice las tres fechas en castellano corrido **y dice cómo leerlas**.
+
+  **Test:**
+  - el esquema **exige** el bloque: un informe sin él, con él a `null`, o con una
+    clave de más o de menos, **no valida** (paridad estricta en las dos
+    direcciones, SPEC-001 CA-14);
+  - un informe cuyo `window.end` es `null` no valida;
+  - `purga_prevista` y `purga_maxima` recomputadas a mano en el test desde
+    `window.end` coinciden **al milisegundo**; y una **mutación** del fixture que
+    retrasa la última captura archivada **un día** desplaza las dos fechas
+    **exactamente un día**, de modo que el test falle si alguien devuelve una
+    constante escrita a mano;
+  - `fin_de_ventana === report.window.end`; y un fixture cuyo **último tick del
+    log es un `failed` posterior a la última captura `ok`** deja las tres fechas
+    **sin mover** — el ancla es el archivo y no el log, a propósito (abajo);
+  - **determinismo, que es donde este CA se rompe solo:** el caso 3 de
+    `determinism.test.ts` corrido sobre este modo —`vi.setSystemTime` en 2026 y en
+    2027— da el mismo JSON **byte a byte**; y un test de estructura que falla si el
+    módulo que construye el bloque menciona `Date.now()` o `new Date()` sin
+    argumento, hermano del que CA-10 exige sobre `redirect: 'manual'`;
+  - la prosa contiene las tres fechas y las cadenas `ADR-009`, «prórroga» y «no se
+    reescribe», y la ruta del ledger de SPEC-003.
+
+  *Por qué el ancla es el archivo y no el log.* ADR-009 §2 dice «el `fetched_at`
+  de la última captura», y `window.end` es exactamente eso. Un tick `failed` o
+  `skipped` posterior no archiva ni un byte, así que no alarga nada de lo que hay
+  que conservar. Y la asimetría cae del lado seguro: anclar en el archivo da una
+  fecha **igual o anterior** a la que daría el log, o sea que se purga antes y
+  nunca después de lo que la política permite.
+
+  *Qué se hace con la prórroga, que es la parte que no se puede resolver
+  calculando.* ADR-009 §2 permite **una** prórroga escrita y motivada en el ledger,
+  y puede escribirse **después** de emitir el informe. Un informe es una función
+  del archivo y **no se reescribe** (CA-7 de SPEC-002, CA-13 de esta), así que no
+  puede conocerla. **No se predice: se declara**, y por eso las fechas son tres y
+  no una. La `nota` dice cómo se leen:
+  - **antes de `purga_prevista`** — las capturas citadas deberían existir;
+  - **entre `purga_prevista` y `purga_maxima`** — existen **solo** si hay una
+    prórroga escrita en el ledger de SPEC-003. **Este fichero no puede saberlo; el
+    ledger sí.** `purga_prevista` es un **suelo**, no una promesa;
+  - **después de `purga_maxima`** — no existen. El techo de ADR-009 §2 es duro y no
+    admite prórroga, así que es la única de las tres fechas que **ninguna decisión
+    posterior puede mover**. Es la que hace útil al bloque: sin ella, una fecha
+    prorrogable en un fichero que no se reescribe sería una fecha que envejece mal.
+
+  *Qué dice el informe cuando la purga ya pasó: nada, y es deliberado.* No lleva
+  ningún campo tipo `ya_purgado`. Saberlo exige compararse con la fecha de hoy, y
+  un informe que consulta el reloj deja de ser reproducible byte a byte: rompería
+  **CA-7 de SPEC-002**, que es lo que permite a `sdd-verificador` juzgar una
+  ventana que no presenció. El informe pone las tres fechas y **el lector
+  compara**. El **acuse de purga** —fecha real, prefijos, claves borradas— vive en
+  el ledger (ADR-009 §4), y la `nota` lo nombra por su ruta para que el lector sepa
+  dónde mirar las dos cosas que este fichero no puede contener.
+
+  *Por qué existe este CA.* Es el argumento de ADR-009 §3 y §5, que es el mismo que
+  hace CA-11: **el ledger no viaja con el fichero.** El consumidor real de este
+  JSON es la spec del motor, y dentro de seis meses alguien lo abrirá para auditar
+  una afirmación y tirar de sus `raw_keys`. Tras la purga esas citas **no están
+  rotas**: siguen nombrando exactamente los bytes que las sostuvieron, porque la
+  clave lleva `sha256(body)[0..12]` (SPEC-001 CA-10). Lo que dejan de ser es
+  **recuperables**. Sin este bloque, quien tire de una clave y no encuentre nada no
+  puede distinguir **un archivo purgado según lo previsto de un archivo perdido** —
+  que es, una vez más, la regla del §Problema aplicada a lo que ya no se conserva.
+
 ## Entidades y reglas afectadas
 
 Fuentes de verdad, **referenciadas y no duplicadas**:
@@ -491,8 +593,14 @@ Fuentes de verdad, **referenciadas y no duplicadas**:
   no la contradice**: añade un modo y hereda el resto (CA-14).
 - **ADR-008** (este cambio) — qué se puede capturar y cómo se llama cada fuente.
   Supersede parcialmente a **ADR-002**.
-- **ADR-005** — el `RawStore` como puerto. **Su retención sigue sin definir y aquí
-  es precondición, no deuda** (ADR-008, *Negativas*).
+- **ADR-005** — el `RawStore` como puerto. Su retención, que ADR-005 dejó
+  explícitamente sin definir, la fija **ADR-009** y **solo** para las ventanas de
+  medición de EPIC-001; para producción, la frase de ADR-005 sigue vigente palabra
+  por palabra (F-SPEC-001-1).
+- **ADR-009** — retención del archivo: 30 días desde el fin de la ventana, **una**
+  prórroga escrita y motivada en el ledger, techo duro de 90 días. Levanta la
+  precondición de ADR-008 §5.3 —era uno de los cuatro límites bajo los que el gate
+  aceptó capturar `besoccer.es`— y es lo que **CA-15** mete dentro del informe.
 - **ADR-006** — instantes ISO 8601 UTC como cadena.
 - **ADR-004** — sin scheduler en proceso ni disco persistente.
 
@@ -515,8 +623,15 @@ Aparcado a propósito, no por descuido:
   decirlo antes de que alguien lo intente.
 - **Rescatar las otras tres métricas de EPIC-001.** Latencia, cobertura y
   operación quedan sin medir por esta ventana. Es de `sdd-producto` (ADR-008).
-- **El plazo de retención del raw store.** Precondición para correr, decidida
-  fuera: toca ADR-005 y SPEC-001 (F-SPEC-001-1), no la lista de fuentes.
+- **El plazo de retención del raw store y el mecanismo que lo ejecuta.** Ya está
+  decidido fuera, en **ADR-009** (2026-08-31). Lo único que entra aquí es su
+  **declaración dentro del informe** (CA-15). La purga en sí la ejecuta una
+  persona con dos anotaciones en el ledger —fecha antes de capturar, acuse
+  después— y **ningún test la sostiene** (ADR-009 §4). La retención de
+  **producción** sigue sin decidir (ADR-009 §6, F-SPEC-001-1).
+- **Añadir `delete` al puerto `RawStore`.** Es la respuesta de producción y es una
+  spec propia, con su batería de contrato contra las dos implementaciones; hacerlo
+  aquí movería el contrato de SPEC-001, que está `hecho` (ADR-009 §5).
 - **F-SPEC-002-16** (CA-5 invalida la ventana entera por un solo par),
   **F-SPEC-002-17** (mínimo de Node), **F-SPEC-002-18** (`src/raw/` no ejecutable
   por Node) y **F-SPEC-002-19** (umbral de la divergencia de grafía). Motivos en
@@ -627,7 +742,12 @@ como sin resolver, su paso 0.3 pide al operador esquivar el 301 a mano, sus
 cobertura de los seis pares». **Con esta spec aprobada, todo eso necesita una
 segunda entrada de runbook para el modo sin referencia** —y el paso 0.3 se puede
 borrar, porque CA-10 lo convierte en conducta probada. **No lo edito**: es de
-`sdd-documentalista`. Lo señalo.
+`sdd-documentalista`. Lo señalo. Y a esa lista se suman los **dos pasos que exige
+ADR-009 §4** y que su §5 deja también a `sdd-documentalista`: **escribir la fecha
+de purga antes de capturar** —una ventana cuya fecha de purga no esté escrita no se
+corre— y **acusar la purga después**, con fecha real, prefijos purgados y número de
+claves borradas. CA-15 mete la fecha en el informe; **no mete la purga en ningún
+test**, y esa distinción es de las que conviene no perder de vista.
 
 **§8. Lo que hay que firmar, exactamente.**
 1. **ADR-008 entero**, y muy en particular su **§5**: capturar `besoccer.es`
@@ -637,9 +757,18 @@ borrar, porque CA-10 lo convierte en conducta probada. **No lo edito**: es de
    nunca emite INDEPENDIENTE y la bandera de RN-02 es siempre `false`.
 3. **Que F-SPEC-002-22 y F-SPEC-002-21 entran aquí** (CA-10, CA-6, CA-7) y que
    **F-SPEC-002-16 y F-SPEC-002-19 se quedan fuera** con los motivos del §4.
-4. **La precondición de retención del raw store** (ADR-008, *Negativas*): fijar
-   un plazo **antes** de correr la ventana, por RGPD y por el art. 4 de la
-   Directiva TDM. No es follow-up.
+4. **La retención ya no es una precondición pendiente: es ADR-009**, firmado el
+   2026-08-31 (30 días desde el fin de la ventana, **una** prórroga escrita, techo
+   duro de 90). Lo que queda por firmar **aquí** son dos cosas:
+   - **CA-15**, que mete la fecha de purga dentro del informe —en JSON y en
+     prosa— en vez de dejarla viviendo solo en el ledger. Con ella firmas su
+     lectura de la prórroga: el informe **no se reescribe**, así que da tres
+     fechas y declara que la de en medio depende de una prórroga que el fichero
+     no puede ver, y que solo el **techo de 90 días** es inamovible.
+   - Que **la purga la ejecuta una persona y ningún test se pondrá rojo si no la
+     ejecuta** (ADR-009 §4 y sus *Negativas*): fecha escrita antes de capturar,
+     acuse escrito después, y **sin acuse no se corre la ventana siguiente**.
+     **Eso lo sostienes tú, no el código.**
 5. **Que las otras tres métricas de EPIC-001 no se rescatan con esta ventana**, y
    que eso va a `sdd-producto` antes de dar la épica por medible.
 
