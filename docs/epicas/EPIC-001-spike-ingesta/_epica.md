@@ -1,9 +1,11 @@
 ---
 id: EPIC-001
 tipo: epica
-estado: borrador
+estado: aprobada
+aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-08-29, por: sdd-producto}
+  - {estado: aprobada, fecha: 2026-08-31, por: Alberto Fojo}
 ---
 # EPIC-001 — Spike de ingesta
 
@@ -31,8 +33,19 @@ reales**, con verificación manual a cronómetro en 10 partidos.
 |---|---|---|
 | **Latencia** | Segundos entre el gol real (verificado a mano en 10 partidos) y el dato publicado | < 120 s en directo, < 10 min resultado final |
 | **Cobertura** | % de partidos con al menos una fuente viva durante el juego | > 90 % |
-| **Conflictos** | % de partidos con desacuerdo entre fuentes en algún momento | Informativo; **> 15 % obliga a rediseñar el motor** |
+| **Conflictos** | % de partidos con desacuerdo entre fuentes en algún momento | Informativo; **> 15 % obliga a rediseñar el motor** — con salvedad, ver bajo la tabla |
 | **Operación** | Minutos de intervención manual por jornada | < 30 min |
+
+**Salvedad del corte de conflictos.** El corte del 15 % **no aplica** si SPEC-002
+dicta que ninguna fuente automática es independiente de futgal: entre espejos no
+hay desacuerdo posible, así que en ese escenario la cifra no mide lo que su
+nombre dice. El informe está obligado a publicar la advertencia junto al dato
+(SPEC-002 CA-13).
+
+<!-- Añadido por Alberto Fojo el 2026-08-31, al aprobar SPEC-002. Lo detectó
+     sdd-arquitecto al escribirla (§3 de sus notas del gate) y no lo editó por
+     ser criterio de éxito de una épica ya aprobada. La misma coletilla va en
+     docs/roadmap.md, «Criterios de corte». -->
 
 Éxito de la épica ≠ umbrales cumplidos. **Medir honestamente y no cumplir también
 es éxito**: la épica falla solo si termina sin cifras fiables.

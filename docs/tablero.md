@@ -1,13 +1,14 @@
 <!-- GENERADO por tremen-sdd (scripts/tablero.mjs). NO EDITAR A MANO. -->
 # Tablero
 
-Actualizado: 2026-08-30
+Actualizado: 2026-08-31
 
-## EPIC-001 — spike-ingesta (borrador)
+## EPIC-001 — spike-ingesta (aprobada)
 
 | Spec | Estado | Último cambio |
 |---|---|---|
 | SPEC-001 — modelo-canonico-y-raw-store | hecho | 2026-08-29 (sdd-verificador) |
+| SPEC-002 — test-de-espejo-entre-fuentes-automaticas | hecho | 2026-08-31 (sdd-verificador) |
 
 ## ADRs
 
@@ -23,4 +24,4 @@ Actualizado: 2026-08-30
 
 ## Resumen
 
-- hecho: 1
+- hecho: 2

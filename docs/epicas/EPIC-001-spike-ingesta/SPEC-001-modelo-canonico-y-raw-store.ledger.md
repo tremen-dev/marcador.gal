@@ -538,6 +538,27 @@ arquitecto sobre una spec.
   **provisional** es derivable (un corresponsal de peso 0.8 aplaza), así que
   prohibirla contradiría `reglas.md` en vez de completarlo. Destino: `reglas.md`.
 
+  **CERRADO el 2026-08-31 (sdd-arquitecto), RATIFICADO por Alberto Fojo en el
+  gate del 2026-08-31.** Enmendada RN-03 en `reglas.md` con una cláusula de
+  alcance:
+  *provisional* califica la `Decision` entera —el marcador donde lo hay, el
+  estado en `scheduled` y `postponed`—; RN-02 y RN-03 se aplican en las cinco
+  ramas porque están escritas sobre el peso y la independencia de las
+  observaciones y nunca sobre el marcador; y toda `Decision` publicada es o
+  confirmada o provisional (`provisional` ⟺ no se cumple RN-02). El ejemplo que
+  sostiene la cláusula en `reglas.md` es una `Decision` `scheduled` con un solo
+  agregador de 0.7, elegido porque no dependía de si el corresponsal cuenta como
+  «humano» en RN-06 —pregunta que quedó abierta al cerrar esta entrada y que el
+  gate del 2026-08-31 respondió **sí**, así que el `postponed` por corresponsal
+  de esta entrada también vale y está ahora escrito en RN-01. Añadida la
+  simetría en RN-02 y corregida la
+  celda *provisional* de `dominio.md`, que describía el cualificador como si
+  fuese siempre un marcador en gris. Es derivación, no decisión nueva: no se ha
+  fijado ningún umbral. **No se ha tocado código**: el comentario de
+  `src/model/decision.ts` que llama a `provisional` «a free boolean in all five
+  branches, on purpose» queda desactualizado, y lo corrige la spec del motor,
+  que es quien deriva el valor.
+
 - **F-SPEC-001-15** — *`rule` es una sola y las reglas concurren.* `dominio.md`
   fija **una** `rule` por `Decision`, pero `reglas.md` dice que RN-01..RN-07 se
   aplican **en orden** y varias pueden satisfacerse a la vez: una transición
@@ -546,6 +567,26 @@ arquitecto sobre una spec.
   un campo `rule` cuyo valor depende de quién escribió cada rama del motor —
   y `rule` es la mitad de RN-12. Destino: spec del motor de decisiones, con
   `reglas.md` como fuente.
+
+  **Elevado al gate el 2026-08-31 por sdd-arquitecto: no era cerrable por
+  derivación.** No hay en las fuentes nada que elija entre las políticas
+  posibles, y las tres candidatas tenían costes distintos —una de ellas cambia
+  el modelo canónico y `migrations/0001`, ya en `main`—, así que decidirlo sin
+  el humano habría sido inventar.
+
+  **CERRADO el 2026-08-31 por Alberto Fojo en el gate.** Política elegida: se
+  registra la **regla decisiva**, aquella cuyo efecto no es recuperable del
+  resto de la fila, con orden de desempate explícito
+  **RN-01 → RN-04 → RN-07 → RN-06 → RN-02/RN-03**. Escrita en **RN-12** de
+  `reglas.md`, que es donde vive `rule`, con la salvedad de RN-05 (normalmente
+  no emite `Decision`; su cláusula enmendada enruta a RN-01) y con la razón: la
+  cláusula «se aplican **en orden**» gobierna la **evaluación** del reducer, no
+  la **atribución**, y leerla como atribución haría de `rule` un sinónimo de la
+  columna `provisional`. Añadido en la cabecera del bloque del motor un puntero
+  a RN-12 para que «en orden» no se pueda volver a leer de dos maneras.
+  **Modelo intacto:** `rule` sigue siendo un solo valor de RN-01..RN-07; no hay
+  `migrations/0002` ni se reabre el contrato de SPEC-001. Ya no bloquea la spec
+  del motor.
 
 Abiertas por sdd-implementador al aplicar la enmienda (2026-08-29, segunda
 tanda). La primera es un hueco de un documento de verdad; las otras tres son
@@ -841,3 +882,52 @@ dependen de credenciales. El estado lo mueve el humano o el verificador.
   una Decision sin marcador, y cuál de las reglas concurrentes se registra en
   `rule`. Ninguno bloquea SPEC-001; ambos son de `reglas.md` y hay que cerrarlos
   antes de la spec del motor.
+  *(Los dos quedaron cerrados en el gate del 2026-08-31; ver el bloque siguiente.)*
+
+
+## Arbitraje del gate humano — 2026-08-31 (Alberto Fojo)
+
+Cierra los dos follow-ups que el gate del 2026-08-29 dejó vivos. **Nada de esto
+toca código, `migrations/` ni el veredicto de SPEC-001**, que sigue `hecho`/GREEN
+y mergeada: todo el cambio vive en `docs/fundacion/`.
+
+- **F-SPEC-001-15 RESUELTO. `rule` registra la regla *decisiva*.** De tres
+  políticas propuestas por sdd-arquitecto, se elige la que registra la regla
+  cuyo efecto **no es recuperable del resto de la fila**, con orden de desempate
+  explícito **RN-01 → RN-04 → RN-07 → RN-06 → RN-02/RN-03**. Motivo del humano:
+  *registrar la excepcional y no la rutinaria es lo único que hace que `rule`
+  añada algo sobre las columnas que ya existen.* RN-02/RN-03 ya están en
+  `provisional` y RN-06 en el delta de `status`; RN-01, RN-04 y RN-07 no están
+  en ninguna parte. Salvedad de RN-05: normalmente no emite `Decision`, y su
+  cláusula enmendada enruta a RN-01. Vive en **RN-12**, con un puntero desde la
+  cabecera del motor aclarando que «se aplican en orden» es **evaluación**, no
+  atribución. **Rechazadas:** «gana el número más bajo aplicable» (haría de
+  `rule` un duplicado de `provisional`) y «`rule` pasa a lista» (obligaría a
+  tocar el modelo canónico y `migrations/0001`, ya en `main`, y a reabrir el
+  contrato de una spec hecha y verde). **Desbloquea la spec del motor.**
+
+- **F-SPEC-001-14 RATIFICADO.** La enmienda de RN-03 queda firme: *provisional*
+  califica la `Decision` entera —el marcador donde lo hay, el **estado** en
+  `scheduled` y `postponed`—, y toda `Decision` publicada es o confirmada o
+  provisional. Era derivación, no decisión: RN-02 y RN-03 siempre estuvieron
+  escritas sobre el peso de las observaciones y nunca sobre el marcador.
+
+- **«Humano» en RN-04 y RN-06 incluye al corresponsal.** Pregunta que
+  sdd-arquitecto levantó al cerrar F-SPEC-001-14. Respuesta: **sí**. Donde esas
+  reglas dicen «fuente oficial o humano» caben **operador y corresponsal**;
+  *operador* es el término específico que la enmienda de RN-01 introdujo para el
+  peso 1.0 y la precedencia, y **no estrecha «humano»** en reglas anteriores.
+  Consecuencia querida: un corresponsal solo (0.8) **puede aplazar un partido**,
+  y esa `Decision` `postponed` se publica *provisional*. Lo que distingue al
+  operador no es el permiso sino el peso. Escrito en RN-01, con punteros desde
+  RN-04 y RN-06, y en `dominio.md`, que no tenía entrada para **operador** pese a
+  que `reglas.md` usaba el término desde el 2026-08-29 — hueco de glosario
+  cerrado de paso.
+
+- **Señalado para la spec del motor, no es hueco de `reglas.md`:** los cuatro
+  cualificadores de `dominio.md` **no son derivables** del booleano `provisional`.
+  *pendente de confirmar* (RN-06, `finished` por timeout) y *sen sinal* (RN-07)
+  no tienen dónde vivir en la fila de `Decision`. SPEC-001 CA-8 dejó la
+  derivación explícitamente fuera de alcance, así que no es deuda de esta spec:
+  es trabajo que la spec del motor tiene que resolver, y conviene que lo sepa
+  antes de empezar y no a mitad.
