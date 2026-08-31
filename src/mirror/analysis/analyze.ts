@@ -168,6 +168,16 @@ function evidenceOf(
       captures_b: discrepancy.captures_b,
       raw_keys: [...discrepancy.raw_keys],
     })),
+    // CA-10.4: cited like everything else (CA-14), counted apart, and read by
+    // nobody who is deciding anything.
+    spelling_divergences: analysis.spelling_divergences.map((divergence) => ({
+      match_id: divergence.match_id,
+      spelling_a: divergence.spelling_a,
+      spelling_b: divergence.spelling_b,
+      captures_a: divergence.captures_a,
+      captures_b: divergence.captures_b,
+      raw_keys: [...divergence.raw_keys],
+    })),
   };
 }
 
@@ -192,6 +202,7 @@ function sourceReport(
       exclusive_to_reference: analysis.exclusives_a,
       replicated_errors: analysis.replicated_errors.length,
       persistent_discrepancies: analysis.persistent_discrepancies.length,
+      spelling_divergences: analysis.spelling_divergences.length,
       temporal: temporalComplete
         ? {
             leads: analysis.leads_b,
@@ -239,6 +250,7 @@ function pairReport(
       replicated_errors_absent_from_reference:
         analysis.replicated_errors.length - alsoInReference,
       persistent_discrepancies: analysis.persistent_discrepancies.length,
+      spelling_divergences: analysis.spelling_divergences.length,
       temporal: temporalComplete
         ? {
             leads_first_over_second: analysis.leads_a,

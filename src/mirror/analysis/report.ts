@@ -28,12 +28,17 @@ import { MIN_TICK_SUCCESS_RATIO } from '@/mirror/window';
 
 export const VerdictSchema = z.enum(['ESPEJO', 'INDEPENDIENTE', 'INCONCLUSO']);
 export const HalfStateSchema = z.enum(['completa', 'pendiente']);
-export const DiscrepancyFactSchema = z.enum([
-  'existence',
-  'kickoff',
-  'finished_result',
-  'team_spelling',
-]);
+/**
+ * The three facts a persistent discrepancy can be about (CA-10.2).
+ *
+ * `team_spelling` is deliberately NOT here. CA-13 forbids the spelling being
+ * summed into the persistent discrepancies "en ninguna clave del JSON ni en la
+ * prosa", and a shared counter with a boolean discriminator would be "una
+ * invitación a que el primer consumidor que olvide filtrar reintroduzca justo
+ * el fallo que la enmienda quita". Leaving the value out of the enum makes the
+ * mistake unrepresentable rather than merely discouraged.
+ */
+export const DiscrepancyFactSchema = z.enum(['existence', 'kickoff', 'finished_result']);
 
 /** CA-14: every claim carries the archive keys that sustain it. */
 export const EventEvidenceSchema = z.strictObject({
@@ -64,11 +69,27 @@ export const PersistentDiscrepancyEvidenceSchema = z.strictObject({
   raw_keys: z.array(z.string().min(1)).min(1),
 });
 
+/**
+ * CA-10.4 + CA-14. Its own shape, with its own field names: nothing that reads
+ * a persistent discrepancy can accidentally read one of these, and the raw
+ * keys travel exactly like everybody else's.
+ */
+export const SpellingDivergenceEvidenceSchema = z.strictObject({
+  match_id: MatchIdSchema,
+  spelling_a: z.string(),
+  spelling_b: z.string(),
+  captures_a: z.int(),
+  captures_b: z.int(),
+  raw_keys: z.array(z.string().min(1)).min(1),
+});
+
 export const EvidenceSchema = z.strictObject({
   leads: z.array(EventEvidenceSchema),
   exclusives: z.array(EventEvidenceSchema),
   replicated_errors: z.array(ReplicatedErrorEvidenceSchema),
   persistent_discrepancies: z.array(PersistentDiscrepancyEvidenceSchema),
+  /** Registered and cited; it enters no verdict (CA-10.4, CA-15.4). */
+  spelling_divergences: z.array(SpellingDivergenceEvidenceSchema),
 });
 
 export const TemporalCountersSchema = z.strictObject({
@@ -87,6 +108,13 @@ export const CountersSchema = z.strictObject({
   exclusive_to_reference: z.int(),
   replicated_errors: z.int(),
   persistent_discrepancies: z.int(),
+  /**
+   * CA-13, enmienda 2026-08-31 §1: its OWN key, never added to the one above.
+   * It is reported because it is the audit surface of the manual pairing of
+   * CA-6 and the first input of the alias catalogue of RN-09 — not because it
+   * weighs on the verdict, which it does not.
+   */
+  spelling_divergences: z.int(),
   /** `null` while the temporal half is pending. */
   temporal: TemporalCountersSchema.nullable(),
 });
@@ -123,6 +151,8 @@ export const PairCountersSchema = z.strictObject({
   replicated_errors_also_in_reference: z.int(),
   replicated_errors_absent_from_reference: z.int(),
   persistent_discrepancies: z.int(),
+  /** CA-15.4: symmetric, and it does not dictate here either. */
+  spelling_divergences: z.int(),
   temporal: PairTemporalCountersSchema.nullable(),
 });
 

@@ -91,6 +91,7 @@ describe('CA-12 — la tabla sobre los tres veredictos', () => {
         exclusives_b: 0,
         replicated_errors: [],
         persistent_discrepancies: [],
+        spelling_divergences: [],
         observed_differences_ms: [],
         temporal_half: 'completa',
         ...overrides,

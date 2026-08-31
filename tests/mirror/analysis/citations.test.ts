@@ -33,6 +33,8 @@ function citedKeys(report: MirrorReport): readonly string[] {
     ...evidence.exclusives.flatMap((item) => item.raw_keys),
     ...evidence.replicated_errors.flatMap((item) => item.raw_keys),
     ...evidence.persistent_discrepancies.flatMap((item) => item.raw_keys),
+    // CA-10.4 las deja sin voto, no sin cita: siguen sujetas a CA-14.
+    ...evidence.spelling_divergences.flatMap((item) => item.raw_keys),
   ]);
 }
 

@@ -27,6 +27,24 @@ function counts(analysis: PairAnalysis): string {
   );
 }
 
+/**
+ * CA-10.4 y CA-13. La grafía se nombra aparte y se dice, en la misma frase,
+ * que no vota y por qué. No es cortesía: quien lee este informe es quien
+ * escribe la spec del motor, y un contador de divergencias sin esa frase al
+ * lado es una invitación a leerlas como prueba de independencia, que es
+ * exactamente la confianza falsa que la enmienda quita.
+ */
+function spellingNote(count: number): string {
+  if (count === 0) return '';
+  return (
+    ` Aparte, y sin voto: ${count} divergencias de grafía en los nombres de equipo. Se registran y ` +
+    'la grafía **no dicta** veredicto (CA-10.4) — un agregador copia el marcador y rinde el nombre ' +
+    'desde su propia base de equipos, así que la señal dispara igual con espejo que con ' +
+    'independencia y no lleva información. Quedan citadas con sus capturas como superficie de ' +
+    'auditoría del emparejamiento de CA-6 y como primer insumo del catálogo de alias de RN-09.'
+  );
+}
+
 export function proseSource(
   reference: SourceId,
   analysis: PairAnalysis,
@@ -52,7 +70,7 @@ export function proseSource(
     ? ' Hay indicio de espejo —ningún contenido propio y ningún desajuste temporal—, que por CA-9 es indicio y no prueba.'
     : '';
 
-  return `${head} ${consequence}${pending}${caveat}`;
+  return `${head} ${consequence}${pending}${caveat}${spellingNote(analysis.spelling_divergences.length)}`;
 }
 
 export function prosePair(
@@ -83,7 +101,12 @@ export function prosePair(
 
   const pending = temporalComplete ? '' : ' Mitad temporal pendiente.';
 
-  return `${head} ${consequence}${upstream}${mirrorOf}${pending}`;
+  // CA-15.4: simétrica, y aquí el argumento es MÁS fuerte —son dos agregadores,
+  // cada uno con su propia base de equipos, así que la señal dispararía incluso
+  // para dos reventas literales del mismo feed.
+  const spelling = spellingNote(analysis.spelling_divergences.length);
+
+  return `${head} ${consequence}${upstream}${mirrorOf}${pending}${spelling}`;
 }
 
 export function proseSummary(

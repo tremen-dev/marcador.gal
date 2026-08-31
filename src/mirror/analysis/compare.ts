@@ -83,13 +83,49 @@ export interface ReplicatedError {
   readonly raw_keys: readonly [string, string, string, string];
 }
 
-export type DiscrepancyFact = 'existence' | 'kickoff' | 'finished_result' | 'team_spelling';
+/**
+ * The three facts whose persistent disagreement DICTATES independence.
+ *
+ * Three and not four: the spelling of the team came out of here by the
+ * amendment of 2026-08-31 §1 and lives in `SpellingDivergence`. It is not a
+ * fact that stopped being computed — it is a fact that stopped voting, and
+ * keeping it out of this union is what makes "it is not summed into the
+ * persistent discrepancies in any key" true by construction rather than by
+ * everyone remembering to filter (CA-10.4, CA-13).
+ */
+export type DiscrepancyFact = 'existence' | 'kickoff' | 'finished_result';
 
 export interface PersistentDiscrepancy {
   readonly match_id: MatchId;
   readonly fact: DiscrepancyFact;
   readonly value_a: string;
   readonly value_b: string;
+  readonly captures_a: number;
+  readonly captures_b: number;
+  readonly raw_keys: readonly string[];
+}
+
+/**
+ * CA-10.4. The two sources write the name of a team differently (after the
+ * stingy normalisation of `normalizeAlias`).
+ *
+ * Its own type, and not a `PersistentDiscrepancy` with a flag, because the
+ * whole point of the amendment is that it does NOT enter a verdict, in either
+ * direction: all the probative force of CA-10.2 is that **a mirror
+ * converges**, and the name is precisely the field where a mirror does not
+ * converge by construction — an aggregator copies the scoreboard and renders
+ * the name from its own team base. The signal fires with the same probability
+ * under both hypotheses, so it carries no information.
+ *
+ * It is still computed and still cited (CA-14): it is the audit surface of the
+ * manual pairing of CA-6 — whoever wrote it can check against the archive what
+ * each source called each team — and the first real input of the alias
+ * catalogue of RN-09.
+ */
+export interface SpellingDivergence {
+  readonly match_id: MatchId;
+  readonly spelling_a: string;
+  readonly spelling_b: string;
   readonly captures_a: number;
   readonly captures_b: number;
   readonly raw_keys: readonly string[];
@@ -110,6 +146,8 @@ export interface PairAnalysis {
   readonly exclusives_b: number;
   readonly replicated_errors: readonly ReplicatedError[];
   readonly persistent_discrepancies: readonly PersistentDiscrepancy[];
+  /** CA-10.4. Registered, cited, counted apart — and never a vote. */
+  readonly spelling_divergences: readonly SpellingDivergence[];
   /** `first_seen(a) − first_seen(b)` for every comparable event, sorted. */
   readonly observed_differences_ms: readonly number[];
   /**
@@ -187,6 +225,8 @@ export function comparePair(timeline: Timeline, a: SourceId, b: SourceId): PairA
     }
   }
 
+  const divergences = contentDivergences(timeline, a, b);
+
   return {
     a,
     b,
@@ -200,7 +240,8 @@ export function comparePair(timeline: Timeline, a: SourceId, b: SourceId): PairA
     exclusives_a: exclusivesA,
     exclusives_b: exclusivesB,
     replicated_errors: replicatedErrors(timeline, a, b),
-    persistent_discrepancies: persistentDiscrepancies(timeline, a, b),
+    persistent_discrepancies: divergences.persistent,
+    spelling_divergences: divergences.spelling,
     observed_differences_ms: [...differences].sort((x, y) => x - y),
     temporal_half: temporalComplete ? 'completa' : 'pendiente',
   };
@@ -337,8 +378,14 @@ function retractionsOf(
   return retractions;
 }
 
+/**
+ * The facts this pass follows: the three that decide, plus the spelling, which
+ * is measured the same way and reported apart (CA-10.4).
+ */
+type TrackedFact = DiscrepancyFact | 'team_spelling';
+
 /** The value of one fact for one source at one moment, or `null` if unknown. */
-function factValue(fact: DiscrepancyFact, reading: Reading | null): string | null {
+function factValue(fact: TrackedFact, reading: Reading | null): string | null {
   if (fact === 'existence') return reading === null ? 'absent' : 'present';
   if (reading === null) return null;
   if (fact === 'kickoff') return reading.kickoff ?? 'sen hora';
@@ -347,26 +394,30 @@ function factValue(fact: DiscrepancyFact, reading: Reading | null): string | nul
   return `${reading.value.home_score}-${reading.value.away_score}`;
 }
 
-const FACTS: readonly DiscrepancyFact[] = [
-  'existence',
-  'kickoff',
-  'finished_result',
-  'team_spelling',
-];
+const FACTS: readonly TrackedFact[] = ['existence', 'kickoff', 'finished_result', 'team_spelling'];
+
+export interface ContentDivergences {
+  /** The three facts that dictate INDEPENDIENTE (CA-10.2). */
+  readonly persistent: readonly PersistentDiscrepancy[];
+  /** The fourth, which does not (CA-10.4). Never mixed into the above. */
+  readonly spelling: readonly SpellingDivergence[];
+}
 
 /**
- * CA-10.2. A mirror with refresh lag disagrees with its origin transiently all
- * the time; what tells own data apart is that the difference does NOT
- * converge. So the run has to survive `MIN_PERSISTENT_CAPTURES` captures OF
- * EACH source — counted per source, because three captures of one and none of
- * the other is not persistence, it is a gap.
+ * CA-10.2 and CA-10.4, in one pass over the window.
+ *
+ * A mirror with refresh lag disagrees with its origin transiently all the
+ * time; what tells own data apart is that the difference does NOT converge. So
+ * the run has to survive `MIN_PERSISTENT_CAPTURES` captures OF EACH source —
+ * counted per source, because three captures of one and none of the other is
+ * not persistence, it is a gap.
+ *
+ * The spelling is measured with the same yardstick and returned in its own
+ * list. Same evidence, same citations, no vote.
  */
-function persistentDiscrepancies(
-  timeline: Timeline,
-  a: SourceId,
-  b: SourceId,
-): readonly PersistentDiscrepancy[] {
+function contentDivergences(timeline: Timeline, a: SourceId, b: SourceId): ContentDivergences {
   const found: PersistentDiscrepancy[] = [];
+  const spelling: SpellingDivergence[] = [];
   const captures = [...capturesOf(timeline, a), ...capturesOf(timeline, b)].sort((x, y) =>
     x.fetched_at === y.fetched_at
       ? x.raw_key.localeCompare(y.raw_key)
@@ -430,21 +481,32 @@ function persistentDiscrepancies(
           !recorded.has(runKey)
         ) {
           recorded.add(runKey);
-          found.push({
-            match_id,
-            fact,
-            value_a: valueA,
-            value_b: valueB,
-            captures_a: run.a,
-            captures_b: run.b,
-            raw_keys: [...run.keys],
-          });
+          if (fact === 'team_spelling') {
+            spelling.push({
+              match_id,
+              spelling_a: valueA,
+              spelling_b: valueB,
+              captures_a: run.a,
+              captures_b: run.b,
+              raw_keys: [...run.keys],
+            });
+          } else {
+            found.push({
+              match_id,
+              fact,
+              value_a: valueA,
+              value_b: valueB,
+              captures_a: run.a,
+              captures_b: run.b,
+              raw_keys: [...run.keys],
+            });
+          }
         }
       }
     }
   }
 
-  return found;
+  return { persistent: found, spelling };
 }
 
 /** Captures grouped by instant, in chronological order. */

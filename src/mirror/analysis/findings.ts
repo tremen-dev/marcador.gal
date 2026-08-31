@@ -31,6 +31,7 @@ function sourceSection(source: SourceReport): string {
     `| Exclusivos suyos / de la referencia | ${source.counters.exclusive_to_source} / ${source.counters.exclusive_to_reference} |`,
     `| Errores replicados | ${source.counters.replicated_errors} |`,
     `| Discrepancias persistentes | ${source.counters.persistent_discrepancies} |`,
+    `| Divergencias de grafía (**se registran, no dictan** — CA-10.4) | ${source.counters.spelling_divergences} |`,
     temporal === null
       ? '| Adelantos / retrasos / empates | mitad temporal pendiente |'
       : `| Adelantos / retrasos / empates | ${temporal.leads} / ${temporal.lags} / ${temporal.ties} |`,
@@ -56,6 +57,7 @@ function pairSection(pair: PairReport): string {
     `| N comparables / N_min | ${pair.counters.n_comparable} / ${pair.counters.n_min} |`,
     `| Errores replicados (total / también en futgal / ausentes de futgal) | ${pair.counters.replicated_errors_total} / ${pair.counters.replicated_errors_also_in_reference} / ${pair.counters.replicated_errors_absent_from_reference} |`,
     `| Discrepancias persistentes | ${pair.counters.persistent_discrepancies} |`,
+    `| Divergencias de grafía (**se registran, no dictan** — CA-15.4) | ${pair.counters.spelling_divergences} |`,
     '',
     pair.prose,
     '',
