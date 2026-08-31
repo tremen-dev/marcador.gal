@@ -27,8 +27,30 @@ export interface TickRecord {
   readonly raw_ref: string | null;
 }
 
+/** One (source, competition) pair the window was supposed to cover. */
+export interface DeclaredPair {
+  readonly source: SourceId;
+  readonly competition_id: CompetitionId;
+}
+
 export interface WindowLog {
   readonly ticks: readonly TickRecord[];
+  /**
+   * The pairs the window was SUPPOSED to cover (SPEC-003 CA-8).
+   *
+   * Optional, and that is not indecision: a log written before this existed —
+   * SPEC-002's — keeps meaning exactly what it meant, and coverage keeps being
+   * derived from the ticks that exist. When it IS present, coverage is computed
+   * over the declared set instead, so a pair that was never attempted appears
+   * at 0 % rather than not appearing at all.
+   *
+   * Why it matters here: a source that was never tried — a typo in `targets`, a
+   * `robots.txt` that failed to load and dropped the source — simply does not
+   * show up, and the window comes out `valida` with 100 % of the pairs that did
+   * run. In a window of four pairs, one absent source is HALF the instrument,
+   * and the crossing under analysis needs both by definition.
+   */
+  readonly declared_pairs?: readonly DeclaredPair[];
 }
 
 /**
@@ -52,6 +74,19 @@ export interface PairCoverage {
 /** Coverage per pair, ordered by ratio and then by pair, so it is stable. */
 export function windowCoverage(log: WindowLog): readonly PairCoverage[] {
   const byPair = new Map<string, { source: SourceId; competition_id: CompetitionId; ok: number; failed: number; skipped: number }>();
+
+  // The declared pairs go in FIRST and at zero (CA-8): a pair with no tick at
+  // all has to be a 0 % row and not an absent one. `attempted === 0` then puts
+  // its ratio at 0, which is below any threshold, which invalidates the window.
+  for (const pair of log.declared_pairs ?? []) {
+    byPair.set(`${pair.source}/${pair.competition_id}`, {
+      source: pair.source,
+      competition_id: pair.competition_id,
+      ok: 0,
+      failed: 0,
+      skipped: 0,
+    });
+  }
 
   for (const tick of log.ticks) {
     const key = `${tick.source}/${tick.competition_id}`;
