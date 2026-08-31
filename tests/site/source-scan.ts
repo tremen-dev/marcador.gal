@@ -15,7 +15,15 @@ export interface SourceFile {
   readonly text: string;
 }
 
-/** Every `.ts`/`.tsx` file under `dir`, depth-first, sorted by path. */
+/**
+ * EVERY file under `dir`, whatever its extension, depth-first, sorted by path.
+ *
+ * No extension filter on purpose: CA-13.3 says «cualquier punto de `src/`», y
+ * `src/app/globals.css` es un fichero de `src/` que además se sirve al
+ * público. Filtrar aquí dejaba fuera justo el sitio donde una dirección de
+ * correo sobrevive a una migración (F-SPEC-004-6). Quien solo quiera JSX
+ * —CA-5— filtra en su propio test, que es donde la restricción es cierta.
+ */
 export async function readSourceFiles(dir: string = SRC): Promise<SourceFile[]> {
   const files: SourceFile[] = [];
 
@@ -26,7 +34,6 @@ export async function readSourceFiles(dir: string = SRC): Promise<SourceFile[]> 
         await walk(full);
         continue;
       }
-      if (!entry.name.endsWith('.ts') && !entry.name.endsWith('.tsx')) continue;
       files.push({
         path: relative(SRC, full).replaceAll('\\', '/'),
         text: await readFile(full, 'utf8'),

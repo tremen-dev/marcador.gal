@@ -34,12 +34,22 @@ const LITERAL_CHILD = /[>}]\s*\{\s*['"`]\p{L}/u;
 const VISIBLE_ATTRIBUTE =
   /\b(?:title|alt|aria-label|placeholder|content)\s*=\s*(?:["']|\{\s*["'`])/;
 
+/**
+ * Solo TypeScript: las tres reglas de este fichero hablan de JSX y CA-5 habla
+ * de «ficheros de ruta y componente». El escaneo compartido ya no filtra por
+ * extensión —CA-13.3 necesita `src/` entero, F-SPEC-004-6—, así que el filtro
+ * vive aquí, que es donde es cierto.
+ */
+function isTypeScript(file: SourceFile): boolean {
+  return file.path.endsWith('.ts') || file.path.endsWith('.tsx');
+}
+
 async function siteSources(): Promise<SourceFile[]> {
   const files = [
     ...(await readSourceFiles(join(SRC, 'app'))),
     ...(await readSourceFiles(join(SRC, 'site'))),
   ];
-  return files.filter((f) => !f.path.startsWith(NOT_A_ROUTE));
+  return files.filter((f) => isTypeScript(f) && !f.path.startsWith(NOT_A_ROUTE));
 }
 
 describe('CA-5 — ningún literal incrustado', () => {
