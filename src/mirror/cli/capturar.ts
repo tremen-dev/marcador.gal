@@ -62,7 +62,9 @@ export async function main(argv: readonly string[]): Promise<void> {
   const ticks = Math.ceil((config.duration_minutes * 60) / config.tick_seconds);
   for (let tick = 0; tick < ticks; tick += 1) {
     await capturer.tick();
-    await sleep(config.tick_seconds * 1000);
+    // No sleep after the LAST pass: the window is over, and waiting out one
+    // more interval only delays the log the operator is waiting for.
+    if (tick + 1 < ticks) await sleep(config.tick_seconds * 1000);
   }
 
   const log = capturer.log();
