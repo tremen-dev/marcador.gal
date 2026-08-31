@@ -24,29 +24,13 @@ import { describe, expect, test } from 'vitest';
 import { verdictWithoutReference } from '@/mirror/analysis/referenceless/verdict';
 import { N_MIN } from '@/mirror/thresholds';
 import { atRest, constant, goalAt, merge, padding, transientError } from '../support/plans';
-import { BESOCCER, CEROACERO, analyseCandidates } from '../support/referenceless';
-import type { Plan } from '../support/archive';
-import type { Shot } from '../support/archive';
-
-const pair = (first: readonly Shot[], second: readonly Shot[]): Plan =>
-  new Map([
-    [CEROACERO, first],
-    [BESOCCER, second],
-  ]);
-
-/** Fixture (a) de `pair.test.ts`: cada una adelanta a la otra en dos partidos. */
-const MUTUAL_LEADS = () =>
-  pair(
-    merge(goalAt('m1', 2), goalAt('m2', 2), goalAt('m3', 8), goalAt('m4', 8), padding(3)),
-    merge(goalAt('m1', 8), goalAt('m2', 8), goalAt('m3', 2), goalAt('m4', 2), padding(3)),
-  );
-
-/** Fixture (b) de `pair.test.ts`: C1 adelanta cuatro veces, C2 nunca. */
-const ONE_WAY_LEADS = () =>
-  pair(
-    merge(goalAt('m1', 2), goalAt('m2', 2), goalAt('m3', 2), goalAt('m4', 2), padding(3)),
-    merge(goalAt('m1', 8), goalAt('m2', 8), goalAt('m3', 8), goalAt('m4', 8), padding(3)),
-  );
+import {
+  MUTUAL_LEADS,
+  ONE_WAY_LEADS,
+  REASON_PLANS,
+  analyseCandidates,
+  candidatesPlan as pair,
+} from '../support/referenceless';
 
 describe('CA-4 — INDEPENDIENTE no es emitible, y las señales no se tiran', () => {
   test('1. adelantos mutuos 2 y 2 → INCONCLUSO, no INDEPENDIENTE', async () => {
@@ -222,22 +206,11 @@ describe('CA-6 — la regla de decisión del modo, total y ordenada', () => {
 });
 
 describe('CA-5 (RN-02) — la bandera es false en todos los desenlaces', () => {
-  const cases: readonly (readonly [string, () => Plan])[] = [
-    ['muestra_insuficiente', () => pair(merge(padding(4), constant('c1')), merge(padding(4), constant('c1')))],
-    ['error_replicado', () => pair(merge(transientError('e1', 2), padding(5)), merge(transientError('e1', 3), padding(5)))],
-    ['independencia_no_demostrable_sin_referencia', MUTUAL_LEADS],
-    ['sin_contenido_propio', () => pair(padding(6), padding(6))],
-    ['adelantos_en_una_sola_direccion', ONE_WAY_LEADS],
-    [
-      'sin_senal',
-      () => {
-        const shots = merge(...Array.from({ length: 12 }, (_unused, i) => atRest(`r${i}`, '17:00')));
-        return pair(shots, shots);
-      },
-    ],
-  ];
-
-  test.for(cases)('11. %s no habilita la segunda vía', async ([reason, build]) => {
+  // Los seis planes viven en `support/referenceless.ts` y no aquí: los barridos
+  // de nivel informe (CA-2, CA-11, CA-12, CA-15) recorren exactamente esta
+  // tabla. Tenerla dos veces es cómo se llegó a que el veredicto se barriese
+  // entero y el informe solo sobre dos planes que daban los dos ESPEJO.
+  test.for(REASON_PLANS)('11. %s no habilita la segunda vía', async ([reason, build]) => {
     const verdict = verdictWithoutReference(await analyseCandidates(build()));
 
     expect(verdict.reason).toBe(reason);

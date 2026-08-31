@@ -16,12 +16,22 @@
 import { describe, expect, test } from 'vitest';
 import { MirrorReportSchema } from '@/mirror/analysis/report';
 import { ModalReportSchema } from '@/mirror/analysis/mode';
-import { ReferencelessReportSchema } from '@/mirror/analysis/referenceless/report';
+import {
+  DECLARED_LIMITATIONS,
+  REFERENCELESS_CONFLICT_WARNING_TEXT,
+  ReferencelessReasonSchema,
+  ReferencelessReportSchema,
+  UNMEASURED_CANDIDATE_VERDICTS,
+} from '@/mirror/analysis/referenceless/report';
 import { CONFLICT_METRIC_WARNING_TEXT } from '@/mirror/analysis/report';
 import { canonicalInstant, instantToEpochMs } from '@/mirror/instants';
 import { analyseFixture } from '../support/report';
 import { lockstepPlan, merge, padding, transientError } from '../support/plans';
-import { analyseReferenceless, candidatesPlan } from '../support/referenceless';
+import {
+  analyseReferenceless,
+  candidatesPlan,
+  referencelessReportsByReason,
+} from '../support/referenceless';
 import type { Instant } from '@/model/ids';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -158,29 +168,45 @@ describe('CA-3 — la prueba de origen común se separa de su atribución', () =
 });
 
 describe('CA-11 — el informe declara qué preguntas NO responde', () => {
-  const ids = [
-    'espejo_de_futgal_no_medido',
-    'origen_comun_sin_atribuir',
-    'independiente_no_emitible',
-    'metrica_de_conflictos_no_legible',
-    'latencia_cobertura_operacion_no_medidas',
+  /**
+   * Las cinco afirmaciones, cada una con lo que su texto tiene que decir. Se
+   * comprueba el **contenido** y no solo el identificador: una afirmación
+   * presente y vaciada es una limitación que dejó de declararse, y el
+   * identificador solo no lo ve.
+   */
+  const REQUIRED: readonly (readonly [string, readonly string[]])[] = [
+    ['espejo_de_futgal_no_medido', ['espejo de futgal', 'robots.txt', 'RN-11']],
+    ['origen_comun_sin_atribuir', ['sin atribuir', 'no de quién']],
+    ['independiente_no_emitible', ['no puede emitir INDEPENDIENTE', 'NO es']],
+    ['metrica_de_conflictos_no_legible', ['métrica de conflictos', 'fuente oficial']],
+    ['latencia_cobertura_operacion_no_medidas', ['Latencia', 'cobertura', 'calendario oficial']],
   ];
+  const ids = REQUIRED.map(([id]) => id);
 
-  test('11. las cinco afirmaciones están en el JSON, también en el ESPEJO más rotundo', async () => {
-    for (const plan of [MIRRORED(), REPLICATED()]) {
-      const { report } = await analyseReferenceless(plan);
+  test('11. las cinco afirmaciones están en el JSON de los SEIS motivos, íntegras', async () => {
+    // Un informe de cada uno de los motivos de CA-6, no dos que dan los dos
+    // ESPEJO: cuatro de los seis son INCONCLUSO, que es justo la mitad del
+    // dominio en la que un lector desconfía y en la que nada miraba.
+    for (const [reason, report] of await referencelessReportsByReason()) {
+      expect(report.pair.reason).toBe(reason);
       expect(report.limitaciones_declaradas.map((limit) => limit.id)).toEqual(ids);
-      for (const limit of report.limitaciones_declaradas) {
-        expect(limit.texto.length).toBeGreaterThan(40);
+      // Íntegras: ni sustituidas por el ensamblador ni recortadas.
+      expect(report.limitaciones_declaradas).toEqual(DECLARED_LIMITATIONS);
+
+      for (const [id, phrases] of REQUIRED) {
+        const limit = report.limitaciones_declaradas.find((each) => each.id === id);
+        expect(limit).toBeDefined();
+        expect(limit!.texto.length).toBeGreaterThan(40);
+        for (const phrase of phrases) expect(limit!.texto).toContain(phrase);
       }
     }
   });
 
-  test('12. y la prosa las repite en castellano corrido', async () => {
-    const { report } = await analyseReferenceless(REPLICATED());
-
-    for (const limit of report.limitaciones_declaradas) {
-      expect(report.prose).toContain(limit.texto);
+  test('12. y la prosa las repite en castellano corrido, en los seis', async () => {
+    for (const [, report] of await referencelessReportsByReason()) {
+      for (const limit of report.limitaciones_declaradas) {
+        expect(report.prose).toContain(limit.texto);
+      }
     }
   });
 
@@ -200,12 +226,15 @@ describe('CA-11 — el informe declara qué preguntas NO responde', () => {
 });
 
 describe('CA-12 — la advertencia de la métrica de conflictos es incondicional', () => {
-  test('14. está siempre, con el corte a false, y su texto NO es el de SPEC-002', async () => {
-    for (const plan of [MIRRORED(), REPLICATED()]) {
-      const { report } = await analyseReferenceless(plan);
-
+  test('14. está en los DOS veredictos y en los seis motivos, y su texto no es el de SPEC-002', async () => {
+    for (const [reason, report] of await referencelessReportsByReason()) {
+      expect(report.pair.reason).toBe(reason);
       expect(report.conflict_metric_warning.hard_cut_15_percent_applies).toBe(false);
       expect(report.conflict_metric_warning.text).not.toBe(CONFLICT_METRIC_WARNING_TEXT);
+      // El texto entero, y no una subcadena: en un INCONCLUSO es donde un
+      // lector podría creer que la advertencia no aplica, así que degradarla
+      // ahí tiene que poner esto rojo.
+      expect(report.conflict_metric_warning.text).toBe(REFERENCELESS_CONFLICT_WARNING_TEXT);
       // El motivo propio del modo: no es que ninguna candidata haya salido
       // INDEPENDIENTE, es que ninguna se ha medido contra la fuente oficial.
       expect(report.conflict_metric_warning.text).toContain('ninguna se ha medido');
@@ -328,6 +357,84 @@ describe('CA-15 (ADR-009) — el informe declara su fecha de purga', () => {
       'docs/epicas/EPIC-001-spike-ingesta/' +
         'SPEC-003-test-de-espejo-sin-referencia-el-cruce-entre-candidatas.ledger.md',
     );
+  });
+});
+
+/**
+ * **Los seis desenlaces, y no solo los dos ESPEJO.**
+ *
+ * CA-2 dice «dado **el** informe de este modo» y CA-15 dice «dado **cualquier**
+ * informe de este modo». Los casos 4-5 y 16-22 de arriba corren sobre un solo
+ * plan, que da ESPEJO: la presencia y la forma de los dos bloques las garantiza
+ * el esquema en toda ruta, pero su **contenido** no lo garantizaba nada en la
+ * mitad INCONCLUSO del dominio. Medido en la ronda anterior: vaciando el
+ * `motivo` y falseando `purga_prevista` **solo cuando el veredicto es
+ * INCONCLUSO**, la suite entera seguía verde.
+ */
+describe('CA-2 y CA-15 sobre los seis desenlaces, INCONCLUSO incluido', () => {
+  test('24. el barrido cubre de verdad los dos veredictos y los seis motivos', async () => {
+    const reports = await referencelessReportsByReason();
+
+    // Este caso es la red de la red: si alguien cambia los planes de la tabla y
+    // los seis vuelven a dar ESPEJO, los tres barridos de abajo seguirían
+    // pasando sin mirar nunca un INCONCLUSO — que es exactamente el fallo que
+    // costó esta vuelta.
+    expect(reports.map(([reason]) => reason)).toEqual(
+      ReferencelessReasonSchema.options as readonly string[],
+    );
+    for (const [reason, report] of reports) expect(report.pair.reason).toBe(reason);
+
+    // Tres y tres: `muestra_insuficiente`, `independencia_no_demostrable_sin_
+    // referencia` y `sin_senal` son INCONCLUSO; los otros tres, ESPEJO.
+    const verdicts = new Set(reports.map(([, report]) => report.pair.verdict));
+    expect([...verdicts].sort()).toEqual(['ESPEJO', 'INCONCLUSO']);
+    expect(reports.filter(([, report]) => report.pair.verdict === 'INCONCLUSO')).toHaveLength(3);
+    expect(reports.filter(([, report]) => report.pair.verdict === 'ESPEJO')).toHaveLength(3);
+  });
+
+  test('25. (CA-2) el bloque de veredictos no medidos es el mismo en los seis', async () => {
+    for (const [reason, report] of await referencelessReportsByReason()) {
+      expect(report.pair.reason).toBe(reason);
+
+      const block = report.veredictos_por_candidata;
+      expect(block.estado).toBe('no_medidos');
+      expect(block.referencia_prevista).toBe('futgal');
+      expect(block.dictamen).toBe('2026-08-31');
+      // El motivo entero, que es lo que un esquema con `z.string().min(1)` no
+      // puede sostener: nombra robots.txt, el Disallow y RN-11.
+      expect(block.motivo).toContain('robots.txt');
+      expect(block.motivo).toContain('Disallow: /');
+      expect(block.motivo).toContain('RN-11');
+      expect(block).toEqual(UNMEASURED_CANDIDATE_VERDICTS);
+      expect(report.prose).toContain(block.motivo);
+
+      // Y en ninguno de los seis reaparecen las claves de SPEC-002.
+      const keys = keysOf(JSON.parse(JSON.stringify(report)));
+      expect(keys).not.toContain('sources');
+      expect(keys).not.toContain('reference');
+    }
+  });
+
+  test('26. (CA-15) las tres fechas se sostienen en los seis, recomputadas a mano', async () => {
+    for (const [reason, report] of await referencelessReportsByReason()) {
+      expect(report.pair.reason).toBe(reason);
+
+      const block = report.retencion_del_archivo;
+      const end = instantToEpochMs(report.window.end);
+
+      expect(block.adr).toBe('ADR-009');
+      expect(block.fin_de_ventana).toBe(report.window.end);
+      expect(block.plazo_dias).toBe(30);
+      expect(block.prorrogas_permitidas).toBe(1);
+      expect(block.techo_dias).toBe(90);
+      expect(block.purga_prevista).toBe(canonicalInstant(end + 30 * DAY_MS));
+      expect(block.purga_maxima).toBe(canonicalInstant(end + 90 * DAY_MS));
+
+      // CA-15.4: y la prosa las repite, también en los INCONCLUSO.
+      expect(report.prose).toContain(block.fin_de_ventana);
+      expect(report.prose).toContain(block.purga_prevista);
+      expect(report.prose).toContain(block.purga_maxima);
+    }
   });
 });
 
