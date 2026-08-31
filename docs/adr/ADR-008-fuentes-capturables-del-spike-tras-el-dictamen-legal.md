@@ -146,6 +146,13 @@ parte de la decisión y no adorno:
    cruce. La alternativa es buscar una tercera fuente automática, que necesita su
    propio dictamen y su propio adaptador (ver *Alternativas*).
 
+**FIRMADA por el gate humano (Alberto Fojo) el 2026-08-31.** Acepta el riesgo
+residual de capturar `besoccer.es` para la ventana acotada de SPEC-003, con los
+cuatro límites de arriba. Queda constancia de lo que la firma **no** convierte en
+seguro: la cláusula legal de BESOCCER SOLUTIONS sigue diciendo lo que dice, el
+dictamen de `sdd-legal-datos` sigue siendo **DUDOSO**, y la revisión profesional
+sigue pendiente para el día en que esto pase de medición a exposición.
+
 ## Alcance de la supersesión
 
 Este ADR **supersede a ADR-002 únicamente en**: la composición de la lista de
@@ -209,10 +216,11 @@ parcialmente superseded, si el estándar lo pide, es del humano o de
 ## Alternativas consideradas
 
 - **Pedir autorización a la RFGF ahora y esperar.** Es el camino más limpio y el
-  objetivo estratégico declarado. **Rechazada por el gate el 2026-08-31**: el
-  roadmap dice que esa conversación «solo tiene sentido con el informe en la
-  mano» y el informe necesitaba a la RFGF. Ese círculo se rompe corriendo la
-  medición que sí se puede correr, no esperando.
+  objetivo estratégico declarado por `retos.md`. **Rechazada por el gate (Alberto
+  Fojo) el 2026-08-31.** El gate no declaró motivo y aquí no se le atribuye
+  ninguno: la decisión consta, el razonamiento no, y este ADR es inmutable una
+  vez aprobado. Sigue disponible como camino futuro; §1 la nombra como una de las
+  dos únicas formas de levantar el bloqueo de futgal.
 - **Buscar otra superficie oficial de la RFGF cuyo robots.txt permita** (app,
   subdominio, feed). No descartada como idea, sí como camino de hoy: exige
   encontrarla, comprobar que el `Disallow: /` del dominio no la cubre, y un
