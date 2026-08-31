@@ -22,7 +22,7 @@ Actualizado: 2026-08-31
 | ADR-005 | aprobada | raw-store | 2026-08-29 (Alberto Fojo) |
 | ADR-006 | aprobada | acceso-a-datos-migraciones-y-representacion-temporal | 2026-08-29 (Alberto Fojo) |
 | ADR-007 | aprobada | linter-oxlint-en-lugar-de-eslint | 2026-08-30 (Alberto Fojo) |
-| ADR-008 | borrador | fuentes-capturables-del-spike-tras-el-dictamen-legal | 2026-08-31 (sdd-arquitecto) |
+| ADR-008 | aprobada | fuentes-capturables-del-spike-tras-el-dictamen-legal | 2026-08-31 (Alberto Fojo) |
 
 ## Resumen
 

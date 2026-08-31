@@ -1,10 +1,12 @@
 ---
 id: ADR-008
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-31, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-31, por: Alberto Fojo}
 supersede: ADR-002 (parcialmente; ver §Alcance de la supersesión)
+aprobada-por: Alberto Fojo
 ---
 # ADR-008: Fuentes capturables del spike tras el dictamen legal
 
