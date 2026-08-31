@@ -6,9 +6,15 @@ epica: EPIC-003
 # Ledger — SPEC-004 Sitio público de proyecto en marcador.gal: i18n, contenido y despliegue
 
 ## Resumen
-- Fase: **corregida tras el RED, esperando re-verificación** (2026-08-31,
-  segunda vuelta: F-SPEC-004-5 y F-SPEC-004-6 arreglados, commits `0270eaf` y
-  `2aaccb8`; F-SPEC-004-7 intacto a propósito). Escrita por `sdd-arquitecto`
+- Fase: **RED en la segunda vuelta** (2026-08-31, `sdd-verificador`).
+  F-SPEC-004-5 y F-SPEC-004-6 **están resueltos y comprobados rompiendo**, pero
+  la reescritura de `measuring` introdujo **una afirmación nueva y falsa**
+  (F-SPEC-004-8) sobre las competiciones de la propia federación destinataria de
+  la carta, y el caso 10 de `i18n.test.ts` la deja **fijada por un test**.
+  **CA-12 sí queda cerrado** con el dictamen de `/sdd-lingua` de esta fecha,
+  pero habrá que reemitirlo sobre la clave que vuelva a cambiar.
+- Fase anterior: corregida tras el primer RED (segunda vuelta del implementador:
+  commits `0270eaf` y `2aaccb8`; F-SPEC-004-7 intacto a propósito). Escrita por `sdd-arquitecto`
   el 2026-08-31, aprobada por Alberto Fojo el 2026-08-31, implementada por
   `sdd-implementador` el 2026-08-31 en `ft/SPEC-004-sitio-publico-de-proyecto`.
   **Va primero**: SPEC-005 necesita que `https://marcador.gal/robot` resuelva
@@ -38,20 +44,76 @@ epica: EPIC-003
 | CA-2 | `src/app/(gl)/layout.tsx`, `src/app/(gl)/proxecto/page.tsx`, `src/site/document.tsx`, `src/i18n/gl.ts` | `tests/site/pages.test.ts` 1–3 | Verde sobre el HTML **realmente servido**, no solo sobre `renderToStaticMarkup`: `<html lang="gl">` confirmado en el DOM con Playwright. Prueba propia más dura que la suite: resté del `innerText` de `/proxecto` los trece valores del bundle `gl` y el **residuo es la cadena vacía** — no hay una sola palabra visible fuera del bundle. Mutación M12 (`lang="en"` fijo): rojo | ✅ |
 | CA-3 | `src/app/(es)/layout.tsx`, `src/app/(es)/es/proxecto/page.tsx`, `src/i18n/es.ts`, `src/site/project-page.tsx` (`<nav>`) | `tests/site/pages.test.ts` 4–6 | `/es/proxecto` → `200`, `<html lang="es">`, texto del bundle `es`. **Comprobado con JavaScript desactivado en Playwright**: clic en el conmutador → `/es/proxecto` (`lang=es`), clic de vuelta → `/proxecto` (`lang=gl`). Es un `<a href>` real, no un manejador. Mutación M14 (`<button onClick>`): rojo | ✅ |
 | CA-4 | `src/i18n/site-bundle.ts`, `src/i18n/site.ts`, `src/i18n/gl.ts`, `src/i18n/es.ts` | `tests/site/bundles.test-d.ts` (a), `tests/site/i18n.test.ts` 1–4 (b) | (a) y (b) muerden: M1 (quitar `otherLanguage` de `es.site`) y M2 (añadir `tagline` solo a `es`) ponen rojo los casos 1 y 2. `tsc --noEmit --listFiles` confirma que los 24 ficheros nuevos de `src/site`, `src/i18n`, `src/app` y `tests/site` están **dentro** del programa de tsc | ✅ |
-| CA-5 | — (es una barrera, no código de producción) | `tests/site/no-hardcoded-literals.test.ts` 1–2 (el filtro `.ts`/`.tsx` vive ahora aquí, que es donde es cierto) | La barrera muerde en **todos** los ficheros del sitio, no solo donde es cómodo: texto JSX en `project-page.tsx` (M3), en un **layout** (D4), en una **page** de ruta (D4b); literal como hijo `{'Ola'}` (M3c); atributo visible `aria-label` (M3b) y `title` en `document.tsx` (D4c). Seis mutaciones, seis rojos | ✅ |
+| CA-5 | — (es una barrera, no código de producción) | `tests/site/no-hardcoded-literals.test.ts` 1–2 (el filtro `.ts`/`.tsx` vive ahora aquí, que es donde es cierto) | **Re-verificado en la segunda vuelta: mover el filtro de extensión NO lo degradó.** Las seis mutaciones de la primera vuelta se replantaron una a una y **las seis siguen poniendo rojo el caso 2**: texto JSX en `project-page.tsx` (M3), en un **layout** (D4), en una **page** de ruta (D4b); literal como hijo `{'Ola'}` (M3c); atributo visible `aria-label` (M3b) y `title` en `document.tsx` (D4c). Y una séptima nueva, contra el modo de fallo que abre mover un filtro: **D6**, hacer que `readSourceFiles` devuelva el conjunto vacío → rojo el caso 1, que existe para eso | ✅ |
 | CA-6 | `src/i18n/gl.ts`, `src/i18n/es.ts`, `src/site/project-page.tsx` | `tests/site/pages.test.ts` 7–9 | Verificado **sobre el HTML servido por `next start`**, no sobre el proxy de la suite: sin `<form`, `<input`, `<img`; cero términos de la lista negra; cero años `19xx/20xx`; cero URL absolutas. Mutaciones M4 (bundle), D5 (solo en un `h2`), M4b (`<img>`), M4d (`<form><input>`), M4c (fecha 2027): cinco rojos. Salvedad de alcance en el veredicto (F-SPEC-004-7: la suite mira `renderToStaticMarkup`, no la salida real de Next) | ✅ |
 | CA-7 | `src/i18n/gl.ts`, `src/i18n/es.ts` | `tests/site/i18n.test.ts` 5–6 | Lista negra: muerde con `relevo` (M5) y con `marcadorgalego` (M5b), y desacentúa antes de mirar. **Y la mitad que es lectura, hecha**: «marcador.gal é un proxecto de tremen.dev, levado por Alberto Fojo. Non hai empresa nin equipo detrás: unha soa persoa traballando por conta propia. O enderezo de contacto é ola@tremen.dev.» Nombra a tremen.dev y a Alberto Fojo, **no se apoya en ningún proyecto anterior, no hay historia y no hay insinuación de sucesión**. D-1 respetada | ✅ |
-| CA-8 | `src/site/project-page.tsx`, `src/i18n/*`, `src/site/routes.ts` | `tests/site/pages.test.ts` 10–14; `tests/site/i18n.test.ts` 7–8 (longitud de 8.1), 9–10 (8.2 no afirma medición en curso, y dice por qué una fuente no se lee) | 8.1 presente, 3 oraciones en las dos lenguas, buzón interpolado desde la constante (M6-bis 5 oraciones → rojo; M6-ter 2 oraciones → rojo). 8.2 nombra las cuatro cifras y **sí** las dos competiciones canónicas, sin autocensura. 8.3 y 8.4 presentes, sin fecha ni condicional. **8.5: el enlace existe pero `/robot` devuelve `404`** (comprobado con `curl` y Playwright) — dependencia conocida de SPEC-005 (F-SPEC-004-2). **Y hay un hallazgo mío: F-SPEC-004-5**, el texto de 8.2 afirma en presente una medición que hoy no ocurre | ⚠️ |
-| CA-9 | `src/app/globals.css`, `src/site/document.tsx` | `tests/site/pages.test.ts` 15, 17 | **Playwright, herramienta propia, no la suite.** Viewports 360, 320 y 1280 px × 2 lenguas × JS activado y desactivado (12 combinaciones): `scrollWidth === clientWidth` en todas, **cero elementos desbordando** el ancho de ventana, cero peticiones a origen externo, `<meta name="viewport" content="width=device-width, initial-scale=1">` presente. Con **JS desactivado el texto es idéntico y el conmutador navega**. Mutaciones M11 (`@font-face` remota) y M11b (`<script src=https://…>`): rojo | ✅ |
+| CA-8 | `src/site/project-page.tsx`, `src/i18n/*`, `src/site/routes.ts` | `tests/site/pages.test.ts` 10–14; `tests/site/i18n.test.ts` 7–8 (longitud de 8.1), 9–10 (8.2: el 9 no admite medición en curso **ni la atribución a «una de las dos competiciones»**; el 10, reapuntado en la tercera vuelta, exige que `measuring` diga «fuente oficial» + «las dos competiciones» + `robots.txt`, que es el hecho verdadero) | 8.1 presente, 3 oraciones en las dos lenguas, buzón interpolado desde la constante (M6-bis 5 oraciones → rojo). **8.2, contenido: intacto tras la reescritura.** Seis mutaciones nuevas sobre el texto nuevo —quitar `Terceira RFEF G1` (M17), los dos nombres canónicos en `es` (M17b), `conflitos` (M17c), `latencia` (M17d), `operación manual` (M17e), `cobertura` (M17f)— ponen **las seis** rojo el caso 11. Las cuatro cifras y los dos nombres canónicos siguen enteros en el **HTML servido** por `next build && next start`, en las dos lenguas. **8.2, veracidad: RED — F-SPEC-004-8.** El presente de medición se fue (M16, M16b, M16c, M16d muerden), pero la cláusula que lo sustituye —«unha das dúas competicións non se pode ler hoxe»— **es falsa**, y el caso 10 la deja fijada por un test. 8.3 y 8.4 presentes, sin fecha ni condicional. **8.5: el enlace existe pero `/robot` devuelve `404`** — dependencia conocida de SPEC-005 (F-SPEC-004-2) | ❌ |
+| CA-9 | `src/app/globals.css`, `src/site/document.tsx` | `tests/site/pages.test.ts` 15, 17 | **Playwright, herramienta propia, no la suite.** Viewports 360, 320 y 1280 px × 2 lenguas × JS activado y desactivado (12 combinaciones): `scrollWidth === clientWidth` en todas, **cero elementos desbordando** el ancho de ventana, cero peticiones a origen externo, `<meta name="viewport" content="width=device-width, initial-scale=1">` presente. Con **JS desactivado el texto es idéntico y el conmutador navega**. Mutaciones M11 (`@font-face` remota) y M11b (`<script src=https://…>`): rojo. **Re-medido en la segunda vuelta sobre el texto nuevo, que es más largo** (Chromium por CDP; ver nota de herramienta en el veredicto): las mismas 12 combinaciones, `scrollWidth === clientWidth` en las doce (320/320, 360/360, 1280/1280), **cero elementos desbordando**, cero peticiones a origen externo, `meta viewport` presente. El párrafo largo no rompió nada | ✅ |
 | CA-10 | `src/site/document.tsx`, `src/app/robots.txt/route.ts` (`force-static`) | `tests/site/pages.test.ts` 16, 18 | `curl -sD -` sobre `/`, `/es`, `/proxecto`, `/es/proxecto` y `/robots.txt`: **ninguna respuesta lleva `Set-Cookie`**. Playwright tras navegar las dos páginas y las dos redirecciones: **0 cookies en el contexto, `document.cookie` vacío, 0 claves en `localStorage`/`sessionStorage`, 0 peticiones fuera del origen**. El único identificador del HTML es el `buildId` de Next, constante por build y no por visitante. Mutación M15 (`next/headers`): rojo. Pendiente de re-comprobar sobre el despliegue: las cabeceras que añade Vercel no se observan en local | ⚠️ |
 | CA-11 | `src/site/robots-txt.ts`, `src/app/robots.txt/route.ts` | `tests/site/robots.test.ts` 1–6 | Servido de verdad: `200`, `content-type: text/plain; charset=utf-8`, cuerpo exacto `# marcador.gal — ola@tremen.dev\n\nUser-agent: *\nAllow: /\n`. Lo genera la ruta, no hay `public/robots.txt`. Sin ningún `Disallow`. `parseRobots` + `USER_AGENT` propios dan `isAllowed` verdadero para `/`, `/proxecto`, `/es/proxecto`, `/robot` y `/es/robot`. El buzón sale interpolado (M9b, escribirlo a mano → rojo por dos tests) y M9 (`Disallow: /proxecto`) → rojo. Pendiente comprobarlo en `https://marcador.gal/robots.txt` cuando haya despliegue | ⚠️ |
-| CA-12 | — | — (no es código: dictamen humano/consultivo) | **No hay dictamen de `/sdd-lingua` en este ledger.** El CA es explícitamente bloqueante para el cierre: sin él la spec no pasa a `hecho`. Gestión humana en curso, no fallo del implementador | ❌ |
-| CA-13 | `src/site/contact.ts` | `tests/site/contact.test.ts` 1–5 (5: el escaneo cubre `src/` entero, no solo TypeScript); `tests/site/source-scan.ts` (`readSourceFiles` sin filtro de extensión) | 13.1 y 13.2 ✅ (`MAILBOX = 'ola@tremen.dev'`, único `export const` del módulo; M8 → rojo). 13.4 ✅ y **muerde**: borrar «must still be read» de la cabecera pone rojo el caso 3 (M8b). 13.3 muerde donde importa —correo en otro `.ts` de `src/` (M7), escrito en un bundle (M6b), escrito a mano en `robots-txt.ts` (M9b)— y la excepción de `mirror/user-agent.ts` **se autoliquida**: simulé el cambio de SPEC-005 y el test se pone rojo (D1). **Pero el escaneo solo lee `.ts`/`.tsx`, y el CA dice «cualquier punto de `src/`»**: metí `soporte@marcador.gal` en `src/app/globals.css` y **no lo detecta** (D3). F-SPEC-004-6 | ⚠️ |
+| CA-12 | — | — (no es código: dictamen humano/consultivo) | **Dictamen de `/sdd-lingua` emitido el 2026-08-31 sobre el texto íntegro de `src/i18n/gl.ts` de la segunda vuelta: CORRECTO.** Transcrito abajo, con las dos observaciones no bloqueantes y la excepción consciente anotada. Comprobado por el verificador que el dictamen es **sobre esta redacción y no sobre la anterior**: las dieciséis formas que cita (`Que se vai medir`, `Para que`, `Quen está detrás`, `conflitos`, `produto`, `estudo`, `ficheiro`, `enderezo`, `aínda`, `páxina`, `rastrexador`, `por conta propia`, `fan falta`, `respectalo`, `Como se len`, `otherLanguage`) están **todas** en el fichero de hoy, y `gl.ts` no se ha tocado desde `2aaccb8`. **Salvedad:** cuatro de esas formas (`estudo`, `ficheiro`, `respectalo`, `fan falta`) viven dentro de `measuring`, que F-SPEC-004-8 obliga a reescribir; hará falta **reemitir el dictamen sobre esa clave** | ⚠️ |
+| CA-13 | `src/site/contact.ts` | `tests/site/contact.test.ts` 1–5 (5: el escaneo cubre `src/` entero, no solo TypeScript); `tests/site/source-scan.ts` (`readSourceFiles` sin filtro de extensión) | 13.1 y 13.2 ✅ (`MAILBOX = 'ola@tremen.dev'`, único `export const` del módulo; M8 → rojo). 13.4 ✅ y **muerde**: borrar «must still be read» de la cabecera pone rojo el caso 3 (M8b). 13.3 muerde donde importa —correo en otro `.ts` de `src/` (M7), escrito en un bundle (M6b), escrito a mano en `robots-txt.ts` (M9b)— y la excepción de `mirror/user-agent.ts` **se autoliquida**: simulé el cambio de SPEC-005 y el test se pone rojo (D1). **F-SPEC-004-6 resuelto, y comprobado rompiendo, no leyendo el diff**: (D3) `soporte@marcador.gal` en un comentario y en un `content:` de `src/app/globals.css` → **rojo** el caso 2; (D3b) el mismo correo en `src/site/NOTAS.txt`, una extensión que nadie previó → **rojo** el caso 2; (D3c) reintroducir el filtro `.ts`/`.tsx` dentro de `readSourceFiles` → **rojo** el caso 5, así que **el arreglo se vigila a sí mismo** y no puede deshacerse en silencio. M7, M6b, M9b y M8/M8b siguen mordiendo | ✅ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
 
-### RED — 2026-08-31, `sdd-verificador`
+### RED (segunda vuelta) — 2026-08-31, `sdd-verificador`
+
+**Los dos findings de trabajo están resueltos de verdad**, comprobados
+replantando el fallo y no leyendo el diff. F-SPEC-004-6 además se vigila a sí
+mismo: deshacer el arreglo pone rojo un test. CA-5 **no se degradó** al mover el
+filtro de extensiones: las seis mutaciones de la primera vuelta siguen mordiendo
+y hay una séptima contra el modo de fallo que ese movimiento abría. CA-8.2
+conserva **las cuatro cifras y los dos nombres canónicos**, y seis mutaciones
+nuevas lo demuestran.
+
+**RED por un hallazgo nuevo, y es del mismo tipo que el que motivó el primero.**
+Al quitar la afirmación de una medición en curso se metió otra afirmación falsa
+en su lugar: «unha das dúas competicións non se pode ler hoxe, porque o ficheiro
+`robots.txt` da súa fonte non o permite». La evidencia del propio repositorio
+dice lo contrario en las dos mitades (F-SPEC-004-8). Y esta vez **la falsedad
+está fijada por un test** —el caso 10 exige que ese párrafo mencione
+`robots.txt`—, así que ya no es un descuido de redacción: es una barrera
+apuntando al sitio equivocado.
+
+**CA-12 se cierra en esta vuelta** con el dictamen de `/sdd-lingua` (abajo),
+verificado como emitido sobre el texto de la segunda vuelta y no sobre el
+anterior. Queda ⚠️ y no ✅ solo porque F-SPEC-004-8 obliga a reescribir
+`measuring`, que es donde viven cuatro de las formas dictaminadas.
+
+**Gates, ejecutados el 2026-08-31 en local (no hay CI), con su salida literal:**
+
+- `npm run lint` → `oxlint --type-aware`: **exit 0**, sin una sola línea de
+  salida.
+- `npm run typecheck` → `tsc --noEmit`: **exit 0**, sin una sola línea de salida.
+- `npx vitest run --typecheck`: **exit 0** —
+  `Test Files 62 passed (62) · Tests 544 passed (544) · Type Errors no errors`
+  (541 en la primera vuelta, +3).
+- `npx next build`: **exit 0**, prerenderiza `/proxecto`, `/es/proxecto`,
+  `/robots.txt` y `/_not-found` como estáticos.
+- **Alcance del cambio**: `git diff 9415645..HEAD` toca `src/i18n/{gl,es}.ts`,
+  `tests/site/{contact,i18n,no-hardcoded-literals}.test.ts`,
+  `tests/site/source-scan.ts` y el ledger. **Nada** en `src/model/`, `src/db/`,
+  `src/mirror/`, `migrations/` ni en `tests/` fuera de `tests/site/`.
+
+**Cómo se comprobó, rompiendo:** el repositorio se replicó en una copia aislada
+(`rsync` sin `.git`, `node_modules` clonado) y se plantaron **26 mutaciones**
+en esta vuelta. **Las 26 muerden**, cada una en el test que le toca. Además,
+servidor real (`next build && next start`) con `curl -sD -` sobre las seis
+rutas, y navegador real sobre las 12 combinaciones de viewport × lengua × JS.
+
+**Nota de herramienta, dicha porque el contrato lo exige:** el paquete npm de
+Playwright **no está instalado** en esta máquina (`npx playwright` pide
+descargarlo y no hay red autorizada para ello); sí está el Chromium de su caché.
+Se condujo ese Chromium **directamente por CDP** —mismo motor, mismas medidas—
+para las 12 combinaciones. Lo que **no** se pudo hacer es **capturar pantalla**:
+`Page.captureScreenshot` y el flag `--screenshot` se cuelgan en este entorno, sin
+error. Las cuatro PNG de `_qa/SPEC-004/` son de la **primera** vuelta y por tanto
+**no reflejan el párrafo `measuring` actual**. CA-9 se cierra aquí con medidas
+numéricas, que son más fuertes que una imagen para lo que el CA pide; la
+evidencia visual queda desactualizada y se anota como tal.
+
+### RED (primera vuelta) — 2026-08-31, `sdd-verificador`
 
 Once de trece CA verdes con evidencia propia. **RED por un hallazgo de contenido
 que daña exactamente la carta que esta épica existe para respaldar**
@@ -91,7 +153,86 @@ real; y las 37 mutaciones en copia aislada.
 
 ### Hallazgos
 
-- **F-SPEC-004-5 — BLOQUEANTE. La página afirma en presente una medición que hoy
+- **F-SPEC-004-8 — BLOQUEANTE, y del mismo tipo que F-SPEC-004-5: la página
+  afirma un hecho que la evidencia del propio repositorio desmiente.**
+  El texto nuevo de `measuring` dice, en las dos lenguas: «A medición aínda non
+  comezou e non hai ningunha cifra: **unha das dúas competicións non se pode ler
+  hoxe**, porque o ficheiro `robots.txt` da súa fonte non o permite» / «una de
+  las dos competiciones no se puede leer hoy…». **Es falso en sus dos mitades,
+  y la fuente que lo desmiente es `docs/epicas/EPIC-001-spike-ingesta/hallazgos/fontes-capturables.md`:**
+  1. **No es una de las dos: `ceroacero.es` sirve las dos.** La tabla del
+     hallazgo mide 50 nombres de equipo reales en Preferente Futgal G1 (227 KB)
+     **y** 50 en Terceira RFEF G1 (251 KB). Hoy **las dos** competiciones se
+     pueden leer, de la misma fuente y sin incumplir nada.
+  2. **Lo que no se puede leer no es una competición: es una fuente**, y afecta
+     a las dos por igual. `futgal.es` es la fuente **oficial de ambas** y su
+     `robots.txt` prohíbe el rastreo (ADR-008 §1). Eso es exactamente lo que
+     dice la carta —«necesito ler as páxinas públicas de Terceira RFEF G1 **e**
+     Preferente Futgal G1 … hoxe non o fago»—: **las dos**, no una.
+  3. **Y el motivo real por el que no hay cifras tampoco es ese.** EPIC-001 está
+     bloqueada porque **solo hay una fuente automática capturable**
+     (`ceroacero.es`): `besoccer.es` responde 200 con 130–146 KB y **cero**
+     nombres de equipo, y su dato vive tras un `Disallow: /ajax*`. SPEC-003 mide
+     el cruce **entre dos** candidatas, así que no es ejecutable por aritmética
+     (`docs/roadmap.md`, «EPIC-001 … BLOQUEADA»).
+  **Por qué bloquea, y no es purismo:** el lector previsto es un técnico de la
+  RFGF que llega desde la carta. La carta pide permiso para **las dos**
+  competiciones en `futgal.es`; el sitio le dice que **una** no se puede leer.
+  La inferencia natural es que la otra sí se está leyendo —y de la fuente que la
+  carta nombra—, que es literalmente el malentendido que F-SPEC-004-5 existía
+  para evitar. Es «una carta desmentida por su propio enlace» otra vez, con otra
+  frase.
+  **Agravante: la falsedad está fijada por un test.** `tests/site/i18n.test.ts`
+  caso 10 («dice por qué una de las dos competiciones no se puede leer hoy»)
+  exige que `measuring` contenga `robots.txt`. La barrera es correcta en forma y
+  está apuntando al hecho equivocado, así que hoy **protege el error**.
+  **Arreglo.** Reescribir la cláusula final de `measuring` en `src/i18n/gl.ts` y
+  `src/i18n/es.ts` de modo que sea verdad. Lo que hay que conservar y lo que
+  no:
+  - **Conservar** las cuatro cifras y los dos nombres canónicos de CA-8.2
+    (`pages.test.ts` 11 lo comprueba), y que no se afirme medición en curso
+    (`i18n.test.ts` 9).
+  - **Conservar** la mención a `robots.txt`: es lo que hace que el sitio
+    **refuerce** la carta, y el instinto del implementador ahí era bueno.
+  - **Decir la verdad**, que es más favorable a la carta que la frase actual: la
+    **fuente oficial** de las dos competiciones no se rastrea porque su
+    `robots.txt` no lo permite y respetarlo es una norma del proyecto. No hay
+    que nombrar a ningún tercero para decir eso —el implementador ya evitó
+    hacerlo, y bien—, pero **sí** hay que dejar de decir «una de las dos
+    competiciones».
+  - **No inventar** el motivo del bloqueo si no se quiere entrar en él: basta
+    con no atribuirlo a una competición. Si se prefiere decirlo, el motivo real
+    es que hoy no hay dos fuentes automáticas que cruzar.
+  - **Reapuntar el caso 10** para que exprese la afirmación corregida, y valorar
+    añadir a la lista negra del caso 9 las formas `unha das dúas competicions` /
+    `una de las dos competiciones`, que es la recaída concreta.
+  **Y después, `/sdd-lingua` otra vez sobre `measuring`**: el dictamen de CA-12
+  cubre la redacción de hoy, no la que venga.
+
+- **F-SPEC-004-5 — RESUELTO en la segunda vuelta (commit `2aaccb8`).** El texto
+  ya no afirma una medición en curso, ni en el párrafo ni en el titular ni en
+  `noProduct`. Comprobado rompiendo, sobre el texto nuevo: M16 («está a medir»
+  en `gl`), M16b («estamos midiendo» en `es`), M16c («As competicións medidas
+  son»), M16d (titular en presente sobre párrafo en futuro) → **los cuatro rojos**
+  en `i18n.test.ts` 9. Y confirmado sobre el **HTML servido** por
+  `next build && next start`: cero coincidencias de las ocho formas en presente,
+  en las dos lenguas. **La afirmación que lo sustituye es otro problema, y es
+  F-SPEC-004-8.** Texto original del finding, abajo, para quien necesite el
+  contexto.
+
+- **F-SPEC-004-6 — RESUELTO en la segunda vuelta (commit `0270eaf`).**
+  `readSourceFiles` ya no filtra por extensión y el filtro `.ts`/`.tsx` vive en
+  `siteSources()` de `no-hardcoded-literals.test.ts`, que es CA-5 y sí habla de
+  JSX. Comprobado rompiendo: (D3) el correo replantado en `src/app/globals.css`
+  → **rojo**; (D3b) el mismo correo en `src/site/NOTAS.txt`, una extensión que
+  nadie previó → **rojo**; (D3c) reintroducir el filtro dentro del ayudante →
+  **rojo** el caso 5 nuevo, que compara el escaneo con un recorrido de `src/`
+  independiente. El arreglo **no se puede deshacer en silencio**, que es lo que
+  se le pedía. CA-5 no perdió nada al mudarse el filtro: sus seis mutaciones
+  siguen mordiendo, más D6 contra el conjunto vacío.
+
+- **F-SPEC-004-5 (texto original del finding de la primera vuelta) — La página
+  afirma en presente una medición que hoy
   no ocurre, y contradice a la carta en el punto que la sostiene.** El bundle
   dice «Agora mesmo o proxecto **está a medir** catro cousas sobre as fontes
   públicas de resultados… **As competicións medidas son** Terceira RFEF G1 e
@@ -113,7 +254,7 @@ real; y las 37 mutaciones en copia aislada.
   cuatro cifras y los dos nombres canónicos. **Tiene que caer antes del dictamen
   de CA-12**, para que `/sdd-lingua` revise el texto definitivo y no este.
 
-- **F-SPEC-004-6 — CA-13.3 no cubre «cualquier punto de `src/`».**
+- **F-SPEC-004-6 (texto original del finding de la primera vuelta) — CA-13.3 no cubría «cualquier punto de `src/`».**
   `tests/site/source-scan.ts:29` descarta todo lo que no acabe en `.ts`/`.tsx`,
   así que el escaneo **no mira `src/app/globals.css`**, que es un fichero de
   `src/` y que además se sirve al público. Demostrado: con
@@ -147,6 +288,46 @@ real; y las 37 mutaciones en copia aislada.
   «al menos» esos términos, y lo demás es lectura. Lo he leído: hoy no hay nada
   parecido en los bundles.
 
+### Dictamen de `/sdd-lingua` — CA-12, 2026-08-31
+
+Emitido por la autoridad de lengua sobre `src/i18n/gl.ts`, **texto íntegro y no
+una muestra**, contra norma RAG. Sobre la redacción de la segunda vuelta
+(commit `2aaccb8`).
+
+> **Dictamen: CORRECTO.** Sin acentos diacríticos en interrogativos
+> (`Que se vai medir`, `Para que`, `Quen está detrás`), que es el error típico y
+> no está. `conflitos` (no *conflictos*), `produto` (no *producto*), `estudo`
+> (no *estudio*), los tres castellanismos clásicos, correctos. `ficheiro`,
+> `enderezo`, `aínda`, `páxina`, `rastrexador` (de *rastrexar*),
+> `por conta propia`, `fan falta`, enclítico `respectalo`: correctos.
+> `Como se len` es la forma correcta de *ler* en 3ª persoa do plural.
+>
+> Dos observaciones **no bloqueantes**: (a) `otherLanguage: 'Castellano'` en el
+> bundle galego **no** es castellanismo sino convención de conmutador —cada
+> lengua se nombra en sí misma, y `es.ts` hace lo simétrico con `'Galego'`—;
+> dictamen correcto, pero **anótalo en el ledger como excepción consciente**,
+> porque el siguiente que lo lea lo "corregirá" a *Castelán* creyéndolo un
+> descuido; la forma normativa RAG es *castelán* si algún día pesa el requisito
+> de publicación íntegramente en galego de la PR858A. (b) `about` dice «levado
+> por Alberto Fojo», que calca al castellano *llevado por*; más idiomático sería
+> «que leva Alberto Fojo». Cosmético, no bloquea.
+
+**Cada corrección, aplicada o justificada una a una, como pide CA-12:**
+
+| # | Observación | Resolución |
+|---|---|---|
+| (a) | `otherLanguage: 'Castellano'` no es *castelán* | **Justificada, NO se cambia. EXCEPCIÓN CONSCIENTE.** Es la convención de conmutador de lengua: cada lengua se nombra en sí misma, y `es.ts` hace lo simétrico con `'Galego'`. **Aviso a quien venga: esto no es un descuido y "corregirlo" a *Castelán* rompe la simetría.** La forma normativa RAG *castelán* solo entra si algún día pesa el requisito de publicación íntegramente en galego de la PR858A |
+| (b) | «levado por Alberto Fojo» calca *llevado por* | **Pendiente, cosmética y no bloqueante.** «que leva Alberto Fojo» es más idiomático. Cae en la misma pasada que F-SPEC-004-8 si se quiere, pero **cuidado**: `about` está bajo el contador de oraciones de CA-8.1 (`i18n.test.ts` 7, tres o cuatro y ni una más) |
+
+**Comprobación del verificador, que no da el dictamen por bueno sin mirar:** las
+dieciséis formas citadas están todas en el `gl.ts` de hoy y `git log` confirma
+que el fichero no se ha tocado desde `2aaccb8`, así que el dictamen es **sobre
+el texto actual**. **Lo que no cubre:** la reescritura que exige F-SPEC-004-8.
+Cuatro de las formas dictaminadas (`estudo`, `ficheiro`, `respectalo`,
+`fan falta`) viven dentro de `measuring`. Cuando esa clave cambie, hay que
+**reemitir el dictamen sobre ella** en las dos lenguas. Por eso CA-12 queda ⚠️ y
+no ✅: el trabajo está hecho, pero sobre un texto que va a moverse.
+
 ### Sobre la contradicción de CA-13.3, dictaminada
 
 **La solución implementada es aceptable y CA-13.3 no queda RED por ella.** La
@@ -164,19 +345,36 @@ sí queda RED en CA-13 es otra cosa, F-SPEC-004-6: la extensión del escaneo.
 
 ### Qué falta por acción humana y qué por trabajo
 
+**Al cierre de la segunda vuelta (2026-08-31):**
+
 - **Humano (no cuenta como fallo del implementador):** apuntar el DNS de
-  `marcador.gal` a Vercel y publicar el despliegue (CA-1); el dictamen de
-  `/sdd-lingua` sobre el texto íntegro de los dos bundles (CA-12); proteger las
-  URL de preview antes de enlazar el sitio (F-SPEC-004-4).
-- **Trabajo:** F-SPEC-004-5 y F-SPEC-004-6 (implementador, esta spec);
-  F-SPEC-004-7 (donde decida arquitectura); `/robot`, que hoy es 404
-  (F-SPEC-004-2, SPEC-005).
-- **La spec NO se ha transicionado de estado**: el encargo de esta verificación
-  prohíbe expresamente editar la spec, así que no se ejecutó
-  `estado.mjs … en-progreso`. Queda para quien conduzca el pipeline.
+  `marcador.gal` a Vercel y publicar el despliegue (CA-1) — hoy `dig` sigue
+  devolviendo `82.98.135.43` para el ápice y para `www`, `http://marcador.gal/`
+  responde `200` con la página de aparcamiento y `https://` no responde;
+  proteger las URL de preview antes de enlazar el sitio (F-SPEC-004-4).
+  **CA-12 ya no está en esta lista: el dictamen está emitido y transcrito
+  arriba**, salvo la reemisión sobre `measuring` que arrastra F-SPEC-004-8.
+- **Trabajo:** **F-SPEC-004-8** (implementador, esta spec, y es el único
+  bloqueante que queda de código); F-SPEC-004-7 (donde decida arquitectura);
+  `/robot`, que hoy es 404 (F-SPEC-004-2, SPEC-005). La observación (b) de
+  lengua, cosmética, si se quiere aprovechar la misma pasada.
+- **Resueltos:** F-SPEC-004-5 y F-SPEC-004-6.
+- **La spec NO se ha transicionado de estado** en ninguna de las dos vueltas: el
+  encargo de la verificación prohíbe expresamente editar la spec, así que no se
+  ejecutó `estado.mjs … en-progreso`. Queda para quien conduzca el pipeline.
 
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-004/. Informe HTML opcional: _qa/SPEC-004/informe.html -->
+
+> **DESACTUALIZADAS desde la segunda vuelta.** Las cuatro PNG son de la primera
+> vuelta y muestran el párrafo `measuring` **anterior** a `2aaccb8`. En la
+> segunda vuelta no se pudieron rehacer: el paquete npm de Playwright no está
+> instalado en la máquina y, conduciendo el Chromium de su caché por CDP,
+> `Page.captureScreenshot` y el flag `--screenshot` **se cuelgan sin error**. Se
+> dice en vez de disimularlo. CA-9 se re-verificó con **medidas numéricas** en
+> las mismas 12 combinaciones (ver la fila de CA-9), que es lo que el CA pide;
+> las imágenes quedan como evidencia de maquetación, no de texto. Rehacerlas
+> cuando haya despliegue o Playwright instalado.
 
 Capturas tomadas con Playwright (Chromium) contra `next start` en local, a
 360 px de ancho y `deviceScaleFactor: 2`, página completa.
@@ -228,8 +426,136 @@ cookies **0**, `localStorage`+`sessionStorage` **0 claves**.
   Next 16, no una decisión de esta spec. `vitest.config.ts` fija el runtime de
   JSX explícitamente para no depender de ese campo.
 
+- **CA-12 necesita una reemisión, no un dictamen nuevo entero.** La tercera
+  vuelta reescribió **solo la última cláusula** de `measuring` (`gl` y `es`);
+  todo lo demás de los dos bundles sigue byte a byte como lo dictaminó
+  `/sdd-lingua` el 2026-08-31. Lo que hay que llevarle son las dos frases nuevas
+  del galego —«A medición aínda non comezou e non hai ningunha cifra. A fonte
+  oficial das dúas competicións non se rastrexa, porque o seu ficheiro robots.txt
+  non o permite e respectalo é unha norma do proxecto: esa é unha das razóns
+  polas que o estudo está parado.»— y su paralelo castellano. Formas nuevas a
+  mirar: `rastrexa` (coherente con `rastrexador`, que ya iba dictaminado),
+  `parado`, `polas que`. **Destino: acción consultiva antes de cerrar CA-12.**
+- **La observación (b) del dictamen de lengua sigue pendiente a propósito.**
+  «levado por Alberto Fojo» → «que leva Alberto Fojo» es cosmética y no
+  bloqueante, y vive en `about`, no en `measuring`. La tercera vuelta tenía **un
+  solo finding** de alcance y no se metió ahí: `about` está bajo el contador de
+  oraciones de CA-8.1 y tocarlo sin necesidad es exactamente el tipo de trabajo
+  no especificado que el rol prohíbe. **Destino: quien recoja la reemisión de
+  CA-12, si se quiere.**
+
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
+
+### Tercera vuelta — 2026-08-31, `sdd-implementador`, tras el segundo RED
+
+Se corrigió **F-SPEC-004-8 y solo eso**, commit `95f89e2`. F-SPEC-004-7 sigue
+intacto a propósito (fuera de alcance por decisión previa), y no se tocó nada de
+lo que el verificador dio por bueno: ni el escaneo de `src/` de CA-13.3, ni las
+listas negras de CA-6/CA-7, ni `src/mirror/`, `src/model/`, `src/db/` ni
+`migrations/`.
+
+**Texto nuevo de `measuring`, literal, para el dictamen de lengua.**
+
+`src/i18n/gl.ts`:
+
+> «O proxecto está preparado para medir catro cousas sobre as fontes públicas de
+> resultados: a latencia con que aparece cada marcador, a cobertura dos partidos,
+> os conflitos entre fontes e os minutos de operación manual que fan falta. As
+> competicións do estudo son Terceira RFEF G1 e Preferente Futgal G1. A medición
+> aínda non comezou e non hai ningunha cifra. A fonte oficial das dúas
+> competicións non se rastrexa, porque o seu ficheiro robots.txt non o permite e
+> respectalo é unha norma do proxecto: esa é unha das razóns polas que o estudo
+> está parado.»
+
+`src/i18n/es.ts`:
+
+> «El proyecto está preparado para medir cuatro cosas sobre las fuentes públicas
+> de resultados: la latencia con la que aparece cada marcador, la cobertura de
+> los partidos, los conflictos entre fuentes y los minutos de operación manual
+> que hacen falta. Las competiciones del estudio son Terceira RFEF G1 y
+> Preferente Futgal G1. La medición todavía no ha empezado y no hay ninguna
+> cifra. La fuente oficial de las dos competiciones no se rastrea, porque su
+> fichero robots.txt no lo permite y respetarlo es una norma del proyecto: esa es
+> una de las razones por las que el estudio está parado.»
+
+**Cambia solo la última cláusula.** Las dos primeras frases —las cuatro cifras y
+los dos nombres canónicos— están intactas desde `2aaccb8`, así que el dictamen de
+CA-12 sigue cubriéndolas; lo nuevo que hay que dictaminar es la tercera y la
+cuarta frase.
+
+**De dónde sale cada afirmación que queda en `measuring`.** Es la corrección del
+patrón que falló dos veces: una frase sin fuente citable no va en la página.
+
+| Afirmación en la página | Fuente |
+|---|---|
+| Se van a medir latencia, cobertura, conflictos y minutos de operación manual | `SPEC-004…md:166-167` (CA-8.2); `docs/epicas/EPIC-002-instrumentacion-de-las-cuatro-cifras/_epica.md` |
+| Las competiciones del estudio son Terceira RFEF G1 y Preferente Futgal G1 | `SPEC-004…md:167` (CA-8.2); `CLAUDE.md` §Estado actual; nombres canónicos de `docs/fundacion/dominio.md` |
+| La medición aún no ha comenzado y no hay ninguna cifra | `hallazgos/fontes-capturables.md:112-115` («No es una ventana de observación… No hay `ventana.json`, y por tanto no hay cobertura medida ni veredicto»); `CLAUDE.md` §Estado actual («EPIC-001 no tiene todavía ninguna de sus cuatro cifras») |
+| La fuente **oficial** de las **dos** competiciones no se rastrea, porque su `robots.txt` no lo permite | `hallazgos/fontes-capturables.md:66-67` («`futgal.es`, la **oficial** y de peso 1.0, no es capturable: su `robots.txt` prohíbe el rastreo (ADR-008 §1)»). Que la fuente oficial es la de **las dos** y no la de una: `docs/negocio/carta-rfgf-acceso.md:48-52` («necesito ler as páxinas públicas de Terceira RFEF G1 **e** Preferente Futgal G1 … Hoxe non o fago, precisamente porque o seu `robots.txt` non mo permite») |
+| Respetarlo es una norma del proyecto | RN-11 en `docs/fundacion/reglas.md`, regla dura de `FOUNDATION.md`; misma frase que la carta, `carta-rfgf-acceso.md:51-52` |
+| **Esa es una de las razones** por las que el estudio está parado | Deliberadamente «una de»: `hallazgos/fontes-capturables.md:64` y `:71-73` dicen que el bloqueo real es que **solo hay una fuente automática capturable** y SPEC-003 cruza **dos**. La página no entra en ese motivo (obligaría a nombrar terceros), pero **tampoco lo atribuye** a la fuente oficial: por eso «una de las razones» y no «la razón» |
+
+**Lo que la página deliberadamente NO dice, y por qué.** Que las dos
+competiciones **sí** se pueden leer hoy de una fuente no oficial
+(`fontes-capturables.md:34-35`: 50 nombres de equipo en cada una) es verdad, pero
+decirlo obligaría a nombrar a un tercero o a insinuarlo, y CA-6 y el criterio del
+finding lo excluyen. No decirlo no engaña a nadie: la página no afirma que no se
+lea nada, afirma que la **oficial** no se rastrea, que es lo que la carta pide.
+
+**Tests reapuntados** (`tests/site/i18n.test.ts`):
+- **Caso 10**, renombrado a «dice que la fuente oficial de las DOS competiciones
+  no se rastrea, y por qué». Ya no basta con que aparezca `robots.txt`: fija tres
+  tramos por lengua, desacentuados —`a fonte oficial` / `la fuente oficial`,
+  `das duas competicions` / `de las dos competiciones`, y `robots.txt`—. Se fijan
+  tramos y no la frase entera para que la redacción pueda mejorarse sin poder
+  perder el hecho.
+- **Caso 9**, lista negra `NOT_MEASURING_YET` ampliada con
+  `unha das duas competicions` y `una de las dos competiciones`, desacentuadas
+  como el resto. Esta recaída concreta ya no puede volver en silencio.
+- `pages.test.ts` 11 (cuatro cifras + dos nombres canónicos) **no se tocó** y
+  sigue verde.
+
+**Comprobado rompiendo, no leyendo el diff.** Los dos casos estaban **en rojo
+antes** del cambio (9 por las dos formas nuevas, 10 por «fuente oficial»
+ausente). Cinco mutaciones sobre el texto nuevo, revertidas por copia y
+verificadas idénticas al terminar: **M18** (vuelve «unha das dúas competicións
+non se pode ler hoxe» en `gl`) → **2 rojos** (9 y 10); **M18b** (lo mismo en
+`es`) → **2 rojos**; **M18c** (cae «oficial» en `gl`) → rojo el 10; **M18d**
+(«de las dos competiciones» → «de una competición» en `es`) → rojo el 10;
+**M18e** (cae `robots.txt` en `gl`) → rojo el 10.
+
+**Sobre el HTML realmente servido** por `next build && next start` (puerto 3117,
+`/proxecto` y `/es/proxecto`, 10 356 y 10 945 bytes): cero coincidencias de las
+doce formas prohibidas del caso 9 —las diez viejas y las dos nuevas—; cero
+menciones a terceros (`futgal.es`, `ceroacero`, `besoccer`); presentes
+`latencia`, `cobertura`, `operación manual`, `conflitos`/`conflictos`,
+`Terceira RFEF G1`, `Preferente Futgal G1` y `robots.txt` en las dos lenguas;
+cero años `19xx/20xx` y cero URL absolutas (CA-6 sigue entera).
+
+**Gates de esta vuelta, en local (no hay CI):** `npm run lint` →
+`oxlint --type-aware` **exit 0, sin una sola incidencia**; `npm run typecheck` →
+`tsc --noEmit` **exit 0**; `npx vitest run --typecheck` → **62 ficheros, 544
+tests, todo verde, `Type Errors no errors`**; `npx next build` → **compilado, 5
+páginas estáticas**. Mismas cifras que la referencia de la vuelta anterior: no se
+añadió ni se perdió ningún test, solo se reapuntó uno.
+
+**Lo que sigue sin desbloquear el implementador:** el DNS (CA-1), `/robot`
+(SPEC-005, CA-8.5), la mitad de CA-10/CA-11 que solo se ve sobre el despliegue, y
+**la reemisión del dictamen de `/sdd-lingua` sobre `measuring`** — el de CA-12
+cubre la redacción anterior de esa clave, no esta.
+
+### Segunda re-verificación — 2026-08-31, `sdd-verificador`
+
+**Estado en una línea: doce de trece CA verdes o con salvedad aceptada, y un
+solo bloqueante de código.** Empieza por **F-SPEC-004-8**: es una frase de
+`measuring` en `src/i18n/gl.ts` y `src/i18n/es.ts`, más reapuntar el caso 10 de
+`tests/site/i18n.test.ts`. No toques nada más de la barrera: F-SPEC-004-5 y
+F-SPEC-004-6 están bien resueltos y sus mutaciones muerden. Después,
+`/sdd-lingua` sobre la clave reescrita en las dos lenguas, y CA-12 cierra.
+
+Lo que **no** desbloquea el implementador y sigue igual: el DNS (CA-1), `/robot`
+(SPEC-005, CA-8.5) y la mitad de CA-10/CA-11 que solo se ve sobre el despliegue.
 
 ### Segunda vuelta — 2026-08-31, `sdd-implementador`, tras el RED
 
