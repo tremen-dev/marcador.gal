@@ -29,12 +29,20 @@ Roles de dominio consultivos: `/sdd-competicion`, `/sdd-legal-datos`,
 
 Fase: **spike de ingesta** (`EPIC-001`). Objetivo: medir latencia, cobertura,
 conflictos y minutos de operación manual con Tercera RFEF G1 + Preferente Futgal
-G1. Ya hay código: `src/model/`, `src/raw/` y `src/db/` implementados y
-`migrations/0001` aplicada — SPEC-001, hecha y verificada GREEN. `src/ingest/`,
-`src/decide/` y `src/api/` siguen sin existir.
+G1. Ya hay código: `src/model/`, `src/raw/` y `src/db/` (SPEC-001) y `src/mirror/`
+(SPEC-002 y SPEC-003), con `migrations/0001` aplicada. Las tres specs están hechas
+y verificadas GREEN. `src/ingest/`, `src/decide/` y `src/api/` siguen sin existir.
 
-Los siete ADRs están **aprobados** y son inmutables. Para cambiar cualquiera de
-ellos, escribe otro ADR que lo supersede; no los edites.
+**La ventana de observación no se ha corrido, y hoy no se puede correr entera.**
+`futgal.es` prohíbe el rastreo en su `robots.txt` y RN-11 obliga a respetarlo, así
+que la fuente oficial **no es capturable** (ADR-008). SPEC-002 queda a la espera de
+que lo sea; SPEC-003 mide lo que sí se puede medir sin ella. EPIC-001 **no tiene
+todavía ninguna de sus cuatro cifras**.
+
+Los ADRs están **aprobados** y son inmutables — hoy son **nueve**, ADR-001 a
+ADR-009. Para cambiar cualquiera, escribe otro ADR que lo supersede; no los
+edites. ADR-008 y ADR-009 superseden **parcialmente** a ADR-002 y ADR-005: lee
+siempre el que supersede antes de apoyarte en el viejo.
 
 ## Reglas duras
 
@@ -51,6 +59,10 @@ se incumplen por descuido:
   petición/minuto por competición. Es medición, no producción.
 - **RN-12**: cada Decision registra la regla aplicada y las observaciones que la
   sostienen.
+- **ADR-009**: el raw store **no se guarda para siempre** — 30 días desde el fin
+  de la ventana, una prórroga escrita, techo duro de 90. Y **nunca se versiona
+  HTML real de terceros** en el repositorio: `tests/fixtures/` es solo sintético.
+  Lo segundo es irreversible si se incumple, porque git no se purga, se reescribe.
 
 El glosario canónico está en `docs/fundacion/dominio.md`. Si un término falta, se
 añade allí **antes** de usarse.
@@ -101,11 +113,16 @@ src/model/    modelo canónico en zod + tipos derivados (SPEC-001)
 src/raw/      puerto RawStore: store.ts, disk.ts, blob.ts, capture.ts (SPEC-001)
 src/db/       cliente postgres.js, runner de migraciones, puertos (SPEC-001)
 migrations/   SQL numerado, aplicado en orden (ADR-006)
+src/mirror/   test de espejo (SPEC-002, SPEC-003): dos fases que no se importan
+              capture/  fase A: pide, respeta robots y archiva sin parsear (RN-10, RN-11)
+              analysis/ fase B: analiza en frío desde el archivo, con referencia
+              analysis/referenceless/  fase B sin referencia (SPEC-003)
+              cli/      capturar · analizar · analizar-sin-referencia
 src/ingest/   adaptadores por fuente + cron de planificación
 src/decide/   motor de decisiones (RN-01..RN-07)
 src/api/      snapshot (+ stream SSE, fuera de EPIC-001)
 src/admin/    panel mínimo de correcciones y alertas (móvil)
-tests/        model/ raw/ db/ types/ · fixtures/raw/ HTML versionado del replay
+tests/        model/ raw/ db/ types/ mirror/ · fixtures/ SOLO sintéticos
 raw/          raíz de DiskRawStore en local; NO versionado
 
 FOUNDATION.md            constitución (D-1..D-8 locked)
@@ -114,6 +131,7 @@ docs/roadmap.md          secuencia de épicas
 docs/fundacion/          contexto, visión, dominio, reglas, retos
 docs/epicas/             épicas y sus specs
 docs/adr/                ADRs
+docs/procedimientos/     runbooks operativos (la ventana de observación)
 docs/negocio/            monetización y marca
 ```
 

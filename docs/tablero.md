@@ -9,6 +9,7 @@ Actualizado: 2026-08-31
 |---|---|---|
 | SPEC-001 — modelo-canonico-y-raw-store | hecho | 2026-08-29 (sdd-verificador) |
 | SPEC-002 — test-de-espejo-entre-fuentes-automaticas | hecho | 2026-08-31 (sdd-verificador) |
+| SPEC-003 — test-de-espejo-sin-referencia-el-cruce-entre-candidatas | hecho | 2026-08-31 (sdd-verificador) |
 
 ## ADRs
 
@@ -21,7 +22,9 @@ Actualizado: 2026-08-31
 | ADR-005 | aprobada | raw-store | 2026-08-29 (Alberto Fojo) |
 | ADR-006 | aprobada | acceso-a-datos-migraciones-y-representacion-temporal | 2026-08-29 (Alberto Fojo) |
 | ADR-007 | aprobada | linter-oxlint-en-lugar-de-eslint | 2026-08-30 (Alberto Fojo) |
+| ADR-008 | aprobada | fuentes-capturables-del-spike-tras-el-dictamen-legal | 2026-08-31 (Alberto Fojo) |
+| ADR-009 | aprobada | retencion-del-raw-store-plazo-de-conservacion-y-purga | 2026-08-31 (Alberto Fojo) |
 
 ## Resumen
 
-- hecho: 2
+- hecho: 3

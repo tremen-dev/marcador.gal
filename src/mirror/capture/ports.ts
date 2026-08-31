@@ -27,6 +27,14 @@ export interface HttpRequest {
 export interface HttpResponse {
   readonly status: number;
   readonly body: Uint8Array;
+  /**
+   * The `Location` header, when the site answered a 3xx (SPEC-003 CA-10).
+   *
+   * It is here and not thrown away because a redirect is a FACT the operator
+   * has to see: the reason of the failed tick names it, so the archive says
+   * where the source moved to instead of quietly downloading from there.
+   */
+  readonly location?: string | null;
 }
 
 export interface HttpFetcher {
