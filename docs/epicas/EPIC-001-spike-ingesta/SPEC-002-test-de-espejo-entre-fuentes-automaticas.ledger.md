@@ -6,7 +6,20 @@ epica: EPIC-001
 # Ledger — SPEC-002 Test de espejo entre fuentes automaticas
 
 ## Resumen
-- Fase: **en-revision (segunda vuelta)**. Implementada por `sdd-implementador` el
+- Fase: **en-revision (tercera vuelta)**. La segunda verificación devolvió **un
+  solo finding en rojo**, y queda cerrado:
+  - **F-SPEC-002-V5** (bloqueante, CA-10): faltaba el **séptimo** de los siete
+    fixtures que el CA enumera —el paso 2 de la regla de decisión, *señales
+    fuertes contradictorias*—. Escrito, y **comprobado por mutación**: borrando
+    la rama `input.independent && input.strongMirror` de `verdict.ts` la suite
+    se pone roja (3 fallos en 2 ficheros) donde antes seguía entera verde.
+    Commit `eb5c4b4`. **Cero cambios en código de producción.**
+  - **F-SPEC-002-20** (no bloqueante): los cuatro tests que no mordían todo lo
+    que su nombre prometía, apretados. Commit `2a407fe`. Tampoco toca
+    producción.
+  Nada más de esta ronda: los cuatro findings de la primera vuelta siguen
+  cerrados y no se han reabierto.
+- Fase anterior: **en-revision (segunda vuelta)**. Implementada por `sdd-implementador` el
   2026-08-31 sobre la spec **aprobada** por Alberto Fojo ese mismo día, y
   **corregida el mismo día contra el texto ENMENDADO** —enmienda 1, ratificada
   entera por el gate— tras el RED de `sdd-verificador`. Los cuatro findings de esa
@@ -27,11 +40,14 @@ epica: EPIC-001
 - **La fase B no toca Postgres.** Lee del `RawStore` y escribe un fichero, como
   dice la spec en *Entidades y reglas afectadas*.
 
-## Gates de calidad (reejecutados en local el 2026-08-31, tras el RED)
+## Gates de calidad (reejecutados en local el 2026-08-31, tercera vuelta)
 
 No hay CI: esta salida es local y nadie la pasa por nosotros.
 
 ```
+$ node --version
+v26.4.0
+
 $ npx oxlint --version
 Version: 1.80.0
 
@@ -40,11 +56,11 @@ $ npm run lint
 > marcador@0.0.1 lint
 > oxlint --type-aware
 
-exit=0
+lint exit=0
 (sin hallazgos: oxlint --type-aware sale 0 y no imprime nada)
 
 $ npx tsc --noEmit
-exit=0
+tsc exit=0
 (sin salida: 0 errores)
 
 $ npx vitest run
@@ -52,19 +68,31 @@ $ npx vitest run
  RUN  v4.1.11 /Users/albertofojo/src/tremen-dev/marcador.gal
 
  Test Files  46 passed (46)
-      Tests  409 passed (409)
+      Tests  415 passed (415)
 Type Errors  no errors
-   Duration  1.19s
+   Duration  1.28s
 ```
 
-Base antes de esta ronda: 44 ficheros / 394 casos. Ahora **46 / 409**: +15 casos
-y +2 ficheros (`tests/mirror/analysis/spelling.test.ts`, 10; `tests/mirror/cli/
-cli.test.ts`, 3; más 1 en `window.test.ts` y 1 en `invalid-window.test.ts`).
+Base de esta ronda: **46 ficheros / 409 casos**. Ahora **46 / 415**: **+6 casos y
+cero ficheros nuevos** —los seis entran en ficheros que ya existían, que es lo
+que corresponde cuando lo que falta es una red y no una conducta—. Reparto:
+`verdict-content.test.ts` +3 (el séptimo fixture y sus dos hermanos),
+`pair.test.ts` +1 (el mismo paso por la ruta del par), `lead.test.ts` +2 (la
+frontera de τ de punta a punta). Los apretones de `rn02.test.ts`,
+`archive.test.ts` y `no-extractor.test.ts` no añaden casos: refuerzan los que
+había.
 
-De esos 409, **139 son de SPEC-002** (22 ficheros bajo `tests/mirror/`), más el
-fichero de tipo `tests/mirror/analysis/statuses.test-d.ts`, que corre dentro del
-`typecheck` de vitest y no cuenta como caso. Los 270 restantes son SPEC-001, que
-sigue verde y sin tocar.
+De esos 415, **145 son de SPEC-002** (22 ficheros `.test.ts` bajo
+`tests/mirror/`), más el fichero de tipo `tests/mirror/analysis/statuses.test-d.ts`,
+que corre dentro del `typecheck` de vitest y no cuenta como caso. Los 270
+restantes son SPEC-001, que sigue verde y sin tocar.
+
+**Cero cambios en código de producción en esta ronda.** Medido, no afirmado:
+
+```
+$ git diff --stat 5af5aaf..HEAD -- src/
+(vacío)
+```
 
 **El lint sigue sin ser ciego, y ahora cubre lo nuevo.** Medido por cobertura y
 no por exit code:
@@ -88,21 +116,21 @@ Reparto por fichero:
 | `tests/mirror/window.test.ts` | 8 |
 | `tests/mirror/analysis/extract.test.ts` | 7 |
 | `tests/mirror/analysis/pairing.test.ts` | 7 |
-| `tests/mirror/analysis/lead.test.ts` | 12 |
+| `tests/mirror/analysis/lead.test.ts` | **14** |
 | `tests/mirror/analysis/verdict-time.test.ts` | 6 |
-| `tests/mirror/analysis/verdict-content.test.ts` | 8 |
+| `tests/mirror/analysis/verdict-content.test.ts` | **11** |
 | `tests/mirror/analysis/sample-size.test.ts` | 5 |
 | `tests/mirror/analysis/rn02.test.ts` | 5 |
 | `tests/mirror/analysis/report.test.ts` | 13 |
 | `tests/mirror/analysis/citations.test.ts` | 5 |
-| `tests/mirror/analysis/pair.test.ts` | 6 |
+| `tests/mirror/analysis/pair.test.ts` | **7** |
 | `tests/mirror/analysis/determinism.test.ts` | 4 |
 | `tests/mirror/analysis/invalid-window.test.ts` | 4 |
 | `tests/mirror/analysis/findings.test.ts` | 6 |
 | `tests/mirror/analysis/sources.test.ts` | 4 |
 | `tests/mirror/analysis/spelling.test.ts` | 10 |
 | `tests/mirror/cli/cli.test.ts` | 3 |
-| **Total SPEC-002** | **139** |
+| **Total SPEC-002** | **145** |
 
 **Suites de integración de SPEC-001 (`npm run test:db`, `npm run test:blob`) no
 reejecutadas**: SPEC-002 no toca base de datos ni el modelo, y la fase B no
@@ -121,6 +149,51 @@ fantasma, se mutó el código y se comprobó que la suite se pone roja:
 | Se elimina la puerta `n_comparable < N_MIN` | `sample-size.test.ts` | 2 fallos |
 | CA-4: se comprueba dentro del propio test que el orden ingenuo (instantes sin normalizar) sale MAL | `archive.test.ts` caso 3 | el test afirma el orden erróneo explícitamente |
 | **Ronda 2** — se devuelve el voto a la grafía (`persistent.length + spelling.length > 0` en las dos funciones de veredicto) | `spelling.test.ts` | **5 fallos de 10** (casos 1, 3, 5, 6 y 9): los dos sentidos del veredicto y la prosa |
+| **Ronda 3** — se borra la rama `input.independent && input.strongMirror` de `decide()` (`verdict.ts:187-194`), que es la mutación exacta con la que el verificador levantó F-SPEC-002-V5 | `verdict-content.test.ts` + `pair.test.ts` | **3 fallos en 2 ficheros** (antes: la suite entera verde). Salida literal abajo |
+| **Ronda 3** — `difference_ms > tauMs` → `>=` en `classifyLead` | `lead.test.ts` | **3 fallos**: los unitarios 3 y 6 **y ahora el 13**, que es el de punta a punta y el que faltaba (F-SPEC-002-20) |
+
+### La mutación de F-SPEC-002-V5, con su salida
+
+Es la evidencia del finding y por eso va literal. **Antes** del séptimo fixture,
+esa misma mutación dejaba `Test Files 23 passed · Tests 139 passed`: el paso 2 de
+la regla de decisión podía desaparecer sin que nada se enterase. Con el fixture
+puesto, la misma mutación produce:
+
+```
+$ python3 -c "…"   # borra la rama de decide() en src/mirror/analysis/verdict.ts
+mutado: rama input.independent && input.strongMirror eliminada
+
+$ npx vitest run tests/mirror
+
+ ❯ tests/mirror/analysis/pair.test.ts (7 tests | 1 failed) 282ms
+     × (g) adelantos mutuos y error replicado a la vez → INCONCLUSO por señales contradictorias
+
+ FAIL  tests/mirror/analysis/pair.test.ts > CA-15 — independencia mutua > (g) …
+AssertionError: expected 'INDEPENDIENTE' to be 'INCONCLUSO' // Object.is equality
+
+ FAIL  tests/mirror/analysis/verdict-content.test.ts > CA-10, regla de decisión paso 2 … > (g) …
+AssertionError: expected 'INDEPENDIENTE' to be 'INCONCLUSO' // Object.is equality
+
+ FAIL  tests/mirror/analysis/verdict-content.test.ts > CA-10, regla de decisión paso 2 … > (g-bis) …
+AssertionError: expected 'INDEPENDIENTE' to be 'INCONCLUSO' // Object.is equality
+
+ Test Files  2 failed | 21 passed (23)
+      Tests  3 failed | 140 passed (143)
+
+$ git checkout -- src/mirror/analysis/verdict.ts
+$ npx vitest run tests/mirror
+ Test Files  23 passed (23)
+      Tests  143 passed (143)
+```
+
+Los tres fallos son exactamente el veredicto que el verificador midió a mano: sin
+el paso 2, la ventana sale `INDEPENDIENTE / adelantos` y la bandera
+`rn02_segunda_via_entre_automaticas` se va a **`true`** —la dirección peligrosa
+del §Problema—. La mutación se hizo **sobre el árbol y se revirtió con
+`git checkout`**; `git diff --stat 5af5aaf..HEAD -- src/` sale vacío.
+
+*(El conteo de 143 de este bloque es el de la mutación de F-SPEC-002-V5, hecha
+antes de tocar F-SPEC-002-20; el total final de la ronda es 145.)*
 
 ## Matriz de criterios de aceptación
 <!-- Escritores: sdd-implementador rellena Implementado y Test; sdd-verificador rellena Verif. y Estado. Nunca al revés. -->
@@ -128,135 +201,220 @@ fantasma, se mutó el código y se comprobó que la suite se pone roja:
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 (RN-11) ni una petición de más | `src/mirror/capture/capturer.ts` (limitador por par, `#isDue` + `#lastRequestAt`), `src/mirror/capture/ports.ts` (`pairKey`), `src/mirror/thresholds.ts` (`MIN_REQUEST_INTERVAL_MS`) | `tests/mirror/capture/rate-limit.test.ts` (5): hora simulada con `FakeClock` ticando cada 10 s → ≤ 60 y ≥ 59 peticiones por par; ninguna pareja de peticiones del mismo par a < 60 s; **caso 3** fija la lectura declarada de RN-11 (6 peticiones en el mismo minuto, una por par); un tick suprimido no registra tick | `npx vitest run` → `tests/mirror/capture/rate-limit.test.ts` 5/5 verdes. El limitador vive en `Capturer.#isDue` (`epochMs - last >= MIN_REQUEST_INTERVAL_MS`) y `#lastRequestAt` se sella **antes** del `await` y **antes** del chequeo de robots, así que una respuesta lenta no compra turno. El caso 3 fija la lectura declarada de RN-11: `await capturer.tick()` con 6 targets → `spy.requests.length === 6`, 6 URL distintas, **1 solo instante**. El caso 1 mide en las dos direcciones (≤ 60 **y** ≥ 59 en la hora), o sea que no se puede pasar «protegiendo» sin pedir nada | ✅ |
-| CA-2 (RN-11) cortesía comprobable | `src/mirror/capture/robots.ts` (`parseRobots`, `robotsRegistry`, `robotsSkipReason`), `src/mirror/capture/http.ts` (`politeRequest`, `politeFetch`, `MissingUserAgentError`), `src/mirror/user-agent.ts` | `tests/mirror/capture/robots.test.ts` (9): ruta prohibida → 0 peticiones + 1 omisión con motivo que nombra la ruta; ruta permitida → 1 petición con la UA exacta; host sin robots cargado → omitido (no se presume permiso); **caso 8** lee el fuente de `src/mirror/capture/*.ts` y falla si `.fetch(` aparece fuera de `http.ts`. `tests/mirror/cli/cli.test.ts` caso 1 (ronda 2) lo comprueba además **por el camino real**: un servidor local recibe las peticiones del CLI y la UA que llega es `USER_AGENT` exacta | `npx vitest run` → `robots.test.ts` 9/9 verdes. Leído el código: `politeRequest` lanza `MissingUserAgentError` **antes** de cualquier I/O y es el único constructor de peticiones; el caso 8 recorre `src/mirror/capture/*.ts` quitando comentarios de bloque y exige `callers === ['http.ts']`, así que la puerta única es una aserción y no una promesa. Ruta prohibida → 0 peticiones + tick `skipped` con la ruta en el motivo; host sin robots cargado → `skipped` (no se presume permiso). **Salvedad:** el contacto de la UA es un marcador de posición (`+https://github.com/tremen-dev/marcador.gal`, dominio sin contratar) — la **forma** está probada contra `USER_AGENT_PATTERN`, el **valor** no responde. Es **F-SPEC-002-1**, abierto, y RN-11 pide identificación real antes de la ventana | ⚠️ |
-| CA-3 (RN-10, D-5) la fase A archiva y no parsea | `src/mirror/capture/capturer.ts` (`captureThenParse` con parser identidad; sin modo degradado) | `tests/mirror/capture/no-parse.test.ts` (5): `put` que lanza → tick `failed` con motivo, `raw_ref` null, y la ventana sigue; **estructura**: grafo de imports desde `src/mirror/capture/**` no alcanza `src/mirror/analysis/**` (+ control de que el grafo no está vacío). `tests/mirror/capture/no-extractor.test.ts` (2): con `@/mirror/analysis/extract` sustituido por un espía, una ventana de 10 ticks —sana y con el store roto— no lo llama ni una vez. `tests/mirror/cli/cli.test.ts` caso 1 (ronda 2): tras correr la fase A de verdad, cada `raw_ref` del registro devuelve bytes con `store.get()` | `npx vitest run` → `no-parse.test.ts` 5/5 y `no-extractor.test.ts` 2/2 verdes. El «parser» de la fase A es la identidad (`(_body, ref) => ref`) y no hay costura para otro. La comprobación estructural no es decorativa: `reachableModules()` resuelve `@/…` y rutas relativas sobre el fuente real y el caso 4 exige lista vacía de `src/mirror/analysis`; el caso 5 comprueba que el grafo alcanza `src/raw/capture.ts` y `src/mirror/thresholds.ts`, o sea que un grafo vacío no lo pondría verde por silencio | ✅ |
-| CA-4 (ADR-005, ADR-006) el archivo es la línea de tiempo | `src/mirror/instants.ts` (`canonicalInstant`, `normalizeInstant`: ISO con ms siempre), `src/mirror/capture/capturer.ts` (normaliza antes de archivar); `rawKey`/`DiskRawStore` de SPEC-001 sin tocar | `tests/mirror/capture/archive.test.ts` (5): `list()` del prefijo del par; claves barajadas y reordenadas como cadenas reproducen el orden temporal (12 capturas); **caso 3** archiva instantes desordenados y con formatos mezclados y demuestra que el ISO literal ordena MAL (`17-00-00.500z` antes que `17-00-00z`); `fetched_at` es cadena ISO UTC, nunca `Date`; la clave es exactamente la de `rawKey()` | `npx vitest run` → `archive.test.ts` 5/5 verdes, contra `DiskRawStore` real en `mkdtemp`. Verificado que el caso 3 muerde de verdad: afirma **primero** que el orden ingenuo sale mal (`naive[0]` contiene `17-00-00.500z` y `naive[1]` contiene `17-00-00z`) y después que con `canonicalInstant` el orden por cadena reproduce el cronológico. `fetched_at` se comprueba `typeof === 'string'` y contra `/^\d{4}-…\.\d{3}Z$/` (ADR-006), y el caso 5 iguala la clave a `rawKey(meta, body)` de SPEC-001, sin entidades nuevas | ✅ |
-| CA-5 una ventana a medias no produce veredicto | `src/mirror/window.ts` (`windowCoverage`, `windowValidity`, `assertWindowValid`, `InvalidWindowError`, `MIN_TICK_SUCCESS_RATIO`), `src/mirror/analysis/analyze.ts` (lo llama antes que nada). **Ronda 2 (F-SPEC-002-V2, enmienda §6):** `InvalidWindowError` recibe ahora `validity.coverage` entera además de `below` y la expone en `error.coverage`; el mensaje lleva **los seis pares** —peor primero, que es el que decide—, cada uno marcado `BELOW`/`ok`, más el recuento contra el umbral exigido | `tests/mirror/window.test.ts` (7): 95 % válida, 85 % inválida, **100 % + 50 % inválida** con la media (75 %) explícitamente descartada, 90 % exacto pasa, ventana vacía inválida, el error nombra el par y su cobertura. `tests/mirror/analysis/invalid-window.test.ts` (4): la fase B **se niega** (`InvalidWindowError`) sobre la ventana degradada y dicta veredicto sobre la sana. **Ronda 2:** `window.test.ts` **caso 8** monta los seis pares reales con uno al 50 % y exige que el mensaje nombre los **seis** con su ratio, el umbral, y la distinción `BELOW`/`ok` de un vistazo; `invalid-window.test.ts` **caso 4** comprueba que ese mensaje llega igual desde la fase B, nombrando los pares sanos; y `tests/mirror/cli/cli.test.ts` **caso 3** ata la otra mitad que pedía la enmienda —sobre una ventana inválida el CLI sale con error y **no se crea `hallazgos/`**—, que hasta ahora se cumplía por construcción y no estaba atado. Salvedad **F-SPEC-002-10** | **RED — F-SPEC-002-V2.** La mitad vieja del CA está bien (7/7 + 3/3 verdes; el peor par decide, la media del 75 % está descartada explícitamente, 90 % exacto pasa, y `analyze()` llama `assertWindowValid` en su primera línea, antes de leer el archivo). Lo que **no** está es la obligación que trae la enmienda §6: «el error lleva la cobertura de **los seis pares**, no solo la de los que bajaron del umbral, más el umbral exigido». `InvalidWindowError` solo recibe `validity.below` (`src/mirror/window.ts:110-125`), así que los sanos no aparecen. Probado con una ventana de 6 pares reales, uno al 50 %: `PARES TOTALES : 6` · `PARES < UMBRAL : 1` · mensaje = `CA-5: refusing to judge an invalid window — below 90 % successful ticks: ceroacero/rfef-tercera-g1 at 50.0 % (30/60)` · `NOMBRA LOS SANOS?: futgal/rfef-tercera-g1=false futgal/futgal-preferente-g1=false resultados-futbol/rfef-tercera-g1=false`. El operador no ve «la salud de la ventana entera» ni sabe qué repetir. Falta además el test que la enmienda añade: **no existe ninguno que compruebe que sobre una ventana inválida no se crea fichero en `hallazgos/`** (se cumple por construcción —`analyze` lanza antes de `writeFindings`— pero no está atado) | ❌ |
-| CA-6 (RN-09) el cruce se declara a mano | `src/mirror/analysis/pairing.ts` (`PairingSchema` estricto, `buildPairingIndex`, `UnmappedMatchError`, `AmbiguousPairingError`) | `tests/mirror/analysis/pairing.test.ts` (7): identidad no mapeada → `UnmappedMatchError` con los dos equipos, la ref y la fuente en el mensaje; **«UD Ourense» / «Ourense CF» no se unen** y una tercera grafía no declarada tampoco cae en ninguno de los dos; una ref reclamada por dos partidos es error del fichero; el esquema rechaza una clave de más. No hay ninguna rama de parecido de cadenas en el módulo | `npx vitest run` → `pairing.test.ts` 7/7 verdes. Leído `src/mirror/analysis/pairing.ts` entero: no hay distancia de cadenas, ni normalización de nombres, ni fallback — la resolución es un `Map` de `source_ref` y punto. El caso 4 es el ejemplo de `dominio.md` («UD Ourense» / «Ourense CF» no se unen) **y** comprueba que una tercera grafía no declarada lanza en vez de caer en la más parecida, que es la mitad que de verdad importa. `UnmappedMatchError` nombra los dos equipos, la ref y la fuente; `AmbiguousPairingError` trata una ref reclamada dos veces como error del fichero y no como desempate | ✅ |
-| CA-7 el análisis es función del archivo | `src/mirror/analysis/timeline.ts` (ordena las claves él mismo), `src/mirror/analysis/analyze.ts` (sin reloj, sin red, sin BD) | `tests/mirror/analysis/determinism.test.ts` (4): dos ejecuciones → JSON byte a byte idéntico; claves invertidas y barajadas → idéntico; **dos relojes de sistema distintos** (`vi.setSystemTime`, 2026 y 2027) → idéntico; y el informe no está vacío (> 1000 bytes) para que la comparación mida algo | `npx vitest run` → `determinism.test.ts` 4/4 verdes. Comprobado en el fuente que la pureza es estructural y no accidental: `analyze()` no toca `Date.now()` ni la red ni Postgres, `timeline.ts` ordena las claves él mismo, `comparePair` itera `[...values.keys()].sort()` y `roundsOf` agrupa por instante ordenando por cadena. La comparación es `JSON.stringify` exacto, con claves en orden, invertidas y barajadas, y con `vi.setSystemTime` en 2026 y en 2027. El caso 4 evita el verde por informe vacío (> 1000 bytes, 2 fuentes) | ✅ |
-| CA-8 adelanto, retraso y empate con τ | `src/mirror/analysis/compare.ts` (`classifyLead`), `src/mirror/thresholds.ts` (`TAU_MS = 90 s`) | `tests/mirror/analysis/lead.test.ts` (12): tabla de límites 89 / **90** / 91 s en los dos sentidos (90 s exactos = empate, porque el criterio es estrictamente mayor); `first_seen` indefinido en una, en la otra y en las dos; la diferencia observada se registra con signo. El reparto de diferencias viaja en el informe (`observed_differences_s`), probado en `report.test.ts` caso 7 | `npx vitest run` → `lead.test.ts` 12/12 verdes. La tabla de límites está escrita entera y en los dos sentidos: 91 s → `lead_b`, **90 s exactos → `tie`**, 89 s → `tie`, y sus tres simétricos. `classifyLead` usa `>` estricto contra `tauMs` (`compare.ts:52-54`), coherente con el texto del CA. Los tres casos de `first_seen` indefinido salen `only_a` / `only_b` / `neither` y **nunca** adelanto —importa, porque tratar un ausente como adelanto infinito dejaría que un partido que falta en una página probase la independencia de la otra—. El reparto observado viaja en el informe como `observed_differences_s` junto a `thresholds.tau_ms` (`report.test.ts` casos 3 y 7) | ✅ |
-| CA-9 un adelanto prueba independencia | `src/mirror/analysis/verdict.ts` (`verdictAgainstReference`, `leadsAreEnough`), `src/mirror/thresholds.ts` (`MIN_LEAD_EVENTS`, `MIN_LEAD_MATCHES`) | `tests/mirror/analysis/verdict-time.test.ts` (6): **(a)** 2 adelantos en 2 partidos → INDEPENDIENTE; **(b)** 2 adelantos en el MISMO partido → no INDEPENDIENTE; **(c)** S siempre 5 min por detrás y sin error replicado → **INCONCLUSO, no ESPEJO** (el corazón del criterio, con `leads_b = 0`, `leads_a > 0`, N ≥ 10 comprobados uno a uno); (d) un solo adelanto no basta; (e) 3 en 3 partidos → INDEPENDIENTE. Salvedades **F-SPEC-002-5** y **F-SPEC-002-6** | `npx vitest run` → `verdict-time.test.ts` 6/6 verdes. El «si y solo si» está acotado a la señal temporal, como ratifica la enmienda §3: `verdictAgainstReference` calcula `leadsAreEnough(leads_b, lead_matches_b)` **O** `persistent_discrepancies.length > 0`. El caso (c) —el corazón— está y muerde: 6 partidos, S cinco minutos por detrás, `leads_b === 0`, `leads_a > 0`, 0 errores replicados, N ≥ 10 → **INCONCLUSO**, con una aserción explícita de que no es ESPEJO. (b) separa eventos de partidos (`leads_b === 2`, `lead_matches_b === 1` → no INDEPENDIENTE). Mutación comprobada por el implementador (`> tauMs` → `>=`) y confirmada por el caso 3 de `lead.test.ts`. **El CA se cumple en sus propios términos**; que INDEPENDIENTE se alcance por un camino ilegítimo es fallo de CA-10, no de este | ✅ |
-| CA-10 las señales que no dependen del reloj | `src/mirror/analysis/compare.ts` (`isRetraction`, `replicatedErrors`, `contentDivergences` por rondas, exclusivos), `src/mirror/thresholds.ts` (`MIN_PERSISTENT_CAPTURES`). **Ronda 2 (F-SPEC-002-V1, enmienda §1):** `DiscrepancyFact` baja a los **tres** hechos que deciden (`existence`, `kickoff`, `finished_result`) y la grafía sale a un tipo propio, `SpellingDivergence`; `contentDivergences` calcula las dos listas en una sola pasada, con la misma vara de medir, y `comparePair` las devuelve separadas. `verdictAgainstReference` no necesita filtro: `persistent_discrepancies` ya no puede contener grafía | `tests/mirror/analysis/verdict-content.test.ts` (8): **(a)** error transitorio replicado → ESPEJO **citando las cuatro claves**, y las cuatro existen en el store; (a-bis) un error que solo comete F no es replicado; **(b)** S con un hecho que F no tiene → no ESPEJO por error replicado; **(c)** horarios distintos en 2 capturas que convergen → **no** persistente; **(d)** los mismos en 3 capturas → INDEPENDIENTE; (e) partido que solo una fuente tiene → discrepancia de existencia; y que bajar un marcador es retractarse mientras subirlo es jugar. **Ronda 2:** `tests/mirror/analysis/spelling.test.ts` (10) trae el caso que el CA declara que «no puede faltar» — **caso 1**: doce partidos en reposo, tres de ellos escritos distinto por cada fuente, persistentes en las 4 capturas, N = 12 ≥ N_min, cero de todo lo demás → **INCONCLUSO/`sin_senal`**, no INDEPENDIENTE, con `rn02=false`; **caso 2**: la divergencia aparece contada y **citada**, y cada clave existe en el store (CA-14); **caso 4**: se comprueba que la ventana no tenía ninguna otra señal, o sea que el caso 1 mide lo que dice medir; **caso 5**: un ESPEJO por indicio sigue siendo ESPEJO con grafías divergentes (no dicta hacia ESPEJO tampoco); **caso 6**: dos ventanas que **solo** difieren en cómo se escriben tres nombres producen los **tres** veredictos idénticos, que es «sin voto en las dos direcciones» dicho como aserción. Mutación comprobada: devolver el voto a la grafía pone 5 de los 10 en rojo. Salvedades **F-SPEC-002-4**, **F-SPEC-002-5**, **F-SPEC-002-7**, **F-SPEC-002-9** (ratificadas), **F-SPEC-002-19** (nueva) | **RED — F-SPEC-002-V1, el bloqueante.** La enmienda §1 (CA-10.4) **no está implementada**: `team_spelling` sigue en la lista `FACTS` de `persistentDiscrepancies` (`src/mirror/analysis/compare.ts:350-355`) y `verdictAgainstReference` hace `independent = … O persistent_discrepancies.length > 0` (`verdict.ts:62-64`), sin filtrar el hecho. **La grafía dicta veredicto, que es exactamente lo que el CA prohíbe** («no entra en ningún veredicto, ni hacia ESPEJO ni hacia INDEPENDIENTE»). Medido, no deducido: fixture de 6 partidos en que las tres fuentes coinciden en `status` y marcador y solo difieren en cómo escriben los nombres → `n_comparable = 12`, `leads_a/leads_b = 0 0`, `exclusives = 0 0`, `replicated_errors = 0`, `persistent facts = [team_spelling ×6]`, **`VERDICT = INDEPENDIENTE / discrepancia_persistente`, `rn02 = true`**. Sobre el informe completo salen las **tres** cosas INDEPENDIENTE con `rn02=true` y sin advertencia de conflictos. Es la confianza falsa del §Problema, producida por la única señal que no lleva información. Falta también el test que el CA declara innegociable: **no hay ningún caso «grafías distintas y persistentes en 3 capturas, sin ninguna otra señal → NO INDEPENDIENTE»** (`grep -rn spelling tests/` solo devuelve un comentario en `pairing.test.ts`). 10.2 sigue con **cuatro** hechos donde la enmienda deja tres. Lo demás de CA-10 sí está: `isRetraction` implementa la retractación ratificada (baja de marcador o estado que regresa) y `verdict-content.test.ts` 8/8 cubre error replicado con las 4 claves, gol normal que no lo es, 2 capturas que convergen vs 3 que no, y exclusivos; la regla de decisión de `decide()` es total y ordenada y coincide con el texto enmendado (contradicción → INCONCLUSO; el indicio cede ante lo fuerte; *sincronía* bidireccional y con `temporal_half === 'completa'`) | ❌ |
-| CA-11 la muestra insuficiente es un veredicto | `src/mirror/analysis/verdict.ts` (puerta `n_comparable < N_MIN` antes de todo), `src/mirror/thresholds.ts` (`N_MIN = 10`) | `tests/mirror/analysis/sample-size.test.ts` (5): N = 9 → INCONCLUSO con motivo `muestra_insuficiente`; el informe lleva **el N observado y el N_min exigido** en las dos secciones (fuente y par); con N = 9 no se dicta ni ESPEJO ni INDEPENDIENTE; **N = 10 sí dicta veredicto**. Mutación: quitar la puerta pone la suite roja | `npx vitest run` → `sample-size.test.ts` 5/5 verdes. La puerta es la primera línea de `verdictAgainstReference` y de `verdictBetweenCandidates` (`n_comparable < N_MIN` → `insufficient()`), o sea que es el paso 1 de la regla de decisión de CA-10 tal como la enmienda §5 lo pide. N = 9 → INCONCLUSO / `muestra_insuficiente` en las dos secciones, con `n_comparable` **y** `n_min` en el JSON de fuente y de par; N = 10 exacto dicta veredicto. Con N = 9 se comprueba explícitamente que no sale ni ESPEJO ni INDEPENDIENTE, que es la mitad que evita el falso verde | ✅ |
-| CA-12 (RN-02) lo desconocido no es independencia | `src/mirror/analysis/verdict.ts` (`rn02_segunda_via_entre_automaticas` se fija en `decide()` y en `insufficient()`, en ninguna otra rama) | `tests/mirror/analysis/rn02.test.ts` (5): tabla sobre los tres veredictos producidos por tres ventanas distintas —INDEPENDIENTE → `true`, ESPEJO → `false`, INCONCLUSO → `false`—; el par lleva la misma bandera con la misma regla; **caso 5** recorre la función de decisión con cinco análisis sintéticos y comprueba `bandera === (veredicto === 'INDEPENDIENTE')` sin excepción | `npx vitest run` → `rn02.test.ts` 5/5 verdes. Comprobado en el fuente que la bandera se fija en **exactamente dos** sitios (`decide()` e `insufficient()` en `verdict.ts`) y que en las cinco ramas vale `true` solo en la de INDEPENDIENTE; `grep -n "rn02_segunda_via" src/mirror/` no encuentra ninguna otra escritura. El caso 5 recorre la función de decisión con análisis sintéticos y exige `bandera === (veredicto === 'INDEPENDIENTE')`. **El invariante se sostiene**: lo que falla en CA-10 es que se llegue a INDEPENDIENTE sin derecho, no que la bandera lo siga mal — pero es justo por eso por lo que el bug de la grafía sale del informe como `rn02_segunda_via_entre_automaticas: true` | ✅ |
-| CA-13 veredicto accionable; el parcial es un veredicto | `src/mirror/analysis/report.ts` (esquema zod **local a la spec**, `z.strictObject` en todo), `src/mirror/analysis/analyze.ts`, `src/mirror/analysis/prose.ts`, `src/mirror/analysis/findings.ts`. **Ronda 2 (F-SPEC-002-V3, enmienda §1):** `spelling_divergences` es clave propia en `CountersSchema` **y** en `PairCountersSchema`, con `SpellingDivergenceEvidenceSchema` (campos `spelling_a`/`spelling_b`, sus `raw_keys`) en `EvidenceSchema`. Y `team_spelling` **sale del enum** `DiscrepancyFactSchema`: el fallo deja de ser representable en vez de quedar desaconsejado, que es lo que el CA pide al llamar «invitación» al contador compartido. `prose.ts` gana `spellingNote()`, que dice que se registran, que **no dictan** y por qué —el agregador rinde el nombre desde su propia base de equipos—, y para qué se conservan; `findings.ts`, su fila en las dos tablas | `tests/mirror/analysis/report.test.ts` (13): el JSON valida; **una clave de más y una de menos lo invalidan igual**; lleva los cinco umbrales, la ventana y la cobertura por par; un veredicto por candidata y uno para el par; un párrafo en prosa por fuente que nombra RN-02; **caso 8** — fixture solo de contenido → valida, dicta veredicto y marca la temporal `pendiente` con la ventana prevista, y los contadores temporales son `null`; **casos 11-13** — la advertencia de la métrica de conflictos aparece si ninguna candidata es INDEPENDIENTE (en JSON **y** en prosa, con `hard_cut_15_percent_applies: false`) y no aparece si una lo es. `tests/mirror/analysis/findings.test.ts` (6): el documento vive en `docs/epicas/EPIC-001-spike-ingesta/hallazgos/test-de-espejo.md`, el JSON al lado, lleva umbrales y advertencia, y es determinista. **Ronda 2:** `spelling.test.ts` **caso 7** (la clave propia existe en fuente y par, y las persistentes quedan en 0 sobre el fixture solo-de-grafía), **caso 8** (el esquema **rechaza** `fact: 'team_spelling'` en una discrepancia persistente), **casos 9-10** (la prosa lo dice cuando las hay y **no** habla de ellas cuando no las hay). Y `tests/mirror/cli/cli.test.ts` **caso 2** comprueba que el generador se puede ejecutar de verdad: `npm run mirror:analizar` escribe el `.md` y el `.json` y saca los tres veredictos por consola. Salvedad **F-SPEC-002-12** (aún no hay hallazgo escrito: no ha habido ventana) | **RED — F-SPEC-002-V3.** El grueso del CA está y es bueno: `report.test.ts` 13/13 y `findings.test.ts` 6/6 verdes, `z.strictObject` en todo el esquema (clave de más y clave de menos invalidan igual), los cinco umbrales y la cobertura por par viajan dentro, el informe solo-de-contenido valida con la temporal `pendiente` y los contadores temporales `null`, y la advertencia de la métrica de conflictos aparece y desaparece según corresponda, en JSON **y** en prosa. Lo que falta es lo que trae la enmienda §1: **la clave propia de las divergencias de grafía no existe**. `Object.keys(counters)` = `n_comparable, n_min, exclusive_to_source, exclusive_to_reference, replicated_errors, persistent_discrepancies, temporal` — ninguna de grafía. Peor: **se suman a las persistentes**, que es lo que el CA prohíbe con todas las letras. Medido sobre el fixture solo-de-grafía: `persistent_discrepancies = 6`, `facts en evidencia = team_spelling`, y la prosa generada dice literalmente «*0 errores replicados y 6 discrepancias persistentes … ceroacero cuenta como fuente independiente a efectos de RN-02 … permite publicar confirmado*». La prosa **no menciona en ningún caso** que la grafía se registra y no dicta (`prose.ts` no tiene ni una rama para ello). Es exactamente el «contador compartido» que el CA llama «invitación a reintroducir el fallo», solo que ni siquiera hay discriminador que filtrar. **F-SPEC-002-12** sigue abierta y **no se cuenta en contra**: el CA no exige el hallazgo escrito, y fabricarlo sin ventana sería peor | ❌ |
-| CA-14 (RN-12 por analogía) cada afirmación cita sus capturas | `src/mirror/analysis/analyze.ts` (`eventEvidence`, `evidenceOf`), `src/mirror/analysis/compare.ts` (arrastra `raw_key` en `first_seen`, en los errores replicados y en las discrepancias) | `tests/mirror/analysis/citations.test.ts` (5): sobre una ventana con adelantos, exclusivos **y** error replicado, se recorren **todas** las claves citadas y `store.get()` devuelve algo para cada una; el recorrido mide algo (> 10 claves y los tres tipos presentes); cada adelanto cita 2 capturas y cada error replicado exactamente 4 distintas; y una clave inventada devuelve `null`, o sea que la comprobación sabe fallar. **Ronda 2:** el recorrido de `citedKeys` incluye ahora `evidence.spelling_divergences` —CA-10.4 les quita el voto, no la cita—, y `spelling.test.ts` caso 2 comprueba una a una las claves de la grafía contra el store | `npx vitest run` → `citations.test.ts` 5/5 verdes. Las citas no se fabrican: los fixtures entran por el camino real (`store.put()` de HTML → `store.get()` → extractor real), así que las claves citadas son claves que existen. El recorrido cubre los cuatro bloques de evidencia de las dos fuentes **y** del par (> 10 claves, los tres tipos presentes), cada adelanto cita 2 capturas y cada error replicado exactamente 4 **distintas**, y el caso 5 comprueba que una clave inventada devuelve `null`, o sea que el test sabe ponerse rojo. Las divergencias de grafía también arrastran sus `raw_key`, como pide la enmienda; el problema es **dónde** viajan, y eso es CA-13 | ✅ |
-| CA-15 (RN-02) el cruce de las dos candidatas | `src/mirror/analysis/verdict.ts` (`verdictBetweenCandidates`, `errorSignature`), `src/mirror/analysis/analyze.ts` (`pairReport` con el reparto de errores replicados). **Ronda 2 (15.4):** `verdictBetweenCandidates` sigue leyendo `persistent_discrepancies.length > 0`, pero ese término ya no puede contener grafía —sale de raíz en `compare.ts`—, así que la simetría de 15.4 se cumple por construcción y no por un filtro que alguien pueda olvidar. El par lleva su propio `counters.spelling_divergences` y su prosa lo nombra | `tests/mirror/analysis/pair.test.ts` (6): **(a)** adelantos mutuos 2 y 2 → INDEPENDIENTE con motivo `adelantos_mutuos`; **(b)** C1 adelanta 4 veces y C2 nunca → ESPEJO con `espejo_de: ceroacero`; **(c)** error replicado por las dos y **ausente de futgal** → `origen_comun_distinto_de_futgal: true` y la prosa lo nombra; **(d)** el mismo error presente también en futgal → cuenta en `replicated_errors_also_in_reference`; **(e)** N < 10 → INCONCLUSO y el par no habilita la segunda vía; (f) 2 adelantos en una sola dirección no son independencia mutua. **Ronda 2:** `spelling.test.ts` **caso 3** — sobre la ventana en que las tres fuentes solo difieren en la grafía, el par sale **INCONCLUSO** con `rn02=false` y `spelling_divergences = 3`, donde antes salía INDEPENDIENTE; el **caso 6** lo incluye en la comparación de veredictos con y sin divergencia | **RED — arrastra F-SPEC-002-V1 por 15.4.** Los apartados 1, 2 y 3 están y son sólidos: `pair.test.ts` 6/6 verdes, el listón sube de verdad (`mutual = aLeads && bLeads`, y (f) confirma que 2 en una sola dirección no bastan), los adelantos unidireccionales marcan `espejo_de` con la rezagada tratada como espejo, y la distinción que solo este CA puede producir está implementada con `errorSignature` y contada en dos claves separadas —`replicated_errors_also_in_reference` vs `replicated_errors_absent_from_reference`— con `origen_comun_distinto_de_futgal` y la prosa nombrándolo («aguas arriba»). **15.4 no está:** `verdictBetweenCandidates` usa el mismo `persistent_discrepancies.length > 0` sin filtrar `team_spelling` (`verdict.ts:132`), así que la grafía dicta también aquí. Medido: en el fixture donde las tres fuentes solo difieren en la grafía, el par sale `INDEPENDIENTE / discrepancia_persistente / rn02=true`. Y el CA avisa de que en este cruce el argumento es **más** fuerte, porque las dos candidatas son dos agregadores con base de equipos propia: la señal dispararía incluso para dos reventas literales del mismo feed | ❌ |
+| CA-1 (RN-11) ni una petición de más | `src/mirror/capture/capturer.ts` (limitador por par, `#isDue` + `#lastRequestAt`), `src/mirror/capture/ports.ts` (`pairKey`), `src/mirror/thresholds.ts` (`MIN_REQUEST_INTERVAL_MS`) | `tests/mirror/capture/rate-limit.test.ts` (5): hora simulada con `FakeClock` ticando cada 10 s → ≤ 60 y ≥ 59 peticiones por par; ninguna pareja de peticiones del mismo par a < 60 s; **caso 3** fija la lectura declarada de RN-11 (6 peticiones en el mismo minuto, una por par); un tick suprimido no registra tick | `npx vitest run` → `rate-limit.test.ts` 5/5. El limitador vive en `Capturer.#isDue` (`epochMs - last >= MIN_REQUEST_INTERVAL_MS`) y `#lastRequestAt` se sella **antes** del `await` y **antes** del chequeo de robots, así que una respuesta lenta no compra turno. El caso 1 mide en las dos direcciones (≤ 60 **y** ≥ 59 peticiones por par en la hora simulada, ticando cada 10 s), o sea que no se pasa «protegiendo» sin pedir nada; el caso 3 fija la lectura declarada de RN-11 —6 peticiones, 6 URL, **1 solo instante**— y con un tope global saldría 1. **Comprobado además por el camino real (ronda 2):** fase A de verdad contra un servidor local, `duration_minutes:1 / tick_seconds:30` → el segundo tick **no produce ninguna petición y no añade registro**; el servidor recibió exactamente 2 peticiones (una por par permitido) en el minuto | ✅ |
+| CA-2 (RN-11) cortesía comprobable | `src/mirror/capture/robots.ts` (`parseRobots`, `robotsRegistry`, `robotsSkipReason`), `src/mirror/capture/http.ts` (`politeRequest`, `politeFetch`, `MissingUserAgentError`), `src/mirror/user-agent.ts` | `tests/mirror/capture/robots.test.ts` (9): ruta prohibida → 0 peticiones + 1 omisión con motivo que nombra la ruta; ruta permitida → 1 petición con la UA exacta; host sin robots cargado → omitido (no se presume permiso); **caso 8** lee el fuente de `src/mirror/capture/*.ts` y falla si `.fetch(` aparece fuera de `http.ts`. `tests/mirror/cli/cli.test.ts` caso 1 (ronda 2) lo comprueba además **por el camino real**: un servidor local recibe las peticiones del CLI y la UA que llega es `USER_AGENT` exacta | `npx vitest run` → `robots.test.ts` 9/9. El caso 8 recorre `src/mirror/capture/*.ts` y exige `callers === ['http.ts']`: la puerta única es una aserción, no una promesa; `politeRequest` lanza `MissingUserAgentError` **antes** de cualquier I/O. **Ejecutado el camino real (ronda 2):** `node src/mirror/cli/capturar-cli.ts` contra un servidor local con un `robots.txt` que prohíbe `/resultados` → el servidor registra 2 peticiones (`/futgal`, `/ceroacero`), **ninguna** a `/resultados`, y las dos llevan `User-Agent: marcador.gal/0.0.1 (+https://github.com/tremen-dev/marcador.gal; medicion SPEC-002, RN-11)`; el tick prohibido queda `"outcome":"skipped","reason":"robots.txt disallows /resultados (RN-11)"`. **Salvedad F-SPEC-002-1, conocida y aceptada:** la **forma** de la UA está probada contra `USER_AGENT_PATTERN`; el **contacto** es un marcador de posición y el dominio no está contratado. RN-11 pide identificación que responda: decisión del humano antes de la ventana real, no antes del merge | ⚠️ |
+| CA-3 (RN-10, D-5) la fase A archiva y no parsea | `src/mirror/capture/capturer.ts` (`captureThenParse` con parser identidad; sin modo degradado) | `tests/mirror/capture/no-parse.test.ts` (5): `put` que lanza → tick `failed` con motivo, `raw_ref` null, y la ventana sigue; **estructura**: grafo de imports desde `src/mirror/capture/**` no alcanza `src/mirror/analysis/**` (+ control de que el grafo no está vacío). `tests/mirror/capture/no-extractor.test.ts` (2): con `@/mirror/analysis/extract` sustituido por un espía, una ventana de 10 ticks —sana y con el store roto— no lo llama ni una vez. `tests/mirror/cli/cli.test.ts` caso 1 (ronda 2): tras correr la fase A de verdad, cada `raw_ref` del registro devuelve bytes con `store.get()`. **Ronda 3 (F-SPEC-002-20):** el caso 2 lleva ya el guardián que le faltaba, `expect(ticks).toHaveLength(10)` **antes** del `every`, así que no puede pasar en vacío si ese camino dejase de producir ticks | `npx vitest run` → `no-parse.test.ts` 5/5 y `no-extractor.test.ts` 2/2. `grep -rn "analysis/" src/mirror/capture/` no devuelve nada: la fase A no alcanza la fase B. La comprobación estructural no es decorativa —el caso 5 exige que el grafo **sí** alcance `src/raw/capture.ts`, así que un grafo vacío no lo pondría verde por silencio—. En la fase A ejecutada de verdad (ronda 2), cada `raw_ref` del registro devuelve bytes en disco. *Nota de calidad, no bloqueante:* `no-extractor.test.ts:71` usa `ticks.every(...)` sin `toHaveLength`, y `[].every()` es `true` — la conducta la cubren el caso 1 y `no-parse.test.ts`, pero conviene el guardián (**F-SPEC-002-20**) | ✅ |
+| CA-4 (ADR-005, ADR-006) el archivo es la línea de tiempo | `src/mirror/instants.ts` (`canonicalInstant`, `normalizeInstant`: ISO con ms siempre), `src/mirror/capture/capturer.ts` (normaliza antes de archivar); `rawKey`/`DiskRawStore` de SPEC-001 sin tocar | `tests/mirror/capture/archive.test.ts` (5): `list()` del prefijo del par; claves barajadas y reordenadas como cadenas reproducen el orden temporal (12 capturas); **caso 3** archiva instantes desordenados y con formatos mezclados y demuestra que el ISO literal ordena MAL (`17-00-00.500z` antes que `17-00-00z`); `fetched_at` es cadena ISO UTC, nunca `Date`; la clave es exactamente la de `rawKey()`. **Ronda 3 (F-SPEC-002-20):** el caso 5 deja de sacar el digest de la propia clave bajo prueba —una expectativa construida con su sujeto solo comprueba que una cadena es igual a sí misma— y lo calcula aquí, con `createHash('sha256')` sobre el cuerpo | `npx vitest run` → `archive.test.ts` 5/5 contra `DiskRawStore` real. El caso 3 muerde: afirma **primero** que el orden ingenuo sale mal (`17-00-00.500z` antes que `17-00-00z`) y después que con `canonicalInstant` el orden por cadena reproduce el cronológico. **Comprobado sobre el archivo que escribió la fase A real (ronda 2):** clave `futgal/rfef-tercera-g1/2026-08-31/2026-08-31t09-54-12.640z-d282ada1d743.html` —exactamente la forma de `rawKey()` de SPEC-001, sin entidades nuevas— y el `meta` guardado dice `"fetched_at":"2026-08-31T09:54:12.640Z"`: cadena ISO 8601 UTC, nunca `Date` (ADR-006) | ✅ |
+| CA-5 una ventana a medias no produce veredicto | `src/mirror/window.ts` (`windowCoverage`, `windowValidity`, `assertWindowValid`, `InvalidWindowError`, `MIN_TICK_SUCCESS_RATIO`), `src/mirror/analysis/analyze.ts` (lo llama antes que nada). **Ronda 2 (F-SPEC-002-V2, enmienda §6):** `InvalidWindowError` recibe ahora `validity.coverage` entera además de `below` y la expone en `error.coverage`; el mensaje lleva **los seis pares** —peor primero, que es el que decide—, cada uno marcado `BELOW`/`ok`, más el recuento contra el umbral exigido | `tests/mirror/window.test.ts` (7): 95 % válida, 85 % inválida, **100 % + 50 % inválida** con la media (75 %) explícitamente descartada, 90 % exacto pasa, ventana vacía inválida, el error nombra el par y su cobertura. `tests/mirror/analysis/invalid-window.test.ts` (4): la fase B **se niega** (`InvalidWindowError`) sobre la ventana degradada y dicta veredicto sobre la sana. **Ronda 2:** `window.test.ts` **caso 8** monta los seis pares reales con uno al 50 % y exige que el mensaje nombre los **seis** con su ratio, el umbral, y la distinción `BELOW`/`ok` de un vistazo; `invalid-window.test.ts` **caso 4** comprueba que ese mensaje llega igual desde la fase B, nombrando los pares sanos; y `tests/mirror/cli/cli.test.ts` **caso 3** ata la otra mitad que pedía la enmienda —sobre una ventana inválida el CLI sale con error y **no se crea `hallazgos/`**—, que hasta ahora se cumplía por construcción y no estaba atado. Salvedad **F-SPEC-002-10** | **Cerrado F-SPEC-002-V2, comprobado ejecutando.** Ventana de **seis** pares reales con uno al 50 %, pasada a la fase B por el CLI: `InvalidWindowError: CA-5: refusing to judge an invalid window — 1 of 6 (source, competition) pairs below the required 90 % of successful ticks. Coverage of every pair: ceroacero/futgal-preferente-g1 at 50.0 % (3/6) BELOW; ceroacero/rfef-tercera-g1 at 100.0 % (6/6) ok; futgal/futgal-preferente-g1 at 100.0 % (6/6) ok; futgal/rfef-tercera-g1 at 100.0 % (6/6) ok; resultados-futbol/futgal-preferente-g1 at 100.0 % (6/6) ok; resultados-futbol/rfef-tercera-g1 at 100.0 % (6/6) ok`. Los **seis**, peor primero, con ratio, recuento contra el umbral y la marca `BELOW`/`ok`: el operador ve la salud de la ventana entera. Y **no se creó `hallazgos/`**. Mutación propia sobre una copia del repo (`coverage` → `below` en el mensaje): `window.test.ts` caso 8 y `invalid-window.test.ts` caso 4 se ponen rojos, o sea que los dos tests muerden. `analyze()` llama `assertWindowValid` en su primera línea, antes de leer el archivo. Salvedades **F-SPEC-002-10** (ratificada) y **F-SPEC-002-16** (abierta, para una eventual enmienda 2) | ✅ |
+| CA-6 (RN-09) el cruce se declara a mano | `src/mirror/analysis/pairing.ts` (`PairingSchema` estricto, `buildPairingIndex`, `UnmappedMatchError`, `AmbiguousPairingError`) | `tests/mirror/analysis/pairing.test.ts` (7): identidad no mapeada → `UnmappedMatchError` con los dos equipos, la ref y la fuente en el mensaje; **«UD Ourense» / «Ourense CF» no se unen** y una tercera grafía no declarada tampoco cae en ninguno de los dos; una ref reclamada por dos partidos es error del fichero; el esquema rechaza una clave de más. No hay ninguna rama de parecido de cadenas en el módulo | `npx vitest run` → `pairing.test.ts` 7/7. Releído `pairing.ts` entero: no hay distancia de cadenas, ni normalización de nombres, ni fallback — la resolución es un `Map` de `source_ref`. **Ejecutado el caso real:** quitando `m4` del `pairing.json` de un archivo propio, el CLI aborta con `UnmappedMatchError: CA-6: ceroacero reports a match the pairing file does not map: Racing Villalbes 4 - Bergantinos FC 4 (ceroacero ref "m4"). Add it to the pairing file; it will not be matched by name similarity.` y **no escribe nada** en `hallazgos/`. El caso 4 del test es el ejemplo de `dominio.md` («UD Ourense» / «Ourense CF» no se unen) y además exige que una tercera grafía no declarada lance en vez de caer en la más parecida | ✅ |
+| CA-7 el análisis es función del archivo | `src/mirror/analysis/timeline.ts` (ordena las claves él mismo), `src/mirror/analysis/analyze.ts` (sin reloj, sin red, sin BD) | `tests/mirror/analysis/determinism.test.ts` (4): dos ejecuciones → JSON byte a byte idéntico; claves invertidas y barajadas → idéntico; **dos relojes de sistema distintos** (`vi.setSystemTime`, 2026 y 2027) → idéntico; y el informe no está vacío (> 1000 bytes) para que la comparación mida algo | `npx vitest run` → `determinism.test.ts` 4/4. **Comprobado por el camino real, con fixture propio:** dos ejecuciones del CLI sobre el mismo archivo → `cmp` sin diferencias; y una tercera con el orden de los ticks **invertido** en `ventana.json` → informe idéntico byte a byte. `analyze()` no toca `Date.now()`, ni red, ni Postgres; `timeline.ts` ordena las claves él mismo y `comparePair` itera `[...values.keys()].sort()`. El caso 4 del test evita el verde por informe vacío (> 1000 bytes, 2 fuentes) | ✅ |
+| CA-8 adelanto, retraso y empate con τ | `src/mirror/analysis/compare.ts` (`classifyLead`), `src/mirror/thresholds.ts` (`TAU_MS = 90 s`) | `tests/mirror/analysis/lead.test.ts` (**14**): tabla de límites 89 / **90** / 91 s en los dos sentidos (90 s exactos = empate, porque el criterio es estrictamente mayor); `first_seen` indefinido en una, en la otra y en las dos; la diferencia observada se registra con signo. El reparto de diferencias viaja en el informe (`observed_differences_s`), probado en `report.test.ts` caso 7. **Ronda 3 (F-SPEC-002-20): la frontera ya se ejerce de punta a punta.** Casos **13 y 14**: dos ventanas que difieren en **un segundo** sobre los mismos dos partidos —el candidato muestrea desfasado y publica el gol exactamente 90 s (caso 13) o 91 s (caso 14) antes que futgal—; a 90 s `leads_b = 0` y el veredicto **no** es INDEPENDIENTE, a 91 s son 2 adelantos en 2 partidos → INDEPENDIENTE con `rn02 = true`. Comprobado por mutación: `>` → `>=` en `classifyLead` pone rojo el caso **13** además de los unitarios 3 y 6, que era justo lo que antes no pasaba | `npx vitest run` → `lead.test.ts` 12/12. **Probado por mí** (probe propio ejecutado en una copia del repo, 6/6): 91 s → `lead_b`, **90 s exactos → `tie`**, 89 s → `tie`, y los tres simétricos; `first_seen` indefinido → `only_a` / `only_b` / `neither` y **nunca** adelanto —importa, porque tratar un ausente como adelanto infinito dejaría que un partido que falta en una página probase la independencia de la otra—. `classifyLead` usa `>` estricto contra `tauMs`. El reparto observado viaja en el informe: mis informes reales llevan `observed_differences_s` junto a `thresholds.tau_ms`. *Gap declarado, no bloqueante:* la frontera de τ no se ejerce nunca de punta a punta a través de `analyze()` — todos los adelantos de los fixtures distan minutos (**F-SPEC-002-20**) | ✅ |
+| CA-9 un adelanto prueba independencia | `src/mirror/analysis/verdict.ts` (`verdictAgainstReference`, `leadsAreEnough`), `src/mirror/thresholds.ts` (`MIN_LEAD_EVENTS`, `MIN_LEAD_MATCHES`) | `tests/mirror/analysis/verdict-time.test.ts` (6): **(a)** 2 adelantos en 2 partidos → INDEPENDIENTE; **(b)** 2 adelantos en el MISMO partido → no INDEPENDIENTE; **(c)** S siempre 5 min por detrás y sin error replicado → **INCONCLUSO, no ESPEJO** (el corazón del criterio, con `leads_b = 0`, `leads_a > 0`, N ≥ 10 comprobados uno a uno); (d) un solo adelanto no basta; (e) 3 en 3 partidos → INDEPENDIENTE. Salvedades **F-SPEC-002-5** y **F-SPEC-002-6** | `npx vitest run` → `verdict-time.test.ts` 6/6. El caso (b) separa eventos de partidos (`leads_b === 2`, `lead_matches_b === 1` → no INDEPENDIENTE). **El corazón del criterio, reproducido con fixture propio y pasado por el CLI real:** 8 partidos, las dos candidatas **cinco minutos por detrás** de futgal en todos, 12 capturas → `INCONCLUSO / sin_senal`, `adelantos_suyos=0`, `retrasos=8`, `N=16`, `indicio=false`. **No es ESPEJO**, que es exactamente lo que el CA (c) exige. El «si y solo si» está acotado a la señal temporal, como ratifica la enmienda §3: `independent` es `leadsAreEnough(...)` **O** `persistent_discrepancies.length > 0`, y ese término ya no puede contener grafía | ✅ |
+| CA-10 las señales que no dependen del reloj | `src/mirror/analysis/compare.ts` (`isRetraction`, `replicatedErrors`, `contentDivergences` por rondas, exclusivos), `src/mirror/thresholds.ts` (`MIN_PERSISTENT_CAPTURES`). **Ronda 2 (F-SPEC-002-V1, enmienda §1):** `DiscrepancyFact` baja a los **tres** hechos que deciden (`existence`, `kickoff`, `finished_result`) y la grafía sale a un tipo propio, `SpellingDivergence`; `contentDivergences` calcula las dos listas en una sola pasada, con la misma vara de medir, y `comparePair` las devuelve separadas. `verdictAgainstReference` no necesita filtro: `persistent_discrepancies` ya no puede contener grafía | `tests/mirror/analysis/verdict-content.test.ts` (**11**): **(a)** error transitorio replicado → ESPEJO **citando las cuatro claves**, y las cuatro existen en el store; (a-bis) un error que solo comete F no es replicado; **(b)** S con un hecho que F no tiene → no ESPEJO por error replicado; **(c)** horarios distintos en 2 capturas que convergen → **no** persistente; **(d)** los mismos en 3 capturas → INDEPENDIENTE; (e) partido que solo una fuente tiene → discrepancia de existencia; y que bajar un marcador es retractarse mientras subirlo es jugar. **Ronda 2:** `tests/mirror/analysis/spelling.test.ts` (10) trae el caso que el CA declara que «no puede faltar» — **caso 1**: doce partidos en reposo, tres de ellos escritos distinto por cada fuente, persistentes en las 4 capturas, N = 12 ≥ N_min, cero de todo lo demás → **INCONCLUSO/`sin_senal`**, no INDEPENDIENTE, con `rn02=false`; **caso 2**: la divergencia aparece contada y **citada**, y cada clave existe en el store (CA-14); **caso 4**: se comprueba que la ventana no tenía ninguna otra señal, o sea que el caso 1 mide lo que dice medir; **caso 5**: un ESPEJO por indicio sigue siendo ESPEJO con grafías divergentes (no dicta hacia ESPEJO tampoco); **caso 6**: dos ventanas que **solo** difieren en cómo se escriben tres nombres producen los **tres** veredictos idénticos, que es «sin voto en las dos direcciones» dicho como aserción. Mutación comprobada: devolver el voto a la grafía pone 5 de los 10 en rojo. **Ronda 3 (F-SPEC-002-V5): el séptimo fixture, que faltaba.** Nuevo bloque *«CA-10, regla de decisión paso 2 — señales fuertes contradictorias»* en `verdict-content.test.ts`, tres casos: **(g)** 2 adelantos de S en 2 partidos **más** un error replicado —la retractación `1-0 → 0-0` cae en el **mismo minuto** en las dos fuentes, para que no aporte adelanto propio y las dos señales se puedan contar por separado— → **INCONCLUSO / `senales_contradictorias`**, con `rn02 = false` (CA-12), y el test comprueba **antes** que las dos señales están y superan su mínimo declarado (`n_comparable ≥ 10`, `leads_b = 2`, `lead_matches_b = 2`, `replicated_errors = 1`), o si no estaría asertando INCONCLUSO por el motivo equivocado; **(g-bis)** el **mismo archivo por el camino real de `analyze()`**, asertando el veredicto y la bandera en el informe y que la contradicción queda auditable (CA-14: las 4 claves raw del error replicado y ≥ 2 adelantos citados, para que una persona pueda abrir las capturas y decidir cuál de las dos señales mintió); **(g-ter)** un **indicio** de espejo —sincronía entera: cero exclusivos, cero adelantos en las **dos** direcciones, mitad temporal `completa`— concurriendo con una discrepancia persistente **no** dispara el paso 2: **cede** ante la señal fuerte y el veredicto es el INDEPENDIENTE del paso 3, que es lo que la spec dice expresamente. Salvedades **F-SPEC-002-4**, **F-SPEC-002-5**, **F-SPEC-002-7**, **F-SPEC-002-9** (ratificadas), **F-SPEC-002-19** (abierta) | **RED — F-SPEC-002-V5 (nuevo). Lo devuelto en la ronda 1 está cerrado; falta el séptimo fixture que el propio CA nombra.** Lo cerrado, medido y no deducido, con fixtures propios pasados por el CLI real: **(i)** 12 partidos en reposo, N=12 ≥ N_min, **12 divergencias de grafía persistentes y cero de todo lo demás** → `INCONCLUSO / sin_senal`, `rn02=false` en las tres cruces; **(ii)** ventana en lockstep con y sin divergencia de grafía → **ESPEJO en las dos**, o sea que tampoco bloquea el ESPEJO; **(iii)** dos ventanas idénticas salvo en cómo se escriben los nombres → informes **idénticos** una vez eliminadas las claves de grafía (comparación del JSON entero). Control positivo, para descartar que se hubiese neutralizado 10.2 con ella: horarios distintos y persistentes en 3 rondas → `INDEPENDIENTE / discrepancia_persistente`, `pers=3`, `hechos=["kickoff"]`. Y 10.1 mide retractación y no gol: con ocho partidos cuyo gol normal replican las tres fuentes, `replicated_errors=0`; con un 1-0 erróneo retractado a 0-0 por futgal y ceroacero, `ESPEJO / error_replicado` citando **4** claves. Mutación propia (devolver el voto a la grafía en las dos funciones de veredicto): **5 fallos de 10** en `spelling.test.ts`. **Lo que falta:** el CA enumera **siete** fixtures y el séptimo —«adelanto probado y error replicado a la vez → INCONCLUSO por señales contradictorias»— **no existe**: `grep -rn 'senales_contradictorias' src tests` solo devuelve `verdict.ts:34` y `:190`. No es papeleo: mutación sobre copia del repo borrando la rama `input.independent && input.strongMirror` (`verdict.ts:187-194`) → **`Test Files 23 passed · Tests 139 passed`, la suite entera sigue verde**, y la misma ventana (2 adelantos en 2 partidos + 1 error replicado, verificada por mí) pasa de `INCONCLUSO / senales_contradictorias / rn02=false` a **`INDEPENDIENTE / adelantos / rn02=true`**. Es la dirección peligrosa del §Problema, sin ninguna red. La conducta está implementada y la comprobé a mano; lo que no existe es lo que impide que se pierda | ❌ |
+| CA-11 la muestra insuficiente es un veredicto | `src/mirror/analysis/verdict.ts` (puerta `n_comparable < N_MIN` antes de todo), `src/mirror/thresholds.ts` (`N_MIN = 10`) | `tests/mirror/analysis/sample-size.test.ts` (5): N = 9 → INCONCLUSO con motivo `muestra_insuficiente`; el informe lleva **el N observado y el N_min exigido** en las dos secciones (fuente y par); con N = 9 no se dicta ni ESPEJO ni INDEPENDIENTE; **N = 10 sí dicta veredicto**. Mutación: quitar la puerta pone la suite roja | `npx vitest run` → `sample-size.test.ts` 5/5; el N observado **y** el N_min exigido viajan en las dos secciones (fuente y par). **Reproducido con fixture propio de 4 partidos por el CLI real:** `INCONCLUSO / muestra_insuficiente`, `N=8`, `N_min=10`, `rn02=false` en las dos fuentes **y** en el par, sin dictar ni ESPEJO ni INDEPENDIENTE. La puerta `n_comparable < N_MIN` es la primera línea de `verdictAgainstReference` y de `verdictBetweenCandidates`: es el paso 1 de la regla de decisión, tal como pide la enmienda §5 | ✅ |
+| CA-12 (RN-02) lo desconocido no es independencia | `src/mirror/analysis/verdict.ts` (`rn02_segunda_via_entre_automaticas` se fija en `decide()` y en `insufficient()`, en ninguna otra rama) | `tests/mirror/analysis/rn02.test.ts` (5): tabla sobre los tres veredictos producidos por tres ventanas distintas —INDEPENDIENTE → `true`, ESPEJO → `false`, INCONCLUSO → `false`—; el par lleva la misma bandera con la misma regla; **caso 5** recorre la función de decisión con cinco análisis sintéticos y comprueba `bandera === (veredicto === 'INDEPENDIENTE')` sin excepción. **Ronda 3 (F-SPEC-002-20):** el **caso 4** deja de ser relacional —comparaba dos campos del mismo objeto y pasaba con cualquier veredicto— y fija los veredictos **primero**, sobre **tres** ventanas. Al hacerlo aparece asertado el hueco que CA-15 existe para cerrar: en `bothIndependentPlan()` las dos candidatas **sí** son INDEPENDIENTE de futgal (`rn02 = true` en las dos) y el **par** sale **ESPEJO** con `rn02 = false`, porque son espejos **entre sí**. Se añade `mutualLeadsPlan()` a `tests/mirror/support/plans.ts` para el caso en que el par sí se gana el `true` (adelantos mutuos 2 y 2, CA-15.1) | `npx vitest run` → `rn02.test.ts` 5/5. `grep -n "rn02_segunda_via" src/mirror/` → la bandera se escribe en **exactamente dos** sitios (`decide()` e `insufficient()` en `verdict.ts`). **Comprobado sobre los ocho informes que generé yo:** `true` únicamente en las dos ventanas que salen INDEPENDIENTE (discrepancia de horario persistente; adelantos mutuos del par) y `false` en las seis restantes —ESPEJO por indicio, ESPEJO por error replicado, ESPEJO por adelantos en una sola dirección, INCONCLUSO sin señal, INCONCLUSO por muestra insuficiente e INCONCLUSO por señales contradictorias—. El invariante `bandera === (veredicto === 'INDEPENDIENTE')` se sostiene sin excepción. *Nota de calidad, no bloqueante:* el caso 4 de `rn02.test.ts` es relacional (compara dos campos del mismo objeto) y pasaría con cualquier veredicto; lo sostienen los casos 1-3, que fijan veredictos reales (**F-SPEC-002-20**) | ✅ |
+| CA-13 veredicto accionable; el parcial es un veredicto | `src/mirror/analysis/report.ts` (esquema zod **local a la spec**, `z.strictObject` en todo), `src/mirror/analysis/analyze.ts`, `src/mirror/analysis/prose.ts`, `src/mirror/analysis/findings.ts`. **Ronda 2 (F-SPEC-002-V3, enmienda §1):** `spelling_divergences` es clave propia en `CountersSchema` **y** en `PairCountersSchema`, con `SpellingDivergenceEvidenceSchema` (campos `spelling_a`/`spelling_b`, sus `raw_keys`) en `EvidenceSchema`. Y `team_spelling` **sale del enum** `DiscrepancyFactSchema`: el fallo deja de ser representable en vez de quedar desaconsejado, que es lo que el CA pide al llamar «invitación» al contador compartido. `prose.ts` gana `spellingNote()`, que dice que se registran, que **no dictan** y por qué —el agregador rinde el nombre desde su propia base de equipos—, y para qué se conservan; `findings.ts`, su fila en las dos tablas | `tests/mirror/analysis/report.test.ts` (13): el JSON valida; **una clave de más y una de menos lo invalidan igual**; lleva los cinco umbrales, la ventana y la cobertura por par; un veredicto por candidata y uno para el par; un párrafo en prosa por fuente que nombra RN-02; **caso 8** — fixture solo de contenido → valida, dicta veredicto y marca la temporal `pendiente` con la ventana prevista, y los contadores temporales son `null`; **casos 11-13** — la advertencia de la métrica de conflictos aparece si ninguna candidata es INDEPENDIENTE (en JSON **y** en prosa, con `hard_cut_15_percent_applies: false`) y no aparece si una lo es. `tests/mirror/analysis/findings.test.ts` (6): el documento vive en `docs/epicas/EPIC-001-spike-ingesta/hallazgos/test-de-espejo.md`, el JSON al lado, lleva umbrales y advertencia, y es determinista. **Ronda 2:** `spelling.test.ts` **caso 7** (la clave propia existe en fuente y par, y las persistentes quedan en 0 sobre el fixture solo-de-grafía), **caso 8** (el esquema **rechaza** `fact: 'team_spelling'` en una discrepancia persistente), **casos 9-10** (la prosa lo dice cuando las hay y **no** habla de ellas cuando no las hay). Y `tests/mirror/cli/cli.test.ts` **caso 2** comprueba que el generador se puede ejecutar de verdad: `npm run mirror:analizar` escribe el `.md` y el `.json` y saca los tres veredictos por consola. Salvedad **F-SPEC-002-12** (aún no hay hallazgo escrito: no ha habido ventana) | **Cerrado F-SPEC-002-V3, comprobado ejecutando.** `report.test.ts` 13/13 y `findings.test.ts` 6/6. **Medido sobre el informe que escribió el CLI con mi fixture:** `Object.keys(counters)` = `n_comparable, n_min, exclusive_to_source, exclusive_to_reference, replicated_errors, persistent_discrepancies, `**`spelling_divergences`**`, temporal`, con `spelling_divergences=8` y `persistent_discrepancies=0` sobre la ventana que **solo** difiere en grafía; el par lleva la suya. Probe propio (6/6 en copia del repo): una clave de más invalida, una de menos invalida, **quitar `spelling_divergences` de `counters` o de `pair.counters` invalida** —o sea que es obligatoria, no opcional— y `fact: 'team_spelling'` en una discrepancia persistente **no es representable**. La prosa dice «Aparte, y sin voto: 8 divergencias de grafía … la grafía **no dicta** veredicto (CA-10.4) …» y el `.md` las lleva en su propia fila de la tabla. Informe parcial: ventana en reposo con el cuarto argumento → `halves:{"content":"completa","temporal":"pendiente","planned_temporal_window":"xornada do 12-13 de setembro de 2026"}` y `counters.temporal=null`, válido y con veredicto. Advertencia de conflictos: presente (`hard_cut_15_percent_applies:false`, en JSON **y** en prosa) cuando ninguna candidata es INDEPENDIENTE, y `null` en la ventana en que las dos lo son. **F-SPEC-002-12 no cuenta en contra:** el CA exige el **generador**, y lo he ejecutado entero por el camino del operador | ✅ |
+| CA-14 (RN-12 por analogía) cada afirmación cita sus capturas | `src/mirror/analysis/analyze.ts` (`eventEvidence`, `evidenceOf`), `src/mirror/analysis/compare.ts` (arrastra `raw_key` en `first_seen`, en los errores replicados y en las discrepancias) | `tests/mirror/analysis/citations.test.ts` (5): sobre una ventana con adelantos, exclusivos **y** error replicado, se recorren **todas** las claves citadas y `store.get()` devuelve algo para cada una; el recorrido mide algo (> 10 claves y los tres tipos presentes); cada adelanto cita 2 capturas y cada error replicado exactamente 4 distintas; y una clave inventada devuelve `null`, o sea que la comprobación sabe fallar. **Ronda 2:** el recorrido de `citedKeys` incluye ahora `evidence.spelling_divergences` —CA-10.4 les quita el voto, no la cita—, y `spelling.test.ts` caso 2 comprueba una a una las claves de la grafía contra el store | `npx vitest run` → `citations.test.ts` 5/5. **Comprobado contra el archivo de mi propia ventana:** recorridas todas las claves de `raw_keys` del informe —adelantos, exclusivos, errores replicados **y divergencias de grafía**— → 10 claves citadas, **0 colgadas**; control negativo: una clave inventada no existe en el store. En el fixture de retractación, el error replicado cita exactamente **4** capturas. Las citas no se fabrican: los fixtures entran por el camino real (`store.put()` de HTML → `store.get()` → extractor real). La enmienda le quita el voto a la grafía, no la cita, y así está | ✅ |
+| CA-15 (RN-02) el cruce de las dos candidatas | `src/mirror/analysis/verdict.ts` (`verdictBetweenCandidates`, `errorSignature`), `src/mirror/analysis/analyze.ts` (`pairReport` con el reparto de errores replicados). **Ronda 2 (15.4):** `verdictBetweenCandidates` sigue leyendo `persistent_discrepancies.length > 0`, pero ese término ya no puede contener grafía —sale de raíz en `compare.ts`—, así que la simetría de 15.4 se cumple por construcción y no por un filtro que alguien pueda olvidar. El par lleva su propio `counters.spelling_divergences` y su prosa lo nombra | `tests/mirror/analysis/pair.test.ts` (**7**): **(a)** adelantos mutuos 2 y 2 → INDEPENDIENTE con motivo `adelantos_mutuos`; **(b)** C1 adelanta 4 veces y C2 nunca → ESPEJO con `espejo_de: ceroacero`; **(c)** error replicado por las dos y **ausente de futgal** → `origen_comun_distinto_de_futgal: true` y la prosa lo nombra; **(d)** el mismo error presente también en futgal → cuenta en `replicated_errors_also_in_reference`; **(e)** N < 10 → INCONCLUSO y el par no habilita la segunda vía; (f) 2 adelantos en una sola dirección no son independencia mutua. **Ronda 2:** `spelling.test.ts` **caso 3** — sobre la ventana en que las tres fuentes solo difieren en la grafía, el par sale **INCONCLUSO** con `rn02=false` y `spelling_divergences = 3`, donde antes salía INDEPENDIENTE; el **caso 6** lo incluye en la comparación de veredictos con y sin divergencia. **Ronda 3 (F-SPEC-002-V5, la mitad del par):** caso **(g)** — el paso 2 de la regla de decisión llega al par por su propia ruta, adelantos **mutuos** (2 y 2, la fuerte-independiente de 15.1) concurriendo con un error replicado (15.2) → **INCONCLUSO / `senales_contradictorias`**, `espejo_de = null` y `rn02 = false`; y `origen_comun_distinto_de_futgal` **sobrevive** al veredicto indeciso con sus 4 claves citadas, que es la red de CA-14 sobre la que se apoya el arbitraje de F-SPEC-002-8. Salvedad nueva **F-SPEC-002-21** (el adelanto en una sola dirección entra en el par como señal *fuerte* de espejo, y la regla de decisión de CA-10 no lo dice) | **Cerrado el arrastre de F-SPEC-002-V1 por 15.4.** `pair.test.ts` 6/6. **Reproducido con fixtures propios por el CLI real:** (a) cada candidata adelanta a la otra 2 veces en 2 partidos → `INDEPENDIENTE / adelantos_mutuos`, `rn02=true`, `espejo_de=null`; (b) adelantos 4 / 0 en una sola dirección → **no** es independencia: `ESPEJO / adelantos_en_una_sola_direccion` con `espejo_de=ceroacero` y `rn02=false`; (e) N=8 < N_min → `INCONCLUSO / muestra_insuficiente`, `rn02=false`. (c) y (d) las cubre `pair.test.ts` con el reparto en `replicated_errors_also_in_reference` / `replicated_errors_absent_from_reference`, `origen_comun_distinto_de_futgal` y la prosa nombrando «aguas arriba» — la distinción que solo este cruce puede producir. **15.4:** sobre la ventana en que las tres fuentes solo difieren en la grafía, el par sale `INCONCLUSO` con `rn02=false` y `spelling_divergences=8`; sobre la **misma** ventana con las grafías iguales, el veredicto del par es **el mismo**. La simetría se cumple por construcción y no por un filtro que alguien pueda olvidar: `team_spelling` ya no puede entrar en `persistent_discrepancies` | ✅ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
 
-**RED — 2026-08-31 (`sdd-verificador`).** Verificado contra el **texto enmendado**
-de la spec (enmienda 1 del 2026-08-31, ratificada entera por el gate), que es el
-contrato vigente. 9 CA en verde, 1 con salvedad, **5 en rojo**.
+**RED — 2026-08-31 (`sdd-verificador`), segunda vuelta.** Verificado otra vez
+contra el **texto enmendado** (enmienda 1 del 2026-08-31, ratificada entera por
+el gate), que es el contrato vigente. **13 CA en verde, 1 con salvedad aceptada,
+1 en rojo.** Los cuatro findings de la primera vuelta están **cerrados y
+comprobados ejecutando**; el rojo es nuevo y lo encontré yo en esta ronda.
 
 **Gates automáticos: todos verdes.**
 
 ```
-$ npx oxlint --version
-Version: 1.80.0
-$ npm run lint            → oxlint --type-aware, exit 0, sin hallazgos
-$ npx tsc --noEmit        → exit 0, sin salida
-$ npx vitest run          → Test Files 44 passed (44) · Tests 394 passed (394)
-                            Type Errors no errors · Duration 850ms
+$ node --version           v26.4.0
+$ npx oxlint --version     Version: 1.80.0
+$ npm run lint             → oxlint --type-aware, exit 0, sin hallazgos
+$ npx tsc --noEmit         → exit 0, sin salida
+$ npx vitest run           → Test Files 46 passed (46) · Tests 409 passed (409)
+                             Type Errors no errors · Duration 1.29s
 ```
+
+Reparto medido, no citado: **139 casos bajo `tests/mirror/`** (SPEC-002) y **270
+del resto** (SPEC-001, verde y sin tocar). Las suites de integración
+(`test:db`, `test:blob`) no se reejecutan: SPEC-002 no toca Postgres ni Blob, y
+el diff desde `2eb0bb0` no roza `src/model/`, `src/raw/`, `src/db/` ni
+`migrations/`.
 
 **El lint NO es ciego (F-SPEC-001-22 no se repite).** Medido por cobertura y no
-por exit code, que es como se coló en SPEC-001:
+por exit code:
 
 ```
-$ npx oxlint --type-aware --debug=files | wc -l          → 115 ficheros
-$ ... | grep -c 'src/mirror'                             → 24   (los 24 que hay)
-$ ... | grep -c 'tests/mirror'                           → 30   (los 30 que hay)
+$ npx oxlint --type-aware --debug=files | wc -l          → 118 ficheros
+$ ... | grep -c 'src/mirror'                             → 25   (los 25 que hay)
+$ ... | grep -c 'tests/mirror'                           → 32   (los 32 que hay)
+$ comm -23 <(find src/mirror tests/mirror -name '*.ts' | sort) <(...)  → vacío
 $ npx oxlint -A all -W style src/mirror | tail           → emite diagnósticos
 ```
 
-La última línea es la que cierra la duda: con el silencio de `--type-aware` no se
-distingue «limpio» de «no ha mirado», así que se forzó al reporter a hablar sobre
-esos mismos ficheros. Habla. El silencio de `npm run lint` es limpieza real.
+La lista de ficheros incluye los cuatro nuevos de esta ronda —`node-resolve.ts`,
+los dos `-cli.ts` y `spelling.test.ts`—, no queda ninguno fuera, y el reporter
+forzado habla sobre ellos: el silencio de `npm run lint` es limpieza real y no
+ausencia de mirada.
+
+### La maquinaria de resolución de módulos (F-SPEC-002-V4), juzgada aparte
+
+Se pedía mirarla con lupa y esto es lo que hay. **Los dos CLI arrancan y hacen
+el trabajo completo**, no solo dejan de dar `ERR_MODULE_NOT_FOUND`:
+
+- **Fase A, ejecutada de verdad** contra un servidor local: pide, respeta el
+  `robots.txt`, manda la UA declarada, archiva bajo `rawKey()` y escribe el
+  registro. Salida y evidencia en las filas de CA-1, CA-2, CA-3 y CA-4.
+- **Fase B, ejecutada de verdad** ocho veces, con ocho archivos construidos por
+  mí y no por los helpers del proyecto: escribe el `.md` y el `.json` en
+  `hallazgos/`, saca los tres veredictos y aborta cuando debe.
+- `npm run mirror:capturar` y `npm run mirror:analizar` sin argumentos llegan a
+  su `main` y fallan con el mensaje de uso —o sea que el grafo entero
+  (`@/raw/…`, `@/model/…`, `@/mirror/…`) resolvió— en vez de con
+  `ERR_MODULE_NOT_FOUND`.
+
+**El hook es estrecho.** `registerHooks` solo reescribe cuando el
+**importador** vive bajo `src/` (`parentURL.startsWith(SRC_URL)`, con la barra
+final, así que un hermano `srcfoo/` no entra), solo resuelve a un `.ts` que
+**existe**, y todo lo demás cae a `nextResolve` intacto: `node_modules` no
+cambia de significado, los especificadores desnudos (`zod`, `node:fs`) no se
+tocan, y un `./algo.css` no se convierte en nada. Lo registran **solo** los dos
+`-cli.ts` y nadie más (`grep -rn registerProjectResolution src tests`), así que
+no entra en el build de Next ni en vitest. Sobrevive a `npx tsc --noEmit` y está
+dentro de la cobertura de `oxlint --type-aware`. El import dinámico de `main`
+después del registro es necesario y está bien razonado en el comentario.
+
+Y el test que lo cubre muerde: comentando `registerProjectResolution()` en los
+dos entries sobre una copia del repo, `cli.test.ts` reproduce el fallo original
+—`Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@/raw' imported from
+…/src/mirror/cli/capturar.ts`— en sus tres casos.
+
+Queda declarado y **no lo cuento en contra de ningún CA** porque ninguno fija un
+suelo de Node: **F-SPEC-002-17** (el hook exige Node ≥ 22.15 y `engines` promete
+`>= 22`). Aquí corre Node 26.4.0.
+
+### Lo que cierro de la primera vuelta
+
+Los cuatro, comprobados por mí contra el código y ejecutando, no por lo que dice
+la matriz:
+
+- **F-SPEC-002-V1 y -V3 (el bloqueante y su gemelo) — CERRADOS.** La grafía no
+  vota **en ninguna dirección**. Fixture mío de 12 partidos en reposo cuya única
+  diferencia son los nombres: `INCONCLUSO / sin_senal`, `rn02=false` en las tres
+  cruces, `spelling_divergences=12`, `persistent_discrepancies=0`. Fixture en
+  lockstep con y sin divergencia: **ESPEJO en las dos**, así que tampoco la
+  bloquea. Y dos ventanas idénticas salvo en la grafía producen informes
+  **idénticos** una vez quitadas las claves de grafía. El contador vive en su
+  clave propia, es **obligatorio** en el esquema (quitarlo invalida), y
+  `fact: 'team_spelling'` ya no es representable en una discrepancia
+  persistente. Control positivo: CA-10.2 sigue dictando —horarios distintos y
+  persistentes en 3 rondas → `INDEPENDIENTE / discrepancia_persistente`—, o sea
+  que no se neutralizó la señal entera al quitarle la grafía.
+- **F-SPEC-002-V2 — CERRADO.** El error de CA-5 nombra los **seis** pares con su
+  ratio, el umbral y la marca `BELOW`/`ok`, peor primero, y sobre una ventana
+  inválida no se crea `hallazgos/`. Salida completa en la fila de CA-5.
+- **F-SPEC-002-V4 — CERRADO.** Arriba.
 
 ### Lo que devuelve la spec
 
-Los tres primeros son **la misma causa**: la enmienda 1 se escribió y se firmó
-**después** del commit de implementación (`d508efa` es anterior a `2eb0bb0`), y el
-arbitraje del gate afirma que «nada de esto toca código». Para seis de los siete
-follow-ups es cierto. **Para F-SPEC-002-9 no lo es**, y es justamente el que el
-propio arbitraje llama «la única de las siete que cambia un veredicto». El
-implementador lo había dicho: «está implementado como pide la spec … no lo he
-hecho porque contradice el texto de la spec». La spec cambió; el código no.
-
-- **F-SPEC-002-V1 (bloqueante) — la grafía sigue dictando veredicto.** CA-10.4 y
-  CA-15.4. `team_spelling` continúa en `FACTS` (`compare.ts:350-355`) y entra en
-  `persistent_discrepancies`, que es el término que hace `independent` en
-  `verdict.ts:62-64` y `132`. Demostrado con una ventana en que las tres fuentes
-  coinciden en todo salvo en cómo escriben los nombres —0 adelantos, 0 exclusivos,
-  0 errores replicados, N = 12—: **las tres cruces salen INDEPENDIENTE con
-  `rn02_segunda_via_entre_automaticas: true`**, sin advertencia de conflictos, y
-  la prosa generada dice «permite publicar confirmado». Es palabra por palabra la
-  confianza falsa del §Problema, y con RN-02 abriendo su segunda vía sobre una
-  independencia no demostrada. Falta además el test que CA-10 declara que «no
-  puede faltar».
-- **F-SPEC-002-V3 — el contador de grafía no existe.** CA-13. Las divergencias se
-  **suman** a `counters.persistent_discrepancies` en vez de viajar en clave
-  propia, y la prosa no dice en ningún caso que se registran y no dictan. El CA
-  prohíbe esto explícitamente («no se suman … en ninguna clave del JSON ni en la
-  prosa»).
-- **F-SPEC-002-V2 — la negativa de CA-5 es muda a medias.** El error nombra solo
-  los pares caídos; la enmienda §6 exige **los seis**, para que el operador vea la
-  salud de la ventana entera y sepa qué repetir. Falta también el test de que
-  sobre una ventana inválida no se escribe nada en `hallazgos/` (se cumple por
-  construcción, pero nada lo ata).
-
-Y uno que no viene de la enmienda y que ningún test podía ver, porque ningún test
-ejecuta el flujo real:
-
-- **F-SPEC-002-V4 (bloqueante) — los dos CLI no arrancan.** `src/mirror/cli/
-  capturar.ts` y `analizar.ts` importan con el alias `@/…`, que resuelven vitest y
-  `tsc` por configuración pero **no Node**, que es quien los corre. No hay campo
-  `imports` en `package.json` ni `--experimental-*` en los scripts:
+- **F-SPEC-002-V5 (bloqueante) — la regla de decisión tiene un paso sin test, y
+  se pierde en silencio.** CA-10 enumera **siete** fixtures. Seis están. El
+  séptimo —«adelanto probado y error replicado a la vez → INCONCLUSO por
+  señales contradictorias»— **no existe**:
 
   ```
-  $ npm run mirror:capturar
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@/raw' imported from
-    /…/src/mirror/cli/capturar.ts
-  $ npm run mirror:analizar   → el mismo error
+  $ grep -rn 'senales_contradictorias' src tests
+  src/mirror/analysis/verdict.ts:34
+  src/mirror/analysis/verdict.ts:190
   ```
 
-  No es un patrón heredado: `npm run db:migrate` de SPEC-001 funciona (`schema is
-  up to date; nothing applied`) porque `src/db/cli.ts` importa en relativo. Con
-  esto, **la ventana de observación no se puede correr** y el hallazgo de CA-13 no
-  se puede generar por el procedimiento que el propio handoff documenta. El código
-  de dentro está probado; la puerta por la que se entra, no.
+  La conducta **sí** está implementada y la comprobé a mano: ventana propia con
+  2 adelantos en 2 partidos **y** un error replicado → `INCONCLUSO /
+  senales_contradictorias / rn02=false`, que es lo que la enmienda §5 manda.
+  Lo que falta es la red. Mutación sobre una copia del repo, borrando la rama
+  `input.independent && input.strongMirror` (`verdict.ts:187-194`):
+
+  ```
+  $ npx vitest run tests/mirror
+   Test Files  23 passed (23)
+        Tests  139 passed (139)
+  ```
+
+  La suite entera sigue verde, y esa misma ventana pasa a **`INDEPENDIENTE /
+  adelantos / rn02_segunda_via_entre_automaticas: true`**. Es decir: el paso 2
+  de la regla de decisión —el que el gate ratificó explícitamente en
+  F-SPEC-002-8, «el orden importa: la contradicción gana sobre la
+  independencia»— puede desaparecer sin que nada se entere, y lo que sale por la
+  puerta es un `true` en la bandera que gobierna RN-02. Es la dirección
+  peligrosa del §Problema, y es exactamente la clase de agujero que la sección
+  *Comprobaciones por mutación* de este ledger existe para cerrar; no se aplicó
+  a esta rama.
+
+  **Cómo se cierra:** un fixture más en `verdict-content.test.ts` (o en
+  `verdict-time.test.ts`), con la forma que el CA nombra, asertando `verdict ===
+  'INCONCLUSO'`, `reason === 'senales_contradictorias'` y
+  `rn02_segunda_via_entre_automaticas === false`. El archivo con el que lo
+  reproduje es de construcción trivial: un partido con retractación replicada
+  por F y S, dos partidos en los que S adelanta a F, y relleno hasta N ≥ 10.
+  No hay que tocar código de producción.
 
 ### Lo que NO cuenta en contra
 
-- **F-SPEC-002-12** (no hay `hallazgos/` porque no ha habido ventana). Ningún CA
-  exige el documento escrito: CA-13 exige el **generador**, y está probado. Inventar
+- **F-SPEC-002-12** (no hay `hallazgos/` en el repo porque no ha habido
+  ventana). Ningún CA exige el documento escrito: CA-13 exige el **generador**,
+  y esta vez lo ejecuté entero por el camino del operador, ocho veces. Fabricar
   un hallazgo sin ventana sería lo peor que podría hacer esta spec.
-- **F-SPEC-002-3, -11, -14, -15, -16.** Declaradas, fuera del texto de los CA o
+- **F-SPEC-002-17** (suelo de Node). Ningún CA fija el anfitrión; la spec dice
+  expresamente que «los CA restringen el archivo y el ritmo, no el anfitrión».
+  Va abajo, para el humano.
+- **F-SPEC-002-2, -3, -11, -16, -19.** Declaradas, fuera del texto de los CA o
   dirigidas a otros roles.
+
+### F-SPEC-002-20 — cuatro tests que no muerden todo lo que dicen (no bloquea)
+
+Levantado por `sdd-verificador` en esta ronda al auditar fichero por fichero. La
+conducta de los cuatro CA está cubierta por otros casos y **ninguno de ellos
+cambia un veredicto**, así que no los cuento en contra; los dejo escritos para
+que no se resuelvan en silencio ni se descubran cuando muerdan:
+
+- `tests/mirror/capture/no-extractor.test.ts:71` — `ticks.every(t => t.outcome
+  === 'failed')` sin `toHaveLength(10)` al lado, y `[].every()` es `true`: si
+  ese camino llegase a producir cero ticks, el caso pasaría vacío. Su hermano,
+  el caso 1, sí lleva el guardián.
+- `tests/mirror/analysis/rn02.test.ts:68-73` (caso 4) — compara dos campos del
+  **mismo** objeto (`bandera === (verdict === 'INDEPENDIENTE')`), así que pasa
+  con cualquier veredicto; no fija que `lockstepPlan()` no sea INDEPENDIENTE ni
+  que `bothIndependentPlan()` lo sea. Lo sostienen los casos 1-3.
+- `tests/mirror/capture/archive.test.ts:171` — la mitad del digest de la clave
+  esperada se extrae de la propia clave bajo prueba; lo que ata el formato es la
+  línea 170 (`toBe(rawKey(meta, body))`).
+- **La frontera de τ no se ejerce nunca de punta a punta.** `lead.test.ts`
+  cubre 89 / 90 / 91 s en los dos sentidos, pero solo a nivel de `classifyLead`:
+  todos los adelantos de los fixtures distan minutos, así que un cambio de `>` a
+  `>=` dentro de `analyze()` solo lo caza ese fichero unitario.
+
+**Destino:** `sdd-implementador`, junto con el fixture de F-SPEC-002-V5. Sin
+prisa y sin riesgo de veredicto.
 
 ### Lo que necesita decisión del humano
 
-- **F-SPEC-002-1 (única ⚠️, en CA-2).** La UA emite un contacto inventado
-  (`+https://github.com/tremen-dev/marcador.gal`, con el dominio sin contratar). La
-  **forma** está probada; el **valor** no responde, y RN-11 pide identificación de
-  verdad. Antes de la ventana real, no antes del merge.
-- **El arbitraje del 2026-08-31 dice «nada de esto toca código»** y para
-  F-SPEC-002-9 no es así. Conviene que quede constancia de que la ratificación de
-  F-9 **sí** encargaba trabajo, y que este RED es su ejecución pendiente y no una
-  reapertura de lo firmado.
-
-### Cómo se cierra
-
-Nada de esto es rediseño. V1 y V3 son la misma pieza: sacar `team_spelling` de
-`persistent_discrepancies`, computarlo aparte, darle clave propia en
-`CountersSchema` y `PairCountersSchema`, su rama en `prose.ts`, y los dos tests que
-los CA nombran. V2 es pasar la cobertura entera a `InvalidWindowError`. V4 es
-elegir rutas relativas o declarar el alias donde Node lo vea. La spec se ha movido
-a `en-progreso`; el resto —CA-1, -3, -4, -6, -7, -8, -9, -11, -12, -14— está
-verificado y no hay que volver a tocarlo.
+- **F-SPEC-002-1 (la única ⚠️, en CA-2).** La UA que sale por el cable es
+  `marcador.gal/0.0.1 (+https://github.com/tremen-dev/marcador.gal; medicion
+  SPEC-002, RN-11)` — lo vi en el servidor. La **forma** está probada; el
+  **valor** no responde y el dominio no está contratado. RN-11 pide
+  identificación de verdad: hay que ponerla **antes de la ventana real**, no
+  antes del merge. Es la salvedad conocida y aceptada, y por eso CA-2 queda ⚠️ y
+  no ✅.
+- **F-SPEC-002-17 — el mínimo de Node.** `node-resolve.ts` usa
+  `module.registerHooks()`, añadida en **22.15.0**, y `package.json` promete
+  `>= 22`. Hoy no muerde (aquí, Node 26.4.0), pero en 22.0–22.14 los dos CLI
+  fallarían por falta de la API. Subir `engines` es decisión suya o de
+  `sdd-arquitecto` por ADR; no la toma el verificador.
+- **F-SPEC-002-15 — `sdd-legal-datos` sigue sin dictaminar.** La spec lo lista
+  como consultivo y la ventana es scraping de tres sitios a la vez. No bloquea
+  el merge; sí debería preceder a la ventana real.
 
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-002/. Informe HTML opcional: _qa/SPEC-002/informe.html -->
@@ -434,6 +592,40 @@ en silencio.
   alimentarse de aquí (que es una de las dos razones por las que la spec la
   conserva), conviene decidirlo. **Destino:** `sdd-arquitecto`, sin prisa.
 
+Las dos siguientes son de la **tercera vuelta** (cierre del RED del 2026-08-31,
+F-SPEC-002-V5).
+
+- **F-SPEC-002-20 — ATENDIDA en la tercera vuelta, los cuatro puntos.** Commit
+  `2a407fe`, sin tocar código de producción y sin arriesgar el rojo principal.
+  **(a)** `no-extractor.test.ts:71` lleva ya `toHaveLength(10)` delante del
+  `every`. **(b)** `rn02.test.ts` caso 4 fija los veredictos primero, sobre tres
+  ventanas, y de paso deja asertado el hueco de CA-15 (las dos candidatas,
+  independientes de futgal y espejos entre sí). **(c)** `archive.test.ts:171`
+  calcula el digest desde el cuerpo con `createHash`, no desde la clave bajo
+  prueba. **(d)** la frontera de τ se ejerce de punta a punta (`lead.test.ts`
+  13-14) y muerde: la mutación `>` → `>=` la pone roja, cosa que antes solo
+  hacían los casos unitarios. **Lo que queda dicho y no hecho:** (a) y (c) son
+  guardianes —no fabrican un rojo nuevo por sí solos, cierran un camino por el
+  que el caso podría pasar en vacío— y así se declaran; la única mutación que
+  los mediría sería romper el propio helper de test, así que no se ha hecho.
+- **F-SPEC-002-21 — en el par, el adelanto en una sola dirección entra como
+  señal FUERTE de espejo, y la regla de decisión de CA-10 no dice eso.** Lo veo
+  al escribir el caso (g) de `pair.test.ts` y **no lo toco**: es código de la
+  primera vuelta, y cambiarlo sería tocar producción sin ningún CA que lo pida.
+  El hecho: `verdictBetweenCandidates` calcula
+  `strongMirror = replicated_errors.length > 0 || oneWay`, mientras que la regla
+  de decisión de CA-10 define *fuerte-espejo* como «≥ 1 error replicado (10.1)»
+  y nada más. Es una lectura defendible de CA-15.1 —«la rezagada se trata como
+  espejo de la otra»— pero tiene una consecuencia que nadie ha firmado: una
+  ventana con adelantos en **una sola** dirección **y** una discrepancia
+  persistente (15.3, que dicta INDEPENDIENTE) cae en el paso 2 y sale
+  **INCONCLUSO por señales contradictorias**, ni ESPEJO ni INDEPENDIENTE. No hay
+  ningún test que fije ese caso, y no lo he escrito **a propósito**: atar con un
+  test una interpretación que la spec no contiene es exactamente lo que la
+  segunda vuelta reprochó. Yerra hacia el lado seguro de CA-12 —`rn02 = false`
+  en los tres desenlaces posibles—, así que no bloquea nada. **Destino:**
+  `sdd-arquitecto`, para una eventual enmienda 2, junto con F-SPEC-002-16.
+
 ## Cómo retomar (handoff)
 
 **Qué hay.** Todo bajo `src/mirror/`, dos fases que no se importan la una a la
@@ -451,7 +643,7 @@ src/mirror/analysis/            FASE B — extract, sources, pairing, timeline, 
 src/mirror/cli/                 capturar.ts / analizar.ts (+ sus dos entradas -cli.ts
                                 y node-resolve.ts, el hook que hace que Node
                                 resuelva `@/…` y los imports sin extensión)
-tests/mirror/                   139 casos + un fichero .test-d.ts
+tests/mirror/                   145 casos + un fichero .test-d.ts
 ```
 
 **Los dos CLI arrancan** (F-SPEC-002-V4, commit `22cbe42`). Antes no: `@/…` lo
@@ -489,6 +681,17 @@ camino del operador.
    y saca los tres veredictos por consola. El cuarto argumento solo se usa si la
    mitad temporal queda `pendiente`.
 
+**Qué cambió en la tercera vuelta.** Solo tests: **cero** líneas de producción
+(`git diff --stat 5af5aaf..HEAD -- src/` sale vacío). El séptimo fixture de
+CA-10 —el paso 2 de la regla de decisión— vive en `verdict-content.test.ts`,
+bloque *«CA-10, regla de decisión paso 2 — señales fuertes contradictorias»*, y
+su gemelo del par en `pair.test.ts` caso (g). **Cómo se comprueba que muerden,
+si hace falta repetirlo:** borrar la rama `input.independent &&
+input.strongMirror` de `decide()` en `src/mirror/analysis/verdict.ts` y correr
+`npx vitest run tests/mirror` — tienen que salir 3 fallos en 2 ficheros; antes
+del fixture salía la suite entera verde. Restaurar con
+`git checkout -- src/mirror/analysis/verdict.ts`.
+
 **Qué falta, en orden.** (Reescrito en la segunda vuelta: F-SPEC-002-4 a -10
 están ratificados y **ejecutados**, y F-SPEC-002-13 está cerrado.)
 
@@ -502,13 +705,14 @@ están ratificados y **ejecutados**, y F-SPEC-002-13 está cerrado.)
    temporal sí, y el informe sale igual con ella `pendiente`. Con la enmienda
    ejecutada, el resultado por defecto del día 2 es **INCONCLUSO**, que por CA-12
    deja el motor con una sola vía en RN-02: es el coste declarado y asumido.
-4. Mirar **F-SPEC-002-17** (mínimo de Node) y **F-SPEC-002-19** (umbral de la
-   grafía) cuando toque; ninguno bloquea.
+4. Mirar **F-SPEC-002-17** (mínimo de Node), **F-SPEC-002-19** (umbral de la
+   grafía) y **F-SPEC-002-21** (el adelanto en una sola dirección como señal
+   fuerte de espejo en el par) cuando toque; ninguno bloquea.
 5. `sdd-documentalista`: runbook (**F-SPEC-002-14**).
 
 **Lo que NO se ha tocado, a propósito:** `src/model/`, `src/raw/`, `src/db/`,
 `migrations/`, `docs/fundacion/`, `FOUNDATION.md`, los ADR, `_epica.md` y
-`roadmap.md`. Ni un `migrations/0002`. Tampoco el texto de la spec ni las
+`roadmap.md`. En la tercera vuelta, tampoco `src/` **entero**. Ni un `migrations/0002`. Tampoco el texto de la spec ni las
 columnas *Verif.*/*Estado* de la matriz. SPEC-001 sigue verde y cerrada: sus 270
 casos pasan sin un solo cambio en su código, y la razón de que el fix de
 F-SPEC-002-V4 sea un hook y no rutas relativas es exactamente esa

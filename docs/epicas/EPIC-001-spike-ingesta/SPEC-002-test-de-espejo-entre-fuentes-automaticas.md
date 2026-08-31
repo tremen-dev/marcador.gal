@@ -11,6 +11,8 @@ historial:
   - {estado: en-revision, fecha: 2026-08-31, por: sdd-implementador}
   - {estado: en-progreso, fecha: 2026-08-31, por: sdd-verificador}
   - {estado: en-revision, fecha: 2026-08-31, por: sdd-implementador}
+  - {estado: en-progreso, fecha: 2026-08-31, por: sdd-verificador}
+  - {estado: en-revision, fecha: 2026-08-31, por: sdd-implementador}
 ---
 # SPEC-002 — Test de espejo entre fuentes automáticas
 
