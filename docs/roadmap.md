@@ -8,12 +8,27 @@ tipo: roadmap
 
 ## Ahora (en curso)
 
-- **EPIC-001 — Spike de ingesta.** *(Redefinida el 2026-08-31: ver más abajo.)*
-  Responder si hay fuentes automáticas usables y si son independientes entre sí.
-  Entregable: **un veredicto con evidencia citada**, no las cuatro cifras.
-  Las tres specs están hechas y verificadas; **lo único que queda es correr la
-  ventana de observación**. Antes hay que escribir la fecha de purga (ADR-009
-  §4.1) y conseguir los `robots.txt`.
+- **EPIC-001 — Spike de ingesta. BLOQUEADA el 2026-08-31.** Las tres specs están
+  hechas y verificadas GREEN, y aun así la épica no puede cerrarse: **solo hay
+  una fuente automática capturable** (`ceroacero.es`). futgal prohíbe el rastreo
+  y besoccer sirve armazones vacíos, con su dato tras un `Disallow`. SPEC-003
+  mide el cruce **entre dos** candidatas, así que hoy no es ejecutable.
+  Evidencia: `docs/epicas/EPIC-001-spike-ingesta/hallazgos/fontes-capturables.md`.
+  **El estado de juego, lo que desbloquea y las fechas están en el apartado
+  *ESTADO AL 2026-08-31* de su `_epica.md`. Empieza por ahí.**
+
+  **Y algo que ya no está en duda:** la segunda vía de RN-02 —dos fuentes
+  independientes de peso ≥ 0.7— está cerrada, y no por espejo sino por
+  aritmética: no hay dos. Con una sola fuente automática, **nada se publica
+  *confirmado* sin una persona**. Eso deja de ser una hipótesis del spike y pasa
+  a ser una restricción de diseño para el motor.
+
+**La acción con plazo externo, y la única que solo puede hacer una persona:**
+mandar la carta a la RFGF (`docs/negocio/carta-rfgf-acceso.md`, escrita y lista).
+Pide **dos líneas en su `robots.txt`**, no un acuerdo de datos, así que no
+necesita cifras y rompe el círculo de «la conversación solo tiene sentido con el
+informe en la mano». Si contestan, la ventana pasa a ser la de **SPEC-002** —
+hecha, verificada y esperando exactamente eso.
 
 **Bloqueante fuera del código:** contratar el dominio `.gal` y los handles.
 No depende de EPIC-001 y no debería esperar a ella.
