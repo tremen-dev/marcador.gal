@@ -34,12 +34,15 @@ export const gl = {
       'Non hai empresa nin equipo detrás: unha soa persoa traballando por conta propia. ' +
       'O enderezo de contacto é {mailbox}.',
 
-    measuringHeading: 'Que se está a medir',
+    measuringHeading: 'Que se vai medir',
     measuring:
-      'Agora mesmo o proxecto está a medir catro cousas sobre as fontes públicas de ' +
+      'O proxecto está preparado para medir catro cousas sobre as fontes públicas de ' +
       'resultados: a latencia con que aparece cada marcador, a cobertura dos partidos, ' +
       'os conflitos entre fontes e os minutos de operación manual que fan falta. ' +
-      'As competicións medidas son Terceira RFEF G1 e Preferente Futgal G1.',
+      'As competicións do estudo son Terceira RFEF G1 e Preferente Futgal G1. ' +
+      'A medición aínda non comezou e non hai ningunha cifra: unha das dúas competicións ' +
+      'non se pode ler hoxe, porque o ficheiro robots.txt da súa fonte non o permite e ' +
+      'respectalo é unha norma do proxecto.',
 
     purposeHeading: 'Para que',
     purpose:
@@ -49,7 +52,7 @@ export const gl = {
     noProductHeading: 'Aínda non hai produto',
     noProduct:
       'Hoxe non hai nada que usar: nin marcador público, nin aplicación, nin conta que ' +
-      'crear. Esta páxina existe para dicir quen está detrás e que se está a medir, ' +
+      'crear. Esta páxina existe para dicir quen está detrás e que se vai medir, ' +
       'e nada máis.',
 
     crawlerHeading: 'O rastrexador',

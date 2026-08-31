@@ -19,12 +19,15 @@ export const es = {
       'No hay empresa ni equipo detrás: una sola persona trabajando por cuenta propia. ' +
       'La dirección de contacto es {mailbox}.',
 
-    measuringHeading: 'Qué se está midiendo',
+    measuringHeading: 'Qué se va a medir',
     measuring:
-      'Ahora mismo el proyecto está midiendo cuatro cosas sobre las fuentes públicas de ' +
+      'El proyecto está preparado para medir cuatro cosas sobre las fuentes públicas de ' +
       'resultados: la latencia con la que aparece cada marcador, la cobertura de los ' +
       'partidos, los conflictos entre fuentes y los minutos de operación manual que hacen ' +
-      'falta. Las competiciones medidas son Terceira RFEF G1 y Preferente Futgal G1.',
+      'falta. Las competiciones del estudio son Terceira RFEF G1 y Preferente Futgal G1. ' +
+      'La medición todavía no ha empezado y no hay ninguna cifra: una de las dos ' +
+      'competiciones no se puede leer hoy, porque el fichero robots.txt de su fuente no lo ' +
+      'permite y respetarlo es una norma del proyecto.',
 
     purposeHeading: 'Para qué',
     purpose:
@@ -34,7 +37,7 @@ export const es = {
     noProductHeading: 'Todavía no hay producto',
     noProduct:
       'Hoy no hay nada que usar: ni marcador público, ni aplicación, ni cuenta que ' +
-      'crear. Esta página existe para decir quién está detrás y qué se está midiendo, ' +
+      'crear. Esta página existe para decir quién está detrás y qué se va a medir, ' +
       'y nada más.',
 
     crawlerHeading: 'El rastreador',

@@ -14,6 +14,30 @@ import { SITE_LOCALES, siteBundle } from '@/i18n/site';
 import type { SiteBundle } from '@/i18n/site-bundle';
 import { MAILBOX } from '@/site/contact';
 
+/**
+ * CA-8.2, F-SPEC-004-5. La página no puede afirmar una medición EN CURSO: la
+ * ventana de observación no se ha corrido y una de las dos competiciones no es
+ * capturable hoy (ADR-008 §1, RN-11). La carta a la RFGF dice «hoxe non o
+ * fago»; si el sitio dice lo contrario, la desmiente su propio enlace, que es
+ * el daño que EPIC-003 existe para evitar.
+ *
+ * CA-8.2 fija el CONTENIDO —las cuatro cifras y las dos competiciones—, no el
+ * tiempo verbal, así que la redacción veraz lo cumple entero. Esta lista es la
+ * barrera contra la recaída, con la misma forma que las de CA-6 y CA-7.
+ */
+const NOT_MEASURING_YET = [
+  'esta a medir',
+  'estase a medir',
+  'estamos a medir',
+  'esta medindo',
+  'esta midiendo',
+  'estamos midiendo',
+  'competicions medidas',
+  'competiciones medidas',
+  'fontes medidas',
+  'fuentes medidas',
+];
+
 /** CA-7: la lista negra atrapa el descuido; el verificador lee y atrapa la insinuación. */
 const NOT_A_SUCCESSION = [
   'marcadorgalego',
@@ -116,6 +140,28 @@ describe('CA-8.1 — «quen está detrás»: tres o cuatro frases, y ni una más
     for (const locale of SITE_LOCALES) {
       expect(siteBundle(locale).about).toContain('{mailbox}');
       expect(siteBundle(locale).about).not.toContain(MAILBOX);
+    }
+  });
+});
+
+describe('CA-8.2 — lo que se mide, sin afirmar que ya se está midiendo', () => {
+  test('9. ninguna clave del sitio afirma una medición en curso', () => {
+    const hits = SITE_LOCALES.flatMap((locale) => {
+      const text = deaccent(values(siteBundle(locale)).join(' \n '));
+      return NOT_MEASURING_YET.filter((term) => text.includes(term)).map(
+        (term) => `${locale}: ${term}`,
+      );
+    });
+
+    expect(hits).toEqual([]);
+  });
+
+  test('10. dice por qué una de las dos competiciones no se puede leer hoy', () => {
+    // Es la afirmación que sostiene la carta —«respectar o robots.txt é unha
+    // norma do proxecto»— y la única razón por la que el sitio puede nombrar
+    // las dos competiciones sin contradecirla.
+    for (const locale of SITE_LOCALES) {
+      expect(siteBundle(locale).measuring).toContain('robots.txt');
     }
   });
 });
