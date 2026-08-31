@@ -707,3 +707,40 @@ de prensa. **Fila propuesta:**
 
 **Invariantes tocados:** RN-09 (alias de fuente nunca son nombre canónico),
 `dominio.md` (fichas de las dos competiciones). **Nada que revisar en specs.**
+
+## Fecha de purga de la ventana — escrita ANTES de capturar (ADR-009 §4.1)
+
+**Cierra F-SPEC-002-8 / F-SPEC-003-8 para esta ventana.** ADR-009 §4.1: «una
+ventana cuya fecha de purga no esté escrita **no se corre**». Escrita aquí antes
+de lanzar el capturador, que es el único momento en que esto significa algo.
+
+| | |
+|---|---|
+| **Ventana** | `mitade de contido, capturada o 2026-08-31 (previa á xornada 1 do 5-6 de setembro)` |
+| **Config** | `ventanas/jornada-1/config.json` — 4 pares, 60 min, tick 20 s |
+| **Inicio de captura** | 2026-08-31, ~17:05 UTC |
+| **Plazo** | **30 días** desde el fin de la ventana (ADR-009, opción B, firmada por el gate) |
+| **Purga prevista** | **2026-09-30** |
+| **Prórroga** | **Una**, escrita y motivada **aquí** antes de que expire el plazo |
+| **Techo duro** | **2026-11-29**. Llegado el techo se purga aunque haya verificación en curso, y la ventana se pierde: se recaptura |
+
+**Lo que se pierde al purgar, aceptado al firmar ADR-009:** CA-7 de SPEC-002 deja
+de ser ejecutable sobre esta ventana —nadie podrá reproducir su informe byte a
+byte desde el archivo—. Las citas de CA-14 siguen siendo **verificables contra
+una copia**, porque el digest va dentro de la clave (`rawKey`), pero dejan de ser
+recuperables.
+
+**Acuse pendiente.** Tras purgar hay que escribir aquí la fecha real, los
+prefijos purgados y el número de claves borradas. **Sin acuse no se corre la
+ventana siguiente** (ADR-009 §4). `RawStore` no tiene operación de borrado: esto
+lo hace una persona, y **ningún test se pondrá rojo si no lo hace**.
+
+### Nota de calendario, verificada el 2026-08-31
+
+Esta ventana es la **mitad de contenido**, que no necesita partidos en juego. La
+**mitad temporal** los necesita, y el calendario dice **domingo 6**, no sábado 5:
+la jornada 1 reparte **1 partido el sábado** (Preferente: `SD Pol – CF Noia`) y
+**17 el domingo** (8 de Preferente y 9 de Tercera RFEF). **Los horarios de
+comienzo aún no están publicados** —las páginas muestran `01:00`, marcador de
+posición de hora sin confirmar—, así que la hora exacta de la ventana temporal
+hay que fijarla más cerca de la fecha.
