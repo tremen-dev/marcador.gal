@@ -1,0 +1,35 @@
+{
+  "window": "mitade de contido, capturada o 2026-08-31 (previa á xornada 1 do 5-6 de setembro)",
+  "duration_minutes": 60,
+  "tick_seconds": 20,
+  "targets": [
+    {
+      "source": "ceroacero",
+      "competition_id": "rfef-tercera-g1",
+      "url": "https://www.ceroacero.es/edicion/tercera-division-grupo-1-galicia-2026-27/220459",
+      "ext": "html"
+    },
+    {
+      "source": "ceroacero",
+      "competition_id": "futgal-preferente-g1",
+      "url": "https://www.ceroacero.es/edicion/galicia-preferente-autonomica-grupo-1-26-27/222309",
+      "ext": "html"
+    },
+    {
+      "source": "besoccer",
+      "competition_id": "rfef-tercera-g1",
+      "url": "https://www.besoccer.es/competicion/resultados/tercera_division_rfef/2027/grupo1",
+      "ext": "html"
+    },
+    {
+      "source": "besoccer",
+      "competition_id": "futgal-preferente-g1",
+      "url": "https://www.besoccer.es/competicion/resultados/galicia/2027/grupo1",
+      "ext": "html"
+    }
+  ],
+  "robots_files": {
+    "https://www.ceroacero.es": "robots/ceroacero.es.txt",
+    "https://www.besoccer.es": "robots/besoccer.es.txt"
+  }
+}

@@ -648,3 +648,139 @@ ventana, contra el archivo.
 4. Merge de SPEC-002 (PR #2) antes o después de este trabajo: esta rama sale de
    la suya, así que el PR de SPEC-003 la incluirá si aquel no se ha mergeado
    antes.
+
+## Dictamen de `sdd-competicion` — 2026-08-31 (mapeo de competiciones de la ventana)
+
+Consulta previa a escribir `ventanas/jornada-1/config.json`. **Fecha de consulta
+de las fuentes en línea: 2026-08-31.** Advisory: no implementa.
+
+**Veredicto: CORRECTO.** Los cuatro objetivos apuntan a las dos competiciones que
+EPIC-001 declara, y no a otras parecidas.
+
+### 1. Preferente Futgal G1 — las tres fuentes hablan de lo mismo
+
+Cada sitio la llama distinto: la RFGF **Preferente Futgal**, ceroacero
+**«Galicia - Preferente Autonómica Grupo 1»**, besoccer **«Preferente Galicia»**.
+No se dictamina por parecido de nombres —eso es justo lo que RN-09 prohíbe— sino
+por **coincidencia de calendario**: la página de ceroacero muestra `SD Pol` vs
+`CF Noia` el 2026-09-05, y la jornada 1 publicada de Preferente Futgal G1 incluye
+*Pol–Noia* entre sus emparejamientos, con **18 equipos** en el bloque norte. Es
+la misma competición.
+
+**El nombre canónico sigue siendo *Preferente Futgal*** (`dominio.md`): los tres
+nombres de fuente son **alias**, y un alias no se convierte en canónico.
+
+### 2. Tercera RFEF G1 es el grupo gallego — y ojo con la trampa
+
+El propio título de ceroacero lo dice: «Tercera División **Grupo 1 - Galicia**
+2026/27». Coherente con `dominio.md` y con ADR-002, que hace de futgal.es fuente
+oficial también para ella porque **la organiza la RFGF**.
+
+**Trampa evitada, y queda escrita para que nadie la repita:** ceroacero publica
+además una **«Tercera Futgal»** (`/edicion/tercera-futgal-2026-27/223062` y sus
+grupos por provincia). **No es la Tercera RFEF**: es la tercera categoría
+**regional** galega. Los dos nombres se parecen, viven en el mismo sitio y llevan
+a competiciones de nivel distinto. Confundirlas habría capturado una ventana
+entera de la competición equivocada sin que nada fallara.
+
+### 3. Calendario
+
+**Jornada 1 de la temporada 2026/27: fin de semana del 5-6 de septiembre de
+2026**, partidos repartidos entre los dos días. Las cuatro páginas objetivo
+muestran ya esa jornada. En besoccer la temporada 2026/27 se identifica como
+**`2027`** (usa el año de cierre), y en ceroacero como `26-27` / `2026-27` según
+la competición: son ids de sitio, no dato de dominio, y por eso viven en el
+`config.json` y no en el código.
+
+### 4. Un error de `dominio.md` que este dictamen encuentra y NO corrige
+
+La ficha de **Tercera RFEF grupo 1** dice «**Cuarta** categoría nacional». Es la
+**quinta**: por debajo de Primera, Segunda, Primera Federación y Segunda
+Federación. Desde la reforma de 2021/22, Tercera Federación es el quinto nivel
+del sistema español.
+
+No lo edito —`dominio.md` es documento de verdad y este rol avisa y propone— pero
+conviene arreglarlo: es el tipo de dato que se copia a una landing o a una nota
+de prensa. **Fila propuesta:**
+
+> | **Tercera RFEF grupo 1** | **Quinta** categoría nacional, grupo galego, organizado por la RFGF. | Representa "lo nacional" en el spike. |
+
+**Invariantes tocados:** RN-09 (alias de fuente nunca son nombre canónico),
+`dominio.md` (fichas de las dos competiciones). **Nada que revisar en specs.**
+
+## Fecha de purga de la ventana — escrita ANTES de capturar (ADR-009 §4.1)
+
+**Cierra F-SPEC-002-8 / F-SPEC-003-8 para esta ventana.** ADR-009 §4.1: «una
+ventana cuya fecha de purga no esté escrita **no se corre**». Escrita aquí antes
+de lanzar el capturador, que es el único momento en que esto significa algo.
+
+| | |
+|---|---|
+| **Ventana** | `mitade de contido, capturada o 2026-08-31 (previa á xornada 1 do 5-6 de setembro)` |
+| **Config** | `ventanas/jornada-1/config.json` — 4 pares, 60 min, tick 20 s |
+| **Inicio de captura** | 2026-08-31, ~17:05 UTC |
+| **Plazo** | **30 días** desde el fin de la ventana (ADR-009, opción B, firmada por el gate) |
+| **Purga prevista** | **2026-09-30** |
+| **Prórroga** | **Una**, escrita y motivada **aquí** antes de que expire el plazo |
+| **Techo duro** | **2026-11-29**. Llegado el techo se purga aunque haya verificación en curso, y la ventana se pierde: se recaptura |
+
+**Lo que se pierde al purgar, aceptado al firmar ADR-009:** CA-7 de SPEC-002 deja
+de ser ejecutable sobre esta ventana —nadie podrá reproducir su informe byte a
+byte desde el archivo—. Las citas de CA-14 siguen siendo **verificables contra
+una copia**, porque el digest va dentro de la clave (`rawKey`), pero dejan de ser
+recuperables.
+
+**Acuse pendiente.** Tras purgar hay que escribir aquí la fecha real, los
+prefijos purgados y el número de claves borradas. **Sin acuse no se corre la
+ventana siguiente** (ADR-009 §4). `RawStore` no tiene operación de borrado: esto
+lo hace una persona, y **ningún test se pondrá rojo si no lo hace**.
+
+### Nota de calendario, verificada el 2026-08-31
+
+Esta ventana es la **mitad de contenido**, que no necesita partidos en juego. La
+**mitad temporal** los necesita, y el calendario dice **domingo 6**, no sábado 5:
+la jornada 1 reparte **1 partido el sábado** (Preferente: `SD Pol – CF Noia`) y
+**17 el domingo** (8 de Preferente y 9 de Tercera RFEF). **Los horarios de
+comienzo aún no están publicados** —las páginas muestran `01:00`, marcador de
+posición de hora sin confirmar—, así que la hora exacta de la ventana temporal
+hay que fijarla más cerca de la fecha.
+
+## Follow-ups levantados al correr la ventana por primera vez — 2026-08-31
+
+Los tres salen de intentar correrla de verdad, no de leer el código. Ninguno es
+incumplimiento de un CA: son huecos de operación que solo aparecen usándolo.
+
+- **F-SPEC-003-9 — el capturador no da señal de vida durante una hora, y por eso
+  se abortó una ventana que iba bien.** `capturar.ts` no imprime nada hasta el
+  final y escribe `ventana.json` **solo al terminar**. Con la ventana en marcha,
+  quien la vigila no puede distinguir «funcionando» de «colgado» más que
+  adivinando dónde mira. Pasó: se dio por muerta a los 18 minutos, se mató el
+  proceso y **se perdió el registro de ticks de esos 18 minutos** — los bytes se
+  habían archivado, pero sin log no hay ventana analizable, porque la fase B
+  necesita saber qué se pidió y qué cobertura hubo. **Propuesta:** una línea por
+  tick a stdout, o un `ventana.json` incremental. Lo segundo además salvaría una
+  ventana interrumpida en vez de tirarla. **Destino:** `sdd-arquitecto`.
+- **F-SPEC-003-10 — `.env.local` decide en silencio dónde se archiva, y el
+  runbook no avisa.** `capturar.ts:49` elige `BlobRawStore` si existe
+  `BLOB_READ_WRITE_TOKEN`, y el script de npm carga `.env.local`, que **en este
+  proyecto ya tiene ese token** desde la verificación de SPEC-001. Consecuencia:
+  el operador sigue el runbook, mira `raw/`, lo ve vacío y concluye que la
+  captura falla — cuando está funcionando contra Vercel Blob. El runbook dice
+  «sin token archiva en `raw/`; con él, en Blob», pero no dice que **el token ya
+  está puesto**. Para una ventana de medición conviene disco: es inspeccionable y
+  la purga de ADR-009 §4 es un borrado de prefijo local. **Propuesta:** que el
+  CLI **imprima al arrancar qué store ha elegido y con qué raíz**; una decisión
+  silenciosa entre dos destinos es la clase de cosa que cuesta una ventana.
+  **Destino:** `sdd-arquitecto` + `sdd-documentalista` (runbook).
+- **F-SPEC-003-11 — `robots_files` se resuelve relativo al fichero de config, y
+  el runbook no lo decía.** Es un buen diseño —el `config.json` queda
+  autocontenido— pero costó un arranque fallido (`ENOENT`). Resuelto en la
+  práctica poniendo los `robots.txt` **dentro del directorio de la ventana**, que
+  además es mejor evidencia: cada ventana archiva la política que obedeció.
+  **Destino:** `sdd-documentalista` (runbook), ya aplicado en `ventanas/jornada-1/`.
+
+**Nota de método, para que no se repita:** las cuatro URL se habían verificado
+con `curl -L`, que sigue redirecciones en silencio — justo lo que CA-10 prohíbe
+al capturador. Comprobadas después **sin** `-L`, las cuatro dan 200 directo. Una
+verificación previa que usa opciones más permisivas que el sistema real no
+verifica el sistema real.
