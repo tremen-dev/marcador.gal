@@ -5,6 +5,11 @@ export default defineConfig({
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
+  // Vitest has no Next in front of it, so it needs the JSX runtime spelled out
+  // to be able to render the site's routes to a string (SPEC-004 CA-2, CA-3).
+  // Explicit and not inherited from tsconfig on purpose: `next build` rewrites
+  // that field on its own, and the suite should not move when it does.
+  oxc: { jsx: { runtime: 'automatic' } },
   test: {
     include: ['tests/**/*.test.ts'],
     // The suites that need real credentials are NOT here, and they are not
