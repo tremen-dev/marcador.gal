@@ -24,3 +24,9 @@ export const CRAWLER_PATH: Record<SiteLocale, string> = {
   gl: '/robot',
   es: '/es/robot',
 };
+
+/**
+ * The canonical origin. The apex is the name that travels in the letter, so
+ * `www` redirects here and not the other way round (ADR-010 §3).
+ */
+export const SITE_ORIGIN = 'https://marcador.gal';
