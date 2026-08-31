@@ -68,6 +68,10 @@ describe('CA-3 — el espía del extractor', () => {
 
     const capturer = await runWindow(new FailingRawStore());
 
+    // The guard matters: `[].every()` is `true`, so without a length the case
+    // would pass vacuously if this path ever stopped producing ticks at all
+    // (F-SPEC-002-20).
+    expect(capturer.log().ticks).toHaveLength(10);
     expect(capturer.log().ticks.every((tick) => tick.outcome === 'failed')).toBe(true);
     expect(extract).not.toHaveBeenCalled();
   });

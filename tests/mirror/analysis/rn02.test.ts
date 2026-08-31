@@ -16,7 +16,15 @@
 import { describe, expect, test } from 'vitest';
 import { verdictAgainstReference } from '@/mirror/analysis/verdict';
 import { analyseFixture } from '../support/report';
-import { atRest, bothIndependentPlan, lockstepPlan, merge, padding, plan } from '../support/plans';
+import {
+  atRest,
+  bothIndependentPlan,
+  lockstepPlan,
+  merge,
+  mutualLeadsPlan,
+  padding,
+  plan,
+} from '../support/plans';
 import { transientError } from '../support/plans';
 import { CEROACERO, FUTGAL, RESULTADOS } from '../support/targets';
 import type { PairAnalysis } from '@/mirror/analysis/compare';
@@ -62,15 +70,29 @@ describe('CA-12 — la tabla sobre los tres veredictos', () => {
   });
 
   test('4. el par de candidatas lleva la misma bandera con la misma regla (CA-15)', async () => {
+    // Three windows, and each verdict is pinned FIRST. Comparing two fields of
+    // the same object holds for any verdict at all, so on its own it does not
+    // fix that these plans come out where they come out (F-SPEC-002-20).
     const mirrored = await analyseFixture(lockstepPlan());
-    const independent = await analyseFixture(bothIndependentPlan());
+    expect(mirrored.report.pair.verdict).toBe('ESPEJO');
+    expect(mirrored.report.pair.rn02_segunda_via_entre_automaticas).toBe(false);
 
-    expect(mirrored.report.pair.rn02_segunda_via_entre_automaticas).toBe(
-      mirrored.report.pair.verdict === 'INDEPENDIENTE',
-    );
-    expect(independent.report.pair.rn02_segunda_via_entre_automaticas).toBe(
-      independent.report.pair.verdict === 'INDEPENDIENTE',
-    );
+    // The hole CA-15 exists to close, and it is real: in
+    // `bothIndependentPlan()` the two candidates ARE independent of futgal —
+    // both lead it — but they are mirrors OF EACH OTHER, so the pair does not
+    // open the second route however independent the two crossings look.
+    const holeInRn02 = await analyseFixture(bothIndependentPlan());
+    for (const source of holeInRn02.report.sources) {
+      expect(source.rn02_segunda_via_entre_automaticas).toBe(true);
+    }
+    expect(holeInRn02.report.pair.verdict).toBe('ESPEJO');
+    expect(holeInRn02.report.pair.rn02_segunda_via_entre_automaticas).toBe(false);
+
+    // And the pair does say `true` when it has earned it: each candidate leads
+    // the other in two matches (CA-15.1).
+    const mutual = await analyseFixture(mutualLeadsPlan());
+    expect(mutual.report.pair.verdict).toBe('INDEPENDIENTE');
+    expect(mutual.report.pair.rn02_segunda_via_entre_automaticas).toBe(true);
   });
 
   test('5. la bandera no tiene ninguna otra rama: es exactamente el veredicto', () => {

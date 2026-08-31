@@ -12,6 +12,7 @@
  * source's own formatting through instead of `canonicalInstant`, the archive
  * would still look fine and the timeline would be silently wrong.
  */
+import { createHash } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -167,7 +168,14 @@ describe('CA-4 — la clave ordena el tiempo', () => {
 
     const key = await store.put(meta, body);
 
+    // The digest is derived HERE, from the body, and not lifted out of the key
+    // under test: an expectation built from its own subject only checks that a
+    // string equals itself (F-SPEC-002-20).
+    const digest = createHash('sha256').update(body).digest('hex').slice(0, 12);
+
     expect(key).toBe(rawKey(meta, body));
-    expect(key).toBe(`${FUTGAL}/${TERCERA}/2026-09-05/${'2026-09-05t17-00-00.000z'}-${key.split('-').pop()}`);
+    expect(key).toBe(
+      `${FUTGAL}/${TERCERA}/2026-09-05/2026-09-05t17-00-00.000z-${digest}.html`,
+    );
   });
 });

@@ -72,3 +72,14 @@ export function bothIndependentPlan(): Plan {
   const early = merge(goalAt('m1', 3), goalAt('m2', 3), padding(4));
   return plan([FUTGAL, late], [CEROACERO, early], [RESULTADOS, early]);
 }
+
+/**
+ * A window where each candidate leads the OTHER in two matches: the only shape
+ * that earns INDEPENDIENTE ENTRE SÍ (CA-15.1, four adelantos and not two).
+ */
+export function mutualLeadsPlan(): Plan {
+  const futgal = merge(goalAt('m1', 5), goalAt('m2', 5), goalAt('m3', 5), goalAt('m4', 5), padding(3));
+  const first = merge(goalAt('m1', 2), goalAt('m2', 2), goalAt('m3', 8), goalAt('m4', 8), padding(3));
+  const second = merge(goalAt('m1', 8), goalAt('m2', 8), goalAt('m3', 2), goalAt('m4', 2), padding(3));
+  return plan([FUTGAL, futgal], [CEROACERO, first], [RESULTADOS, second]);
+}
