@@ -18,7 +18,9 @@
     "db:migrate": "node --env-file-if-exists=.env.local src/db/cli.ts",
     "test:db": "node --env-file-if-exists=.env.local ./node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts tests/db",
     "test:blob": "node --env-file-if-exists=.env.local ./node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts tests/raw/blob.contract.test.ts",
-    "test:integration": "node --env-file-if-exists=.env.local ./node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts"
+    "test:integration": "node --env-file-if-exists=.env.local ./node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts",
+    "mirror:capturar": "node --env-file-if-exists=.env.local src/mirror/cli/capturar-cli.ts",
+    "mirror:analizar": "node --env-file-if-exists=.env.local src/mirror/cli/analizar-cli.ts"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",
