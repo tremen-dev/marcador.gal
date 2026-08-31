@@ -119,10 +119,76 @@ está en `docs/tablero.md`; aquí solo el porqué de cada una:
   correr.
 
 Lo que queda para cerrar la épica **no es una spec, es una ventana**: correr
-SPEC-003 y escribir el hallazgo. Antes hace falta escribir la fecha de purga
-(ADR-009 §4.1), conseguir los `robots.txt`, el emparejamiento a mano (RN-09) y la
-calibración del extractor **después** de capturar. El procedimiento está en
+SPEC-003 y escribir el hallazgo. El procedimiento está en
 `docs/procedimientos/ventana-de-observacion-espejo.md`.
+
+**Pero hoy esa ventana no se puede correr. Lee el apartado siguiente antes de
+planificar nada.**
+
+## ESTADO AL 2026-08-31 — la épica está BLOQUEADA, y no por falta de código
+
+Las tres specs están `hecho` y verificadas GREEN. **Eso no significa que la épica
+esté cerca de cerrarse.** Al preparar la ventana apareció que la pregunta previa
+—*¿cuántas fuentes se pueden capturar de verdad?*— no estaba contestada, y la
+respuesta es **una**.
+
+| Fuente | Peso | Estado | Por qué |
+|---|---|---|---|
+| `futgal.es` | 1.0, **oficial** | ❌ no capturable | Su `robots.txt` prohíbe el rastreo; RN-11 obliga (ADR-008 §1) |
+| `ceroacero.es` | 0.7 | ✅ **usable** | HTML servido con los partidos. Única fuente viva hoy |
+| `besoccer.es` | 0.7 | ❌ no sirve por HTML | Sirve armazones vacíos; el dato vive tras un `Disallow: /ajax*` |
+
+Evidencia completa en **`hallazgos/fontes-capturables.md`**, con las capturas
+citadas por su clave.
+
+**Consecuencia:** SPEC-003 mide el cruce **entre dos candidatas** y hoy solo hay
+una, así que **no es ejecutable**. Y la segunda vía de RN-02 está cerrada por
+aritmética, no por espejo: no hay dos fuentes de 0.7.
+
+### Lo que desbloquea, por orden de a quién le toca
+
+1. **Mandar la carta a la RFGF** — `docs/negocio/carta-rfgf-acceso.md`, escrita y
+   lista. Pide **dos líneas en su `robots.txt`**, no un acuerdo de datos. **Le
+   toca a Alberto Fojo.** Es lo único con plazo externo: si contestan, la ventana
+   pasa a ser la de **SPEC-002** (con referencia), que está hecha y verificada
+   esperando exactamente esto, y la épica recupera su forma original.
+2. **Verificar `lapreferente.com` el domingo 6 de septiembre**, con partidos en
+   juego. Es la candidata a tercera fuente: sirve HTML real y usa el nombre
+   canónico `preferente-futgal-grupo-1`, pero **no se le encontró ni una hora de
+   comienzo ni rastro de directo**. En reposo, «no publica en vivo» y «no hay
+   nada en vivo» son la misma página: **solo se distingue con partidos**. Si
+   sirve, hace falta dictamen de `sdd-legal-datos` y un ADR que enmiende ADR-008
+   para ampliar el conjunto capturable — y entonces SPEC-003 vuelve a ser
+   ejecutable sin tocar código, porque la fuente es un dato del `config.json`.
+   *(`futbolme.com` quedó sin evaluar: su URL estaba caducada.)*
+3. **Si ninguna de las dos prospera**, la épica se cierra con
+   `hallazgos/fontes-capturables.md` como su respuesta —hay una sola fuente
+   automática— y eso obliga a ajustar estos criterios de éxito por segunda vez.
+   Decisión del gate, no de un rol.
+
+### Fechas que nadie va a recordar solo
+
+- **Domingo 6 de septiembre de 2026** — única ventana con partidos suficientes:
+  **17** (8 de Preferente y 9 de Tercera RFEF). El sábado 5 hay **uno**, así que
+  no sirve: N_min es 10. Los horarios de comienzo **no estaban publicados** el
+  2026-08-31; hay que mirarlos más cerca.
+- **30 de septiembre de 2026 — purga del archivo** (ADR-009, opción B). Las 12
+  capturas del 2026-08-31 viven en `raw/`, **fuera de git a propósito**. Hay que
+  borrarlas y escribir el acuse en el ledger de SPEC-003. **Ningún test se pondrá
+  rojo si nadie lo hace.** Techo duro: 29 de noviembre.
+
+### Lo que NO está bloqueado
+
+**EPIC-002 está aprobada y no depende de esto para empezar a especificarse**,
+aunque el roadmap fija que el motor no se diseña hasta saber si RN-02 tiene
+segunda vía — y esa respuesta **ya la hay**: no la tiene. Con una sola fuente
+automática, el motor nace con una vía y con corresponsales humanos, y eso se
+puede especificar hoy.
+
+Abierto y sin dueño asignado: **F-SPEC-002-23**, el parser de `robots.txt` trata
+el `*` de una ruta como carácter literal, así que **incumple `Disallow` reales
+sin que ningún test se ponga rojo**. Hay que cerrarlo antes del primer adaptador
+de EPIC-002.
 
 ## Riesgos
 
