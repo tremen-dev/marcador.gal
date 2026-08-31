@@ -20,7 +20,7 @@ import { pairKey } from './ports';
 import { robotsSkipReason } from './robots';
 import type { CaptureTarget, Clock, HttpFetcher } from './ports';
 import type { RobotsPolicy } from './robots';
-import type { TickRecord, WindowLog } from '@/mirror/window';
+import type { DeclaredPair, TickRecord, WindowLog } from '@/mirror/window';
 import type { RawStore } from '@/raw/store';
 
 export interface CapturerOptions {
@@ -69,9 +69,24 @@ export class Capturer {
     }
   }
 
-  /** What phase A managed to capture. Phase B reads this before judging. */
+  /**
+   * What phase A managed to capture. Phase B reads this before judging.
+   *
+   * It carries the pairs the run was ASKED to cover as well as the ones that
+   * left a trace (SPEC-003 CA-8). Deriving coverage from the ticks alone makes
+   * a pair that never produced one invisible, and an invisible pair reads as a
+   * window at 100 % of the pairs that did run.
+   */
   log(): WindowLog {
-    return { ticks: [...this.#ticks] };
+    const declared = new Map<string, DeclaredPair>();
+    for (const target of this.#targets) {
+      declared.set(pairKey(target), {
+        source: target.source,
+        competition_id: target.competition_id,
+      });
+    }
+
+    return { ticks: [...this.#ticks], declared_pairs: [...declared.values()] };
   }
 
   #isDue(target: CaptureTarget, epochMs: number): boolean {
