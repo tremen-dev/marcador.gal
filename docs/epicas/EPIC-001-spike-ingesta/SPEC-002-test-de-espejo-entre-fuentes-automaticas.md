@@ -2,7 +2,7 @@
 id: SPEC-002
 tipo: spec
 epica: EPIC-001
-estado: en-revision
+estado: hecho
 aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-08-31, por: sdd-arquitecto}
@@ -13,6 +13,7 @@ historial:
   - {estado: en-revision, fecha: 2026-08-31, por: sdd-implementador}
   - {estado: en-progreso, fecha: 2026-08-31, por: sdd-verificador}
   - {estado: en-revision, fecha: 2026-08-31, por: sdd-implementador}
+  - {estado: hecho, fecha: 2026-08-31, por: sdd-verificador}
 ---
 # SPEC-002 — Test de espejo entre fuentes automáticas
 
