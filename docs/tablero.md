@@ -11,6 +11,11 @@ Actualizado: 2026-08-31
 | SPEC-002 — test-de-espejo-entre-fuentes-automaticas | hecho | 2026-08-31 (sdd-verificador) |
 | SPEC-003 — test-de-espejo-sin-referencia-el-cruce-entre-candidatas | hecho | 2026-08-31 (sdd-verificador) |
 
+## EPIC-002 — instrumentacion-de-las-cuatro-cifras (borrador)
+
+| Spec | Estado | Último cambio |
+|---|---|---|
+
 ## ADRs
 
 | ADR | Estado | Título | Último cambio |
