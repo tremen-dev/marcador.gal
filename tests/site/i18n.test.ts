@@ -59,11 +59,13 @@ describe('CA-4 — paridad de bundles', () => {
   });
 
   test('3. ninguna clave está vacía en ninguna de las dos lenguas', () => {
-    for (const locale of SITE_LOCALES) {
-      for (const [key, value] of Object.entries(siteBundle(locale))) {
-        expect(value.trim(), `${locale}.${key}`).not.toBe('');
-      }
-    }
+    const empty = SITE_LOCALES.flatMap((locale) =>
+      Object.entries(siteBundle(locale))
+        .filter(([, value]) => value.trim() === '')
+        .map(([key]) => `${locale}.${key}`),
+    );
+
+    expect(empty).toEqual([]);
   });
 
   test('4. `qualifiers` sigue siendo de gl.ts y no entra en la paridad del sitio', () => {
@@ -79,12 +81,14 @@ describe('CA-4 — paridad de bundles', () => {
 
 describe('CA-7 — D-1: inspiración, no sucesión', () => {
   test('5. ningún término de sucesión aparece en ninguno de los dos bundles', () => {
-    for (const locale of SITE_LOCALES) {
+    const hits = SITE_LOCALES.flatMap((locale) => {
       const text = deaccent(values(siteBundle(locale)).join(' \n '));
-      for (const term of NOT_A_SUCCESSION) {
-        expect(text, `${locale} contiene «${term}»`).not.toContain(term);
-      }
-    }
+      return NOT_A_SUCCESSION.filter((term) => text.includes(term)).map(
+        (term) => `${locale}: ${term}`,
+      );
+    });
+
+    expect(hits).toEqual([]);
   });
 
   test('6. «quen está detrás» nombra a tremen.dev y a Alberto Fojo, sin apoyarse en nada anterior', () => {
@@ -98,13 +102,14 @@ describe('CA-7 — D-1: inspiración, no sucesión', () => {
 
 describe('CA-8.1 — «quen está detrás»: tres o cuatro frases, y ni una más', () => {
   test('7. el bloque no pasa de cuatro oraciones en ninguna lengua', () => {
-    for (const locale of SITE_LOCALES) {
-      const rendered = siteBundle(locale).about.replace('{mailbox}', MAILBOX);
-      const count = sentences(rendered).length;
+    const counted = SITE_LOCALES.map((locale) => ({
+      locale,
+      count: sentences(siteBundle(locale).about.replace('{mailbox}', MAILBOX)).length,
+    }));
 
-      expect(count, `${locale}: ${String(count)} oraciones`).toBeGreaterThanOrEqual(3);
-      expect(count, `${locale}: ${String(count)} oraciones`).toBeLessThanOrEqual(4);
-    }
+    // Ni menos de tres ni más de cuatro. El límite superior es el que importa:
+    // es donde la épica avisa que se incumple D-1, contando la historia.
+    expect(counted.filter(({ count }) => count < 3 || count > 4)).toEqual([]);
   });
 
   test('8. el buzón se interpola, no se escribe: el bundle lleva el hueco', () => {

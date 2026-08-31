@@ -6,7 +6,8 @@
  * `robots.txt` por el mismo `parseRobots` con el que decidimos si podemos
  * pedir una página ajena— es la forma barata de que eso no sea una frase.
  */
-import { readFile, access } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import { GET } from '@/app/robots.txt/route';
@@ -26,9 +27,9 @@ describe('CA-11 — robots.txt propio', () => {
     expect(await response.text()).toBe(buildRobotsTxt());
   });
 
-  test('2. lo genera la aplicación: no hay un fichero suelto que se desincronice', async () => {
-    await expect(access(join(process.cwd(), 'public/robots.txt'))).rejects.toThrow();
-    await expect(access(join(process.cwd(), 'src/app/robots.txt/route.ts'))).resolves.toBeUndefined();
+  test('2. lo genera la aplicación: no hay un fichero suelto que se desincronice', () => {
+    expect(existsSync(join(process.cwd(), 'public/robots.txt'))).toBe(false);
+    expect(existsSync(join(process.cwd(), 'src/app/robots.txt/route.ts'))).toBe(true);
   });
 
   test('3. no lleva ningún Disallow', () => {
@@ -38,9 +39,9 @@ describe('CA-11 — robots.txt propio', () => {
   test('4. nuestro propio parser nos deja rastrear el sitio entero', () => {
     const policy = parseRobots(buildRobotsTxt(), USER_AGENT);
 
-    for (const path of ['/', PROJECT_PATH.gl, PROJECT_PATH.es, CRAWLER_PATH.gl, CRAWLER_PATH.es]) {
-      expect(policy.isAllowed(`${SITE_ORIGIN}${path}`), path).toBe(true);
-    }
+    const paths = ['/', PROJECT_PATH.gl, PROJECT_PATH.es, CRAWLER_PATH.gl, CRAWLER_PATH.es];
+
+    expect(paths.filter((path) => !policy.isAllowed(`${SITE_ORIGIN}${path}`))).toEqual([]);
   });
 
   test('5. el buzón del comentario sale de la constante, no escrito a mano', () => {

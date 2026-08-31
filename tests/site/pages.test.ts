@@ -33,9 +33,7 @@ const ROUTES = {
 
 function render(locale: SiteLocale): string {
   const { layout, page } = ROUTES[locale];
-  return renderToStaticMarkup(
-    createElement(layout, { children: createElement(page) }),
-  );
+  return renderToStaticMarkup(createElement(layout, null, createElement(page)));
 }
 
 const HTML = { gl: render('gl'), es: render('es') } as const;
@@ -46,12 +44,16 @@ function text(locale: SiteLocale, key: keyof typeof gl.site): string {
   return ROUTES[locale].bundle[key].replace('{mailbox}', MAILBOX);
 }
 
-/** Comprueba que un literal está en el HTML, tramo a tramo si lleva interpolación. */
-function expectPresent(html: string, value: string, label: string): void {
-  for (const chunk of value.split(MAILBOX)) {
-    if (chunk.trim().length === 0) continue;
-    expect(html, label).toContain(chunk);
-  }
+/**
+ * Los tramos de un literal que NO están en el HTML. Se devuelven en vez de
+ * afirmarse uno a uno para que el fallo diga qué clave falta, y no solo que
+ * falta algo.
+ */
+function missingFrom(html: string, value: string, label: string): string[] {
+  return value
+    .split(MAILBOX)
+    .filter((chunk) => chunk.trim().length > 0 && !html.includes(chunk))
+    .map(() => label);
 }
 
 describe('CA-2 — galego por defecto', () => {
@@ -60,9 +62,11 @@ describe('CA-2 — galego por defecto', () => {
   });
 
   test('2. todo el texto visible de /proxecto sale del bundle gl', () => {
-    for (const key of Object.keys(gl.site) as (keyof typeof gl.site)[]) {
-      expectPresent(HTML.gl, text('gl', key), `gl.site.${key}`);
-    }
+    const missing = (Object.keys(gl.site) as (keyof typeof gl.site)[]).flatMap((key) =>
+      missingFrom(HTML.gl, text('gl', key), `gl.site.${key}`),
+    );
+
+    expect(missing).toEqual([]);
   });
 
   test('3. /proxecto no sirve ni una frase del bundle es', () => {
@@ -78,9 +82,11 @@ describe('CA-3 — castellano, con URL propia y sin JavaScript', () => {
   });
 
   test('5. todo el texto visible de /es/proxecto sale del bundle es', () => {
-    for (const key of Object.keys(es.site) as (keyof typeof es.site)[]) {
-      expectPresent(HTML.es, text('es', key), `es.site.${key}`);
-    }
+    const missing = (Object.keys(es.site) as (keyof typeof es.site)[]).flatMap((key) =>
+      missingFrom(HTML.es, text('es', key), `es.site.${key}`),
+    );
+
+    expect(missing).toEqual([]);
   });
 
   test('6. el conmutador de lengua es un <a href>, no un botón con manejador', () => {
@@ -122,9 +128,8 @@ describe('CA-6 — no hay promesa de producto', () => {
   test('8. ningún término de la lista negra aparece en ninguna ruta', () => {
     for (const locale of LOCALES) {
       const lower = HTML[locale].toLowerCase();
-      for (const term of FORBIDDEN) {
-        expect(lower, `${locale} contiene «${term}»`).not.toContain(term);
-      }
+
+      expect(FORBIDDEN.filter((term) => lower.includes(term))).toEqual([]);
     }
   });
 
@@ -139,7 +144,7 @@ describe('CA-8 — lo que la página de proyecto tiene que decir', () => {
   test('10. quién está detrás, con el buzón como mailto tomado de la constante', () => {
     for (const locale of LOCALES) {
       expect(HTML[locale]).toContain(ROUTES[locale].bundle.aboutHeading);
-      expectPresent(HTML[locale], text(locale, 'about'), `${locale} about`);
+      expect(missingFrom(HTML[locale], text(locale, 'about'), locale)).toEqual([]);
       expect(HTML[locale]).toContain(`href="mailto:${MAILBOX}"`);
     }
   });
@@ -147,9 +152,9 @@ describe('CA-8 — lo que la página de proyecto tiene que decir', () => {
   test('11. qué se está midiendo: las cuatro cifras y las dos competiciones', () => {
     for (const locale of LOCALES) {
       const measuring = text(locale, 'measuring').toLowerCase();
-      for (const term of ['latencia', 'cobertura', 'operación manual']) {
-        expect(measuring, `${locale}: falta «${term}»`).toContain(term);
-      }
+      const wanted = ['latencia', 'cobertura', 'operación manual'];
+
+      expect(wanted.filter((term) => !measuring.includes(term))).toEqual([]);
       expect(measuring).toMatch(/conflictos|conflitos/);
       expect(HTML[locale]).toContain('Terceira RFEF G1');
       expect(HTML[locale]).toContain('Preferente Futgal G1');
@@ -161,14 +166,14 @@ describe('CA-8 — lo que la página de proyecto tiene que decir', () => {
       const purpose = text(locale, 'purpose').toLowerCase();
       expect(purpose).toContain('viable');
       expect(purpose).toContain('informe interno');
-      expectPresent(HTML[locale], text(locale, 'purpose'), `${locale} purpose`);
+      expect(missingFrom(HTML[locale], text(locale, 'purpose'), locale)).toEqual([]);
     }
   });
 
   test('13. que todavía no hay producto', () => {
     for (const locale of LOCALES) {
       expect(HTML[locale]).toContain(ROUTES[locale].bundle.noProductHeading);
-      expectPresent(HTML[locale], text(locale, 'noProduct'), `${locale} noProduct`);
+      expect(missingFrom(HTML[locale], text(locale, 'noProduct'), locale)).toEqual([]);
     }
   });
 

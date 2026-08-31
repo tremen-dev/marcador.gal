@@ -23,8 +23,12 @@ const NOT_A_ROUTE = 'app/_contract/';
 /** Texto entre `>` y el siguiente tag: si lleva letras, es texto incrustado. */
 const JSX_TEXT = /(?<!=)>([^<>{}]*\p{L}[^<>{}]*)<\/?[A-Za-z]/gu;
 
-/** Un literal como hijo de JSX: `{'Hola'}`. Los de atributo llevan `=` delante. */
-const LITERAL_CHILD = /(?<![=])\{\s*['"`]\p{L}/u;
+/**
+ * Un literal como hijo de JSX: `{'Hola'}`. Va detrás de un `>` o de otra
+ * expresión, que es lo que lo distingue de un literal de atributo —`href={…}`,
+ * con `=` delante— y de una clave de objeto en código normal.
+ */
+const LITERAL_CHILD = /[>}]\s*\{\s*['"`]\p{L}/u;
 
 /** Atributos que el usuario LEE. Los demás (href, className, lang) no lo son. */
 const VISIBLE_ATTRIBUTE =
@@ -51,7 +55,10 @@ describe('CA-5 — ningún literal incrustado', () => {
   test('2. ningún fichero de ruta o componente lleva texto visible escrito a mano', async () => {
     const offenders: string[] = [];
 
-    for (const file of await siteSources()) {
+    // Solo `.tsx`: las tres reglas hablan de JSX, y un `.ts` no tiene.
+    const components = (await siteSources()).filter((f) => f.path.endsWith('.tsx'));
+
+    for (const file of components) {
       const code = stripComments(file.text);
 
       for (const [, captured] of code.matchAll(JSX_TEXT)) {
