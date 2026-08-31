@@ -102,30 +102,45 @@ export function windowValidity(log: WindowLog): WindowValidity {
   return { valid: coverage.length > 0 && below.length === 0, coverage, below };
 }
 
-/** Thrown by phase B when asked to judge a window that is not fit to judge. */
+/**
+ * Thrown by phase B when asked to judge a window that is not fit to judge.
+ *
+ * The refusal is not mute (CA-5, enmienda 2026-08-31 §6). It carries the
+ * coverage of EVERY pair and not only of the ones that fell below the
+ * threshold, plus the threshold itself, because what the operator has to
+ * decide is not "which pair broke" but "is the whole hour to be repeated" —
+ * and five healthy pairs next to one at 50 % is a different situation from six
+ * at 50 %. It reads as a table, worst pair first, because that is the pair
+ * that decided.
+ */
 export class InvalidWindowError extends Error {
   override readonly name = 'InvalidWindowError';
   readonly below: readonly PairCoverage[];
+  /** Every (source, competition) pair of the window, worst ratio first. */
+  readonly coverage: readonly PairCoverage[];
 
-  constructor(below: readonly PairCoverage[]) {
+  constructor(below: readonly PairCoverage[], coverage: readonly PairCoverage[]) {
+    const threshold = `${(MIN_TICK_SUCCESS_RATIO * 100).toFixed(0)} %`;
     const detail =
-      below.length === 0
+      coverage.length === 0
         ? 'the window has no ticks at all'
-        : below
+        : `${below.length} of ${coverage.length} (source, competition) pairs below the required ` +
+          `${threshold} of successful ticks. Coverage of every pair: ` +
+          coverage
             .map(
               (pair) =>
-                `${pair.source}/${pair.competition_id} at ${(pair.ratio * 100).toFixed(1)} % (${pair.ok}/${pair.attempted})`,
+                `${pair.source}/${pair.competition_id} at ${(pair.ratio * 100).toFixed(1)} % ` +
+                `(${pair.ok}/${pair.attempted}) ${pair.ratio < MIN_TICK_SUCCESS_RATIO ? 'BELOW' : 'ok'}`,
             )
-            .join(', ');
-    super(
-      `CA-5: refusing to judge an invalid window — below ${(MIN_TICK_SUCCESS_RATIO * 100).toFixed(0)} % successful ticks: ${detail}`,
-    );
+            .join('; ');
+    super(`CA-5: refusing to judge an invalid window — ${detail}`);
     this.below = below;
+    this.coverage = coverage;
   }
 }
 
 /** Phase B calls this before anything else. It refuses; it does not guess. */
 export function assertWindowValid(log: WindowLog): void {
   const validity = windowValidity(log);
-  if (!validity.valid) throw new InvalidWindowError(validity.below);
+  if (!validity.valid) throw new InvalidWindowError(validity.below, validity.coverage);
 }

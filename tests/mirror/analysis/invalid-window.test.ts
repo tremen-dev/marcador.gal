@@ -10,7 +10,7 @@
 import { describe, expect, test } from 'vitest';
 import { analyze } from '@/mirror/analysis/analyze';
 import { InvalidWindowError } from '@/mirror/window';
-import { buildFixture } from '../support/archive';
+import { FIXTURE_COMPETITION, buildFixture } from '../support/archive';
 import { padding, plan } from '../support/plans';
 import { caughtAsync } from '../support/caught';
 import { CEROACERO, FUTGAL, RESULTADOS } from '../support/targets';
@@ -90,5 +90,30 @@ describe('CA-5 — la fase B se niega sobre una ventana inválida', () => {
 
     expect(message).toContain(CEROACERO);
     expect(message).toContain('90 %');
+  });
+
+  test('4. y nombra también los pares sanos: la negativa no es muda (enmienda §6)', async () => {
+    const fixture = await buildFixture(window());
+
+    const message = (
+      await caughtAsync(() =>
+        analyze({
+          store: fixture.store,
+          keys: fixture.keys,
+          log: degrade(fixture.log, CEROACERO, 6),
+          extractors: fixture.extractors,
+          pairing: fixture.pairing,
+          reference: FUTGAL,
+          candidates: [CEROACERO, RESULTADOS],
+        }),
+      )
+    ).message;
+
+    // El par que se cayó y los DOS que no. Lo que el operador tiene que decidir
+    // no es qué par se rompió, sino si repite la hora entera.
+    expect(message).toContain(`${CEROACERO}/${FIXTURE_COMPETITION} at 62.5 % (10/16) BELOW`);
+    expect(message).toContain(`${FUTGAL}/${FIXTURE_COMPETITION} at 100.0 % (10/10) ok`);
+    expect(message).toContain(`${RESULTADOS}/${FIXTURE_COMPETITION} at 100.0 % (10/10) ok`);
+    expect(message).toContain('1 of 3 (source, competition) pairs');
   });
 });

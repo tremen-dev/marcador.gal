@@ -18,7 +18,7 @@ import {
 import { canonicalInstant, instantToEpochMs } from '@/mirror/instants';
 import type { TickOutcome, WindowLog } from '@/mirror/window';
 import { caught } from './support/caught';
-import { CEROACERO, FUTGAL, TERCERA } from './support/targets';
+import { CEROACERO, FUTGAL, PREFERENTE, RESULTADOS, TERCERA } from './support/targets';
 import type { CompetitionId, SourceId } from '@/model/ids';
 
 const START = instantToEpochMs('2026-09-05T17:00:00.000Z');
@@ -105,5 +105,34 @@ describe('CA-5 — cobertura por par', () => {
 
   test('7. una ventana sin ticks no es una ventana válida', () => {
     expect(windowValidity({ ticks: [] }).valid).toBe(false);
+  });
+
+  test('8. la negativa no es muda: el error lleva los SEIS pares y el umbral', () => {
+    // Enmienda 2026-08-31 §6. Con solo los pares caídos, el operador ve qué se
+    // rompió y no ve la salud de la ventana entera, que es lo que le dice si
+    // repite la hora o si el resto del archivo sirve para algo.
+    const window = log(
+      ticksFor(FUTGAL, TERCERA, { ok: 60 }),
+      ticksFor(FUTGAL, PREFERENTE, { ok: 60 }),
+      ticksFor(CEROACERO, TERCERA, { ok: 30, failed: 30 }),
+      ticksFor(CEROACERO, PREFERENTE, { ok: 59, failed: 1 }),
+      ticksFor(RESULTADOS, TERCERA, { ok: 60 }),
+      ticksFor(RESULTADOS, PREFERENTE, { ok: 54, failed: 6 }),
+    );
+
+    const error = caught(() => assertWindowValid(window)) as InvalidWindowError;
+
+    expect(error.coverage).toHaveLength(6);
+    expect(error.below.map((pair) => pair.source)).toEqual([CEROACERO]);
+
+    // Los seis pares, con su ratio, en el mensaje. Los cinco sanos también.
+    for (const pair of error.coverage) {
+      expect(error.message).toContain(`${pair.source}/${pair.competition_id}`);
+      expect(error.message).toContain(`${(pair.ratio * 100).toFixed(1)} %`);
+    }
+    expect(error.message).toContain('90 %');
+    // Y se distingue de un vistazo quién bajó del umbral y quién no.
+    expect(error.message).toContain(`${CEROACERO}/${TERCERA} at 50.0 % (30/60) BELOW`);
+    expect(error.message).toContain(`${FUTGAL}/${TERCERA} at 100.0 % (60/60) ok`);
   });
 });
