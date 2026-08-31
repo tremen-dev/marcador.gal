@@ -14,17 +14,6 @@ import { join, relative } from 'node:path';
 
 const CONTACT_MODULE = 'site/contact.ts';
 
-/**
- * TEMPORARY. `src/mirror/user-agent.ts` still carries the address inside
- * `USER_AGENT_CONTACT` (`mailto:ola@tremen.dev`). SPEC-005 replaces it with
- * `https://marcador.gal/robot` (ADR-011 §4), and SPEC-004 is explicitly
- * forbidden from touching `src/mirror/`. The exception is an EXACT match, not
- * a subset, so the day SPEC-005 lands this test goes red and whoever is there
- * has to delete this line — which is the only way an exception ever leaves a
- * codebase. See F-SPEC-004-1 in the ledger.
- */
-const PENDING_SPEC_005 = 'mirror/user-agent.ts';
-
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
 
 /**
@@ -55,7 +44,11 @@ describe('CA-13 — el buzón en un solo sitio', () => {
     const files = await readSourceFiles();
     const offenders = files.filter((f) => EMAIL.test(f.text)).map((f) => f.path);
 
-    expect(offenders).toEqual([CONTACT_MODULE, PENDING_SPEC_005].sort((a, b) => a.localeCompare(b)));
+    // Sin excepciones. La única que hubo —`mirror/user-agent.ts`, que llevaba
+    // el correo dentro de `USER_AGENT_CONTACT`— murió al cambiar la cadena por
+    // `https://marcador.gal/robot` (SPEC-005 CA-4). Estaba escrita como
+    // igualdad exacta justamente para que este test la expulsara sola.
+    expect(offenders).toEqual([CONTACT_MODULE]);
   });
 
   test('3. la cabecera del módulo lleva escrito el contrato de la migración', async () => {
