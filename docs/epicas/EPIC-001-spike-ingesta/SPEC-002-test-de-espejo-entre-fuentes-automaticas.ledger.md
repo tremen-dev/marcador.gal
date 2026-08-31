@@ -1315,3 +1315,33 @@ Lo que la firma **no** cierra, y sigue abierto en *Salvedades / follow-ups*:
 cerrado por los commits `da9c6dc` y `c8b6cfc`, que además metieron *espejo*,
 *independiente* e *inconcluso* en `dominio.md` — el trámite que el §7 de las
 *Notas para el gate humano* dejaba condicionado a esta firma.
+
+## Referencia cruzada — 2026-08-31: SPEC-005 cambió `USER_AGENT`
+
+**Esto es una referencia cruzada, no una autorización.** Un ledger es evidencia
+de verificación y nunca permiso para tocar código (ADR-011 §6). El cambio se
+hizo bajo **SPEC-005**, spec propia de EPIC-003, aprobada por Alberto Fojo el
+2026-08-31. SPEC-002 no se reabre ni se vuelve a verificar: lo único que se le
+debe es que su suite siga verde y que el cambio sea de un solo fichero, y las
+dos cosas son criterios de aquella spec (SPEC-005 CA-10).
+
+**Qué cambió**, en `src/mirror/user-agent.ts`:
+
+| | Cadena |
+|---|---|
+| Antes (SPEC-002) | `marcador.gal/0.0.1 (+mailto:ola@tremen.dev; medicion SPEC-002, RN-11)` |
+| Ahora (SPEC-005) | `marcador.gal/0.0.1 (+https://marcador.gal/robot; medicion de latencia)` |
+
+**Y por qué esta nota existe: la razón registrada al cerrar F-SPEC-002-1
+CADUCÓ.** Ese finding se cerró el 2026-08-31 dejando escrito que el contacto era
+un `mailto:` **y no** una URL de `marcador.gal` porque «ese dominio no está
+contratado, y un contacto que no resuelve es peor que ninguno». El dominio se
+contrató **ese mismo día**. Quien lea este ledger dentro de un año no debe
+concluir que el `mailto:` sigue vigente y que el código lo contradice: no es
+deriva, es una decisión posterior con su propia spec y su propio ADR.
+
+La exigencia de RN-11 —que un operador tenga dónde quejarse— la cumple ahora la
+página `https://marcador.gal/robot`, que lleva el buzón como enlace en su primer
+bloque. **El riesgo residual de que el correo deje de viajar en la cabecera se le
+presentó a Alberto Fojo y lo aceptó explícitamente el 2026-08-31**, con esa
+cláusula como única compensación (ADR-011 §Consecuencias).
