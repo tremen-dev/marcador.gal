@@ -159,7 +159,7 @@ vía de RN-02 queda cerrada para todo lo que no sea una persona.
   **Lo que sí se movió, porque pasa el corte:** las reglas semánticas del
   marcador —el acento de marca nunca es color de estado, ningún estado se
   codifica solo con color, sin escudos, números tabulares— están en **ADR-013**,
-  en `borrador`. Se derivan de D-8 y de RN-01..RN-13, que están locked, y no
+  `aprobada`. Se derivan de D-8 y de RN-01..RN-13, que están locked, y no
   cambiarían con el informe en la mano.
 
   **Y algo que la épica hereda como deuda, no como diseño:** el sistema pinta
@@ -194,7 +194,7 @@ vía de RN-02 queda cerrada para todo lo que no sea una persona.
   el 2026-09-01 al descubrirse que **seis artefactos rutaban trabajo ahí y la
   épica no existía**: ni directorio, ni entrada aquí, ni fila en el tablero. Lo
   aplazado estaba enterrado en ledgers de specs cerradas. Su inventario del
-  primer día son cinco entradas, y **cuatro son barreras que no muerden**, no
+  primer día son once entradas, y **nueve son barreras que no muerden**, no
   funciones que falten: no hay CI, la purga de 30 días no tiene ejecutor, la
   permanencia de las URL no la vigila ningún test, las barreras de contenido
   miran un HTML que no es el servido, y los 360 px no se han visto en un

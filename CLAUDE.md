@@ -38,10 +38,9 @@ que la fuente oficial **no es capturable** (ADR-008). SPEC-002 queda a la espera
 que lo sea; SPEC-003 mide lo que sí se puede medir sin ella. EPIC-001 **no tiene
 todavía ninguna de sus cuatro cifras**.
 
-Hay **trece ADRs**. Aprobados e inmutables: **ADR-001 a ADR-009, ADR-012 y
-ADR-013**. En borrador: **ADR-010 y ADR-011** (EPIC-003). Para cambiar uno
-aprobado, escribe otro ADR que lo supersede; no lo edites. ADR-008 y ADR-009
-superseden **parcialmente** a ADR-002 y ADR-005: lee siempre el que supersede
+Hay **trece ADRs**, todos **aprobados e inmutables** (ADR-001 a ADR-013). Para
+cambiar uno aprobado, escribe otro ADR que lo supersede; no lo edites. ADR-008
+y ADR-009 superseden **parcialmente** a ADR-002 y ADR-005: lee siempre el que supersede
 antes de apoyarte en el viejo. **ADR-013 fija la semántica visual del marcador**
 —el acento de marca nunca es un color de estado, ningún estado se codifica solo
 con color, dígitos tabulares, sin escudos— y te obliga en cuanto toques
