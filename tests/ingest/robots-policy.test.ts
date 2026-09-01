@@ -10,6 +10,7 @@ import { describe, expect, test } from 'vitest';
 import { SourceAdapter } from '@/ingest/adapter';
 import { CEROACERO_ENTRY, sourceRegistry } from '@/ingest/sources';
 import { ROBOTS_MAX_AGE_MS, RobotsGate } from '@/polite/policy';
+import { MemoryRateLimit } from '@/polite/rate-limit';
 import { USER_AGENT } from '@/polite/user-agent';
 import { FIVE_BRANCHES, ceroaceroPage } from '../fixtures/ceroacero';
 import { FakeClock, MemoryRawStore, RESOLVE_ALL, spyFetcher } from './support/doubles';
@@ -37,6 +38,7 @@ function harness(
     store,
     clock,
     robots: new RobotsGate({ fetcher: spy.fetcher, store, userAgent: USER_AGENT }),
+    rateLimit: new MemoryRateLimit(),
     resolver: RESOLVE_ALL,
   });
 
@@ -89,6 +91,7 @@ describe('CA-6 — se obtiene por la misma puerta y se archiva antes de parsears
       store: watched,
       clock,
       robots: new RobotsGate({ fetcher: spy.fetcher, store: watched, userAgent: USER_AGENT }),
+      rateLimit: new MemoryRateLimit(),
       resolver: RESOLVE_ALL,
     });
 

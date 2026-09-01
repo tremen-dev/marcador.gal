@@ -46,3 +46,15 @@ export function epochMsOf(instant: string): number {
   if (Number.isNaN(epochMs)) throw new NotAnInstantError(instant);
   return epochMs;
 }
+
+/**
+ * The instant of an epoch-milliseconds number: the inverse of `epochMsOf`.
+ *
+ * It exists so that the durable half of the rhythm (CA-14) can hand Postgres
+ * an instant without `Date` appearing in `src/db/`. Both converters live in
+ * the same file on purpose: `Date` is transient here and nowhere else
+ * (ADR-006).
+ */
+export function instantOf(epochMs: number): Instant {
+  return new Date(epochMs).toISOString() as Instant;
+}

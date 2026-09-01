@@ -7,6 +7,7 @@ import { SourceAdapter } from '@/ingest/adapter';
 import { CEROACERO_ENTRY, sourceRegistry } from '@/ingest/sources';
 import { MissingUserAgentError, RedirectNotFollowedError } from '@/polite/http';
 import { RobotsGate } from '@/polite/policy';
+import { MemoryRateLimit } from '@/polite/rate-limit';
 import { USER_AGENT, USER_AGENT_PATTERN } from '@/polite/user-agent';
 import { FIVE_BRANCHES, ceroaceroPage } from '../fixtures/ceroacero';
 import {
@@ -17,7 +18,9 @@ import {
   RobotsOnlyRawStore,
   spyFetcher,
 } from './support/doubles';
+import { coldStart } from './support/cold-start';
 import type { HttpRequest, HttpResponse } from '@/polite/http';
+import type { RateLimit } from '@/polite/rate-limit';
 import type { RowExtractor, SourceRow } from '@/ingest/ports';
 import type { RawStore } from '@/raw/store';
 
@@ -42,6 +45,8 @@ interface HarnessOptions {
   readonly userAgent?: string;
   readonly extract?: RowExtractor;
   readonly competitions?: readonly (readonly [(typeof CEROACERO_ENTRY)['competitions'][0][0], string])[];
+  /** CA-14: the port is required, so the harness always hands one over. */
+  readonly rateLimit?: RateLimit;
 }
 
 function harness(options: HarnessOptions = {}) {
@@ -62,6 +67,7 @@ function harness(options: HarnessOptions = {}) {
     store,
     clock,
     robots: new RobotsGate({ fetcher: spy.fetcher, store, userAgent }),
+    rateLimit: options.rateLimit ?? new MemoryRateLimit(),
     resolver: RESOLVE_ALL,
     userAgent,
   });
@@ -194,6 +200,7 @@ describe('CA-5 — ninguna petición sale sin permiso, sin identificarse o cambi
           return { allowed: true, reason: null, policyRawRef: null };
         },
       },
+      rateLimit: new MemoryRateLimit(),
       resolver: RESOLVE_ALL,
       userAgent: '   ',
     });
@@ -361,9 +368,10 @@ describe('CA-7 — el ritmo lo impone el adaptador, no quien lo llama (RN-11)', 
     expect(h.spy.forUrl(first!.url)).toHaveLength(2);
   });
 
-  test('16. y `tick()` no gasta dos turnos por pase al delegar en `capture()`', async () => {
-    // El limitador se consulta en los dos sitios a propósito. Este caso fija
-    // que esa doble consulta no se come el turno: un pase del cron sigue
+  test('16. y `tick()` no gasta dos turnos por pase', async () => {
+    // El puerto tiene UNA operación: no se puede preguntar sin sellar. Este
+    // caso fija que `tick()` toma el turno una sola vez —no lo vuelve a tomar
+    // al entrar en el camino de captura— y que un pase del cron sigue
     // produciendo exactamente una petición por par, y su registro.
     const h = harness();
     const [first] = h.targets;
@@ -372,5 +380,70 @@ describe('CA-7 — el ritmo lo impone el adaptador, no quien lo llama (RN-11)', 
 
     expect(records.map((r) => r.outcome)).toEqual(['ok', 'ok']);
     expect(h.spy.forUrl(first!.url)).toHaveLength(1);
+  });
+});
+
+describe('CA-14.3 — el control positivo, que es el que nombra el defecto', () => {
+  test('17. diez adaptadores construidos por separado, EN MEMORIA: diez peticiones', async () => {
+    // Es la reproducción exacta de F-SPEC-008-V13, y se afirma como resultado
+    // ESPERADO. La forma real de producción es una instancia nueva por tick
+    // (ADR-004, «no hay proceso vivo»), y un limitador que sea un campo de
+    // instancia nace vacío en cada arranque en frío. Si algún día este caso
+    // diera 1, sería porque el puerto en memoria dejó de ser en memoria — y la
+    // mitad durable de CA-14.2 habría dejado de probar nada.
+    const result = await coldStart({
+      instances: 10,
+      makeRateLimit: () => new MemoryRateLimit(),
+    });
+
+    expect(result.targetRequests).toBe(10);
+    expect(result.kinds.filter((kind) => kind === 'captured')).toHaveLength(10);
+  });
+
+  test('18. y dentro de UNA instancia el ritmo sí se cumple, que es lo que CA-7 promete', async () => {
+    // La misma máquina, con el puerto compartido entre las diez rondas: es el
+    // contraste que separa «el ritmo dentro de una ejecución» (CA-7, ✅) de
+    // «la memoria del ritmo sobrevive a la ejecución» (CA-14).
+    const shared = new MemoryRateLimit();
+    const result = await coldStart({ instances: 10, makeRateLimit: () => shared });
+
+    expect(result.targetRequests).toBe(1);
+    expect(result.reasons.filter((reason) => reason !== null)).toHaveLength(9);
+  });
+});
+
+describe('CA-14.7 — se falla cerrado: sin ritmo demostrable no sale nada', () => {
+  /** Un puerto que revienta: la consulta falla, o no hay base de datos. */
+  const exploding: RateLimit = {
+    takeTurn: () => Promise.reject(new Error('no database configured for the rhythm')),
+  };
+
+  test('19. `capture()`: cero peticiones, cero bytes archivados y el error sin envolver', async () => {
+    const h = harness({ rateLimit: exploding });
+    const target = h.targets[0]!;
+
+    await expect(h.adapter.capture(target, h.clock.now())).rejects.toThrow(
+      'no database configured for the rhythm',
+    );
+
+    expect(h.spy.requests).toEqual([]);
+    expect((h.store as MemoryRawStore).size).toBe(0);
+  });
+
+  test('20. `tick()`: ninguna petición, ninguna `Observation`, y el motivo registrado', async () => {
+    // Un turno NEGADO es silencioso (CA-7): no produce registro. Un turno cuyo
+    // estado no se puede consultar NO es un turno negado, y sí lo produce: es
+    // cobertura perdida y el operador tiene que verla (ADR-014 §3.3).
+    const h = harness({ rateLimit: exploding });
+
+    const records = await h.adapter.tick();
+
+    expect(records.map((r) => r.outcome)).toEqual(['failed', 'failed']);
+    for (const record of records) {
+      expect(record.reason).toContain('no database configured for the rhythm');
+      expect(record.raw_ref).toBeNull();
+    }
+    expect(h.spy.requests).toEqual([]);
+    expect((h.store as MemoryRawStore).size).toBe(0);
   });
 });

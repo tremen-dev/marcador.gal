@@ -10,6 +10,7 @@ import { describe, expect, test } from 'vitest';
 import { SourceAdapter } from '@/ingest/adapter';
 import { CEROACERO_ENTRY, sourceRegistry } from '@/ingest/sources';
 import { RobotsGate } from '@/polite/policy';
+import { MemoryRateLimit } from '@/polite/rate-limit';
 import { USER_AGENT } from '@/polite/user-agent';
 import { readSourceTree, stripComments } from '../support/source-tree';
 import { FIVE_BRANCHES, ceroaceroPage } from '../fixtures/ceroacero';
@@ -71,6 +72,7 @@ describe('CA-12 — `src/ingest/` no menciona `DecisionStore` ni construye `Deci
       store,
       clock,
       robots: new RobotsGate({ fetcher: spy.fetcher, store, userAgent: USER_AGENT }),
+      rateLimit: new MemoryRateLimit(),
       resolver: RESOLVE_ALL,
     });
 

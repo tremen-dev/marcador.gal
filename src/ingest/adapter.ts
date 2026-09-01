@@ -23,12 +23,13 @@
 import { captureThenParse } from '@/raw/capture';
 import { epochMsOf } from '@/polite/clock';
 import { assertUserAgent, politeFetch } from '@/polite/http';
-import { RateLimiter, pairKey, rateLimitSkipReason } from '@/polite/rate-limit';
+import { pairKey, rateLimitSkipReason } from '@/polite/rate-limit';
 import { USER_AGENT } from '@/polite/user-agent';
 import { readRows } from './observations';
 import type { Clock } from '@/polite/clock';
 import type { HttpFetcher } from '@/polite/http';
 import type { PolicyGate } from '@/polite/policy';
+import type { RateLimit } from '@/polite/rate-limit';
 import type { Instant } from '@/model/ids';
 import type { RawRef, RawStore } from '@/raw/store';
 import type { MatchResolver, ReadResult } from './ports';
@@ -41,6 +42,13 @@ export interface SourceAdapterOptions {
   readonly clock: Clock;
   /** RN-11. Required on purpose: there is no permissive default. */
   readonly robots: PolicyGate;
+  /**
+   * RN-11's rhythm. Required on purpose and for the same reason as `robots`:
+   * a permissive default would be an instance-local limiter, and ADR-004 says
+   * every tick is a new instance — which is how ten requests reached the same
+   * pair in the same minute (F-SPEC-008-V13, CA-14.1).
+   */
+  readonly rateLimit: RateLimit;
   readonly resolver: MatchResolver;
   /** Overridable only so a test can prove the guard; defaults to the declared UA. */
   readonly userAgent?: string;
@@ -69,7 +77,6 @@ export interface TickRecord {
 export class SourceAdapter {
   readonly #options: SourceAdapterOptions;
   readonly #userAgent: string;
-  readonly #limiter = new RateLimiter();
 
   constructor(options: SourceAdapterOptions) {
     this.#options = options;
@@ -101,17 +108,32 @@ export class SourceAdapter {
     assertUserAgent(target.url, this.#userAgent);
 
     const key = pairKey(target.source, target.competition_id);
-    const epochMs = epochMsOf(at);
-    if (!this.#limiter.isDue(key, epochMs)) {
+
+    // ONE step, not two: the turn is granted AND stamped here. Asking first
+    // and stamping afterwards leaves a gap another instance fits into, and on
+    // Vercel every tick IS another instance (ADR-004, CA-14.1). It happens
+    // BEFORE the await and before the robots check: RN-11 is about the rate at
+    // which requests LEAVE, so a slow response must not buy the next turn an
+    // early one, and a forbidden target is asked about once a minute rather
+    // than on every pass of the cron.
+    //
+    // If it THROWS, nothing leaves: without state of the rhythm there is no
+    // demonstrable rhythm, and that fails closed (CA-14.7).
+    if (!(await this.#options.rateLimit.takeTurn(key, epochMsOf(at)))) {
       return { kind: 'skipped', at, reason: rateLimitSkipReason(key) };
     }
 
-    // Stamped BEFORE the await, and before the robots check: RN-11 is about
-    // the rate at which requests LEAVE, so a slow response must not buy the
-    // next turn an early one, and a forbidden target is asked about once a
-    // minute rather than on every pass of the cron.
-    this.#limiter.stamp(key, epochMs);
+    return await this.#captureGranted(target, at);
+  }
 
+  /**
+   * The rest of a capture, once the turn is already granted and stamped.
+   *
+   * It exists because the port has ONE operation on purpose: `tick()` cannot
+   * consult without spending, so it takes the turn itself and hands the work
+   * here rather than going through `capture()` and spending a second one.
+   */
+  async #captureGranted(target: IngestTarget, at: Instant): Promise<CaptureOutcome> {
     const decision = await this.#options.robots.allows(target.url, target.source, at);
     if (!decision.allowed) {
       return { kind: 'skipped', at, reason: decision.reason ?? 'no robots.txt policy (RN-11)' };
@@ -172,13 +194,31 @@ export class SourceAdapter {
     const records: TickRecord[] = [];
 
     for (const target of this.#options.registry.targets()) {
-      // The limiter is consulted here TOO, and the duplication is deliberate:
-      // `capture()` enforces the rhythm on its own (it is public API and RN-11
-      // cannot depend on the caller), while this pass needs to know something
+      // The turn is taken HERE and not inside `capture()`, and that is forced
+      // by the port having one operation: this pass needs to know something
       // `capture()` cannot tell it — that a suppressed turn produces NO
-      // RECORD. A suppressed tick is not a failed tick, and turning it into a
-      // `skipped` record would read as lost coverage.
-      if (!this.#limiter.isDue(pairKey(target.source, target.competition_id), epochMs)) continue;
+      // RECORD (CA-7). A suppressed tick is not a failed tick, and turning it
+      // into a `skipped` record would read as lost coverage. Going through
+      // `capture()` would spend a second turn for the same request.
+      const head = { source: target.source, competition_id: target.competition_id, at };
+      const key = pairKey(target.source, target.competition_id);
+
+      let granted: boolean;
+      try {
+        // Still before ANY I/O, the taking of the turn included: a request
+        // that would leave without identifying us is our defect, and taking a
+        // turn for it would spend a minute of RN-11 on nothing (CA-5.2).
+        assertUserAgent(target.url, this.#userAgent);
+        granted = await this.#options.rateLimit.takeTurn(key, epochMs);
+      } catch (error) {
+        // Fails CLOSED (CA-14.7): nothing was requested and nothing archived,
+        // and the tick records why. A failure of the rhythm's state is NOT a
+        // suppressed turn — a suppressed turn is silent, this one is not.
+        records.push({ ...head, outcome: 'failed', reason: describe(error), raw_ref: null });
+        continue;
+      }
+
+      if (!granted) continue;
 
       records.push(await this.#attempt(target, at));
     }
@@ -194,7 +234,9 @@ export class SourceAdapter {
     };
 
     try {
-      const outcome = await this.capture(target, at);
+      // The turn was already taken by `tick()`; spending a second one here
+      // would deny every request the pass makes.
+      const outcome = await this.#captureGranted(target, at);
       return outcome.kind === 'skipped'
         ? { ...head, outcome: 'skipped', reason: outcome.reason, raw_ref: null }
         : { ...head, outcome: 'ok', reason: null, raw_ref: outcome.raw_ref };

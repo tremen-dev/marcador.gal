@@ -19,6 +19,7 @@ import {
   sourceRegistry,
 } from '@/ingest/sources';
 import { RobotsGate } from '@/polite/policy';
+import { MemoryRateLimit } from '@/polite/rate-limit';
 import { USER_AGENT } from '@/polite/user-agent';
 import { FakeClock, MemoryRawStore, RESOLVE_ALL, spyFetcher } from './support/doubles';
 import type { RowShape } from '@/ingest/ceroacero';
@@ -83,6 +84,7 @@ function adapterFor(entries: readonly SourceEntry[]) {
     store,
     clock,
     robots: new RobotsGate({ fetcher: spy.fetcher, store, userAgent: USER_AGENT }),
+    rateLimit: new MemoryRateLimit(),
     resolver: RESOLVE_ALL,
   });
   return { adapter, clock, spy, store, registry };
