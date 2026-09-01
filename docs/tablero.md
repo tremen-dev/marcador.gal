@@ -16,7 +16,7 @@ Actualizado: 2026-09-01
 | Spec | Estado | Último cambio |
 |---|---|---|
 
-## EPIC-003 — paxina-de-proxecto-e-respaldo-publico-da-carta (aprobada)
+## EPIC-003 — paxina-de-proxecto-e-respaldo-publico-da-carta (hecho)
 
 | Spec | Estado | Último cambio |
 |---|---|---|
