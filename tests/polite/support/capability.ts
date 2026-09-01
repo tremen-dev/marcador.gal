@@ -123,9 +123,20 @@ export interface ScannedFile {
   readonly specifiers: readonly ModuleSpecifier[];
 }
 
-/** Every versioned `.ts`/`.tsx` outside `tests/`. `git` is the authority. */
+/**
+ * Every `.ts`/`.tsx` of the working tree outside `tests/`. `git` is the
+ * authority, and `--others --exclude-standard` is load-bearing: a file that is
+ * NOT YET COMMITTED is still code that runs, and it is exactly the shape the
+ * verifier's seven evasions took. Listing only `--cached` would have let a new
+ * `src/ingest/side-door.ts` pass in green until somebody committed it —
+ * measured, not supposed.
+ */
 export function versionedSources(): readonly string[] {
-  return execFileSync('git', ['ls-files', '*.ts', '*.tsx'], { encoding: 'utf8' })
+  return execFileSync(
+    'git',
+    ['ls-files', '--cached', '--others', '--exclude-standard', '*.ts', '*.tsx'],
+    { encoding: 'utf8' },
+  )
     .split('\n')
     .filter((path) => path.length > 0 && !path.startsWith('tests/'))
     .sort();
