@@ -6,7 +6,21 @@ epica: EPIC-002
 # Ledger — SPEC-008 Adaptador de ceroacero.es y cortesia RN-11 con una sola implementacion
 
 ## Resumen
-- **LO ÚLTIMO: la CUARTA VERIFICACIÓN salió RED** — *«Veredicto del verificador —
+- **LO ÚLTIMO: la QUINTA VUELTA está hecha** — *«Quinta vuelta — el lector deja
+  de ser una expresión regular»*, al final de este ledger. Se hicieron los
+  **nueve** puntos de la lista cerrada de la enmienda §9 y nada más, **sin tocar
+  `src/`, `migrations/` ni `.gitignore`**: el commit son **cuatro ficheros bajo
+  `tests/`**. `readModule` lee del árbol del compilador; `moduleSpecifiers` y
+  `withoutImportStatements` **se borran**, para que no quede una segunda manera
+  de averiguar qué importa un fichero. **Los tres gates verdes**: `lint exit=0`,
+  `npm test` **772/772** y `npm run test:db` **144/144** contra Postgres real,
+  con `DATABASE_URL_TEST` disponible (**ningún criterio UNMET**). **Trece
+  mutaciones**, doce mueren y **N4 sobrevive porque debe**. La novena evasión
+  —`node:child_process` en `src/db/preflight9.ts`, que dejaba 762/762 y
+  `lint exit=0`— es **roja en sus tres escrituras**, y el fichero escondido bajo
+  `src/ingest/robots/` es rojo **dos veces**. La spec pasa a `en-revision`.
+- Fase anterior: **en-progreso** (tras la CUARTA verificación, **RED**).
+- **La CUARTA VERIFICACIÓN salió RED** — *«Veredicto del verificador —
   cuarta vuelta: RED»*, al final de este ledger. **Los tres gates verdes y
   reproducidos** (`lint exit=0`, `npm test` **762/762**, `npm run test:db`
   **144/144** contra Postgres real, `DATABASE_URL_TEST` disponible: **ningún
@@ -57,8 +71,8 @@ epica: EPIC-002
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
 | CA-1 — comodín `*` y ancla `$` (F-SPEC-002-23) | `src/polite/robots.ts` (`patternToRegExp`, desempate por longitud con `Allow` ganando el empate) | `tests/polite/robots.test.ts` casos 1-18 | M1, M2, M3, M4, V1, V2 corridas por el verificador: las seis mueren en casos nominados de `tests/polite/robots.test.ts`. Las dos mitades del cambio de ADR-014 §2 están probadas **por separado**: comodín y ancla (casos 1-8) y desempate por longitud con el `Allow` ganando el empate (casos 9-11). **Tercera vuelta.** Repetidas M1-M4 y V1-V2: mueren. Mutaciones propias nuevas: desempate a igual longitud ganado por `Disallow` → `robots` 10, 11; `>`→`>=` en la longitud → 11; `$` deja de anclar → 6; un patrón sin comodín deja de casar por prefijo → 11 casos en 5 ficheros; origen desconocido permitido → 15 + `mirror/capture/robots` 3; `pathOf` sin query → 6, 18; el grupo `*` gana al específico → 17 + `user-agent` 12, 14. **Salvedad nueva: `escapeRegExp` reducido a la identidad deja 478/478 en verde** (F-SPEC-008-V20). El código es correcto; falta la red. | ⚠️ |
-| CA-2 (enmendado) — contención de capacidad, CA-2.1..CA-2.8 | **No toca `src/`.** `tests/polite/support/capability.ts` declara `SCAN_ROOTS`, `ALLOWED_PACKAGES`, `ENTRY_POINTS`, `CONTAINED_DIRS` y los detectores; `tests/mirror/support/imports.ts` ensanchado (efecto lateral, `import()` dinámico, `.tsx`) — es lo único que CA-2.5 exige tocar. Consumidores sin cambio: `src/polite/{robots,http,user-agent,rate-limit,clock,policy}.ts`, `src/mirror/`, `src/ingest/`, `src/site/crawler-page.tsx`. **Cuarta vuelta — sigue sin tocar `src/`.** `ALLOWED_PACKAGES` pasa de `readonly string[]` a `readonly PackageEntry[]` (**entrada + superficie + motivo**), con `packageEntry()` y `importOffences(file, allowed?)` parametrizable para que un control pueda conducirlo con una lista sintética; `namespaceOffences` cierra los miembros de un espacio de nombres, el acceso computado y el escape del espacio como valor. `tests/mirror/support/imports.ts` vuelve a ensancharse: `ModuleSpecifier` gana `typeOnly`, `bindings` (nombre **original**, no el alias) y `unreadableClause` —falla cerrado—, más `withoutImportStatements()`. **Y se arregló un defecto real del lector que salió de romper**: `FROM_PATTERN` usaba `[\s\S]*?`, así que ante `cheerio['from' + 'URL']` se comía media línea y fabricaba un especificador falso; ahora es `[^;'"]*?`, que no puede cruzar de sentencia. **La lista negra de trece nombres del caso 4 se borra**, no se amplía | **CA-2.1 y CA-2.2**: `tests/polite/containment.test.ts` casos 1-13 (1 la trampa muerde · 2 `src/ingest/` con el `globalFetcher` real · 3 la CLI de captura conducida entera · 4-5 con doble, cero disparos · **6** control positivo F-SPEC-008-V6 · **7** control positivo F-SPEC-008-V7 · 8-9 contención de conjuntos · **10-11** controles de CA-2.2 · 12-13 el residuo de CA-2.8, acotado). **CA-2.3..CA-2.7**: `tests/polite/architecture.test.ts` casos 1-19 (1-2 CA-2.6 · 3-7 CA-2.3, el **5** es la evasión V7 · 8-12 CA-2.4, el **10** es la evasión V6 y el **12** el antirruido · 13-17 CA-2.5, el **16** es el huérfano · 18-19 CA-2.7, sin exenciones). **Cuarta vuelta.** `containment.test.ts` pasa a **17 casos**: la trampa deja `vi.mock` y baja a `net.Socket.prototype.connect`, y se añaden los tres controles que la enmienda declara parte del criterio más el del orden — **14** una dependencia de `node_modules` dispara (`cheerio.fromURL` contra servidor local propio, reproducción exacta de F-SPEC-008-V15) · **15** la trampa puede **negar**: negando, cero paquetes en el servidor local · **16** el punto es una **propiedad**, no un símbolo: lo atraviesan las cinco puertas (`fetch` real, `cheerio.fromURL`, `node:http`, `net.connect`, `net.createConnection`) · **17** el orden de instalación (F-SPEC-008-V17). El caso 7 deja de apoyarse en el registro de módulos y conduce `import('node:'+'http')` contra `127.0.0.1`. `architecture.test.ts` pasa a **26 casos**: el 4 deja de ser la lista negra y comprueba que la lista es cerrada **en sus dos ejes** y que las dos entradas que no se explican solas traen motivo; **4b** `fromURL` es rojo sin nombrarlo y `load` no · **4c** el juicio sale solo de lo declarado (lista sintética invertida) · **4d** el alias no ensancha · **4e** acceso computado · **4f** espacio de nombres que escapa como valor · **4g** `import()` dinámico y efecto lateral de paquete · **4h** `import type` no cuenta | **Segunda vuelta (obsoleta, CA-2 fue sustituido el 2026-09-01).** Las tres evasiones de la primera (V4, V5, V6) **mueren**, y sus controles no son decorativos: vaciar `NETWORK_MODULE`, `ROBOTS_WORD` o `UA_PARTS` pone rojo el caso 7 (W25, W26, W27). **Pero el guardián se sigue rodeando, ahora por tres caminos nuevos que el verificador escribió y ejecutó con la suite entera en verde**: (V6') `const { fetch: send } = globalThis` con la clave de cabecera armada por `['User','Agent'].join('-')` — 705/705 en verde y `lint exit=0` con una segunda puerta de salida viva en `src/ingest/`; (V7') `await import('node:' + 'https')`, que se cuela entre `NETWORK_MODULE` y `COMPUTED_IMPORT`; (V8') un **segundo parser de `robots.txt` funcional dentro de `src/site/robots-txt.ts`**, uno de los dos ficheros exentos — 705/705 en verde. Y dos huecos en los propios controles: el caso 8 vigila la **lista** de exenciones pero no el **mecanismo** —cambiarla por un patrón `startsWith('site/')` deja 435/435 en verde (W29)— y `COMPUTED_IMPORT` no tiene control positivo: apagarlo no pone rojo nada (W30). Ver **F-SPEC-008-V6..V10**. **Tercera vuelta — ❌ BLOQUEANTE.** El mecanismo nuevo es mucho mejor y cierra las siete evasiones anteriores: lo comprobé ejecutando. **Pero la octava existe, entra por la puerta principal y manda un paquete de verdad.** `cheerio` está en `ALLOWED_PACKAGES` y **es un cliente HTTP** (`fromURL`), que es lo que la obligación 2 de CA-2.3 prohíbe con esas palabras. `src/ingest/preflight.ts` con `fromURL`, enganchada a `adapter.ts` para no ser huérfana: `npm test` **748/748**, `lint exit=0`, y contra un servidor local **1 paquete fuera, sin UA, sin `robots.txt` y sin turno**. **No es el residuo firmado de CA-2.8**: puesta EN EL CAMINO CONDUCIDO, `containment` da **13/13** y la trampa registra **0 disparos** — `undici` va por debajo de `vi.mock`. Variante huérfana en `src/db/`: **478/478** (66 de 86 ficheros de `src/` quedan fuera de `CONTAINED_DIRS`). Además: **el orden de instalación de la trampa no tiene control propio** —instalarla tarde deja 13/13 (F-SPEC-008-V17)— y **CA-2.2 es contención de conjuntos, no emparejamiento por petición** (F-SPEC-008-V18). Verificado, en cambio: la lista es cerrada, un especificador no literal es rojo, y cada entrada nueva trae motivo. Ver **F-SPEC-008-V15**. **Cuarta vuelta — ❌ BLOQUEANTE, y el mecanismo nuevo es MUY superior al anterior: la octava evasión muere en las dos mitades a la vez (`architecture` 3 y `containment` 2, 4, 8, 9, con la pila en `undici`), la variante huérfana de `src/db/` muere en `architecture` 3, la superficie es load-bearing sobre el árbol real (vaciar `cheerio` → rojo), la lista negra está borrada de verdad —el caso 4c la destaparía— y las cuatro evasiones clásicas que reintenté (`export * from 'cheerio'`, `const { fromURL } = cheerio` en dos pasos, el alias, el acceso computado) mueren todas, medidas. Q1..Q8 repetidas: mueren. N4 sobrevive, y debe. Pero hay NOVENA, y entra por debajo del lector: `moduleSpecifiers` ancla sus tres patrones a principio de sentencia (`(?:^|\n)\s*`), así que un `import` estático que no empieza la línea NO SE VE, y —al contrario de lo que declara F-SPEC-008-V25— **no falla cerrado: no reporta nada**. `const noop = 0; import { execFileSync } from 'node:child_process';` en `src/db/` deja `lint exit=0`, `npm test` **762/762** y `tests/polite` **76/76**; el mismo fichero con el `import` al principio de línea es rojo en `architecture` 3. `node:child_process` **no es entrada de la lista**, y es exactamente el residuo cuyo «único cierre es el estático» según CA-2.1. Ver **F-SPEC-008-V27** y **F-SPEC-008-V28**. | ❌ |
-| CA-3 — el traslado no cambia comportamiento | traslado sin fachada; `src/mirror/` conserva `capturer.ts`, `ports.ts`, `thresholds.ts` con rutas nuevas | `tests/mirror/**` (48 ficheros, 347 casos con `tests/site` y `tests/docs`). **Cambios en suites cerradas: CINCO ficheros, no uno** (recuento corregido, F-SPEC-008-V2). Solo uno es una aserción reescrita de verdad; los otros cuatro son literales que nombran una ruta que se movió, autorizados por ADR-014 §1 y semánticamente iguales: 1) `tests/mirror/user-agent.test.ts` — el caso 15 **se sustituyó** por dos casos nuevos (15 y 16) y es la única enmienda de fondo (F-SPEC-008-1); 2) `tests/mirror/capture/no-parse.test.ts`, caso final — `expect(reachable).toContain('src/mirror/thresholds.ts')` → `'src/polite/rate-limit.ts'`; **no es una ruta de `import`, es la aserción**, y cambia porque `MIN_REQUEST_INTERVAL_MS` salió de `thresholds.ts` y el `Capturer` ya no alcanza ese módulo (sigue diciendo lo mismo: «el capturador alcanza el limitador»); 3) `tests/site/crawler-page.test.ts`, caso 2 — el literal esperado pasa de `'mirror/user-agent.ts'` a `'polite/user-agent.ts'`; 4) `tests/mirror/capture/robots.test.ts`, caso 8 — el directorio escaneado; 5) `tests/mirror/capture/redirects.test.ts`, caso 4 — ídem | `npx vitest run tests/mirror tests/site tests/docs` → 48 ficheros / 347 casos en verde, reproducido por el verificador. Ningún caso borrado (ocurrencias de `test(` en esas rutas: 340 en `main`, 341 en HEAD). La enmienda del caso 15 está **aceptada por el gate humano** —ADR-014 §1 la vuelve falsa por decisión firmada— y el guardián nuevo muerde: V13 (copia literal de la cadena en `src/site/`) y V14 (cambiar la versión declarada) mueren en 2 y 4 casos. **El recuento del ledger es incorrecto**: hay cuatro ficheros más de suites cerradas con cambios que no son rutas de `import`. Ver **F-SPEC-008-V2**. **Tercera vuelta.** Recuento fichero a fichero contra `main`: **44 ficheros en cada referencia** y una sola línea de diferencia, `user-agent.test.ts` 15→16, que **sube**. Ningún caso borrado, tampoco en las suites de SPEC-001 (única diferencia: el fichero nuevo `tests/db/rate-limit.test.ts:7`). `npx vitest run tests/mirror tests/site tests/docs` verde. **Esta vuelta no tocó ninguna aserción de suites cerradas**: el diff son `tests/mirror/support/imports.ts` —el ensanche que CA-2.5 manda hacer— y `tests/db/migrate.test.ts` (F-SPEC-008-16, enmienda registrada en el ledger de SPEC-001 con la forma de ADR-015, y con un sustituto que no puede pasar en verde descubriendo nada). Sigue ⚠️ por F-SPEC-008-1, **arbitrada y no revisitada**. **Cuarta vuelta — recontado fichero a fichero contra `main`, con `git grep -c`: 44 ficheros en cada referencia y una sola línea de diferencia, `tests/mirror/user-agent.test.ts` 15→16, que SUBE. Ningún caso borrado. `npx vitest run tests/mirror tests/site tests/docs` → 48/347 verde. El único fichero de suite cerrada que esta vuelta tocó es `tests/mirror/support/imports.ts`, que es soporte y es el ensanche que CA-2.3/CA-2.5 mandan: comprobado que ninguna aserción de `tests/mirror/`, `tests/site/` ni `tests/docs/` cambió.** | ⚠️ |
+| CA-2 (enmendado) — contención de capacidad, CA-2.1..CA-2.8 | **No toca `src/`.** `tests/polite/support/capability.ts` declara `SCAN_ROOTS`, `ALLOWED_PACKAGES`, `ENTRY_POINTS`, `CONTAINED_DIRS` y los detectores; `tests/mirror/support/imports.ts` ensanchado (efecto lateral, `import()` dinámico, `.tsx`) — es lo único que CA-2.5 exige tocar. Consumidores sin cambio: `src/polite/{robots,http,user-agent,rate-limit,clock,policy}.ts`, `src/mirror/`, `src/ingest/`, `src/site/crawler-page.tsx`. **Cuarta vuelta — sigue sin tocar `src/`.** `ALLOWED_PACKAGES` pasa de `readonly string[]` a `readonly PackageEntry[]` (**entrada + superficie + motivo**), con `packageEntry()` y `importOffences(file, allowed?)` parametrizable para que un control pueda conducirlo con una lista sintética; `namespaceOffences` cierra los miembros de un espacio de nombres, el acceso computado y el escape del espacio como valor. `tests/mirror/support/imports.ts` vuelve a ensancharse: `ModuleSpecifier` gana `typeOnly`, `bindings` (nombre **original**, no el alias) y `unreadableClause` —falla cerrado—, más `withoutImportStatements()`. **Y se arregló un defecto real del lector que salió de romper**: `FROM_PATTERN` usaba `[\s\S]*?`, así que ante `cheerio['from' + 'URL']` se comía media línea y fabricaba un especificador falso; ahora es `[^;'"]*?`, que no puede cruzar de sentencia. **La lista negra de trece nombres del caso 4 se borra**, no se amplía. **Quinta vuelta — sigue sin tocar `src/`, y lo que cambia es CON QUÉ SE LEE.** `tests/mirror/support/imports.ts` deja de tener una sola expresión regular: `readModule(path)` abre el proyecto real con `typescript/unstable/sync` (`API`, `updateSnapshot({ openProjects, openFiles })`, `program.getSourceFile`) y clasifica con `typescript/unstable/ast`, y devuelve `specifiers`, **`compilerModules`** (la lista del propio compilador), `unparseable`, `namespaceReads` y `bareIdentifiers`. `moduleSpecifiers` y `withoutImportStatements` **se borran**: eran la segunda puerta. `importOffences` gana dos rojos previos a cualquier lista —fichero que no parsea, y módulo que el compilador nombra y el lector no enumeró, comparado como **multiconjunto**—; `namespaceOffences` y `capabilityOffences` pasan al mismo árbol. `capability.ts` gana `SCAN_EXCLUSIONS` (declaradas, con motivo; hoy `node_modules/`) y `scannedSources()`, que recorre **el árbol de ficheros bajo las raíces** en vez de `git ls-files --exclude-standard`; `versionedSources()` se queda **solo** para lo que `git` es autoridad (qué está versionado, casos 1 y 17). `ALLOWED_PACKAGES` gana `typescript/unstable/ast` y `typescript/unstable/sync` con superficie y motivo, entre `react` y `vitest/config` — el especificador se juzga **tal como está escrito**, y ésos son los dos que el lector escribe | **CA-2.1 y CA-2.2**: `tests/polite/containment.test.ts` casos 1-13 (1 la trampa muerde · 2 `src/ingest/` con el `globalFetcher` real · 3 la CLI de captura conducida entera · 4-5 con doble, cero disparos · **6** control positivo F-SPEC-008-V6 · **7** control positivo F-SPEC-008-V7 · 8-9 contención de conjuntos · **10-11** controles de CA-2.2 · 12-13 el residuo de CA-2.8, acotado). **CA-2.3..CA-2.7**: `tests/polite/architecture.test.ts` casos 1-19 (1-2 CA-2.6 · 3-7 CA-2.3, el **5** es la evasión V7 · 8-12 CA-2.4, el **10** es la evasión V6 y el **12** el antirruido · 13-17 CA-2.5, el **16** es el huérfano · 18-19 CA-2.7, sin exenciones). **Cuarta vuelta.** `containment.test.ts` pasa a **17 casos**: la trampa deja `vi.mock` y baja a `net.Socket.prototype.connect`, y se añaden los tres controles que la enmienda declara parte del criterio más el del orden — **14** una dependencia de `node_modules` dispara (`cheerio.fromURL` contra servidor local propio, reproducción exacta de F-SPEC-008-V15) · **15** la trampa puede **negar**: negando, cero paquetes en el servidor local · **16** el punto es una **propiedad**, no un símbolo: lo atraviesan las cinco puertas (`fetch` real, `cheerio.fromURL`, `node:http`, `net.connect`, `net.createConnection`) · **17** el orden de instalación (F-SPEC-008-V17). El caso 7 deja de apoyarse en el registro de módulos y conduce `import('node:'+'http')` contra `127.0.0.1`. `architecture.test.ts` pasa a **26 casos**: el 4 deja de ser la lista negra y comprueba que la lista es cerrada **en sus dos ejes** y que las dos entradas que no se explican solas traen motivo; **4b** `fromURL` es rojo sin nombrarlo y `load` no · **4c** el juicio sale solo de lo declarado (lista sintética invertida) · **4d** el alias no ensancha · **4e** acceso computado · **4f** espacio de nombres que escapa como valor · **4g** `import()` dinámico y efecto lateral de paquete · **4h** `import type` no cuenta. **Quinta vuelta.** `architecture.test.ts` pasa a **36 casos**, diez nuevos, y ninguno repite mecanismo: **2b** las exclusiones del escaneo son suyas, declaradas y con motivo · **2c** la lista de lo que se LEE es más ancha que la de `git` bajo las raíces · **2d** control positivo de F-SPEC-008-V28 —escribe un fichero real bajo `src/ingest/robots/`, comprueba que `versionedSources()` **no** lo ve y que el escaneo **sí**, y que se juzga; lo borra en `finally`— · **3b** «nada se pierde en silencio» sobre el árbol REAL, cubriendo `sourceFile.imports` como multiconjunto · **3c** un fichero que el compilador no parsea es rojo, nombrándose · **3d** un nodo que nombra un módulo en una forma no clasificada (`import x = require('undici')`) es rojo · **3e** **la posición en la línea no cambia el veredicto**: las tres escrituras de F-SPEC-008-V27 dan el mismo rojo · **3f** los controles sintéticos no escriben en disco · **3g** **un solo lector**: los tres consumidores importan `readModule`, comprobado con el propio lector · **11b** un identificador con escapes Unicode (`globalThis`) es el mismo identificador. El caso **4** gana las dos entradas del lector, su orden y su motivo. Los casos **13** y **17** pasan a leer la lista del escaneo y no de `git`. `containment.test.ts` sigue en **17 casos**: el **17** sustituye su última aserción —una expresión regular anclada a principio de línea, el mismo defecto que vino a vigilar— por una pregunta al lector | **Segunda vuelta (obsoleta, CA-2 fue sustituido el 2026-09-01).** Las tres evasiones de la primera (V4, V5, V6) **mueren**, y sus controles no son decorativos: vaciar `NETWORK_MODULE`, `ROBOTS_WORD` o `UA_PARTS` pone rojo el caso 7 (W25, W26, W27). **Pero el guardián se sigue rodeando, ahora por tres caminos nuevos que el verificador escribió y ejecutó con la suite entera en verde**: (V6') `const { fetch: send } = globalThis` con la clave de cabecera armada por `['User','Agent'].join('-')` — 705/705 en verde y `lint exit=0` con una segunda puerta de salida viva en `src/ingest/`; (V7') `await import('node:' + 'https')`, que se cuela entre `NETWORK_MODULE` y `COMPUTED_IMPORT`; (V8') un **segundo parser de `robots.txt` funcional dentro de `src/site/robots-txt.ts`**, uno de los dos ficheros exentos — 705/705 en verde. Y dos huecos en los propios controles: el caso 8 vigila la **lista** de exenciones pero no el **mecanismo** —cambiarla por un patrón `startsWith('site/')` deja 435/435 en verde (W29)— y `COMPUTED_IMPORT` no tiene control positivo: apagarlo no pone rojo nada (W30). Ver **F-SPEC-008-V6..V10**. **Tercera vuelta — ❌ BLOQUEANTE.** El mecanismo nuevo es mucho mejor y cierra las siete evasiones anteriores: lo comprobé ejecutando. **Pero la octava existe, entra por la puerta principal y manda un paquete de verdad.** `cheerio` está en `ALLOWED_PACKAGES` y **es un cliente HTTP** (`fromURL`), que es lo que la obligación 2 de CA-2.3 prohíbe con esas palabras. `src/ingest/preflight.ts` con `fromURL`, enganchada a `adapter.ts` para no ser huérfana: `npm test` **748/748**, `lint exit=0`, y contra un servidor local **1 paquete fuera, sin UA, sin `robots.txt` y sin turno**. **No es el residuo firmado de CA-2.8**: puesta EN EL CAMINO CONDUCIDO, `containment` da **13/13** y la trampa registra **0 disparos** — `undici` va por debajo de `vi.mock`. Variante huérfana en `src/db/`: **478/478** (66 de 86 ficheros de `src/` quedan fuera de `CONTAINED_DIRS`). Además: **el orden de instalación de la trampa no tiene control propio** —instalarla tarde deja 13/13 (F-SPEC-008-V17)— y **CA-2.2 es contención de conjuntos, no emparejamiento por petición** (F-SPEC-008-V18). Verificado, en cambio: la lista es cerrada, un especificador no literal es rojo, y cada entrada nueva trae motivo. Ver **F-SPEC-008-V15**. **Cuarta vuelta — ❌ BLOQUEANTE, y el mecanismo nuevo es MUY superior al anterior: la octava evasión muere en las dos mitades a la vez (`architecture` 3 y `containment` 2, 4, 8, 9, con la pila en `undici`), la variante huérfana de `src/db/` muere en `architecture` 3, la superficie es load-bearing sobre el árbol real (vaciar `cheerio` → rojo), la lista negra está borrada de verdad —el caso 4c la destaparía— y las cuatro evasiones clásicas que reintenté (`export * from 'cheerio'`, `const { fromURL } = cheerio` en dos pasos, el alias, el acceso computado) mueren todas, medidas. Q1..Q8 repetidas: mueren. N4 sobrevive, y debe. Pero hay NOVENA, y entra por debajo del lector: `moduleSpecifiers` ancla sus tres patrones a principio de sentencia (`(?:^|\n)\s*`), así que un `import` estático que no empieza la línea NO SE VE, y —al contrario de lo que declara F-SPEC-008-V25— **no falla cerrado: no reporta nada**. `const noop = 0; import { execFileSync } from 'node:child_process';` en `src/db/` deja `lint exit=0`, `npm test` **762/762** y `tests/polite` **76/76**; el mismo fichero con el `import` al principio de línea es rojo en `architecture` 3. `node:child_process` **no es entrada de la lista**, y es exactamente el residuo cuyo «único cierre es el estático» según CA-2.1. Ver **F-SPEC-008-V27** y **F-SPEC-008-V28**. | ❌ |
+| CA-3 — el traslado no cambia comportamiento | traslado sin fachada; `src/mirror/` conserva `capturer.ts`, `ports.ts`, `thresholds.ts` con rutas nuevas | `tests/mirror/**` (48 ficheros, 347 casos con `tests/site` y `tests/docs`). **Cambios en suites cerradas: CINCO ficheros, no uno** (recuento corregido, F-SPEC-008-V2). Solo uno es una aserción reescrita de verdad; los otros cuatro son literales que nombran una ruta que se movió, autorizados por ADR-014 §1 y semánticamente iguales: 1) `tests/mirror/user-agent.test.ts` — el caso 15 **se sustituyó** por dos casos nuevos (15 y 16) y es la única enmienda de fondo (F-SPEC-008-1); 2) `tests/mirror/capture/no-parse.test.ts`, caso final — `expect(reachable).toContain('src/mirror/thresholds.ts')` → `'src/polite/rate-limit.ts'`; **no es una ruta de `import`, es la aserción**, y cambia porque `MIN_REQUEST_INTERVAL_MS` salió de `thresholds.ts` y el `Capturer` ya no alcanza ese módulo (sigue diciendo lo mismo: «el capturador alcanza el limitador»); 3) `tests/site/crawler-page.test.ts`, caso 2 — el literal esperado pasa de `'mirror/user-agent.ts'` a `'polite/user-agent.ts'`; 4) `tests/mirror/capture/robots.test.ts`, caso 8 — el directorio escaneado; 5) `tests/mirror/capture/redirects.test.ts`, caso 4 — ídem. **Quinta vuelta: el único fichero de suite cerrada que se toca vuelve a ser `tests/mirror/support/imports.ts`**, que es soporte y es el lector que CA-2.3 manda cambiar. Su consumidor de SPEC-002 —`tests/mirror/capture/no-parse.test.ts`, casos 4 y 5— **no cambia una línea** y sigue verde: `reachableModules` conserva firma, asincronía y forma de salida (`Set<string>` de rutas relativas). `npx vitest run tests/mirror tests/site tests/docs` → 48/347 | `npx vitest run tests/mirror tests/site tests/docs` → 48 ficheros / 347 casos en verde, reproducido por el verificador. Ningún caso borrado (ocurrencias de `test(` en esas rutas: 340 en `main`, 341 en HEAD). La enmienda del caso 15 está **aceptada por el gate humano** —ADR-014 §1 la vuelve falsa por decisión firmada— y el guardián nuevo muerde: V13 (copia literal de la cadena en `src/site/`) y V14 (cambiar la versión declarada) mueren en 2 y 4 casos. **El recuento del ledger es incorrecto**: hay cuatro ficheros más de suites cerradas con cambios que no son rutas de `import`. Ver **F-SPEC-008-V2**. **Tercera vuelta.** Recuento fichero a fichero contra `main`: **44 ficheros en cada referencia** y una sola línea de diferencia, `user-agent.test.ts` 15→16, que **sube**. Ningún caso borrado, tampoco en las suites de SPEC-001 (única diferencia: el fichero nuevo `tests/db/rate-limit.test.ts:7`). `npx vitest run tests/mirror tests/site tests/docs` verde. **Esta vuelta no tocó ninguna aserción de suites cerradas**: el diff son `tests/mirror/support/imports.ts` —el ensanche que CA-2.5 manda hacer— y `tests/db/migrate.test.ts` (F-SPEC-008-16, enmienda registrada en el ledger de SPEC-001 con la forma de ADR-015, y con un sustituto que no puede pasar en verde descubriendo nada). Sigue ⚠️ por F-SPEC-008-1, **arbitrada y no revisitada**. **Cuarta vuelta — recontado fichero a fichero contra `main`, con `git grep -c`: 44 ficheros en cada referencia y una sola línea de diferencia, `tests/mirror/user-agent.test.ts` 15→16, que SUBE. Ningún caso borrado. `npx vitest run tests/mirror tests/site tests/docs` → 48/347 verde. El único fichero de suite cerrada que esta vuelta tocó es `tests/mirror/support/imports.ts`, que es soporte y es el ensanche que CA-2.3/CA-2.5 mandan: comprobado que ninguna aserción de `tests/mirror/`, `tests/site/` ni `tests/docs/` cambió.** | ⚠️ |
 | CA-4 — archivar antes de parsear (RN-10) | `src/ingest/adapter.ts` (`capture` vía `captureThenParse`, lanza sin envolver) | `tests/ingest/adapter.test.ts` casos 1-5 | M5, M7, M8, M13, V3b, V3c y V9 mueren en `adapter` 1-5. El `put` precede al lector, el `raw_ref` devuelto es el que llevan todas las `Observation`, y un `put` fallido no deja resultado parcial ni error envuelto. **Tercera vuelta.** Mutaciones propias: `extract` antes del `put` → `adapter` 1, 3; modo degradado tragándose el `put` fallido → 3, 4; `raw_ref` devuelto ≠ archivado → 6 casos en 3 ficheros. **Precisión sobre F-SPEC-008-V12**: la variante estructural sobre `src/raw/capture.ts` —llamar al parser sin esperar el `put`— **sí muere**, en `tests/raw/capture.test.ts` 1-3; las vueltas anteriores no lo veían porque su comando no incluía `tests/raw/`, y `npm test` sí lo corre. | ✅ |
 | CA-5 — robots / UA / sin redirección (RN-11) | `src/ingest/adapter.ts` (`assertUserAgent` primero, luego el limitador, luego `PolicyGate` y `politeFetch`) | `tests/ingest/adapter.test.ts` casos 5-9. El **caso 8 se reescribió en la segunda vuelta**: pedía dos veces para asertar dos cosas, y desde que `capture()` respeta el limitador la segunda llamada es un `skipped` y no un rechazo. Ahora captura **una vez** y asienta las dos aserciones sobre el mismo error. Es de esta spec, no de una cerrada | M5, M6 y V10 mueren en `adapter` 5-9. Los tres escenarios están: política prohibitiva (cero peticiones al objetivo, motivo con la ruta y RN-11), user-agent vacío (`MissingUserAgentError` antes de abrir política, tocar el archivo o mirar el `robots.txt` — el doble del `PolicyGate` registra que no le preguntaron) y 3xx (`RedirectNotFollowedError`, `Location` en el motivo, nada archivado bajo la competición). **Tercera vuelta.** Mutaciones propias: **UA distinta pero no vacía** (`marcador/1.0`) → 5 casos en 4 ficheros; `trim()` fuera de `assertUserAgent` → `adapter` 6 + `mirror/user-agent` 7; 3xx aceptado como respuesta → 8 + `redirects` 1, 2; `redirect: 'follow'` → `redirects` 1, 2, 4; `assertUserAgent` después del ritmo → 6; UA sin contacto → 9 casos. Los tres escenarios están y muerden. | ✅ |
 | CA-6 — `robots.txt` obtenido, archivado y caducado | `src/polite/policy.ts` (`RobotsGate`, `ROBOTS_MAX_AGE_MS`, `ROBOTS_COMPETITION_ID`). **Cuarta vuelta: sin cambio. El código ya era correcto; lo que faltaba era la red** | `tests/ingest/robots-policy.test.ts` casos 1-9. **Cuarta vuelta: casos 10-12, las dos formas del dictamen de la enmienda §7** — el **10** compara `ROBOTS_MAX_AGE_MS` con el literal `6 * 60 * 60 * 1000`, y los **11** y **12** mueven el reloj con **literales absolutos que no derivan de la constante** (5 h 59 min → no vuelve a pedir; 6 h 01 min → pide una vez, y el tick siguiente no). Solo con el 10 el guardián sería una tautología de una línea; con los tres, cambiar la constante se pone rojo **por el comportamiento** (F-SPEC-008-V19) | M7, M8, V3b y V3c mueren en `robots-policy` 1-9. La clave `ceroacero/robots/2026-09-06/…z-<12hex>.txt` está asertada literalmente; las 6 h se comprueban por arriba y por abajo; se falla cerrado en las tres formas (nunca obtenida, caducada, petición fallida). Salvedad menor: V3 —parsear antes de archivar **sin** usar el resultado antes del `put`— sobrevive. Ver **F-SPEC-008-V3**. **Tercera vuelta — baja a ⚠️.** Muerden: fallo abierto sin política → `robots-policy` 7, 9 + `adapter` 5; intento fallido no sellado → 8, 9; `>=`→`>` en la caducidad → 5, 9; orden robots/página invertido → 6 casos, incluido `containment` 9. **Pero dos cosas no se sostienen.** (1) **Las 6 h que el gate humano firmó no las ata ningún test**: cambiarlas a **12 h deja 478/478 en verde**, porque los casos avanzan el reloj en múltiplos de la propia constante; bajarlas a 60 s sí mata 4, 5 y 8 (F-SPEC-008-V19). (2) **F-SPEC-008-V3 sigue vivo**: sacar `parseRobots` del callback de `captureThenParse` deja 478/478, y la spec dice «lo **archiva antes de parsearlo**». **Cuarta vuelta — F-SPEC-008-V19 CERRADO.** `ROBOTS_MAX_AGE_MS` a **12 h** ahora es **ROJO** en `robots-policy` 10 y 12 (antes 478/478), y el caso 12 muerde **por el comportamiento** y no solo por el literal. Sigue ⚠️ **solo** por F-SPEC-008-V3, rutado a EPIC-MEJORA y no arbitrado. | ⚠️ |
@@ -4220,3 +4234,328 @@ CA-2.7 y CA-2.8, ni la pérdida firmada de CA-2.8, ni los seis puntos ya
 arbitrados. Y **no contesta la pregunta legal** (**F-SPEC-008-7**): el dictamen de
 `sdd-legal-datos` sobre `ceroacero.es` en régimen de ingesta sigue sin pedir, y
 sigue siendo precondición de correr la primera jornada, no de escribir el código.
+
+## Quinta vuelta — el lector deja de ser una expresión regular (2026-09-01, `sdd-implementador`)
+
+Se hicieron **los nueve puntos** de la lista cerrada de la enmienda §9 y nada
+más. **No se tocó `src/`, `migrations/` ni `.gitignore`**, ni la spec, ni ningún
+ADR, ni `docs/roadmap.md`, ni `CLAUDE.md`, ni otra épica: la única escritura en
+`docs/` es este ledger. El commit son **cuatro ficheros bajo `tests/`**
+(`tests/mirror/support/imports.ts`, `tests/polite/support/capability.ts`,
+`tests/polite/architecture.test.ts`, `tests/polite/containment.test.ts`).
+
+**El grano de la concesión no se ha tocado, y sale reforzado**: superficie y no
+paquete, literalidad, motivo escrito. **No vuelve ninguna lista negra** — el caso
+4c, que juzga con una lista sintética invertida, la destaparía. Lo único que ha
+cambiado es **con qué se lee**.
+
+### 1. El lector: `readModule`, y no queda una segunda puerta
+
+`tests/mirror/support/imports.ts` pasa a abrir el proyecto real y a preguntarle
+al compilador. La forma, que es la que la enmienda §3 midió y aquí se confirma:
+
+- `new API({ cwd, fs })` de **`typescript/unstable/sync`**, con un `fs` de
+  cinco callbacks (`readFile`, `fileExists`, `directoryExists`,
+  `getAccessibleEntries`, `realpath`) que consulta primero un **overlay en
+  memoria** y sólo después el disco;
+- `updateSnapshot({ openProjects: [tsconfig.json], openFiles })` y
+  `snapshot.getDefaultProjectForFile(ruta).program.getSourceFile(ruta)`;
+- clasificación con **`typescript/unstable/ast`** (`SyntaxKind` y los predicados
+  `is*`), y `forEachChild` **como método del nodo**.
+
+`readModule(path)` devuelve una `ModuleReading` con cinco cosas:
+`specifiers` (estáticos, de efecto lateral y dinámicos, con sus `bindings` por
+el **nombre original** y su `typeOnly`), **`compilerModules`** —la lista que el
+propio compilador registra para el fichero—, `unparseable`, `namespaceReads`
+(miembro, acceso computado, o el espacio escapando como valor) y
+`bareIdentifiers`.
+
+**`moduleSpecifiers` y `withoutImportStatements` se borran.** No se dejan como
+envoltorio: eran exactamente la segunda manera de averiguar qué importa un
+fichero, y la obligación 1 de CA-2.3 dice que no la haya. Lo que queda es
+`readModule`, y el caso **3g** comprueba —**con el propio lector**— que los tres
+consumidores lo importan.
+
+**Lo que la enmienda avisó y se confirma, punto por punto:** `ts.createSourceFile`
+no existe (la raíz exporta `version` y `versionMajorMinor`); un
+`DocumentIdentifier` es una **cadena**; `forEachChild` no está exportado suelto;
+el texto sintético se parsea con `fs` virtual y `openFiles` sin escribir en
+disco; `sourceFile.imports` publica la lista del compilador; y el API habla por
+**tuberías de `stdio`**, no por socket — la trampa de CA-2.1 sigue registrando
+lo que registraba, y `containment.test.ts` sigue dando 17/17.
+
+**Y una cosa que la enmienda NO avisó, y costaba la vuelta entera.** Un fichero
+abierto conserva **el texto que el compilador leyó al abrirlo**. Medidos los
+tres caminos por separado: `fileChanges: { changed: [f] }` **no lo mueve**,
+`fileChanges: { invalidateAll: true }` **no lo mueve**, y `closeFiles: [f]`
+**tampoco**. Lo que lo mueve es **cerrar declarando el cambio y volver a abrir**
+—`closeFiles` + `fileChanges.changed`, y después `openFiles`— y cuesta **1 ms**,
+donde `invalidateAll` cuesta 160. Sin eso, **dos controles sintéticos en la
+misma ruta se juzgan los dos contra el texto del primero**: lo encontró el caso
+11 de CA-2.4, que pide ocho formas seguidas sobre `src/site/probe.ts` y devolvía
+ocho veces la primera. Es exactamente la clase de silencio que esta vuelta viene
+a quitar, y va escrito en el comentario del lector para que nadie lo
+redescubra.
+
+### 2. «Nada se pierde en silencio» deja de ser una afirmación
+
+`importOffences` tiene ahora **dos rojos antes de consultar ninguna lista**:
+
+1. **Un fichero que el compilador no puede parsear —o que ningún proyecto ve—**
+   es rojo nombrándose. No es «un fichero sin `import`»: es un fichero que no
+   podemos juzgar. Caso **3c**.
+2. **Un módulo que el compilador nombra y el lector no enumeró** es rojo,
+   comparado como **multiconjunto**. El multiconjunto no es adorno: es lo que
+   hace rojo el caso B de la medición del verificador —«se ve el primero y se
+   pierde el segundo» con dos `import` en la misma línea—. Caso **3d**, con
+   `import undici = require('undici')`, que es una forma que este lector **no
+   clasifica a propósito**: el compilador la registra, el lector no la enumera,
+   y la comparación la caza sin que nadie la hubiera previsto. Eso es la
+   diferencia entre fallar cerrado y callar.
+
+Y el caso **3b** corre esa misma comparación sobre **el árbol real**, fichero a
+fichero del escaneo, con un control de que mide algo (el compilador nombra más
+de cien módulos).
+
+### 3. La posición en la línea, y el caso 17
+
+El caso **3e** escribe el mismo `import` de un paquete que no es entrada de la
+lista en **las tres posiciones** —al principio, tras otra sentencia, y como
+segundo `import` de la línea— y exige el mismo rojo en las tres. No puede
+fallar por posición: el árbol no tiene líneas.
+
+El **caso 17 de `containment.test.ts`** sustituye su última aserción —una
+expresión regular anclada a principio de línea, con el mismo defecto que vino a
+vigilar— por una pregunta a `readModule`. Las comparaciones de posición del
+principio del caso **no cambian**: el orden de instalación es posición en el
+fichero, y eso sí es trabajo de texto legítimo. Lo que era de otro es «qué
+importa este fichero», y eso ya no se lo contesta él solo.
+
+### 4. CA-2.6: la lista de ficheros es del escaneo
+
+`SCAN_EXCLUSIONS` nace con **una** entrada, `node_modules/`, con su motivo
+escrito al lado de las raíces. `scannedSources()` recorre **el árbol de ficheros
+bajo `SCAN_ROOTS`** aplicando sólo esas exclusiones. `versionedSources()` se
+queda para lo único de lo que `git` es autoridad —qué está versionado—, que es
+lo que necesitan el caso de cobertura (1) y el de `ENTRY_POINTS` (17).
+**`.gitignore` no se toca**: su línea 17 protege algo que ADR-009 §3 hace
+irreversible.
+
+Los casos **13** (huérfanos de `CONTAINED_DIRS`) y **17** (rutas de `src/app/`)
+pasan también a la lista del escaneo, que es la ancha.
+
+**El precio se dice y es el correcto**: un fichero basura con extensión `.ts`
+bajo una raíz es **rojo**. Dejar de serlo es borrarlo o declarar una exclusión
+con su motivo.
+
+### 5. CA-2.4 pasa al mismo árbol, y con ello se corrige un falso positivo
+
+El texto de CA-2.4 no cambia. `capabilityOffences` deja de mirar texto y mira
+`bareIdentifiers`: un identificador es ofensa cuando se usa **como referencia**
+—no como nombre de una declaración, no a la derecha de un `.`—. Tres cosas
+mejoran a la vez, y las tres estaban escritas como residuo dentro de CA-2.3:
+
+1. **Los escapes Unicode.** `globalThis` es `globalThis` para el compilador
+   y no para `/\bglobalThis\b/`. Caso **11b**.
+2. **La prosa deja de importar.** No hace falta quitar comentarios antes: el
+   árbol no los tiene.
+3. **Un miembro declarado deja de contar como una capacidad tomada prestada.**
+
+**Y eso último cambia una aserción, así que va dicho entero.** El caso 9 exigía
+que dentro de `src/polite/` apareciesen **dos** ofensas,
+`http.ts: globalThis` y ``http.ts: bare `fetch` ``. La segunda **era un falso
+positivo del patrón**: lo que casaba es la **línea 32**,
+`fetch(request: HttpRequest): Promise<HttpResponse>;`, que es el **miembro de la
+interfaz `HttpFetcher`**, no una llamada. Las tres apariciones reales de `fetch`
+en ese fichero son ese miembro, un `fetcher.fetch(…)` y el `globalThis.fetch(…)`
+de la puerta: **ninguna es un identificador global desnudo**, que es lo que
+CA-2.4 prohíbe. El caso 9 pasa a exigir **una**, con el motivo escrito dentro.
+`src/polite/http.ts` **no cambia**, y el caso 8 —fuera de `src/polite/` no
+aparece ninguna vía— sigue en vacío.
+
+### 6. `typescript` en la lista, y por qué son dos entradas y no una
+
+CA-2.3 dice que el especificador **se juzga tal como está escrito**, y lo que el
+lector escribe son dos subcaminos, porque en `typescript@7` el API clásico no
+existe. Así que las entradas son **`typescript/unstable/ast`** (superficie:
+`SyntaxKind` y los siete predicados `is*` que el lector usa) y
+**`typescript/unstable/sync`** (superficie: `API`), **cada una con su motivo
+escrito**. Las dos ordenan **entre `react` y `vitest/config`**, que es lo que la
+lista §9.5 pedía, y el caso 4 lo comprueba por posición y no de memoria. Añadir
+una entrada `typescript` a secas que nadie importa habría sido declarar una
+superficie que este repositorio no toma. **Ningún nombre de ninguna de las dos
+le pide bytes a un tercero**, que es lo único que habría exigido una firma.
+
+### 7. Gates — las TRES salidas literales
+
+`DATABASE_URL_TEST` **estaba disponible** (`.env.local` copiado del checkout
+principal). **Ningún criterio de CA-14 queda UNMET.** Worktree resuelto con
+`npm ci` **dentro** del worktree; **ningún symlink**, ningún `git add -f`, y
+`git status` vacío antes de commitear. No hizo falta repetir por `ENOTFOUND`.
+
+`npm run lint` — **verde**:
+
+```
+> marcador@0.0.1 lint
+> oxlint --type-aware
+
+exit=0
+```
+
+`npm test` — **verde**:
+
+```
+> marcador@0.0.1 test
+> vitest run
+
+ RUN  v4.1.11 /Users/albertofojo/src/tremen-dev/marcador.gal/.claude/worktrees/agent-abfaea82cc31984a7
+
+ Test Files  81 passed (81)
+      Tests  772 passed (772)
+Type Errors  no errors
+   Start at  19:36:54
+   Duration  3.79s (transform 1.87s, setup 0ms, import 8.27s, tests 11.72s, environment 4ms, typecheck 128ms)
+```
+
+`npm run test:db` — **verde**, contra un Postgres real:
+
+```
+> marcador@0.0.1 test:db
+> node --env-file-if-exists=.env.local ./node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts tests/db
+
+ RUN  v4.1.11 /Users/albertofojo/src/tremen-dev/marcador.gal/.claude/worktrees/agent-abfaea82cc31984a7
+
+ Test Files  8 passed (8)
+      Tests  144 passed (144)
+   Start at  19:37:03
+   Duration  46.99s (transform 77ms, setup 0ms, import 278ms, tests 46.10s, environment 0ms)
+```
+
+Y CA-3 aparte: `npx vitest run tests/mirror tests/site tests/docs` → **48
+ficheros / 347 casos** en verde.
+
+762 → **772**: diez casos nuevos, ninguno borrado.
+
+### 8. Mutaciones — quince, aplicadas una a una y revertidas
+
+`git status` vacío entre cada una. Las cinco que la enmienda §9.9 nombra están
+todas.
+
+| # | Mutación | Resultado |
+|---|---|---|
+| **R1** | La **novena evasión** con el `import` **al principio de la línea** (`src/db/preflight9.ts`, `node:child_process`) | **MUERE**: `architecture` 3 |
+| **R2** | La misma, **detrás de otra sentencia** — `const noop = 0; import …`. **Es la que dejaba `lint exit=0`, `npm test` 762/762 y `tests/polite` 76/76** | **MUERE**: `architecture` 3 |
+| **R3** | La misma, **como segundo `import` de una línea que ya tiene otro** (`import { load } from 'cheerio'; import { execFileSync } …`) | **MUERE**: `architecture` 3. Y `npx oxlint --type-aware src tests` seguía en `exit=0`, o sea que el lint no la habría cazado nunca |
+| **R4** | **F-SPEC-008-V28**: `src/ingest/robots/side.ts` con `cheerio.fromURL`, invisible para `git status` (`git check-ignore -v` → `.gitignore:17`) | **MUERE DOS VECES**: `architecture` 3 (`fromURL` fuera de la superficie) y `architecture` 13 (huérfano en `CONTAINED_DIRS`). Antes dejaba `tests/polite` en 76/76 |
+| **R5** | **La octava evasión repuesta**: `src/ingest/preflight.ts` con `fromURL`, enganchada al camino **conducido** (`#captureGranted`) | **MUERE EN LAS DOS MITADES**: `architecture` 3 y `containment` **2, 4, 8, 9** |
+| **R5b** | La misma, enganchada a `capture()` en vez de a `#captureGranted` | **MUERE sólo en `architecture` 3.** Se anota porque explica la mitad de ejecución: `tick()` no pasa por `capture()`, así que ese camino **no se conduce**. No es un agujero nuevo —es el residuo declarado de CA-2.1, «sólo ve lo que se ejecuta»— pero conviene que un verificador enganche la mutación donde el camino conducido pasa |
+| **R6** | **La variante huérfana**: `src/db/orphan-door.ts` con `import * as cheerio` + `cheerio.fromURL` | **MUERE**: `architecture` 3 |
+| **R7** | Un `import` estático de `@/…` **escrito a mitad de línea** por encima de las trampas de `containment.test.ts` | **MUERE**: `containment` 17. Con el patrón anterior era **VERDE** |
+| **R8** | **Mover la instalación de la trampa** por debajo del primer `await import('@/…')` | **MUERE**: `containment` 17 (`expected 8062 to be less than 7789`) |
+| **R9** | `scannedSources()` vuelve a derivarse de `git ls-files --exclude-standard` | **MUERE**: `architecture` 2d |
+| **R10** | Se apaga la comparación contra `compilerModules` | **MUERE**: `architecture` 3d |
+| **R11** | Se apaga el rojo por `unparseable` | **MUERE**: `architecture` 3c |
+| **R12** | El lector deja de enumerar los `export … from` | **MUERE**: `architecture` 3, **3b** y 7 — y el 3b es el que lo caza **contra el compilador** |
+| **R13** | `capabilityOffences` vuelve a mirar texto para `globalThis` | **MUERE**: `architecture` 11b |
+| **Q-A** | `MIN_REQUEST_INTERVAL_MS` 60 000 → 1 000 ms (comprobación de que CA-7/CA-14 no se han movido) | **MUERE**: 9 casos en 3 ficheros |
+| **N4** | Segundo parser de `robots.txt` **funcional** dentro de `src/site/robots-txt.ts` | **VERDE — sobrevive, y así tiene que ser.** `tests/polite` + `tests/site` → **184/184**. La pérdida firmada de CA-2.8 (F-SPEC-008-20) **sigue en pie**: esta vuelta no la cierra por accidente |
+
+### 9. Dos cosas que encontró el propio ejercicio de romper, y que se arreglaron
+
+Van dichas porque son defectos que estaban dentro del trabajo de esta vuelta, no
+del anterior.
+
+1. **El texto sintético caducado** (§1, último párrafo). Sin cerrar y reabrir el
+   fichero, los ocho controles del caso 11 se juzgaban contra el texto del
+   primero. Lo destapó el propio caso 11 al ponerse rojo con el mensaje del
+   control equivocado. Arreglado, medido y escrito en el comentario.
+2. **El control positivo de CA-2.6 borraba la mutación del verificador.** La
+   primera versión del caso 2d escribía y borraba `src/ingest/robots/side.ts`,
+   que es **el nombre exacto de la mutación R4**: correr la suite con la
+   mutación puesta la **borraba** en su `finally` y el caso 3 se ponía verde por
+   el motivo equivocado. Medido —36/36 con la mutación puesta— y arreglado: el
+   caso usa un nombre propio (`hidden-control.ts`), **exige que no exista antes
+   de escribirlo**, y no borra el directorio si ya estaba. Es el mismo tipo de
+   error que este expediente lleva cuatro vueltas persiguiendo, esta vez del
+   lado del control.
+
+### 10. Salvedades nuevas
+
+- **F-SPEC-008-V29 — ⚠️ El guardián de una regla dura depende de un API
+  `unstable`, y de un comportamiento suyo que no está documentado.** Lo primero
+  ya lo firmó el gate (nota 13 de la spec) y rompe ruidosamente. Lo segundo es
+  nuevo y es más fino: la secuencia que refresca el texto de un fichero abierto
+  —`closeFiles` **más** `fileChanges.changed`, y después `openFiles`— se
+  encontró **midiendo**, porque las tres formas obvias no funcionan. Si una
+  subida de `typescript` la cambia, el modo de fallo no es un error: es que los
+  controles sintéticos se juzguen contra un texto viejo, **en silencio**. Lo que
+  hoy lo destapa es que el caso 11 pide ocho formas distintas en la misma ruta;
+  si algún día queda un solo control por ruta, deja de haber quien avise.
+  Destino: **`sdd-verificador`** de la siguiente spec que toque esto, y
+  **EPIC-MEJORA** si conviene un caso propio que sólo vigile el refresco.
+- **F-SPEC-008-V30 — ⚠️ El fallo cerrado tiene una puerta de conveniencia, y va
+  nombrada.** Si `getSourceFile` devuelve `undefined` para un fichero que **sí
+  existe en disco**, el lector lo abre explícitamente y pregunta otra vez, una
+  sola vez; sólo si sigue sin verse es `unparseable`. Hace falta porque el
+  control positivo de CA-2.6 escribe un fichero **después** de tomada la
+  instantánea, y sin eso saldría «no se puede parsear» en vez de la ofensa real.
+  El riesgo aceptado: un fichero que el compilador se niegue a cargar por un
+  motivo legítimo se reintenta antes de darse por perdido. No afloja nada —el
+  segundo intento falla igual— pero es una rama que existe por comodidad del
+  control y conviene que se sepa. Destino: **EPIC-MEJORA**.
+- **F-SPEC-008-V31 — ⚠️ La cobertura contra el compilador es tan ancha como
+  `sourceFile.imports`.** Lo que el compilador registra ahí son los literales de
+  módulo del fichero. Un `declare module 'x'` (aumento de módulo) o una
+  referencia por triple barra viven en otras listas del `SourceFile` y **este
+  cruce no los mira**. Hoy no hay ninguno en el escaneo, y ninguno cruza una
+  capacidad de ejecución, pero el «nada se pierde en silencio» del caso 3b está
+  acotado por esa lista y no por el fichero entero. Destino: **`sdd-arquitecto`**
+  si algún día una entrada de la lista necesita un aumento de módulo.
+- **F-SPEC-008-V32 — ⚠️ El escaneo arranca un subproceso por fichero de test que
+  use el lector.** Tres ficheros de test lo importan (`architecture`,
+  `containment` y `tests/mirror/capture/no-parse`), y cada uno paga el arranque
+  del compilador en su worker. Medido: `npm test` no se mueve de ~3,8 s de
+  reloj, pero el coste está ahí y crecerá si más suites lo importan. No bloquea
+  nada. Destino: **EPIC-MEJORA**.
+
+### 11. Lo que esta vuelta NO tocó, a propósito
+
+- **`src/`, `migrations/` y `.gitignore`**: ni una línea. Comprobado sobre
+  `git status` y sobre el diff del commit.
+- **El grano de la concesión de CA-2.3** —superficie y no paquete, literalidad,
+  motivo escrito— y **CA-2.1, CA-2.2, CA-2.5, CA-2.7 y CA-2.8**. El texto de
+  **CA-2.4 tampoco cambia**: lo que cambia es que se comprueba por árbol, que es
+  lo que la lista §9 encargó.
+- **La pérdida firmada de CA-2.8**: N4 sigue sobreviviendo, comprobado a
+  propósito (184/184).
+- **Ninguna lista negra**, ni un nombre cableado. El caso 4c lo destaparía.
+- **F-SPEC-008-V18, V20, V21, V24, V26, V3, V5 y V12**: intactos, rutados donde
+  estaban.
+- **F-SPEC-008-7, el dictamen legal**: no se pide. Es del humano y es
+  precondición de la primera jornada, no del código. **En esta rama no se ha
+  corrido nada contra `ceroacero.es`**: lo único que salió a la red en esta
+  vuelta fue a `127.0.0.1` (los controles de CA-2.1, que ya estaban) y a la rama
+  de test de Neon.
+- **`tests/fixtures/`** sigue siendo sólo sintético; **ningún HTML real de
+  terceros versionado** (ADR-009 §3).
+
+### 12. Cómo retomar (handoff)
+
+- **Rama**: `ft/SPEC-008-adaptador-ceroacero`. Sin push y sin PR.
+- **Commit de esta vuelta**: `test(SPEC-008): el cierre estatico lo lee el
+  compilador, y el escaneo no hereda .gitignore` — cuatro ficheros bajo
+  `tests/`.
+- **Worktree**: `npm ci` **dentro** del worktree y copiar `.env.local` del
+  checkout principal (para `DATABASE_URL_TEST`). **Nunca un symlink**, nunca
+  `git add -f`. Si `test:db` da `ENOTFOUND` contra Neon, es DNS: repetir.
+- **Dónde mirar primero**: `tests/mirror/support/imports.ts` (el lector) y
+  `tests/polite/support/capability.ts` (las listas y los detectores). Los casos
+  nuevos son `architecture` 2b, 2c, 2d, 3b, 3c, 3d, 3e, 3f, 3g y 11b, y la
+  última aserción de `containment` 17.
+- **Para repetir las mutaciones**: la tabla del §8 las nombra todas con el
+  fichero y el caso que muere. Ojo con **R4**: el caso 2d escribe su propio
+  `hidden-control.ts` y no toca `side.ts`, así que las dos cosas conviven — pero
+  `git status` **no muestra** nada bajo un directorio `robots/`, así que hay que
+  borrarlo a mano (`rm -rf src/ingest/robots`) antes de commitear.
+- **Lo que sigue bloqueado y no es del implementador**: F-SPEC-008-7, el
+  dictamen de `sdd-legal-datos`.
