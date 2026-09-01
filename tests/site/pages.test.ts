@@ -25,6 +25,7 @@ import { gl } from '@/i18n/gl';
 import type { SiteLocale } from '@/i18n/site-bundle';
 import { MAILBOX } from '@/site/contact';
 import { CRAWLER_PATH, PROJECT_PATH } from '@/site/routes';
+import { UMBRELLA_URL } from '@/site/umbrella';
 
 const ROUTES = {
   gl: { layout: GlLayout, page: GlProjectPage, bundle: gl.site },
@@ -194,9 +195,29 @@ describe('CA-9 / CA-10 — mala cobertura, sin terceros y sin rastro', () => {
     }
   });
 
-  test('16. el HTML no hace ninguna petición a un tercero: no lleva una sola URL absoluta', () => {
+  /**
+   * MODULADO POR SPEC-007 CA-2.4 (ADR-012 §2, aprobado el 2026-09-01). Este
+   * caso prohibía TODA URL absoluta, que es más estricto que el CA que dice
+   * implementar: CA-10 habla de que el HTML no haga «ninguna petición a un
+   * tercero», y un `<a href>` no pide nada — la descarga la decide el
+   * visitante al hacer clic, y hasta entonces no sale un byte.
+   *
+   * La barrera SE ESTRECHA, no se levanta: se sigue prohibiendo toda URL
+   * absoluta en un atributo que descargue por sí solo, y se admite
+   * exactamente una en un `href` de `<a>`, la del paraguas. Forma y
+   * precedente: los casos finales de `crawler-page.test.ts`.
+   */
+  test('16. la única URL absoluta del HTML es la del paraguas, y va en un href de <a>', () => {
     for (const locale of LOCALES) {
-      expect(HTML[locale]).not.toMatch(/https?:\/\//);
+      // Nada que el navegador descargue solo.
+      expect(HTML[locale]).not.toMatch(/\b(?:src|srcset)\s*=\s*["']?https?:/i);
+      expect(HTML[locale]).not.toMatch(/<link[^>]+href=["']?https?:/i);
+      expect(HTML[locale]).not.toMatch(/url\(\s*['"]?(?:https?:)?\/\//i);
+
+      // Y una sola URL absoluta en todo el documento: la del paraguas.
+      const absolute = [...HTML[locale].matchAll(/https?:\/\/[^\s"'<)]+/g)].map((m) => m[0]);
+      expect(absolute).toEqual([UMBRELLA_URL]);
+      expect(HTML[locale]).toContain(`<a href="${UMBRELLA_URL}"`);
     }
   });
 

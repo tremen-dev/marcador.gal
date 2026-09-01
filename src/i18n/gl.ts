@@ -49,6 +49,7 @@ export const gl = {
       'O enderezo de contacto é {mailbox}. ' +
       'Escribe aí para calquera cousa que teña que ver con este sitio ou co ' +
       'rastrexador, e respondemos.',
+    umbrellaLink: 'tremen.dev — o paraugas deste proxecto',
 
     measuringHeading: 'Que se vai medir',
     measuring:

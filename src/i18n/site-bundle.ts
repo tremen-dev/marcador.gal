@@ -23,11 +23,29 @@ export type SiteLocale = 'gl' | 'es';
 export interface SiteBundle {
   readonly heading: string;
 
-  /** CA-8.1 — three or four sentences. A test counts them. */
+  /**
+   * CA-8.1 — three or four sentences. A test counts them.
+   *
+   * It no longer names a person: SPEC-007 CA-1 modulates that half of SPEC-004
+   * CA-7 and CA-8.1 (ADR-012 §1). It still names tremen.dev in prose.
+   */
   readonly aboutHeading: string;
   readonly about: string;
 
-  /** CA-8.2 — latencia, cobertura, conflictos, minutos de operación manual. */
+  /**
+   * SPEC-007 CA-2.1 — the visible label of the link to the umbrella. The URL
+   * itself is NOT here: it lives in `src/site/umbrella.ts`, one definition,
+   * with the contract written in its header. This key is only the text a
+   * reader clicks, which is exactly the thing that has to be translated (D-2).
+   */
+  readonly umbrellaLink: string;
+
+  /**
+   * CA-8.2 — what is being measured. SPEC-007 CA-4 modulates it: the general
+   * object of the study, with no competition named and no metric enumerated.
+   * CA-5 keeps the robots.txt clause, which is what makes the page reinforce
+   * the letter instead of contradicting it.
+   */
   readonly measuringHeading: string;
   readonly measuring: string;
 

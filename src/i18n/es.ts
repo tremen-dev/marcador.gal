@@ -27,6 +27,7 @@ export const es = {
       'La dirección de contacto es {mailbox}. ' +
       'Escribe ahí para cualquier cosa que tenga que ver con este sitio o con el ' +
       'rastreador, y respondemos.',
+    umbrellaLink: 'tremen.dev — el paraguas de este proyecto',
 
     measuringHeading: 'Qué se va a medir',
     measuring:

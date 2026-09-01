@@ -14,9 +14,13 @@
  * El nombre salió de `about` porque era donde estaba; la razón de ADR-012 §1
  * es que no vuelva a entrar por ningún otro sitio.
  */
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
+import { headerComment, readSourceFiles, SRC } from './source-scan';
+import { UMBRELLA_URL } from '@/site/umbrella';
 import EsLayout from '@/app/(es)/layout';
 import EsProjectPage from '@/app/(es)/es/proxecto/page';
 import EsCrawlerPage from '@/app/(es)/es/robot/page';
@@ -127,5 +131,70 @@ describe('CA-1 — el sitio no nombra a ninguna persona, ni dice cuántas son', 
     for (const locale of SITE_LOCALES) {
       expect(siteBundle(locale).about).toContain('tremen.dev');
     }
+  });
+});
+
+const UMBRELLA_MODULE = 'site/umbrella.ts';
+
+const PROJECT_HTML = {
+  gl: HTML['gl /proxecto'],
+  es: HTML['es /es/proxecto'],
+} as const;
+
+describe('CA-2 — el paraguas se nombra y se enlaza: el enlace es estructural', () => {
+  test('6. la sección «quen está detrás» lleva un <a href> real al paraguas', () => {
+    for (const locale of SITE_LOCALES) {
+      // Un `<a href>`, no texto plano y no un `mailto:`: el lector tiene que
+      // poder mirar bajo qué paraguas está esto (ADR-012 §2).
+      expect(PROJECT_HTML[locale]).toContain(`<a href="${UMBRELLA_URL}"`);
+      expect(PROJECT_HTML[locale]).not.toContain(`mailto:${UMBRELLA_URL}`);
+    }
+  });
+
+  test('7. su etiqueta visible sale de una clave de i18n de los dos bundles (D-2)', () => {
+    // Y las dos lenguas dicen cosas distintas: si la clave existiera pero
+    // fuese la misma cadena, sería un literal disfrazado de i18n.
+    expect(gl.site.umbrellaLink).not.toEqual(es.site.umbrellaLink);
+
+    for (const locale of SITE_LOCALES) {
+      const label = siteBundle(locale).umbrellaLink;
+      expect(label.trim().length).toBeGreaterThan(0);
+      expect(PROJECT_HTML[locale]).toContain(`>${label}</a>`);
+    }
+  });
+
+  test('8. y `about` sigue nombrando tremen.dev en prosa: un enlace solo no lo dice', () => {
+    for (const locale of SITE_LOCALES) {
+      expect(siteBundle(locale).about).toContain('tremen.dev');
+    }
+  });
+
+  test('9. la URL sale de UNA constante de src/site, y no de site/contact.ts', async () => {
+    const files = await readSourceFiles();
+    const carriers = files.filter((f) => f.text.includes(UMBRELLA_URL)).map((f) => f.path);
+
+    // Misma forma que el caso 2 de `contact.test.ts`: una sola definición y
+    // todo lo demás la referencia. `site/contact.ts` queda expresamente
+    // fuera — su caso 4 exige que no exporte nada más que el buzón, y meter
+    // esto ahí sería tumbar una barrera de SPEC-004 en vez de modularla.
+    expect(carriers).toEqual([UMBRELLA_MODULE]);
+    expect(UMBRELLA_MODULE).not.toBe('site/contact.ts');
+
+    const source = await readFile(join(SRC, UMBRELLA_MODULE), 'utf8');
+    expect([...source.matchAll(/^export const (\w+)/gm)].map((m) => m[1])).toEqual([
+      'UMBRELLA_URL',
+    ]);
+  });
+
+  test('10. la cabecera de esa constante lleva escrito el contrato', async () => {
+    const header = headerComment(await readFile(join(SRC, UMBRELLA_MODULE), 'utf8'));
+
+    // El aviso tiene que alcanzar a quien edite ESA línea, en el momento en
+    // que la edita: lo único que se le pide a esta URL es que resuelva, y si
+    // se cae, el que responde es el buzón (ADR-012 §2 y §3).
+    expect(header).toContain('names no person');
+    expect(header).toContain('that it resolves');
+    expect(header).toContain('THE MAILBOX IS NOT TO BE TOUCHED');
+    expect(header).toContain('ADR-012');
   });
 });
