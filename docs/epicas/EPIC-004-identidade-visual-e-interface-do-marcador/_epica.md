@@ -51,7 +51,7 @@ roadmap: con una sola fuente automática capturable, **nada se publica
 cuánta operación manual hay es diseñar para un producto que puede no existir.
 
 **Qué NO espera aquí.** Lo que sí pasa el corte salió de esta épica y ya se
-movió: las reglas semánticas del marcador están en **ADR-013** (`borrador`,
+movió: las reglas semánticas del marcador están en **ADR-013** (`aprobada`,
 2026-09-01), porque se derivan de D-8 y de RN-01..RN-13, que están locked, y
 ninguna cifra las mueve. Congelar una regla que ya es cierta sería el error
 simétrico al de construir la pantalla.
