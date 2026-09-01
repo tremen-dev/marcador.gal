@@ -286,6 +286,13 @@ un equipo sin alias confirmado por una persona*.
   > están en el ledger: «Arbitraje del gate humano — 2026-09-01» §1 y
   > «Enmienda — 2026-09-01: CA-2 pasa de detección textual a contención de
   > capacidad».*
+  >
+  > *Y **CA-2.1 y CA-2.3 se volvieron a escribir ese mismo día**, tras la tercera
+  > verificación: la octava evasión mandó un paquete de verdad entrando por
+  > `ALLOWED_PACKAGES`, y la contención en ejecución no la vio. Los dos textos
+  > anteriores y las mediciones están en «Enmienda — 2026-09-01: CA-2 cierra por
+  > la superficie que se importa, y la trampa baja al socket». **CA-2.2 y
+  > CA-2.4..CA-2.8 no se tocan.***
 
   *El criterio deja de buscar lo prohibido: **enumera lo permitido y exige que el
   resto sea vacío**. Las tres listas que lo sostienen no son listas de formas de
@@ -294,12 +301,22 @@ un equipo sin alias confirmado por una persona*.
   plataforma, las dependencias que ya tenemos, y las maneras que ECMAScript da de
   obtener una capacidad.*
 
-  **CA-2.1 — Contención en ejecución: la única salida que se dispara es la de
-  `src/polite/http.ts`.**
-  Dado un test que, **antes de importar ningún módulo de `src/`**, sustituye por
-  trampas todas las salidas de red de la plataforma —`globalThis.fetch` y los
-  módulos `node:http`, `node:https`, `node:http2`, `node:net`, `node:tls`,
-  `node:dgram`—,
+  **CA-2.1 — Contención en ejecución: la trampa va sobre el socket, y la única
+  salida que se dispara es la de `src/polite/http.ts`.**
+
+  > *Sustituye, el 2026-09-01, al CA-2.1 que Alberto Fojo firmó esa misma mañana.
+  > El texto anterior, **la medición que lo desmiente** y lo que el mecanismo
+  > nuevo sigue sin alcanzar están en el ledger: «Enmienda — 2026-09-01: CA-2
+  > cierra por la superficie que se importa, y la trampa baja al socket» §2 y §3.
+  > El texto viejo afirmaba que se sustituyen por trampas **todas** las salidas de
+  > red de la plataforma. **Es falso, y está medido**: la evasión salió por el
+  > camino que ese CA conduce y la trampa registró **cero disparos**.*
+
+  Dado un test que, **antes de importar ningún módulo de `src/`**, instala una
+  trampa sobre **el punto por el que pasa toda salida de socket del proceso** —el
+  que ve la conexión cualquiera que sea el módulo que la abre, y **también cuando
+  la abre una dependencia de `node_modules`**, que no pasa por el registro de
+  módulos que el runner sustituye—,
   cuando se conducen los puntos de entrada declarados de `src/ingest/` y las CLI
   de `src/mirror/` **con el `globalFetcher` real**,
   entonces toda trampa que se dispara se atribuye, por su pila, a
@@ -307,12 +324,52 @@ un equipo sin alias confirmado por una persona*.
   `politeFetch`;
   y cuando se conducen los mismos puntos de entrada **con un `HttpFetcher`
   doble**, **no se dispara ninguna trampa**.
-  La trampa se instala **antes** de cualquier `import` de `src/` porque una
-  segunda puerta puede capturar la referencia en el ámbito del módulo, que es
-  exactamente la forma de F-SPEC-008-V6; instalarla después la dejaría pasar.
+
+  **La trampa no se da por buena porque exista: se mide, y los dos controles son
+  parte del criterio.**
+  1. **Que ve a una dependencia.** Una salida abierta por una dependencia de
+     `node_modules` —la forma medida es `cheerio.fromURL` contra un **servidor
+     local propio**, nunca contra un tercero (RN-11)— **dispara la trampa**. Con
+     el mecanismo anterior salía el paquete y la trampa disparaba **cero** veces:
+     este caso es la reproducción exacta de F-SPEC-008-V15.
+  2. **Que puede negar, no solo contar.** Una trampa que rechaza en vez de
+     delegar deja el paquete **sin llegar al servidor local**. La que cuenta y no
+     puede impedir demuestra observación, no contención.
+
+  **El orden de instalación es uno de los mecanismos de este criterio, y cuenta
+  como tal a efectos de CA-2.7.** La trampa se instala antes de cualquier
+  `import` de `src/` porque una segunda puerta puede capturar la referencia en el
+  ámbito del módulo, que es exactamente la forma de F-SPEC-008-V6. **Un caso
+  propio tiene que ponerse rojo si la instalación se mueve después del primer
+  `import` de `src/`**, sin ninguna otra mutación que lo acompañe (F-SPEC-008-V17:
+  hoy moverla sola deja los trece casos en verde).
+
   Quedan fuera de la atribución las salidas que abren `@vercel/blob` y
-  `postgres`: son nuestra propia infraestructura y no un tercero, están en la
-  lista de CA-2.3, y RN-11 habla de la fuente, no del almacén.
+  `postgres`: son nuestra propia infraestructura y no un tercero, están
+  declaradas en CA-2.3, y RN-11 habla de la fuente, no del almacén.
+
+  *(Medido el 2026-09-01 sobre Node 26, y va aquí para que nadie lo redescubra:
+  el punto que cumple la propiedad es `net.Socket.prototype.connect` —lo
+  atraviesan `cheerio.fromURL` por `undici`, `globalThis.fetch`, `node:http` y un
+  `net.Socket` a pelo, y también el TLS, porque `TLSSocket` no tiene `connect`
+  propio—. Una trampa puesta **solo** sobre `net.connect` **no ve `node:http`**,
+  que captura su fábrica de conexión al cargarse. El criterio exige la
+  **propiedad**, no el símbolo: si la plataforma mueve el punto, se mueve el punto
+  y no el criterio.)*
+
+  **Lo que esta contención NO alcanza, dicho aquí y no en un follow-up
+  (ADR-016 §6). No sustituye al residuo de CA-2.8: se suma a él.**
+  - **Solo ve lo que se ejecuta.** Código alcanzable desde `ENTRY_POINTS` cuya
+    rama de red no ejerza ningún caso no dispara nada. Es cuestión de cobertura,
+    no de detección, y no es de esta spec.
+  - **Solo ve lo que sale por un socket.** UDP (`node:dgram`), un subproceso que
+    pida por su cuenta (`node:child_process`) o un binario nativo no pasan por
+    ahí. Su único cierre es el **estático**: no son entradas de CA-2.3 y CA-2.4
+    cierra `require`. El día que alguno entre como dependencia real, este criterio
+    deja de cubrirlo y hay que ensancharlo **con la medida delante**, no con un
+    nombre en una lista.
+  - **Demuestra qué puede salir desde este repositorio, no qué hace la plataforma
+    en producción.** La trampa vive en el proceso del test.
 
   **CA-2.2 — Ninguna petición sale sin que la política real haya dicho que sí.**
   Bajo la misma trampa, con el `RobotsPolicy` de `src/polite/robots.ts`
@@ -323,57 +380,112 @@ un equipo sin alias confirmado por una persona*.
   petición que ninguna política puede gatear (ADR-014 §3.1).
   El test se pone rojo si sale una petición cuyo permiso lo concedió otro código.
 
-  **CA-2.3 — Cierre de imports: todo especificador es un literal de una lista de
-  lo permitido.**
+  **CA-2.3 — Cierre de imports: no se concede un paquete, se concede una
+  superficie.**
 
-  > *Reescrito el 2026-09-01 por el arbitraje «Arbitraje del gate humano —
-  > 2026-09-01: la treceava entrada de `ALLOWED_PACKAGES`» del ledger, que
-  > conserva íntegro el texto anterior. El texto viejo **congelaba el contenido
-  > de la lista** —«hoy es exactamente» doce paquetes—, y eso convertía cada
-  > dependencia nueva en un arbitraje humano. Lo que el criterio exige es la
-  > **forma** de la lista, no su contenido.*
+  > *Reescrito el 2026-09-01, por segunda vez en el mismo día. El texto anterior
+  > —el que salió del arbitraje «la treceava entrada de `ALLOWED_PACKAGES`»— se
+  > conserva íntegro en el ledger, junto con el motivo: «Enmienda — 2026-09-01:
+  > CA-2 cierra por la superficie que se importa, y la trampa baja al socket» §1.
+  > **Aquel texto concedía el paquete entero**, y por ahí entró la octava
+  > evasión: `cheerio` está en la lista y **es un cliente HTTP** —desde la 1.0
+  > exporta `fromURL`—, así que once líneas en `src/ingest/preflight.ts` mandaron
+  > una petición real **sin User-Agent, sin `robots.txt` y sin turno**, con la
+  > suite en 748/748 (F-SPEC-008-V15). No rodeó ningún detector: entró por la
+  > puerta principal.*
 
   Dado todo `.ts`/`.tsx` bajo las raíces declaradas en CA-2.6,
   entonces cada especificador de módulo —estático, de efecto lateral o
   dinámico— es (i) una ruta relativa o `@/…` que resuelve dentro del
-  repositorio, o (ii) una **cadena literal presente en `ALLOWED_PACKAGES`**;
-  y **un especificador que no sea un literal estático** —`import(MOD)`,
-  `import('node:' + 'https')`— es **rojo por construcción**, también dentro de
-  `src/polite/`.
+  repositorio, o (ii) una **cadena literal que es una entrada declarada de la
+  lista de lo permitido**;
+  y **cada nombre que cruza esa frontera está en la superficie que esa entrada
+  declara**: el de un `import` con nombre —el nombre original, no su alias—, el
+  `default`, y **cada miembro que se lee de un espacio de nombres**
+  (`import * as ns` obliga a que todo `ns.x` esté declarado). **Lo que no está,
+  es rojo, y no hace falta que nadie sepa que existe.**
 
-  Lo que este criterio le exige a `ALLOWED_PACKAGES` son tres cosas, y ninguna
-  es un contenido concreto:
-  1. **Que exista, como identificador exportado de un fichero que se llama
-     así**, y que sea **cerrada en cada momento**: lo que no está en ella es
-     rojo, hoy y con la lista del tamaño que tenga. Un especificador no literal
-     es rojo aunque el paquete al que apunte sí esté.
-  2. **Que ninguna entrada sea una puerta de salida** —un módulo de red de la
-     plataforma o un cliente HTTP—. Es exactamente lo que la frontera prohíbe, y
-     un caso lo vigila por nombre.
-  3. **Que toda entrada nueva llegue con su motivo escrito junto a la lista**,
-     en el mismo diff que la añade.
+  Siguen siendo **rojo por construcción**, también dentro de `src/polite/`:
+  - un **especificador que no sea un literal estático** —`import(MOD)`,
+    `import('node:' + 'https')`—;
+  - un **acceso computado** sobre el espacio de nombres de una entrada
+    —`ns['from' + 'URL']`—, por el mismo motivo y con la misma forma;
+  - un **`import()` dinámico de una entrada de paquete**, que entrega el espacio
+    de nombres entero y no se puede cerrar en el sitio del `import`;
+  - un **`import` de efecto lateral sobre una entrada de paquete**, que no
+    importa ningún nombre y por tanto no puede satisfacer este cierre.
+
+  Los dos últimos dejan de serlo el día que una entrada declare esa forma con su
+  motivo escrito, que es un diff y no un arbitraje. **`import type` no cuenta**:
+  `verbatimModuleSyntax` lo borra entero, no cruza ninguna capacidad, y exigirle
+  superficie sería peaje. Una entrada con superficie **vacía** —hoy `next` y
+  `react`— es exactamente eso: un paquete del que este repositorio no toma
+  ninguna capacidad.
+
+  Lo que este criterio le exige a la lista son tres cosas, y ninguna es un
+  contenido concreto:
+  1. **Que exista, como identificador exportado de un solo fichero que se llama
+     como lo que declara**, y que sea **cerrada en cada momento en sus dos ejes**:
+     qué entradas hay, y qué nombres concede cada una. Lo que no está es rojo,
+     hoy y con el tamaño que tenga. Un especificador no literal es rojo aunque el
+     paquete al que apunte sí esté.
+  2. **Que la concesión sea del grano de la capacidad.** Ésta sustituye a la
+     obligación vieja —«que ninguna entrada sea una puerta de salida»— y la
+     sustituye por lo que le pasó: se mecanizó con **una lista de trece nombres
+     prohibidos**, y `cheerio` entró porque nadie sabía que lo era. Había quedado
+     **una lista negra viva dentro del criterio que vino a sustituirlas**. Con la
+     concesión por superficie **la pregunta desaparece**: nadie tiene que decidir
+     si un paquete es una puerta, porque el paquete no se concede. `fromURL` es
+     rojo sin que nadie lo nombre, y lo mismo le pasará al siguiente. **No se
+     añade ningún nombre a ninguna lista negra: se borra la lista negra.**
+  3. **Que toda entrada nueva —y todo nombre nuevo dentro de una superficie—
+     llegue con su motivo escrito junto a la lista**, en el mismo diff que lo
+     añade.
 
   **Que la lista crezca no es un defecto ni un arbitraje: es lo natural**
-  (Alberto Fojo, 2026-09-01). Una dependencia real que entra es *una línea en un
-  fichero que se llama así, en un diff que un revisor lee*, y no una forma nueva
-  de escribir una llamada que nadie ve —la diferencia entre las dos cosas es la
-  enmienda entera de este CA—. Por eso **añadir una entrada no vuelve a subir al
-  gate humano**, y una lista más larga que la de ayer no es una desviación que
-  haya que declarar ni un criterio incumplido.
+  (Alberto Fojo, 2026-09-01), **y eso vale igual para los nombres de una
+  superficie**. Cada uno es *una línea en un fichero que se llama así, en un diff
+  que un revisor lee*, y no una forma nueva de escribir una llamada que nadie ve.
+  Por eso **añadir una entrada o un nombre no vuelve a subir al gate humano**, y
+  una lista más larga que la de ayer no es una desviación que haya que declarar
+  ni un criterio incumplido.
   **Lo que sí sigue siendo un cambio de criterio, y sí exige firma humana:**
-  quitar la exigencia de literalidad, quitar la de que la entrada llegue con su
-  motivo, o meter en la lista una puerta de salida.
+  quitar la exigencia de literalidad —de especificadores o de accesos—, quitar la
+  de que lo nuevo llegue con su motivo, **conceder un espacio de nombres entero
+  en vez de una superficie**, o **declarar en una superficie un nombre cuyo
+  trabajo es pedirle bytes a un tercero**. Eso último es todo lo que queda de la
+  obligación vieja, y es lo único que sigue pidiendo una firma.
 
-  *Fotografía del día en que se escribió —orienta, no manda—*: trece entradas,
-  `node:crypto`, `node:fs`, `node:fs/promises`, `node:module`, `node:path`,
-  `node:url`, `@vercel/blob`, `cheerio`, `next`, `postgres`, `react`,
-  `vitest/config` y `zod`. Dos llevan su motivo escrito porque no se explican
-  solas: **`node:module`**, porque `src/mirror/cli/node-resolve.ts` registra un
-  hook de resolución para poder ejecutar las CLI en TypeScript —es la única
-  capacidad de resolución de módulos fuera de `src/polite/`, y va nombrada, no
-  tolerada en silencio—; y **`vitest/config`**, porque CA-2.6 obliga a escanear
-  `vitest.config.ts` y `vitest.integration.config.ts`, que son código ejecutable
-  versionado fuera de `tests/`.
+  **Lo que este cierre NO promete** (ADR-016 §6). Cierra **un nivel**: el que
+  cruza la frontera del módulo. Un nombre concedido que sea a su vez un objeto
+  con capacidad dentro —`z`, de `zod`, es el caso vivo— **no queda cerrado por
+  dentro**, y cerrarlo un nivel más sería peaje sin daño medido que lo
+  justifique. Y un nombre concedido que **sí** sea una puerta de salida no lo
+  caza este criterio: lo caza **CA-2.1 si se ejecuta**, y si no se ejecuta, lo
+  único que queda es el diff y la firma.
+
+  *Fotografía del día en que se escribió —orienta, no manda—*: trece entradas y
+  su superficie tal como el árbol la alcanza hoy — `node:crypto` (`createHash`),
+  `node:fs` (`existsSync`), `node:fs/promises`
+  (`mkdir`, `readFile`, `readdir`, `writeFile`), `node:module` (`registerHooks`),
+  `node:path` (`dirname`, `join`, `relative`, `resolve`, `sep`), `node:url`
+  (`fileURLToPath`, `pathToFileURL`), `@vercel/blob` (`get`, `list`, `put`),
+  **`cheerio` (`load`, y nada más: `fromURL` queda fuera y ésa es la evasión
+  cerrada)**, `next` (vacía), `postgres` (`default`), `react` (vacía),
+  `vitest/config` (`defineConfig`) y `zod` (`z`). Dos entradas llevan su motivo
+  escrito porque no se explican solas: **`node:module`**, porque
+  `src/mirror/cli/node-resolve.ts` registra un hook de resolución para poder
+  ejecutar las CLI en TypeScript —es la única capacidad de resolución de módulos
+  fuera de `src/polite/`, y va nombrada, no tolerada en silencio—; y
+  **`vitest/config`**, porque CA-2.6 obliga a escanear `vitest.config.ts` y
+  `vitest.integration.config.ts`, que son código ejecutable versionado fuera de
+  `tests/`.
+
+  **Y una consecuencia que conviene ver, porque es la mitad barata del arreglo:**
+  este cierre corre sobre **todas** las raíces de CA-2.6, no sobre los tres
+  directorios de `CONTAINED_DIRS`. Por eso cierra también la **variante huérfana**
+  de la octava evasión —la que vivía en `src/db/` y no veían ni CA-2.5 ni
+  CA-2.1—, que es donde caen 66 de los 86 `.ts`/`.tsx` de `src/`.
 
   **CA-2.4 — La capacidad global no se toma prestada fuera de `src/polite/`.**
   Fuera de `src/polite/` no aparece el identificador `globalThis`, ni un uso
@@ -750,7 +862,9 @@ Aparcado a propósito, no por descuido. Cada línea tiene dueño futuro.
 > **Estado de estas notas tras el arbitraje del 2026-09-01.** Los puntos 1..8 son
 > los del gate original y siguen tal cual; los puntos 3 y 4 quedaron **firmados**
 > ese día y no se reabren. Los puntos **9 y 10** los añade la aplicación de las
-> dos enmiendas que Alberto Fojo arbitró, y son lo nuevo que hay que mirar.
+> dos enmiendas que Alberto Fojo arbitró. Los puntos **11 y 12** los añade la
+> tercera enmienda —la reescritura de CA-2.1 y CA-2.3 tras la tercera
+> verificación—, y son lo último que hay que mirar.
 
 Lo que hay que mirar con lupa antes de firmar. Los siete puntos son decisiones,
 no detalles, y cuatro de ellos son preguntas abiertas de verdad.
@@ -831,3 +945,27 @@ no detalles, y cuatro de ellos son preguntas abiertas de verdad.
     tenía: **un tick sin ella no manda nada** (CA-14.7). Es fallo cerrado y es lo
     correcto, pero significa que una caída de Postgres es cobertura perdida, y
     esa cifra es uno de los cuatro entregables de la épica.
+
+11. **CA-2.1 y CA-2.3 se han reescrito por segunda vez el mismo día, y este texto
+    Alberto no lo ha visto.** La **decisión** —cerrar las dos mitades que la
+    tercera verificación dejó abiertas— es suya, del 2026-09-01; el **texto
+    literal** es de `sdd-arquitecto`, y por eso la spec sigue en `en-progreso`.
+    Lo que hay que mirar con lupa son dos cosas concretas:
+    - **La concesión por superficie encarece cada dependencia nueva**: ya no es
+      una línea por paquete, sino una línea por paquete **y una por nombre**. Es
+      deliberado, y por la doctrina ya firmada («que crezca es lo natural») **no
+      vuelve al gate**. Si eso se considera demasiado peaje, el sitio de decirlo
+      es ahora y no en la cuarta verificación.
+    - **Lo único que sigue exigiendo firma humana** es declarar en una superficie
+      un nombre cuyo trabajo sea pedirle bytes a un tercero. Todo lo demás de la
+      lista es diff revisable.
+
+12. **CA-2.1 deja de apoyarse en una lista de módulos y pasa a apoyarse en una
+    propiedad del runtime, medida hoy.** Consecuencias que van dichas antes de
+    firmar: si Node mueve el punto por el que pasa un socket, el criterio sigue
+    siendo cierto pero **el test hay que reescribirlo**, y no se enterará nadie
+    hasta que se reescriba —el control positivo de la dependencia es lo que
+    avisa—. Y el residuo nuevo es real: **UDP, un subproceso y un binario nativo
+    no pasan por un socket de `node:net`**, así que la contención en ejecución no
+    los ve y su único cierre es el estático de CA-2.3 y CA-2.4. Está escrito
+    dentro del propio CA-2.1, como ADR-016 §6 obliga, y no como follow-up.

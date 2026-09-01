@@ -19,6 +19,16 @@ historial:
   fijamos nosotros y crece: §3.1 y §3.2 dicen ahora que lo exigido es que sea
   cerrada **en cada momento** y que crecer sea un diff con motivo, nunca un
   arbitraje. Nada más cambia.
+- **Corregido por segunda vez el 2026-09-01, todavía en `borrador` y antes de
+  cualquier firma**, a raíz de la **tercera verificación de SPEC-008** y de la
+  enmienda que la sigue («CA-2 cierra por la superficie que se importa, y la
+  trampa baja al socket»). Dos cosas que el ADR no decía y que el expediente
+  midió: **§3 gana una quinta obligación** —una lista de lo permitido no puede
+  esconder una lista de lo prohibido en su propia condición de admisión— y **§5
+  se corrige**: sustituir el módulo en el registro solo alcanza al grafo que el
+  runner transforma, así que la trampa va sobre el objeto por el que pasa la
+  capacidad **en el momento de usarla**, y hay que demostrarlo midiendo. Nada más
+  cambia, y **el ADR sigue sin aprobar**.
 - Specs relacionadas: **SPEC-008** (EPIC-002) — el caso que lo origina y la
   primera aplicación; **SPEC-002** y **SPEC-003** (`hecho`, EPIC-001) — de donde
   sale la prueba documental de que la convención no basta (F-SPEC-002-23); y
@@ -60,6 +70,15 @@ globalThis`, `await import('node:' + 'https')`, una `regex` en vez de un literal
 entrecomillado. El propio ledger había escrito el diagnóstico **antes** de que
 ningún verificador lo demostrara (F-SPEC-008-10): *«los detectores son textuales,
 y por tanto siguen siendo una lista de lo que ya sabemos escribir»*.
+
+**Y hubo una octava, que es la que enseñó lo que faltaba** *(añadido el
+2026-09-01)*. La tercera vuelta implementó ya la forma de este ADR —enumerar lo
+permitido— y aun así salió un paquete: `cheerio` estaba en la lista de paquetes
+permitidos y **es** un cliente HTTP. No rodeó ningún detector; **entró por la
+puerta principal**. Enseñó dos cosas, que son §3.5 y la corrección de §5: que una
+lista de lo permitido puede seguir escondiendo una lista negra en su condición de
+admisión, y que sustituir un **módulo** no alcanza a una dependencia que el
+runner externaliza.
 
 **Ése es el hallazgo general, y es lo único que este ADR generaliza:** una lista
 de *formas de escribir* una llamada está cerrada por la imaginación de quien la
@@ -104,9 +123,9 @@ La diferencia no es de estilo. Una lista de lo prohibido crece cuando alguien
 inventa una forma nueva de escribir una línea; una lista de lo permitido crece
 cuando llega una dependencia real, y eso es un diff que un revisor lee.
 
-### 3. Las cuatro obligaciones de una lista de lo permitido
+### 3. Las cinco obligaciones de una lista de lo permitido
 
-Toda lista que sostenga una frontera cumple las cuatro. Una que no las cumpla no
+Toda lista que sostenga una frontera cumple las cinco. Una que no las cumpla no
 demuestra nada, y decir que sí es peor que no tener test.
 
 1. **Cerrada en cada momento, y por algo que existe fuera del test.** La lista
@@ -156,6 +175,31 @@ demuestra nada, y decir que sí es peor que no tener test.
    nombrado**. Un mecanismo sin control positivo es ceremonia: funciona hoy y
    nadie se entera el día que alguien lo borre por ruidoso.
 
+5. **Que la lista no esconda una lista de lo prohibido dentro de su propia
+   condición de admisión.** *(Añadida el 2026-09-01, con el caso medido delante.)*
+   Una lista de lo permitido no vale por llamarse así: vale si **admitir una
+   entrada no obliga a nadie a saber de antemano si esa entrada es la capacidad
+   que la frontera cierra**. En cuanto la condición de admisión se escribe como
+   «…y que no sea de éstos», la lista negra ha vuelto, un nivel más adentro y
+   donde nadie la mira.
+
+   **El caso, y es literal.** SPEC-008 CA-2.3 exigía de `ALLOWED_PACKAGES` que
+   «ninguna entrada sea una puerta de salida». Se mecanizó con **trece nombres
+   prohibidos**, y `cheerio` —que desde la 1.0 exporta `fromURL` y **es** un
+   cliente HTTP— no estaba entre ellos: once líneas mandaron una petición real
+   sin `User-Agent`, sin `robots.txt` y sin turno, con la suite entera en verde.
+
+   **La salida no es una lista negra mejor: es bajar el grano de la concesión**
+   hasta que la pregunta se conteste sola. No se concede el paquete, se concede
+   la **superficie** que se importa de él; entonces `fromURL` es rojo **sin que
+   nadie tenga que saber que existe**, y lo mismo le pasa al siguiente. La regla
+   general: *si conceder la entrada entera obliga a preguntar «¿es esto una
+   puerta?», la lista está un nivel demasiado arriba*.
+
+   Y si tras bajar el grano **sigue quedando un juicio** —un nombre concedido que
+   sea a su vez una puerta—, el criterio lo escribe como **residuo** (§6) y no lo
+   disfraza de mecanismo.
+
 ### 4. El escaneo declara sus raíces, y las raíces cubren el repositorio
 
 Un test que recorre el árbol declara **qué raíces recorre**, y un caso comprueba
@@ -177,7 +221,32 @@ trampa que se dispare se atribuya al único dueño permitido.
 
 La trampa se instala **antes** de importar el código bajo prueba: una segunda
 puerta puede capturar la referencia en el ámbito del módulo, y una trampa
-instalada después la deja pasar.
+instalada después la deja pasar. **El orden es un mecanismo del criterio**, y
+como tal le aplica §3.4: tiene que haber un caso que se ponga rojo si la
+instalación se mueve, sin ninguna otra mutación que lo acompañe.
+
+**Y la trampa va sobre el objeto por el que pasa la capacidad en el momento de
+usarla, no sobre el registro de módulos.** *(Corregido el 2026-09-01, con la
+medición delante.)* Sustituir un módulo en el registro del runner **solo alcanza
+al grafo que el runner transforma**: una dependencia de `node_modules` queda
+externalizada y abre la suya por debajo. Está medido en SPEC-008 y no es teoría —
+la trampa registró **cero disparos mientras salía un paquete de verdad**—, así
+que *«se sustituyen por trampas todas las salidas de la plataforma»* era falso
+tal como el mecanismo lo implementaba.
+
+De ahí dos obligaciones para cualquier contención en ejecución, y las dos son
+**medidas**, no argumentos:
+
+1. **Que vea a una dependencia de fuera del grafo transformado.** Un control
+   positivo en el que la salida la abre una dependencia instalada, no código
+   nuestro, y la trampa se dispara.
+2. **Que pueda negar, no solo contar.** Una trampa que rechaza deja el destino
+   —siempre un servidor propio, nunca un tercero— sin recibir nada. La que cuenta
+   y no puede impedir demuestra observación, no contención.
+
+Y el criterio **nombra la propiedad, no el símbolo**: «el punto por el que pasa
+toda salida de socket del proceso» sobrevive a que la plataforma mueva el punto;
+un nombre de función, no.
 
 La contención en ejecución no sustituye al cierre estático: **se usan juntos**.
 El estático alcanza el código que nadie ejecuta; el de ejecución no depende de
@@ -237,6 +306,12 @@ eso es un *finding* con destino `sdd-arquitecto`, no una corrección del test.
    estrecha el cierre estático y lo cierra la **cobertura**, que este ADR no
    decide y que hoy este proyecto no mide. Queda nombrado como lo que es: un
    residuo conocido, no un descuido.
+   **Y solo alcanza la superficie sobre la que se pone la trampa** *(añadido el
+   2026-09-01)*: una trampa sobre el socket no ve UDP, ni un subproceso que pida
+   por su cuenta, ni un binario nativo. Esa parte la cierra únicamente el §2 y el
+   §4 —lo que no es una entrada declarada no se puede importar—, y el criterio
+   tiene que decirlo dentro de sí mismo (§6) en vez de dar a entender que la
+   trampa lo ve todo.
 3. **Una lista de lo permitido se ensancha con una línea.** El mecanismo no
    impide relajar la frontera; obliga a que relajarla sea visible. **Si nadie lee
    los diffs, esto es ceremonia**, y hoy no hay CI: el gate de calidad corre en
