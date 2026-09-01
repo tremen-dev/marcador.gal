@@ -324,20 +324,55 @@ un equipo sin alias confirmado por una persona*.
 
   **CA-2.3 — Cierre de imports: todo especificador es un literal de una lista de
   lo permitido.**
+
+  > *Reescrito el 2026-09-01 por el arbitraje «Arbitraje del gate humano —
+  > 2026-09-01: la treceava entrada de `ALLOWED_PACKAGES`» del ledger, que
+  > conserva íntegro el texto anterior. El texto viejo **congelaba el contenido
+  > de la lista** —«hoy es exactamente» doce paquetes—, y eso convertía cada
+  > dependencia nueva en un arbitraje humano. Lo que el criterio exige es la
+  > **forma** de la lista, no su contenido.*
+
   Dado todo `.ts`/`.tsx` bajo las raíces declaradas en CA-2.6,
   entonces cada especificador de módulo —estático, de efecto lateral o
   dinámico— es (i) una ruta relativa o `@/…` que resuelve dentro del
-  repositorio, o (ii) una **cadena literal presente en `ALLOWED_PACKAGES`**, que
-  hoy es exactamente `node:crypto`, `node:fs`, `node:fs/promises`, `node:module`,
-  `node:path`, `node:url`, `@vercel/blob`, `cheerio`, `next`, `postgres`,
-  `react` y `zod`;
+  repositorio, o (ii) una **cadena literal presente en `ALLOWED_PACKAGES`**;
   y **un especificador que no sea un literal estático** —`import(MOD)`,
   `import('node:' + 'https')`— es **rojo por construcción**, también dentro de
   `src/polite/`.
-  `node:module` entra en la lista con su motivo escrito: `src/mirror/cli/node-resolve.ts`
-  registra un hook de resolución para poder ejecutar las CLI en TypeScript. Es la
-  única capacidad de resolución de módulos fuera de `src/polite/`, y va nombrada,
-  no tolerada en silencio.
+
+  Lo que este criterio le exige a `ALLOWED_PACKAGES` son tres cosas, y ninguna
+  es un contenido concreto:
+  1. **Que exista, como identificador exportado de un fichero que se llama
+     así**, y que sea **cerrada en cada momento**: lo que no está en ella es
+     rojo, hoy y con la lista del tamaño que tenga. Un especificador no literal
+     es rojo aunque el paquete al que apunte sí esté.
+  2. **Que ninguna entrada sea una puerta de salida** —un módulo de red de la
+     plataforma o un cliente HTTP—. Es exactamente lo que la frontera prohíbe, y
+     un caso lo vigila por nombre.
+  3. **Que toda entrada nueva llegue con su motivo escrito junto a la lista**,
+     en el mismo diff que la añade.
+
+  **Que la lista crezca no es un defecto ni un arbitraje: es lo natural**
+  (Alberto Fojo, 2026-09-01). Una dependencia real que entra es *una línea en un
+  fichero que se llama así, en un diff que un revisor lee*, y no una forma nueva
+  de escribir una llamada que nadie ve —la diferencia entre las dos cosas es la
+  enmienda entera de este CA—. Por eso **añadir una entrada no vuelve a subir al
+  gate humano**, y una lista más larga que la de ayer no es una desviación que
+  haya que declarar ni un criterio incumplido.
+  **Lo que sí sigue siendo un cambio de criterio, y sí exige firma humana:**
+  quitar la exigencia de literalidad, quitar la de que la entrada llegue con su
+  motivo, o meter en la lista una puerta de salida.
+
+  *Fotografía del día en que se escribió —orienta, no manda—*: trece entradas,
+  `node:crypto`, `node:fs`, `node:fs/promises`, `node:module`, `node:path`,
+  `node:url`, `@vercel/blob`, `cheerio`, `next`, `postgres`, `react`,
+  `vitest/config` y `zod`. Dos llevan su motivo escrito porque no se explican
+  solas: **`node:module`**, porque `src/mirror/cli/node-resolve.ts` registra un
+  hook de resolución para poder ejecutar las CLI en TypeScript —es la única
+  capacidad de resolución de módulos fuera de `src/polite/`, y va nombrada, no
+  tolerada en silencio—; y **`vitest/config`**, porque CA-2.6 obliga a escanear
+  `vitest.config.ts` y `vitest.integration.config.ts`, que son código ejecutable
+  versionado fuera de `tests/`.
 
   **CA-2.4 — La capacidad global no se toma prestada fuera de `src/polite/`.**
   Fuera de `src/polite/` no aparece el identificador `globalThis`, ni un uso

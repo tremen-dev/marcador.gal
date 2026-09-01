@@ -12,6 +12,13 @@ historial:
   levantó el §8.4 de la enmienda del ledger de SPEC-008 —*«si esto debe ser un
   ADR»*— y la contestó él: sí. **Aprueba: pendiente de gate humano.** Nace en
   `borrador` y ningún rol `sdd-*` puede firmarlo.
+- **Corregido el 2026-09-01, todavía en `borrador` y antes de cualquier firma**,
+  a raíz del arbitraje de la treceava entrada de `ALLOWED_PACKAGES` (ledger de
+  SPEC-008, «Arbitraje del gate humano — 2026-09-01»). El §3.1 se podía leer como
+  que una lista de lo permitido debe ser **inmutable**, y la de dependencias la
+  fijamos nosotros y crece: §3.1 y §3.2 dicen ahora que lo exigido es que sea
+  cerrada **en cada momento** y que crecer sea un diff con motivo, nunca un
+  arbitraje. Nada más cambia.
 - Specs relacionadas: **SPEC-008** (EPIC-002) — el caso que lo origina y la
   primera aplicación; **SPEC-002** y **SPEC-003** (`hecho`, EPIC-001) — de donde
   sale la prueba documental de que la convención no basta (F-SPEC-002-23); y
@@ -102,19 +109,40 @@ cuando llega una dependencia real, y eso es un diff que un revisor lee.
 Toda lista que sostenga una frontera cumple las cuatro. Una que no las cumpla no
 demuestra nada, y decir que sí es peor que no tener test.
 
-1. **Cerrada por algo que no fijamos nosotros.** La lista tiene que enumerar algo
-   que exista **antes** del test: la superficie de salida de la plataforma, las
-   dependencias declaradas del proyecto, las maneras que el lenguaje da de
-   alcanzar una capacidad. Si lo que enumera son *formas de escribir*, la lista
-   está cerrada por nuestra imaginación y no es una frontera. **Es el criterio
-   que separa este ADR de lo que había, y el único no negociable.**
+1. **Cerrada en cada momento, y por algo que existe fuera del test.** La lista
+   tiene que enumerar algo que exista **antes** del test: la superficie de salida
+   de la plataforma, las dependencias declaradas del proyecto, las maneras que el
+   lenguaje da de alcanzar una capacidad. Si lo que enumera son *formas de
+   escribir*, la lista está cerrada por nuestra imaginación y no es una frontera.
+   **Es el criterio que separa este ADR de lo que había, y el único no
+   negociable.**
 
-2. **Vive en un sitio con nombre, y crecer es un diff.** La lista es un
-   identificador exportado en un fichero, no una constante enterrada ni un patrón
-   inline. Ensancharla **no está prohibido**: está obligado a ser visible. La
-   diferencia entera entre el mecanismo bueno y el malo es que añadir una entrada
-   sea una línea que alguien revisa en vez de una forma nueva de escribir una
-   llamada que nadie ve.
+   **«Cerrada» no quiere decir «inmutable», y hay que decirlo porque se lee mal.**
+   Las dependencias declaradas de un proyecto **las fijamos nosotros y crecen**;
+   eso no es el defecto. Lo que hace buena a una lista es que, en cada momento, la
+   pertenencia se decida contra algo que existe con independencia del test —el
+   `package.json`, la superficie de la plataforma, la gramática del lenguaje— y no
+   contra lo que a alguien se le haya ocurrido escribir. Una lista de *formas de
+   escribir* no tiene última entrada; una lista de *lo que existe* la tiene
+   siempre, aunque sea otra cada mañana.
+
+2. **Vive en un sitio con nombre, crecer es un diff, y cada entrada llega con su
+   motivo.** La lista es un identificador exportado en un fichero, no una
+   constante enterrada ni un patrón inline. Ensancharla **no está prohibido ni es
+   un arbitraje**: está obligado a ser visible, y toda entrada nueva llega con su
+   motivo escrito junto a la lista, en el mismo diff que la añade. La diferencia
+   entera entre el mecanismo bueno y el malo es que añadir una entrada sea una
+   línea que alguien revisa en vez de una forma nueva de escribir una llamada que
+   nadie ve.
+
+   De ahí se sigue una consecuencia que un criterio no debe olvidar: **un CA que
+   escriba el contenido de la lista dentro de su propio texto convierte cada
+   dependencia nueva en una firma humana**, y eso no es rigor sino peaje. El CA
+   fija la **forma** —que la lista exista, que todo especificador sea literal y
+   esté en ella, que ninguna entrada sea aquello que la frontera prohíbe, y que
+   cada entrada nueva lleve motivo—; el **contenido** vive en el fichero y crece
+   ahí. Lo que sí exige firma es relajar la forma: quitar la literalidad, quitar
+   el motivo, o admitir en la lista la capacidad que la frontera cierra.
 
 3. **Ninguna exención por nombre de fichero, ni por patrón de ruta.** Una lista
    de ficheros exentos es un agujero con fecha: se cuela lo que quepa dentro del

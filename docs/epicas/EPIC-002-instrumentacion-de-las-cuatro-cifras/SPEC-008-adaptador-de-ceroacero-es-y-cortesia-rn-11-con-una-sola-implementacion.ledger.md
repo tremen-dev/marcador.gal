@@ -1997,6 +1997,11 @@ Van dichas porque son la prueba de que las mutaciones no fueron ceremonia.
   que CA-2.6 existe para impedir—. **No es un cliente HTTP y el caso 4 lo
   vigila.** Se dice aquí, y no se esconde, porque es una desviación del texto
   literal del CA que Alberto firmó. Destino: **gate humano / `sdd-arquitecto`**.
+  **CERRADO el 2026-09-01** — ver *«Arbitraje del gate humano — 2026-09-01: la
+  treceava entrada de `ALLOWED_PACKAGES`»*, al final de este ledger: la entrada
+  se aprueba, CA-2.3 se reescribe para exigir la **forma** de la lista y no su
+  contenido, y el crecimiento de `ALLOWED_PACKAGES` **deja de ser materia de
+  gate humano**. La implementación no cambia una línea.
 - **F-SPEC-008-16 — ⚠️ una aserción de `tests/db/migrate.test.ts` (SPEC-001
   CA-13, spec `hecho`) se enmendó, y es la segunda de todo el expediente.**
   Decía `expect(applied).toEqual(['0001'])` y `expect(await appliedVersions())
@@ -2100,3 +2105,129 @@ Lo que **no** hay que hacer: implementar `MatchResolver` de verdad, ni el cron,
 ni el motor, ni `ObservationStore`/`DecisionStore` en Postgres. Y no volver a
 un limitador de instancia en `src/ingest/`: el puerto es obligatorio y sin
 default a propósito.
+
+
+## Arbitraje del gate humano — 2026-09-01: la treceava entrada de `ALLOWED_PACKAGES` (Alberto Fojo)
+
+Cierra **F-SPEC-008-15**, la desviación que la tercera vuelta declaró: CA-2.3
+decía que la lista «hoy es exactamente» **doce** paquetes y la implementación
+tiene **trece**. **No cambia el estado de la spec** —SPEC-008 sigue
+`en-revision`— ni toca `src/`, `tests/` ni `migrations/`. Lo que sí hace es
+aplicarse al cuerpo de SPEC-008: **CA-2.3 queda reescrito**, y el texto anterior
+se conserva aquí íntegro.
+
+### 1. El hecho, y por qué la treceava entrada no era evitable
+
+`vitest/config` entra en `ALLOWED_PACKAGES` **arrastrado por el propio CA-2.6**:
+el escaneo tiene que cubrir todo el `.ts` versionado fuera de `tests/`, y eso
+incluye `vitest.config.ts` y `vitest.integration.config.ts`, que son código
+ejecutable en la raíz del repositorio y que importan el ayudante de
+configuración de vitest. La lista se escribió mirando `src/` y las raíces se
+escribieron más anchas; las dos mitades del criterio no se encontraban.
+
+**La salida que el implementador tomó es la correcta**: declarar la entrada con
+su motivo escrito, que es lo que el propio criterio manda hacer cuando llega una
+dependencia real. La alternativa —estrechar las raíces— habría dejado **dos
+ficheros ejecutables fuera del cierre**, que es exactamente lo que CA-2.6 existe
+para impedir. `vitest/config` no es un cliente HTTP ni una puerta de salida, y
+el caso 4 de `tests/polite/architecture.test.ts` lo vigila por nombre.
+
+**Alberto Fojo lo aprueba.**
+
+### 2. Y da una instrucción sobre el criterio, no sobre el caso
+
+> «Sí, y que no vuelva a pasar. No es importante que vayan creciendo, es lo
+> natural.»
+
+Lo que gobierna de aquí en adelante **no es el caso concreto de `vitest/config`,
+es esto**: el crecimiento de `ALLOWED_PACKAGES` **no vuelve a subir como
+pregunta al humano**. Una lista de lo permitido que crece cuando llega una
+dependencia real está funcionando como se diseñó; declararlo como desviación
+cada vez convierte el mecanismo en peaje y gasta el gate humano en lo que
+precisamente no lo necesita.
+
+Tiene apoyo en el argumento con el que se firmó la enmienda de CA-2, y se cita
+porque es el mismo razonamiento leído hasta el final (*Enmienda — 2026-09-01*
+§4.4): *«Añadir `undici` a la lista es una línea. Pero es una línea en un fichero
+que se llama así, en un diff que un revisor lee, y no una forma nueva de escribir
+una llamada que nadie ve. La diferencia entre las dos cosas es la enmienda
+entera.»* Si la garantía es el **diff revisable**, entonces el diff revisable es
+suficiente, y pedir además una firma no añade red: añade fricción.
+
+### 3. Qué se reescribe, y qué no se afloja
+
+**CA-2.3 pasa a exigir la forma de la lista y no su contenido**, con tres
+obligaciones: que exista como identificador exportado de un fichero que se llama
+así y sea **cerrada en cada momento**; que **ninguna entrada sea una puerta de
+salida** (módulo de red de la plataforma o cliente HTTP), vigilado por el caso 4;
+y que **toda entrada nueva llegue con su motivo escrito junto a la lista**, en el
+mismo diff que la añade. La enumeración de trece entradas queda en el CA como
+**fotografía fechada que orienta y no manda**.
+
+**Lo que no se toca, porque es de donde viene la fuerza del criterio:** la lista
+sigue siendo **cerrada en cada momento** —lo que no está en ella es rojo— y **un
+especificador que no sea un literal estático sigue siendo rojo por
+construcción**, también dentro de `src/polite/`, aunque el paquete al que apunte
+sí esté en la lista. Aflojar cualquiera de las dos **sí** es un cambio de
+criterio y **sí** exige firma humana, igual que meter en la lista una puerta de
+salida.
+
+**Consecuencia operativa para el verificador**: una lista con más entradas que la
+fotografía del CA **no es un criterio incumplido** y no hay que declararla. Lo
+que sí hay que mirar en el diff es que cada entrada nueva traiga motivo y que
+ninguna sea una puerta de salida.
+
+**Texto sustituido**, conservado aquí íntegro porque es lo que Alberto firmó el
+2026-09-01 y porque la diferencia entre «Alberto aprobó esto» y «Alberto aprobó
+algo parecido» no se reconstruye después (ADR-015 §1):
+
+> **CA-2.3 — Cierre de imports: todo especificador es un literal de una lista de
+> lo permitido.**
+> Dado todo `.ts`/`.tsx` bajo las raíces declaradas en CA-2.6,
+> entonces cada especificador de módulo —estático, de efecto lateral o
+> dinámico— es (i) una ruta relativa o `@/…` que resuelve dentro del
+> repositorio, o (ii) una **cadena literal presente en `ALLOWED_PACKAGES`**, que
+> hoy es exactamente `node:crypto`, `node:fs`, `node:fs/promises`, `node:module`,
+> `node:path`, `node:url`, `@vercel/blob`, `cheerio`, `next`, `postgres`,
+> `react` y `zod`;
+> y **un especificador que no sea un literal estático** —`import(MOD)`,
+> `import('node:' + 'https')`— es **rojo por construcción**, también dentro de
+> `src/polite/`.
+> `node:module` entra en la lista con su motivo escrito: `src/mirror/cli/node-resolve.ts`
+> registra un hook de resolución para poder ejecutar las CLI en TypeScript. Es la
+> única capacidad de resolución de módulos fuera de `src/polite/`, y va nombrada,
+> no tolerada en silencio.
+
+### 4. La implementación existente no cambia una línea
+
+Se comprobó antes de escribir el texto, porque una redacción nueva que obligue a
+tocar `tests/` invalidaría la evidencia de una implementación recién terminada:
+
+- **Existe y es cerrada**: `ALLOWED_PACKAGES` es un identificador exportado de
+  `tests/polite/support/capability.ts`, y los casos 3, 5, 6 y 7 de
+  `tests/polite/architecture.test.ts` sostienen el cierre y la literalidad.
+- **Ninguna entrada es una puerta de salida**: caso 4, que lo comprueba contra
+  trece nombres —los seis módulos de red de Node, `node:dns`,
+  `node:child_process` y cinco clientes HTTP—.
+- **Las entradas que no se explican solas llevan motivo**: `node:module` y
+  `vitest/config`, los dos escritos en el bloque de cabecera de la lista.
+- **Ningún test aserta el contenido ni la longitud de la lista**, así que la
+  fotografía del CA no está mecanizada en ningún sitio y no puede envejecer mal.
+
+### 5. Lo mismo le pasaba a ADR-016, y se corrigió
+
+**ADR-016 §3.1** decía «cerrada por algo que **no fijamos nosotros**», y la lista
+de dependencias **sí la fijamos nosotros** y crece. Leído así, el ADR pedía una
+lista inmutable, que es el mismo defecto que CA-2.3 tenía en pequeño. Corregido
+el 2026-09-01: §3.1 dice ahora **cerrada en cada momento**, y §3.2 que crecer es
+un diff con motivo y **nunca un arbitraje**. **Sigue en `borrador`**: lo firma
+una persona y `sdd-arquitecto` no aprueba sus propios artefactos.
+
+### 6. Lo que este arbitraje NO toca
+
+No cambia el estado de SPEC-008 ni su frontmatter. No toca `src/`, `tests/`,
+`migrations/`, `docs/roadmap.md`, `CLAUDE.md` ni ninguna otra épica. No reabre
+ningún ADR aprobado. No revisita CA-2.1, CA-2.2 ni CA-2.4..CA-2.8, ni la pérdida
+firmada de CA-2.8 (**N4 sigue sobreviviendo y tiene que seguir sobreviviendo**,
+F-SPEC-008-20). Y no contesta la pregunta legal (**F-SPEC-008-7**), que sigue
+sin pedir y sigue siendo precondición de correr la primera jornada.
