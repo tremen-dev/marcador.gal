@@ -30,7 +30,7 @@ Actualizado: 2026-09-01
 | Spec | Estado | Último cambio |
 |---|---|---|
 
-## EPIC-MEJORA (borrador)
+## EPIC-MEJORA (aprobada)
 
 | Spec | Estado | Último cambio |
 |---|---|---|
