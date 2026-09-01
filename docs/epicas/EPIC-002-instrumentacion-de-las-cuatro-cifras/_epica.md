@@ -61,10 +61,31 @@ advertencia junto al dato.
 también es éxito: la épica falla solo si termina sin cifras fiables, o con cifras
 cuya degradación no está escrita al lado.
 
-**Precondición heredada:** EPIC-001 tiene que haber dictado su veredicto. Si dice
-que las candidatas son espejos entre sí, el motor de esta épica nace con **una
-sola vía en RN-02** y hay que diseñarlo así desde el principio, no descubrirlo a
-mitad.
+**Precondición heredada — RESUELTA en lo que importa, el 2026-09-01.** Decía que
+EPIC-001 tenía que dictar su veredicto antes, porque el motor se diseña sabiendo
+si RN-02 tiene segunda vía. **Ya se sabe, y no hizo falta el test de espejo: lo
+resolvió la aritmética.** No hay dos fuentes automáticas capturables —`futgal.es`
+bloqueado por su `robots.txt` (ADR-008 §1), `besoccer.es` sirviendo armazones
+vacíos, y `resultados-futbol.com` que no es una cuarta fuente sino un 301 a
+besoccer—. Queda **una**: `ceroacero.es`, peso 0.7.
+
+**El motor nace, por tanto, con una sola vía en RN-02**, que es exactamente el
+escenario que esta precondición quería evitar descubrir a mitad. Ya no es un
+riesgo: es un dato de partida.
+
+**Lo que sigue dependiendo de EPIC-001 es solo si vuelve `futgal.es`**, y eso
+tiene fecha: la carta se envió el 2026-09-01 y el **2026-09-08** se da por no
+contestada (`docs/roadmap.md`). Si vuelve, entra **como un adaptador más y un
+peso en la configuración**; no rehace el motor. Por eso esta épica puede empezar
+sin esperar a esa fecha.
+
+**Consecuencia que reordena el alcance por dentro:** con una sola fuente de peso
+0.7, nada llega a *confirmado* por vía automática. Los caminos humanos de RN-01
+—corresponsal 0.8 → *provisional*, operador 1.0 con precedencia → *confirmado*—
+dejan de ser accesorios y pasan a ser **la única ruta a un marcador confirmado**.
+El bot de Telegram, el catálogo de alias y el panel van **antes**, no después, y
+la cifra de operación manual —la que dispara el corte duro de los 30 min— se
+puede medir sin referencia oficial.
 
 ## Alcance
 
