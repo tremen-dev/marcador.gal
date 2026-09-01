@@ -32,8 +32,7 @@ Tres épicas en juego, cada una en un punto distinto:
 - **EPIC-002 — Instrumentación de las cuatro cifras**, `aprobada`, descongelada
   el 2026-09-01: **es donde está el trabajo ahora**. Su primera spec, SPEC-008
   (adaptador de `ceroacero.es` y cortesía RN-11), y ADR-014 (dueño único de esa
-  cortesía) están en `borrador`, esperando firma humana, en una rama todavía sin
-  integrar — no los busques en el árbol, todavía no están.
+  cortesía) están en `borrador`, esperando firma humana.
 - **EPIC-003 — Páxina de proxecto e respaldo público da carta**, **`hecho`**
   desde hoy, la **primera épica del proyecto que llega ahí**: entregó el sitio
   público que respalda la carta a la RFGF.
@@ -89,8 +88,8 @@ el paraguas de tremen.dev.
 fija la semántica visual del marcador —el acento de marca nunca es un color de
 estado, ningún estado se codifica solo con color, dígitos tabulares, sin
 escudos— y obliga en cuanto se toque interfaz. **ADR-014**, sobre el dueño único
-de la cortesía RN-11, está en `borrador` junto a SPEC-008, en la misma rama sin
-integrar.
+de la cortesía RN-11, está en `borrador` junto a SPEC-008, esperando firma
+humana.
 
 ## Riesgos y preguntas abiertas
 
@@ -117,6 +116,5 @@ Detalle completo en `retos.md`. Lo que condiciona el trabajo inmediato:
   **marcador.gal**, nunca «marcador» a secas.
 
 Las fechas con plazo de todo lo anterior —incluida la purga del raw store del
-2026-09-30 (ADR-009)— se están reuniendo en un índice único,
-`docs/procedimientos/calendario-de-compromisos.md`, todavía en una rama sin
-integrar.
+2026-09-30 (ADR-009)— se reúnen en un índice único:
+`docs/procedimientos/calendario-de-compromisos.md`.
