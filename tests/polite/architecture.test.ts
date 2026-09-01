@@ -244,7 +244,19 @@ describe('CA-2.5 — nada huérfano en los tres destinos que el CA nombra', () =
     expect(contained.filter((path) => !reachable.has(path))).toEqual([]);
   });
 
-  test('14. y el recorrido ve las tres clases de arista, o no es un cierre', () => {
+  test('14. el lector ve las tres clases de arista sobre ficheros REALES', () => {
+    // Sobre el árbol, no sobre un doble. Hasta hoy sólo se leía
+    // `import … from '…'`, y lo que no se lee no se cierra.
+    const layout = SCANNED.find((file) => file.path === 'src/app/(gl)/layout.tsx');
+    const cli = SCANNED.find((file) => file.path === 'src/mirror/cli/capturar-cli.ts');
+    const adapter = SCANNED.find((file) => file.path === 'src/ingest/adapter.ts');
+
+    expect(layout?.specifiers.some((s) => s.kind === 'side-effect')).toBe(true);
+    expect(cli?.specifiers.some((s) => s.kind === 'dynamic' && s.text !== null)).toBe(true);
+    expect(adapter?.specifiers.some((s) => s.kind === 'static')).toBe(true);
+  });
+
+  test('15. y el grafo llega adonde sólo se llega por esas aristas', () => {
     // Hasta hoy `reachableModules` solo leía `import … from '…'`. Sin las
     // otras dos —y sin `.tsx`— el cierre no era un cierre: `src/site/` entero
     // habría quedado inalcanzable y el criterio habría pasado en verde
@@ -261,7 +273,7 @@ describe('CA-2.5 — nada huérfano en los tres destinos que el CA nombra', () =
     expect(reachable).toContain('src/site/redirects.ts');
   });
 
-  test('15. control positivo: un fichero nuevo en `src/ingest/` que nadie importa', async () => {
+  test('16. control positivo: un fichero nuevo en `src/ingest/` que nadie importa', async () => {
     // Es la tercera evasión viva de CA-2.7. Se comprueba sobre el mecanismo
     // real —el conjunto alcanzable— y no sobre un doble.
     const orphan = 'src/ingest/nobody-imports-me.ts';
@@ -271,7 +283,7 @@ describe('CA-2.5 — nada huérfano en los tres destinos que el CA nombra', () =
     expect(reachable.has('src/ingest/ceroacero.ts')).toBe(true);
   });
 
-  test('16. `ENTRY_POINTS` no envejece: nombra todas las rutas de `src/app/`', () => {
+  test('17. `ENTRY_POINTS` no envejece: nombra todas las rutas de `src/app/`', () => {
     // Una ruta nueva sin declarar es código que Next ejecuta y que CA-2.1 no
     // conduciría nunca. Que aparezca aquí es lo que lo impide.
     const routes = versionedSources().filter((path) => path.startsWith('src/app/'));
@@ -283,7 +295,7 @@ describe('CA-2.5 — nada huérfano en los tres destinos que el CA nombra', () =
 });
 
 describe('CA-2.7 — y no queda ninguna exención por nombre de fichero', () => {
-  test('17. los dos ficheros que la tenían siguen intactos y ya no la necesitan', async () => {
+  test('18. los dos ficheros que la tenían siguen intactos y ya no la necesitan', async () => {
     // `src/site/robots-txt.ts` (SPEC-004) GENERA el nuestro y
     // `src/mirror/analysis/referenceless/report.ts` (SPEC-003) CITA el de
     // futgal en una frase en castellano. Los dos escriben las palabras del
@@ -301,7 +313,7 @@ describe('CA-2.7 — y no queda ninguna exención por nombre de fichero', () => 
     }
   });
 
-  test('18. ningún mecanismo de CA-2 mira el nombre de un fichero para perdonarlo', async () => {
+  test('19. ningún mecanismo de CA-2 mira el nombre de un fichero para perdonarlo', async () => {
     // F-SPEC-008-V9: el caso que vigilaba la LISTA de exenciones no vigilaba
     // el MECANISMO, y cambiarla por un patrón `startsWith('site/')` dejaba
     // 435/435 en verde. Con la lista fuera no hay nada que aflojar, y esto es
