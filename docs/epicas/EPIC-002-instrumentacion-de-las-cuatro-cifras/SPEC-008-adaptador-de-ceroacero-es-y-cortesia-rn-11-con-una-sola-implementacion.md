@@ -2,10 +2,11 @@
 id: SPEC-008
 tipo: spec
 epica: EPIC-002
-estado: borrador
-aprobada-por:
+estado: aprobada
+aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-09-01, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-01, por: Alberto Fojo}
 ---
 # SPEC-008 — Adaptador de `ceroacero.es` y cortesía RN-11 con una sola implementación
 

@@ -15,7 +15,7 @@ Actualizado: 2026-09-01
 
 | Spec | Estado | Último cambio |
 |---|---|---|
-| SPEC-008 — adaptador-de-ceroacero-es-y-cortesia-rn-11-con-una-sola-implementacion | borrador | 2026-09-01 (sdd-arquitecto) |
+| SPEC-008 — adaptador-de-ceroacero-es-y-cortesia-rn-11-con-una-sola-implementacion | aprobada | 2026-09-01 (Alberto Fojo) |
 
 ## EPIC-003 — paxina-de-proxecto-e-respaldo-publico-da-carta (aprobada)
 
@@ -53,9 +53,9 @@ Actualizado: 2026-09-01
 | ADR-011 | aprobada | identidad-publica-del-rastreador-forma-estable-del-user-agent | 2026-09-01 (Alberto Fojo) |
 | ADR-012 | aprobada | identidad-publica-del-sitio-sin-nombre-con-paraguas-y-con-buzon-delante | 2026-09-01 (Alberto Fojo) |
 | ADR-013 | aprobada | semantica-visual-del-marcador-el-acento-de-marca-nunca-es-un-color-de-estado | 2026-09-01 (Alberto Fojo) |
-| ADR-014 | borrador | la-cortesia-rn-11-tiene-un-solo-dueno-y-sale-de-src-mirror | 2026-09-01 (sdd-arquitecto) |
+| ADR-014 | aprobada | la-cortesia-rn-11-tiene-un-solo-dueno-y-sale-de-src-mirror | 2026-09-01 (Alberto Fojo) |
 
 ## Resumen
 
 - hecho: 7
-- borrador: 1
+- aprobada: 1

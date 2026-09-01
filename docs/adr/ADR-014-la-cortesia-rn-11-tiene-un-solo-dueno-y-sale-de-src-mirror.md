@@ -1,9 +1,11 @@
 ---
 id: ADR-014
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-01, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-01, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # ADR-014: La cortesía RN-11 tiene un solo dueño, y sale de `src/mirror/`
 
