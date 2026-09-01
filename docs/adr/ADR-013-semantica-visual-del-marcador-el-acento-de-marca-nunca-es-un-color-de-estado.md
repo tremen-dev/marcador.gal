@@ -1,9 +1,11 @@
 ---
 id: ADR-013
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-01, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-01, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # ADR-013: Semántica visual del marcador: el acento de marca nunca es un color de estado
 
