@@ -90,6 +90,13 @@ edita el `robots.txt`. Por eso el asunto importa más de lo normal: «les está
 bloqueando también en Google» es lo que hace que alguien la reenvíe a quien puede
 resolverla. Si hubiera un contacto de sistemas o de comunicación, mejor ese.
 
+## Plazo
+
+**Se espera una semana. El 2026-09-08 se da por no contestada** y no se insiste,
+ni por teléfono ni por otra vía. Decisión de Alberto Fojo del 2026-09-01; el
+porqué y qué desbloquea esa fecha están en `docs/roadmap.md`, no aquí, para que
+vivan en un solo sitio.
+
 ## Notas para quien lo manda
 
 - **Va en galego a propósito.** Es la lengua de la federación y del proyecto

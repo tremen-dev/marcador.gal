@@ -42,6 +42,25 @@ mandar la carta a la RFGF (`docs/negocio/carta-rfgf-acceso.md`). **Enviada el 20
 
 **El bloqueo de EPIC-001 persiste:** la carta hace una pregunta, no cierra ninguna puerta. El acceso a `futgal.es` sigue dependiendo de una de dos cosas — respuesta de la RFGF, o un `robots.txt` que nos permita. **Sin eso, SPEC-003 sigue sin poder ejecutarse** porque mide el cruce entre dos fuentes y hoy solo hay una. Esto no es un fallo de la carta: es que la pregunta, aun hecha, no tiene respuesta todavía.
 
+**Cuánto se espera, decidido por Alberto Fojo el 2026-09-01: una semana.** Si el
+**2026-09-08** no hay respuesta, la carta se da por **no contestada** y no se
+insiste — **ni por teléfono ni por otra vía**. No es rendirse: es que el silencio
+de un buzón general ante una petición técnica no es información, y esperar más no
+la convierte en información.
+
+**Lo que esa fecha desbloquea es un veredicto, no un acceso.** Hasta hoy EPIC-001
+estaba bloqueada **sin final**: dependía de una respuesta que podía no llegar
+nunca. Con el plazo escrito, el **2026-09-08** la épica puede cerrarse diga lo que
+diga la RFGF — si contestan que sí, la ventana pasa a ser la de SPEC-002, hecha y
+verificada esperando exactamente eso; si no contestan o dicen que no, **EPIC-001
+se cierra con una sola fuente automática capturable**, que es un resultado, no un
+fracaso. Lo que no puede volver a pasar es que se quede esperando.
+
+**Queda una cosa sin decidir, y se anota como tal:** si el 2026-09-08 se manda un
+segundo correo —a otra dirección, a un contacto de sistemas— o no se manda
+ninguno. Alberto descartó el teléfono; sobre un segundo correo no se ha
+pronunciado. Mientras no lo haga, **no se manda ninguno**.
+
 **Bloqueante fuera del código, ya resuelto a medias:** el dominio `marcador.gal`
 **se contrató el 2026-08-31** (Dinahosting), lo que cierra el riesgo de nombre
 abierto desde el 2026-08-29. Quedan **los handles** y la comprobación en OEPM.
