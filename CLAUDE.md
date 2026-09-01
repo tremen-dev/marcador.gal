@@ -29,7 +29,7 @@ Roles de dominio consultivos: `/sdd-competicion`, `/sdd-legal-datos`,
 
 Fase: **EPIC-002 — instrumentación de las cuatro cifras**. `EPIC-001` sigue
 bloqueada hasta su veredicto y `EPIC-003` ya está **cerrada**.
-- EPIC-002: Objetivo: las cuatro cifras (latencia, cobertura, conflictos, minutos de operación manual) que salieron de EPIC-001 el 2026-08-31. Primera spec, **SPEC-008** (adaptador de `ceroacero.es` y cortesía RN-11 con una sola implementación), `aprobada` (2026-09-01) y en implementación, junto con **ADR-014**. `src/ingest/` y `src/polite/` **todavía no existen**.
+- EPIC-002: Objetivo: las cuatro cifras (latencia, cobertura, conflictos, minutos de operación manual) que salieron de EPIC-001 el 2026-08-31. **SPEC-008** (adaptador de `ceroacero.es` y cortesía RN-11 con una sola implementación) está **`hecho`** (2026-09-01), junto con **ADR-014**. De su CA-2, que no terminaba, nació **SPEC-009** (la frontera de capacidad de RN-11, demostrada sin listas negras), en `borrador`. `src/ingest/` y `src/polite/` ya existen.
 - EPIC-001: Objetivo: responder, **antes de construir el motor**, la pregunta de la que depende su diseño —¿hay fuentes automáticas usables, y son independientes entre sí?—, la precondición no medida de **RN-02**. Es medición, no producto: el entregable es un **veredicto con evidencia citada** (espejo, independiente o inconcluso) y el instrumento reutilizable que lo produce. Código que deja: `src/model/`, `src/raw/`, `src/db/` (SPEC-001), `src/mirror/` (SPEC-002 y SPEC-003), `migrations/0001` aplicada. Las tres specs están hechas y verificadas GREEN. **Veredicto: 2026-09-08.**
 - EPIC-003: **`hecho`** (2026-09-01, firmada por Alberto Fojo) — primera épica del proyecto en llegar ahí. Sus cuatro specs (SPEC-004, 005, 006, 007) verificadas GREEN, 2026-08-31 a 2026-09-01. Sitio público en `marcador.gal`: galego por defecto, castellano en `/es`; `/proxecto` y `/robot` en ambas lenguas con paridad de contenido. Componentes en `src/site/`, bundles i18n en `src/i18n/`, rutas en `src/app/(gl)/` y `src/app/(es)/`. `robots.txt` generado dinámicamente. El sitio no nombra a ninguna persona y se presenta bajo el paraguas de tremen.dev (ADR-012). User-agent declarado: `marcador.gal/0.0.1 (+https://marcador.gal/robot; medicion de latencia)` (ADR-011).
 - EPIC-004: **aprobada y CONGELADA de nacimiento** (2026-09-01). Guarda el sistema de diseño del marcador (`docs/diseno/`) y no se descongela hasta el go/no-go. Si vas a tocar interfaz, léela antes: su inventario tiene dos entradas que ya disparan —qué cualificador es el estado normal, y que el panel del operador no tiene ningún diseño.
@@ -43,21 +43,30 @@ que la fuente oficial **no es capturable** (ADR-008). SPEC-002 queda a la espera
 que lo sea; SPEC-003 mide lo que sí se puede medir sin ella. EPIC-002 **no tiene
 todavía ninguna de las cuatro cifras**.
 
-Hay **catorce ADRs**, todos **aprobados e inmutables** (ADR-001 a ADR-014). Para
-cambiar uno aprobado, escribe otro ADR que lo supersede; no lo edites. ADR-008 y
-ADR-009 superseden **parcialmente** a ADR-002 y ADR-005: lee siempre el que
-supersede antes de apoyarte en el viejo. **ADR-013 fija la semántica visual del
-marcador** —el acento de marca nunca es un color de estado, ningún estado se
-codifica solo con color, dígitos tabulares, sin escudos— y te obliga en cuanto
-toques interfaz, aunque sea una página mínima de medición. **ADR-014 fija que la
+Hay **dieciséis ADRs**, todos **aprobados e inmutables**. Para cambiar uno
+aprobado, escribe otro ADR que lo supersede; no lo edites. ADR-008 y ADR-009
+superseden **parcialmente** a ADR-002 y ADR-005: lee siempre el que supersede
+antes de apoyarte en el viejo. **ADR-013 fija la semántica visual del marcador**
+—el acento de marca nunca es un color de estado, ningún estado se codifica solo
+con color, dígitos tabulares, sin escudos— y te obliga en cuanto toques
+interfaz, aunque sea una página mínima de medición. **ADR-014 fija que la
 cortesía de RN-11 tiene un solo dueño**: sale de `src/mirror/` a `src/polite/`
 (`robots.ts`, `http.ts`, `user-agent.ts`, `rate-limit.ts`), sin fachada de
 compatibilidad. Prohíbe, con test de arquitectura, un segundo parser de
 `robots.txt`, construir el `User-Agent` fuera de `src/polite/http.ts`, o pedir a
 un tercero sin pasar por `politeFetch`; y su `robots.txt` se archiva en el raw
 store antes de parsearse (RN-10, sin excepción por tipo de respuesta), con
-vigencia de 6 h y **fallo cerrado**. Lo trae **SPEC-008** (EPIC-002); hasta que
-esté `hecho`, `src/mirror/` sigue siendo el único domicilio del código.
+vigencia de 6 h y **fallo cerrado**. Lo trajo **SPEC-008** (EPIC-002), ya
+`hecho`: `src/mirror/` dejó de ser el domicilio de la cortesía. **ADR-015 fija
+qué hacer cuando una decisión posterior invalida un CA de una spec cerrada**: el
+cuerpo de la spec **no se edita nunca**; se enmienda en su **ledger** bajo
+`## Enmienda — <fecha>: <qué la invalida>`, que es también el índice
+(`grep -rn "^## Enmienda —" docs/epicas/`). **ADR-016 fija cómo se demuestra una
+frontera de capacidad**: se enumera lo permitido y se exige que el resto sea
+vacío, con listas cerradas contra algo que existe fuera del test, sin
+exenciones por nombre de fichero, con control positivo por cada mecanismo, y
+declarando dentro del propio CA lo que el mecanismo no alcanza — obligatorio
+para toda spec que escriba un test de arquitectura.
 
 ## Reglas duras
 
@@ -126,14 +135,19 @@ Consecuencias que se olvidan y rompen cosas:
 ```
 src/model/    modelo canónico en zod + tipos derivados (SPEC-001)
 src/raw/      puerto RawStore: store.ts, disk.ts, blob.ts, capture.ts (SPEC-001)
-src/db/       cliente postgres.js, runner de migraciones, puertos (SPEC-001)
-migrations/   SQL numerado, aplicado en orden (ADR-006)
+src/db/       cliente postgres.js, runner de migraciones, puertos, rate-limit.ts (SPEC-001, SPEC-008)
+migrations/   SQL numerado, aplicado en orden (ADR-006); 0001 y 0002 aplicadas
+src/polite/   cortesía RN-11 con un solo dueño (ADR-014, SPEC-008): robots.ts,
+              http.ts, user-agent.ts, rate-limit.ts, policy.ts, clock.ts.
+              src/mirror/ ya no es su domicilio
 src/mirror/   test de espejo (SPEC-002, SPEC-003): dos fases que no se importan
               capture/  fase A: pide, respeta robots y archiva sin parsear (RN-10, RN-11)
               analysis/ fase B: analiza en frío desde el archivo, con referencia
               analysis/referenceless/  fase B sin referencia (SPEC-003)
               cli/      capturar · analizar · analizar-sin-referencia
-src/ingest/   adaptadores por fuente + cron de planificación
+src/ingest/   adaptador de ceroacero.es (SPEC-008): adapter.ts, ceroacero.ts,
+              observations.ts, ports.ts, sources.ts. Cron de planificación,
+              todavía sin escribir
 src/decide/   motor de decisiones (RN-01..RN-07)
 src/api/      snapshot (+ stream SSE, fuera de EPIC-001)
 src/admin/    panel mínimo de correcciones y alertas (móvil)

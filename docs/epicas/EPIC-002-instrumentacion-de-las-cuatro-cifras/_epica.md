@@ -130,9 +130,23 @@ puede medir sin referencia oficial.
 
 <!-- El estado por spec vive en el frontmatter de cada spec; el tablero agregado se regenera con /sdd-tablero (docs/tablero.md). No mantengas listas de specs a mano aquí. -->
 
-**Su primera spec ya existe: SPEC-008** —adaptador de `ceroacero.es` y cortesía
-RN-11 con una sola implementación—, en `borrador` y esperando firma humana,
-junto con **ADR-014**. El estado fino vive en el tablero, no aquí.
+**Su primera spec está entregada: SPEC-008** —adaptador de `ceroacero.es` y
+cortesía RN-11 con una sola implementación—, `hecho` y verificada GREEN el
+2026-09-01 tras siete vueltas, junto con **ADR-014**. El estado fino vive en el
+tablero, no aquí.
+
+**Y de ella nació una segunda, SPEC-009** (`borrador`): «La frontera de capacidad
+de RN-11, demostrada sin listas negras». No es una spec nueva de producto: es un
+criterio de SPEC-008 que **no terminaba**. Nueve evasiones escritas y medidas
+tumbaron cuatro mecanismos seguidos, y el 2026-09-01 Alberto Fojo decidió sacarlo
+en vez de gastar una octava vuelta. SPEC-008 se cerró con ese criterio en ⚠️ y su
+residuo escrito dentro del propio CA, como ADR-016 obliga.
+
+**Dónde entra en el orden, y no es donde su ruido sugiere:** no compite con el
+bot ni con el panel, que son la única ruta a un marcador *confirmado*. Su fecha
+real es **antes de que el cron despliegue algo que pida a un tercero**. Hoy la
+infracción es latente —`src/ingest/` no está cableado a ningún despliegue y nada
+se ha corrido nunca contra `ceroacero.es`— y deja de serlo el día del cron.
 
 Descomposición **orientativa** del resto, propuesta por `/sdd-arquitecto` el
 2026-09-01 y no vinculante: calendario y repositorios de `Observation`/`Decision`

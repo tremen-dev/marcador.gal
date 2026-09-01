@@ -12,9 +12,9 @@ import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import { Capturer } from '@/mirror/capture/capturer';
-import { MissingUserAgentError, politeRequest } from '@/mirror/capture/http';
-import { allowAllRobots, parseRobots, robotsRegistry } from '@/mirror/capture/robots';
-import { USER_AGENT, USER_AGENT_PATTERN } from '@/mirror/user-agent';
+import { MissingUserAgentError, politeRequest } from '@/polite/http';
+import { allowAllRobots, parseRobots, robotsRegistry } from '@/polite/robots';
+import { USER_AGENT, USER_AGENT_PATTERN } from '@/polite/user-agent';
 import { FakeClock } from '../support/fake-clock';
 import { MemoryRawStore } from '../support/memory-store';
 import { spyFetcher } from '../support/spy-fetcher';
@@ -123,7 +123,7 @@ describe('CA-2 (RN-11) — user-agent', () => {
   });
 
   test('8. politeRequest es el ÚNICO camino de salida del módulo de captura', async () => {
-    const dir = join(process.cwd(), 'src/mirror/capture');
+    const dir = join(process.cwd(), 'src/polite');
     const files = (await readdir(dir)).filter((f) => f.endsWith('.ts'));
     const callers: string[] = [];
 

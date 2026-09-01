@@ -14,7 +14,7 @@
  */
 import { describe, expect, test } from 'vitest';
 import { Capturer } from '@/mirror/capture/capturer';
-import { allowAllRobots } from '@/mirror/capture/robots';
+import { allowAllRobots } from '@/polite/robots';
 import {
   InvalidWindowError,
   assertWindowValid,

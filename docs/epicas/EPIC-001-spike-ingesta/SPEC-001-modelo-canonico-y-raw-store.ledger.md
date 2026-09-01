@@ -931,3 +931,133 @@ y mergeada: todo el cambio vive en `docs/fundacion/`.
   derivación explícitamente fuera de alcance, así que no es deuda de esta spec:
   es trabajo que la spec del motor tiene que resolver, y conviene que lo sepa
   antes de empezar y no a mitad.
+
+
+## Enmienda — 2026-09-01: `migrations/0002` invalida la aserción de CA-13
+
+**Esto es una enmienda, no una reapertura y no una autorización.** SPEC-001
+sigue en `hecho`, su veredicto sigue siendo **GREEN** y **no se ha tocado una
+sola línea del cuerpo de la spec**: CA-13 dice hoy exactamente lo que decía el
+2026-08-29, porque un CA es el contrato contra el que se emitió un veredicto y
+no se reescribe. Lo que esta sección registra es un cambio en el **alcance** de
+ese veredicto, que es de lo que un ledger da fe (ADR-011 §6).
+
+La forma —encabezado de nombre fijo y cinco puntos— es la de **ADR-015 §2 y
+§3**, que nace el 2026-09-01 en `borrador` y **no está firmado**. Esta nota no
+depende de que se firme: el hecho que registra es de hoy. Es la **segunda vez en
+el mismo día** que ADR-015 se aplica antes de estar firmado —la primera es la
+enmienda de SPEC-005 CA-10—, y por decisión de **Alberto Fojo** este caso recibe
+el mismo trato que aquél. `grep -rn "^## Enmienda —" docs/epicas/` es el índice.
+
+### 1. Qué afirmaba CA-13, y por qué era razonable
+
+CA-13 exige que `npm run db:migrate` levante el esquema sobre una base vacía y
+sea **idempotente**: existen las seis tablas, `schema_migrations` contiene la
+fila `0001`, y una segunda ejecución termina con éxito, no aplica nada y deja
+`schema_migrations` **con una sola fila**.
+
+Su guardián es `tests/db/migrate.test.ts`, que lo mecanizaba **enumerando**:
+`expect(applied).toEqual(['0001'])` y
+`expect(await appliedVersions()).toEqual(['0001'])`.
+
+Era razonable, y lo sigue siendo como razonamiento. El 2026-08-29 `0001` era la
+única migración que existía y la que la propia spec levanta; una lista literal
+es la aserción más fuerte que se podía escribir —dice a la vez *qué* se aplicó y
+*que no se aplicó nada más*—, y ese «nada más» es la mitad idempotente del
+criterio. Una aserción derivada del descubridor habría sido, ese día,
+estrictamente más débil: podía pasar en verde descubriendo cero migraciones.
+
+### 2. Qué lo invalida
+
+**`migrations/0002_request_rhythm.sql`**, que entra en el alcance de **SPEC-008**
+por la **«Enmienda — 2026-09-01: el estado durable del limitador de RN-11 entra
+en SPEC-008 (F-SPEC-008-V13)»**, arbitrada por **Alberto Fojo** el 2026-09-01
+(ledger de SPEC-008, «Arbitraje del gate humano — 2026-09-01» §2). La enmienda
+ensancha el «Fuera de alcance» que decía **«Tampoco hay `migrations/0002`»**, y
+lo hace **contra la recomendación de `sdd-arquitecto`**, que proponía rutar el
+arreglo a la spec del cron; el motivo del humano consta entero allí: la promesa
+de 1 petición/minuto está publicada a terceros en `/robot`, en galego y en
+castellano, y no se retira.
+
+Es una **decisión firmada, no un descuido**: desde el momento en que existe una
+segunda migración, una aserción que enumera `['0001']` no puede ser cierta, y
+reapuntarla a `['0001', '0002']` la dejaría falsa otra vez el día de `0003`.
+Misma forma que **F-SPEC-008-1** (SPEC-005 CA-10 invalidada por ADR-014 §1), y
+descubierta igual: como test en rojo en la rama de otra spec.
+
+Conviene dejar dicho que **la enmienda de alcance de SPEC-008 no lo vio**: su §5
+enumera con cuidado lo que se lleva por delante —la irreversibilidad de la
+migración, que SPEC-008 deja de ser verificable con un solo comando, la
+dependencia de Postgres del camino de ingesta— pero **no dice que un CA de
+SPEC-001 dejara de ser satisfacible**. Lo levantó el implementador de SPEC-008 en
+la tercera vuelta, como **F-SPEC-008-16**.
+
+### 3. Con qué se sustituye, y por qué la red **no** es menor
+
+`tests/db/migrate.test.ts` deriva ahora la lista esperada del propio descubridor
+del runner, `readMigrations()`, y **exige que no sea vacía y que contenga `0001`
+y `0002`**. Los dos casos siguen probando lo que CA-13 dice: la primera pasada
+aplica todo lo pendiente y levanta las seis tablas; la segunda **no aplica nada**
+y `schema_migrations` queda con **una fila por versión y ninguna de más**. La
+evidencia de la sustitución vive en el ledger de SPEC-008 (tercera vuelta,
+F-SPEC-008-16), no aquí.
+
+**La red que queda es equivalente, y esto es lo que distingue esta enmienda de
+la de SPEC-005 CA-10** —donde el sustituto era honestamente más débil y así se
+escribió—:
+
+- **La mitad idempotente se conserva entera.** «Una sola fila» pasa a «una fila
+  por versión, y ninguna más»: es la misma aserción de igualdad, contra una lista
+  que ya no es un literal envejecible.
+- **El agujero obvio de una aserción derivada está tapado.** El riesgo de
+  derivar del descubridor es pasar en verde sin descubrir nada; las dos
+  comprobaciones añadidas —lista no vacía, y contiene `0001` **y** `0002`— lo
+  cierran. Un `readMigrations()` roto pone el caso rojo.
+- **Queda una diferencia real, y se dice sin suavizar**: la aserción vieja
+  fallaba el día que apareciera una migración **inesperada**; la nueva no, porque
+  la que aparece entra por el mismo descubridor del que se deriva la expectativa.
+  Ese deber —vigilar que no se cuele una migración que nadie decidió— **ya no
+  vive en CA-13**. Hoy lo cubre la revisión de un diff que añade un fichero a
+  `migrations/`, que es exactamente el mismo mecanismo que ADR-006 asume cuando
+  dice que deshacer una migración es escribir la siguiente. **Y no hay CI**, así
+  que esa revisión es literalmente una persona leyendo el diff.
+
+### 4. El GREEN de SPEC-001 sigue en pie
+
+Lo que cambió es el mundo alrededor del criterio, **no la calidad de la
+verificación**. El 2026-08-30 CA-13 se comprobó con el comando literal de la
+spec y con evidencia pegada en este mismo ledger: rama de test vaciada
+(`drop schema public cascade` → 0 tablas), `npm run db:migrate` → `applied:
+0001`, seis tablas más `schema_migrations`; segunda ejecución → `schema is up to
+date; nothing applied`, `schema_migrations` con una sola fila `0001`; y
+`tests/db/migrate.test.ts` 3/3 contra Postgres real. **Ese hecho ocurrió y no lo
+deshace ninguna decisión posterior.**
+
+SPEC-001 responde de que el runner aplique en orden lo pendiente y no repita lo
+aplicado, y eso **sigue siendo cierto** con dos migraciones: lo demuestra la
+misma suite, verde en la tercera vuelta de SPEC-008 (`npm run test:db` 144/144
+contra un Postgres real). **Nada de esta enmienda degrada el veredicto ni pide
+reverificar SPEC-001.** El estado `hecho` no se toca: es terminal.
+
+### 5. Qué lo despierta
+
+Hay que recuperar un guardián equivalente al literal en cuanto se dé
+**cualquiera** de estas condiciones:
+
+1. **`readMigrations()` deja de ser la única puerta de descubrimiento** —un
+   segundo camino que aplique SQL sin pasar por él—. Ese día la expectativa
+   derivada y lo aplicado dejan de venir de la misma fuente, y la aserción deja
+   de comprobar nada.
+2. **Aparece una migración que nadie decidió**, o una que un diff introduce sin
+   spec ni ADR que la ampare. Sería la prueba de que el deber que CA-13 dejó de
+   cubrir hacía falta mecanizado, y el guardián renace como una lista firmada de
+   versiones esperadas, en la spec que la traiga.
+3. **`migrations/` gana rollback, ramas o reordenación.** Hoy ADR-006 dice que se
+   aplican en orden y sin deshacer; si eso cambia, «una fila por versión» deja de
+   ser la forma correcta de decir idempotente y hay que decidir de nuevo.
+4. **La suite de `tests/db/` deja de correrse contra un Postgres real** —sin
+   `DATABASE_URL_TEST`, CA-13 está **UNMET, no *skipped***, por el gate del
+   2026-08-29—. Sin ejecución no hay guardián de ninguna clase.
+
+Mientras ninguna se dé, la diferencia del §3 es **conocida, aceptada y con
+fecha**, no un descuido.

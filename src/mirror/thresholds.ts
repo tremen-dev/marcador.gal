@@ -13,10 +13,12 @@ export const SECOND_MS = 1_000;
 export const MINUTE_MS = 60 * SECOND_MS;
 
 /**
- * RN-11, read as one request per minute per (source, competition) pair. See
- * spec §Diseño 3: this reading is load-bearing, not a detail.
+ * RN-11's one-per-minute is NOT here any more: it is a hard rule and not a
+ * threshold of this spec, so it lives with the rest of the courtesy in
+ * `src/polite/rate-limit.ts` (`MIN_REQUEST_INTERVAL_MS`, ADR-014 §1). It moved
+ * on purpose — a threshold is a declared hypothesis that a report may
+ * recompute; RN-11 is not negotiable and has one owner.
  */
-export const MIN_REQUEST_INTERVAL_MS = MINUTE_MS;
 
 /**
  * CA-8. Two sources sampled once a minute can look up to 60 s apart purely

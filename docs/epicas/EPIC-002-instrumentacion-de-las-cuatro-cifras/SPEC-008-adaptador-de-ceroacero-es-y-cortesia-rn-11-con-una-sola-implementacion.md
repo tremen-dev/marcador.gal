@@ -2,11 +2,26 @@
 id: SPEC-008
 tipo: spec
 epica: EPIC-002
-estado: aprobada
+estado: hecho
 aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-09-01, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-09-01, por: Alberto Fojo}
+  - {estado: en-progreso, fecha: 2026-09-01, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-09-01, por: sdd-implementador}
+  - {estado: en-progreso, fecha: 2026-09-01, por: sdd-orquestador}
+  - {estado: en-revision, fecha: 2026-09-01, por: sdd-implementador}
+  - {estado: en-progreso, fecha: 2026-09-01, por: sdd-verificador}
+  - {estado: en-revision, fecha: 2026-09-01, por: sdd-implementador}
+  - {estado: en-progreso, fecha: 2026-09-01, por: sdd-verificador}
+  - {estado: en-revision, fecha: 2026-09-01, por: sdd-implementador}
+  - {estado: en-progreso, fecha: 2026-09-01, por: sdd-verificador}
+  - {estado: en-revision, fecha: 2026-09-01, por: sdd-implementador}
+  - {estado: en-progreso, fecha: 2026-09-01, por: sdd-verificador}
+  - {estado: en-revision, fecha: 2026-09-01, por: sdd-implementador}
+  - {estado: en-progreso, fecha: 2026-09-01, por: sdd-verificador}
+  - {estado: en-revision, fecha: 2026-09-01, por: sdd-implementador}
+  - {estado: hecho, fecha: 2026-09-01, por: sdd-verificador}
 ---
 # SPEC-008 — Adaptador de `ceroacero.es` y cortesía RN-11 con una sola implementación
 
@@ -74,12 +89,15 @@ ejecuta.
 
 ## Usuarios / roles afectados
 
-- **`sdd-implementador`**: construye `src/polite/` y `src/ingest/`. La rama tiene
-  que nombrar `SPEC-008`, o el hook `require-spec` deniega la escritura sobre
-  `src/` y `tests/` (`.sdd.json`, `rutasVigiladas`).
-- **`sdd-verificador`**: juzga contra estos CA. Dos de ellos —CA-2 y CA-12— son
-  **tests de arquitectura**, no de comportamiento: se verifican buscando en el
-  árbol, no ejecutando una función.
+- **`sdd-implementador`**: construye `src/polite/` y `src/ingest/`, y —desde la
+  enmienda del 2026-09-01— `migrations/0002` y la implementación durable del
+  ritmo. La rama tiene que nombrar `SPEC-008`, o el hook `require-spec` deniega la
+  escritura sobre `src/` y `tests/` (`.sdd.json`, `rutasVigiladas`).
+- **`sdd-verificador`**: juzga contra estos CA. **CA-12** y las mitades estáticas
+  de **CA-2** (CA-2.3..CA-2.6) y de **CA-14.8** son **tests de arquitectura**, no
+  de comportamiento; **CA-2.1 y CA-2.2** son contención en ejecución, y se
+  verifican conduciendo los puntos de entrada con trampas, no buscando texto. Y
+  hay que correr **dos** suites: `npm test` y `npm run test:db` (CA-14).
 - **El operador del spike** (el autor, RN-01): calibra los selectores de
   `ceroacero.es` mirando el HTML **ya archivado**, y es quien sufre si el
   adaptador miente.
@@ -173,15 +191,51 @@ CA-8 manda mirar, y **el `robots.txt` de `ceroacero.es` prohíbe una sola ruta**
 `/zzmap_v3.php`, que no es ninguna de estas dos (verificado el 2026-08-31,
 `dominio.md`).
 
-### §4. El ritmo de RN-11 se cumple dentro, no fuera
+### §4. El ritmo de RN-11 se cumple dentro, no fuera — y sobrevive al proceso
+
+> *Enmendado el 2026-09-01, arbitrado por Alberto Fojo. El texto original y el
+> motivo del cambio están en el ledger: «Arbitraje del gate humano — 2026-09-01»
+> §2 y «Enmienda — 2026-09-01: el estado durable del limitador de RN-11 entra en
+> SPEC-008 (F-SPEC-008-V13)».*
 
 RN-11 dice **1 petición/minuto por competición**. El limitador vive **dentro** del
 camino del adaptador, como ya vive dentro del `Capturer` y por el mismo motivo
 escrito allí: un cron que dispare cada diez segundos, un bucle local supervisado
 y un test con reloj falso tienen que ser **igual de incapaces** de excederlo.
 
-Consecuencia que el cron heredará y conviene decir aquí: **un tick suprimido no
-es un tick fallido**. No produce petición y no cuenta como cobertura perdida.
+**Dentro de un proceso, eso no basta.** ADR-004 dice que en Vercel **no hay
+proceso vivo**: cada tick del cron es una instancia nueva, así que un limitador
+que sea un campo de instancia nace sin memoria en cada arranque en frío, y diez
+ticks en el mismo minuto mandan diez peticiones. Está **medido**, no supuesto
+(F-SPEC-008-V13). El techo de Vercel Cron (1/min) tapa el camino nominal por
+accidente de tarificación y no por diseño, y no tapa una invocación manual, un
+reintento, un despliegue solapado ni una segunda ruta que capture.
+
+Por eso el **último instante de petición por par (fuente, competición) es estado
+durable**, y la concesión del turno es **un solo paso atómico**: conceder y
+sellar a la vez, nunca consultar y luego sellar —entre los dos pasos cabe otra
+instancia—. Es **CA-14**, y el mecanismo está decidido: una tabla en
+`migrations/0002` y una sentencia `insert … on conflict … where … returning …`
+que devuelve fila cuando concede y ninguna cuando niega. El motivo de elegir eso
+y no el raw store como índice está en el ledger; el resumen es que el archivo
+registra lo que **volvió** y RN-11 cuenta lo que **salió**.
+
+**El instrumento de `src/mirror/` se queda con el limitador en memoria**, y no es
+una excepción tolerada: corre en un solo proceso, durante una hora, con el
+operador delante (F-SPEC-002-2, y es el mismo argumento con el que ADR-014 §3
+justificó el `RobotsGate`). La frontera es exacta: **lo que se despliega usa el
+durable; lo que un operador supervisa a mano, no.**
+
+Y esto no es higiene interna. Lo que `/robot` publica en galego y en castellano
+—*«Como máximo unha petición por minuto a cada sitio e por cada competición. As
+peticións non gastadas non se acumulan»*— es una afirmación a terceros cuyo
+propósito entero es que nos auditen (SPEC-005, ADR-011). **Producción tiene que
+poder cumplirla, no solo los tests.**
+
+Consecuencias que el cron heredará y conviene decir aquí: **un tick suprimido no
+es un tick fallido** —no produce petición y no cuenta como cobertura perdida—, y
+**un turno concedido cuya petición falla se ha gastado**, porque RN-11 cuenta
+peticiones que salen y no respuestas que vuelven.
 
 ### §5. El archivo es la memoria, y el replay es lo que lo paga
 
@@ -232,15 +286,501 @@ un equipo sin alias confirmado por una persona*.
      `Disallow: /edicion/` + `Allow: /edicion/publica/` significando lo que su
      autor quiso.
 
-- **CA-2 — Una sola implementación de la cortesía RN-11 (ADR-014).**
-  Dado el árbol del repositorio,
-  cuando un test de arquitectura busca fuera de `src/polite/` (a) cualquier
-  análisis de un `robots.txt`, (b) cualquier construcción de la cabecera
-  `User-Agent`, y (c) cualquier llamada a `globalThis.fetch` o equivalente
-  dirigida a un tercero,
-  entonces **no encuentra ninguna**; `src/mirror/`, `src/ingest/` y
-  `src/site/crawler-page.tsx` importan de `src/polite/`, y el test **falla** si
-  se le añade una segunda implementación en cualquiera de los tres.
+- **CA-2 — Una sola puerta de salida, y se demuestra enumerando lo permitido
+  (ADR-014 §1 y §4; ADR-016 es la regla general y éste su primer caso).**
+
+  > *Sustituye, el 2026-09-01, al CA-2 que Alberto Fojo firmó esa misma mañana.
+  > El texto anterior, el motivo del cambio y **la pérdida que se firmó con él**
+  > están en el ledger: «Arbitraje del gate humano — 2026-09-01» §1 y
+  > «Enmienda — 2026-09-01: CA-2 pasa de detección textual a contención de
+  > capacidad».*
+  >
+  > *Y **CA-2.1 y CA-2.3 se volvieron a escribir ese mismo día**, tras la tercera
+  > verificación: la octava evasión mandó un paquete de verdad entrando por
+  > `ALLOWED_PACKAGES`, y la contención en ejecución no la vio. Los dos textos
+  > anteriores y las mediciones están en «Enmienda — 2026-09-01: CA-2 cierra por
+  > la superficie que se importa, y la trampa baja al socket». **CA-2.2 y
+  > CA-2.4..CA-2.8 no se tocan.***
+  >
+  > *Y tras la **cuarta** verificación, **CA-2.3 se reescribió por tercera vez y
+  > CA-2.6 se amplió**: el grano de la concesión estaba bien y el lector no —un
+  > `import` que no empezaba la línea no se veía **y no fallaba cerrado**—, y la
+  > lista de ficheros del escaneo heredaba las exclusiones de `.gitignore`. Los
+  > textos anteriores y las mediciones están en «Enmienda — 2026-09-01: el cierre
+  > estático lo lee el compilador, y la lista de ficheros deja de heredarse de
+  > `.gitignore`» (F-SPEC-008-V27 y F-SPEC-008-V28). **CA-2.1, CA-2.2, CA-2.4,
+  > CA-2.5, CA-2.7 y CA-2.8 no se tocan**, y el grano de la concesión —superficie
+  > y no paquete, literalidad, motivo escrito— tampoco.*
+  >
+  > *Y tras la **quinta** verificación, **este criterio deja de perseguirse
+  > entero en esta spec**. **CA-2 queda ⚠️, nunca ✅**, con su residuo escrito
+  > dentro de sí mismo (ADR-016 §6). Lo único que se cierra aquí es
+  > **F-SPEC-008-V33** —la lista de extensiones que el escaneo lee, en CA-2.6—,
+  > porque es una línea y llega a producción. **F-SPEC-008-V34** (el conjunto de
+  > CA-2.4, medido abierto, y su lista negra de nueve nombres) y
+  > **F-SPEC-008-V35** (la cobertura fuera de las raíces) quedan escritos como
+  > residuo y **se mudan a SPEC-009**, cuya materia es la frontera de capacidad
+  > por derecho propio. Motivo, medición y qué lo despierta: ledger, «Enmienda —
+  > 2026-09-01: CA-2 se queda ⚠️ con su residuo escrito, y la frontera de
+  > capacidad sale a SPEC-009». **CA-2.1, CA-2.2, CA-2.7 y CA-2.8 no se tocan**,
+  > y el grano de la concesión —superficie y no paquete, literalidad, motivo
+  > escrito, un solo lector— tampoco. De **CA-2.3 y CA-2.5** cambia una sola
+  > cosa, y es la misma en las dos: **sobre qué ficheros corren**, que pasa a ser
+  > la declaración de CA-2.6 en vez de un `.ts`/`.tsx` escrito dentro de cada
+  > criterio. F-SPEC-008-V33 estaba rutada a los dos.*
+
+  *El criterio deja de buscar lo prohibido: **enumera lo permitido y exige que el
+  resto sea vacío**. Las tres listas que lo sostienen no son listas de formas de
+  escribir una llamada —ésas crecen con la imaginación de quien las rodea—, sino
+  listas cerradas por algo que no fijamos nosotros: la superficie de salida de la
+  plataforma, las dependencias que ya tenemos, y las maneras que ECMAScript da de
+  obtener una capacidad.*
+
+  **CA-2.1 — Contención en ejecución: la trampa va sobre el socket, y la única
+  salida que se dispara es la de `src/polite/http.ts`.**
+
+  > *Sustituye, el 2026-09-01, al CA-2.1 que Alberto Fojo firmó esa misma mañana.
+  > El texto anterior, **la medición que lo desmiente** y lo que el mecanismo
+  > nuevo sigue sin alcanzar están en el ledger: «Enmienda — 2026-09-01: CA-2
+  > cierra por la superficie que se importa, y la trampa baja al socket» §2 y §3.
+  > El texto viejo afirmaba que se sustituyen por trampas **todas** las salidas de
+  > red de la plataforma. **Es falso, y está medido**: la evasión salió por el
+  > camino que ese CA conduce y la trampa registró **cero disparos**.*
+
+  Dado un test que, **antes de importar ningún módulo de `src/`**, instala una
+  trampa sobre **el punto por el que pasa toda salida de socket del proceso** —el
+  que ve la conexión cualquiera que sea el módulo que la abre, y **también cuando
+  la abre una dependencia de `node_modules`**, que no pasa por el registro de
+  módulos que el runner sustituye—,
+  cuando se conducen los puntos de entrada declarados de `src/ingest/` y las CLI
+  de `src/mirror/` **con el `globalFetcher` real**,
+  entonces toda trampa que se dispara se atribuye, por su pila, a
+  `src/polite/http.ts`, y el número de disparos coincide con el de llamadas a
+  `politeFetch`;
+  y cuando se conducen los mismos puntos de entrada **con un `HttpFetcher`
+  doble**, **no se dispara ninguna trampa**.
+
+  **La trampa no se da por buena porque exista: se mide, y los dos controles son
+  parte del criterio.**
+  1. **Que ve a una dependencia.** Una salida abierta por una dependencia de
+     `node_modules` —la forma medida es `cheerio.fromURL` contra un **servidor
+     local propio**, nunca contra un tercero (RN-11)— **dispara la trampa**. Con
+     el mecanismo anterior salía el paquete y la trampa disparaba **cero** veces:
+     este caso es la reproducción exacta de F-SPEC-008-V15.
+  2. **Que puede negar, no solo contar.** Una trampa que rechaza en vez de
+     delegar deja el paquete **sin llegar al servidor local**. La que cuenta y no
+     puede impedir demuestra observación, no contención.
+
+  **El orden de instalación es uno de los mecanismos de este criterio, y cuenta
+  como tal a efectos de CA-2.7.** La trampa se instala antes de cualquier
+  `import` de `src/` porque una segunda puerta puede capturar la referencia en el
+  ámbito del módulo, que es exactamente la forma de F-SPEC-008-V6. **Un caso
+  propio tiene que ponerse rojo si la instalación se mueve después del primer
+  `import` de `src/`**, sin ninguna otra mutación que lo acompañe (F-SPEC-008-V17:
+  hoy moverla sola deja los trece casos en verde).
+
+  Quedan fuera de la atribución las salidas que abren `@vercel/blob` y
+  `postgres`: son nuestra propia infraestructura y no un tercero, están
+  declaradas en CA-2.3, y RN-11 habla de la fuente, no del almacén.
+
+  *(Medido el 2026-09-01 sobre Node 26, y va aquí para que nadie lo redescubra:
+  el punto que cumple la propiedad es `net.Socket.prototype.connect` —lo
+  atraviesan `cheerio.fromURL` por `undici`, `globalThis.fetch`, `node:http` y un
+  `net.Socket` a pelo, y también el TLS, porque `TLSSocket` no tiene `connect`
+  propio—. Una trampa puesta **solo** sobre `net.connect` **no ve `node:http`**,
+  que captura su fábrica de conexión al cargarse. El criterio exige la
+  **propiedad**, no el símbolo: si la plataforma mueve el punto, se mueve el punto
+  y no el criterio.)*
+
+  **Lo que esta contención NO alcanza, dicho aquí y no en un follow-up
+  (ADR-016 §6). No sustituye al residuo de CA-2.8: se suma a él.**
+  - **Solo ve lo que se ejecuta.** Código alcanzable desde `ENTRY_POINTS` cuya
+    rama de red no ejerza ningún caso no dispara nada. Es cuestión de cobertura,
+    no de detección, y no es de esta spec.
+  - **Solo ve lo que sale por un socket.** UDP (`node:dgram`), un subproceso que
+    pida por su cuenta (`node:child_process`) o un binario nativo no pasan por
+    ahí. Su único cierre es el **estático**: no son entradas de CA-2.3 y CA-2.4
+    cierra `require`. El día que alguno entre como dependencia real, este criterio
+    deja de cubrirlo y hay que ensancharlo **con la medida delante**, no con un
+    nombre en una lista.
+  - **Demuestra qué puede salir desde este repositorio, no qué hace la plataforma
+    en producción.** La trampa vive en el proceso del test.
+
+  **CA-2.2 — Ninguna petición sale sin que la política real haya dicho que sí.**
+  Bajo la misma trampa, con el `RobotsPolicy` de `src/polite/robots.ts`
+  instrumentado,
+  entonces el conjunto de URL que llegaron a una trampa está **contenido** en el
+  de las URL sobre las que la política real fue consultada y contestó `true`,
+  con una sola excepción nombrada: el `robots.txt` de un origen, que es la única
+  petición que ninguna política puede gatear (ADR-014 §3.1).
+  El test se pone rojo si sale una petición cuyo permiso lo concedió otro código.
+
+  **CA-2.3 — Cierre de imports: no se concede un paquete, se concede una
+  superficie; y quien lee el código es el compilador.**
+
+  > *Reescrito el 2026-09-01, por tercera vez en el mismo día. Los dos textos
+  > anteriores se conservan íntegros en el ledger con su motivo: el del arbitraje
+  > «la treceava entrada de `ALLOWED_PACKAGES`», en «Enmienda — 2026-09-01: CA-2
+  > cierra por la superficie que se importa, y la trampa baja al socket» §1; y el
+  > que éste sustituye, en «Enmienda — 2026-09-01: el cierre estático lo lee el
+  > compilador, y la lista de ficheros deja de heredarse de `.gitignore`» §1.*
+  >
+  > *La primera reescritura pasó de conceder **paquetes** a conceder
+  > **superficies**, porque `cheerio` estaba en la lista y **es un cliente HTTP**
+  > —desde la 1.0 exporta `fromURL`—: once líneas en `src/ingest/preflight.ts`
+  > mandaron una petición real **sin User-Agent, sin `robots.txt` y sin turno**,
+  > con la suite en 748/748 (F-SPEC-008-V15). **Ese grano no se toca aquí y sale
+  > reforzado.** Lo que cambia en esta tercera es **con qué se lee**: el texto
+  > anterior se apoyaba en un lector de expresiones regulares que anclaba sus
+  > patrones a principio de sentencia, y por ahí entró la novena evasión —`const
+  > noop = 0; import { execFileSync } from 'node:child_process';` en
+  > `src/db/preflight9.ts`, `lint exit=0` y **762/762 en verde**, con
+  > `node:child_process` **entero fuera de la lista** y una petición de verdad
+  > saliendo sin User-Agent, sin `robots.txt` y sin turno—. **Doce caracteres
+  > separaban verde de rojo**, y el lector no falló cerrado: **calló**
+  > (F-SPEC-008-V27).*
+
+  Dado todo fichero de código bajo las raíces declaradas en CA-2.6 —**las
+  extensiones son las que CA-2.6 declara, y no otra lista escrita aquí**
+  (F-SPEC-008-V33)—,
+  entonces cada especificador de módulo —estático, de efecto lateral o
+  dinámico— es (i) una ruta relativa o `@/…` que resuelve dentro del
+  repositorio, o (ii) una **cadena literal que es una entrada declarada de la
+  lista de lo permitido**;
+  y **cada nombre que cruza esa frontera está en la superficie que esa entrada
+  declara**: el de un `import` con nombre —el nombre original, no su alias—, el
+  `default`, y **cada miembro que se lee de un espacio de nombres**
+  (`import * as ns` obliga a que todo `ns.x` esté declarado). **Lo que no está,
+  es rojo, y no hace falta que nadie sepa que existe.**
+
+  **Y los especificadores y las cláusulas salen del árbol sintáctico que produce
+  el compilador de TypeScript —el mismo que compila este proyecto—, no de un
+  patrón de texto.** Es lo único que cambia respecto al texto anterior, y es lo
+  que hace cierto el «cada» de arriba: **quien lee el diff tiene que leer lo
+  mismo que el compilador**. Tres obligaciones sobre el lector, y las tres son
+  comprobables:
+
+  1. **Un solo lector, y lo usa todo el criterio.** No hay una segunda manera de
+     averiguar qué importa un fichero. Lo usan el cierre de CA-2.3, el recorrido
+     del grafo de CA-2.5 y **el control del orden de instalación de CA-2.1**, que
+     hoy lee su propio fichero con una expresión regular anclada igual y hereda
+     el mismo defecto (F-SPEC-008-V27, segunda mitad). Un caso que necesite saber
+     qué importa un fichero y se escriba su propio patrón es el mecanismo
+     volviendo por la puerta de atrás.
+  2. **Nada se pierde en silencio, y esto se comprueba contra el compilador y no
+     contra nosotros.** Para cada fichero, la enumeración del lector **cubre la
+     lista de módulos que el propio compilador registra para ese fichero**: si el
+     compilador nombra un módulo que el lector no enumeró, el fichero es
+     **rojo**. Y son rojo, nombrando el fichero: un fichero que el compilador no
+     puede parsear, y un nodo que nombra un módulo en una forma que el lector no
+     sabe clasificar. **«Falla cerrado» deja de ser una afirmación y pasa a ser
+     un caso**: el mecanismo anterior lo prometía y la medición lo desmintió.
+  3. **La posición en la línea no cambia el veredicto.** Control positivo propio,
+     escrito como la reproducción de F-SPEC-008-V27: el mismo `import` de un
+     paquete que no es entrada de la lista es **rojo** escrito al principio de la
+     línea, escrito detrás de otra sentencia en la misma línea, y como segundo
+     `import` de una línea que ya tiene otro. Si algún día los tres no dan lo
+     mismo, el lector volvió a ser un lector de texto.
+
+  Siguen siendo **rojo por construcción**, también dentro de `src/polite/`:
+  - un **especificador que no sea un literal estático** —`import(MOD)`,
+    `import('node:' + 'https')`—;
+  - un **acceso computado** sobre el espacio de nombres de una entrada
+    —`ns['from' + 'URL']`—, por el mismo motivo y con la misma forma;
+  - un **`import()` dinámico de una entrada de paquete**, que entrega el espacio
+    de nombres entero y no se puede cerrar en el sitio del `import`;
+  - un **`import` de efecto lateral sobre una entrada de paquete**, que no
+    importa ningún nombre y por tanto no puede satisfacer este cierre.
+
+  Los dos últimos dejan de serlo el día que una entrada declare esa forma con su
+  motivo escrito, que es un diff y no un arbitraje. **`import type` no cuenta**:
+  `verbatimModuleSyntax` lo borra entero, no cruza ninguna capacidad, y exigirle
+  superficie sería peaje. Una entrada con superficie **vacía** —hoy `next` y
+  `react`— es exactamente eso: un paquete del que este repositorio no toma
+  ninguna capacidad.
+
+  Lo que este criterio le exige a la lista son tres cosas, y ninguna es un
+  contenido concreto:
+  1. **Que exista, como identificador exportado de un solo fichero que se llama
+     como lo que declara**, y que sea **cerrada en cada momento en sus dos ejes**:
+     qué entradas hay, y qué nombres concede cada una. Lo que no está es rojo,
+     hoy y con el tamaño que tenga. Un especificador no literal es rojo aunque el
+     paquete al que apunte sí esté.
+  2. **Que la concesión sea del grano de la capacidad.** Ésta sustituye a la
+     obligación vieja —«que ninguna entrada sea una puerta de salida»— y la
+     sustituye por lo que le pasó: se mecanizó con **una lista de trece nombres
+     prohibidos**, y `cheerio` entró porque nadie sabía que lo era. Había quedado
+     **una lista negra viva dentro del criterio que vino a sustituirlas**. Con la
+     concesión por superficie **la pregunta desaparece**: nadie tiene que decidir
+     si un paquete es una puerta, porque el paquete no se concede. `fromURL` es
+     rojo sin que nadie lo nombre, y lo mismo le pasará al siguiente. **No se
+     añade ningún nombre a ninguna lista negra: se borra la lista negra.**
+  3. **Que toda entrada nueva —y todo nombre nuevo dentro de una superficie—
+     llegue con su motivo escrito junto a la lista**, en el mismo diff que lo
+     añade.
+
+  **Que la lista crezca no es un defecto ni un arbitraje: es lo natural**
+  (Alberto Fojo, 2026-09-01), **y eso vale igual para los nombres de una
+  superficie**. Cada uno es *una línea en un fichero que se llama así, en un diff
+  que un revisor lee*, y no una forma nueva de escribir una llamada que nadie ve.
+  Por eso **añadir una entrada o un nombre no vuelve a subir al gate humano**, y
+  una lista más larga que la de ayer no es una desviación que haya que declarar
+  ni un criterio incumplido.
+  **Lo que sí sigue siendo un cambio de criterio, y sí exige firma humana:**
+  quitar la exigencia de literalidad —de especificadores o de accesos—, quitar la
+  de que lo nuevo llegue con su motivo, **conceder un espacio de nombres entero
+  en vez de una superficie**, o **declarar en una superficie un nombre cuyo
+  trabajo es pedirle bytes a un tercero**. Eso último es todo lo que queda de la
+  obligación vieja, y es lo único que sigue pidiendo una firma.
+
+  **El lector se paga con una entrada de la lista, y va dicho aquí porque es la
+  primera de su especie.** `typescript` es ya una dependencia declarada del
+  proyecto —es lo que compila esto— y a partir de este criterio es también la
+  herramienta con la que se lee: entra en la lista **con su motivo escrito**,
+  como cualquier otra, y con la superficie que el lector toma y ni un nombre
+  más. Es la primera entrada cuyo único importador vive en `tests/`, que está
+  fuera de las raíces de CA-2.6; se declara igual, porque una lista de
+  dependencias en la que no está la del propio guardián miente sobre lo que este
+  repositorio usa. **Ningún nombre de esa superficie le pide bytes a un
+  tercero**, que es lo único que habría exigido una firma.
+
+  **Lo que este cierre NO promete** (ADR-016 §6). Son cinco cosas, y las tres
+  primeras no cambian:
+  - Cierra **un nivel**: el que cruza la frontera del módulo. Un nombre concedido
+    que sea a su vez un objeto con capacidad dentro —`z`, de `zod`, es el caso
+    vivo— **no queda cerrado por dentro**, y cerrarlo un nivel más sería peaje
+    sin daño medido que lo justifique.
+  - Un nombre concedido que **sí** sea una puerta de salida no lo caza este
+    criterio: lo caza **CA-2.1 si se ejecuta**, y si no se ejecuta, lo único que
+    queda es el diff y la firma.
+  - **Es sintaxis, no semántica.** El árbol dice qué nombres cruzan la frontera;
+    no dice qué hacen. Y la superficie que una entrada declara es **lo que
+    nosotros escribimos**, no lo que el paquete instalado exporta: declarar un
+    nombre que no existe es inofensivo, pero este criterio no lo detecta.
+  - **Juzga el especificador tal como está escrito, no lo que resuelve.** Un
+    literal `'cheerio'` se juzga contra la entrada `cheerio` diga lo que diga el
+    árbol de `node_modules`. Cerrar eso es asunto del `package-lock.json` y de
+    quien instala, no de un test de arquitectura.
+  - **El compilador solo lee lo que este criterio le da a leer, que son los
+    `import`.** Las otras tres maneras de alcanzar una capacidad las cierra
+    CA-2.4, **y ésas se siguen leyendo como texto**: un identificador escrito con
+    escapes Unicode —`globalThi\u0073`— es el mismo identificador para el
+    compilador y no para un patrón. Queda escrito aquí, y no como *follow-up*,
+    porque es el mismo defecto un criterio más allá; lo estrecha CA-2.1 cuando el
+    código se ejecuta, y cerrarlo del todo es barato **el día que alguien lo
+    necesite**, porque el árbol ya está ahí.
+
+  *Fotografía del día en que se escribió —orienta, no manda—*: catorce entradas
+  —trece, más `typescript`, que entra con este texto— y
+  su superficie tal como el árbol la alcanza hoy — `node:crypto` (`createHash`),
+  `node:fs` (`existsSync`), `node:fs/promises`
+  (`mkdir`, `readFile`, `readdir`, `writeFile`), `node:module` (`registerHooks`),
+  `node:path` (`dirname`, `join`, `relative`, `resolve`, `sep`), `node:url`
+  (`fileURLToPath`, `pathToFileURL`), `@vercel/blob` (`get`, `list`, `put`),
+  **`cheerio` (`load`, y nada más: `fromURL` queda fuera y ésa es la evasión
+  cerrada)**, `next` (vacía), `postgres` (`default`), `react` (vacía),
+  **`typescript`** (lo que el lector toma del API del compilador y nada más),
+  `vitest/config` (`defineConfig`) y `zod` (`z`). Tres entradas llevan su motivo
+  escrito porque no se explican solas: **`typescript`**, porque es el lector de
+  CA-2.3 y porque su único importador vive en `tests/`; **`node:module`**, porque
+  `src/mirror/cli/node-resolve.ts` registra un hook de resolución para poder
+  ejecutar las CLI en TypeScript —es la única capacidad de resolución de módulos
+  fuera de `src/polite/`, y va nombrada, no tolerada en silencio—; y
+  **`vitest/config`**, porque CA-2.6 obliga a escanear `vitest.config.ts` y
+  `vitest.integration.config.ts`, que son código ejecutable versionado fuera de
+  `tests/`.
+
+  **Y una consecuencia que conviene ver, porque es la mitad barata del arreglo:**
+  este cierre corre sobre **todas** las raíces de CA-2.6, no sobre los tres
+  directorios de `CONTAINED_DIRS`. Por eso cierra también la **variante huérfana**
+  de la octava evasión —la que vivía en `src/db/` y no veían ni CA-2.5 ni
+  CA-2.1—, que es donde caen 66 de los 86 `.ts`/`.tsx` de `src/`.
+
+  **CA-2.4 — La capacidad global no se toma prestada fuera de `src/polite/`.**
+  Fuera de `src/polite/` no aparece el identificador `globalThis`, ni un uso
+  desnudo de los globales de red de la plataforma (`fetch`, `XMLHttpRequest`,
+  `WebSocket`, `EventSource`, `navigator`), ni `eval`, ni `new Function`, ni
+  `require`.
+  Sin un `import`, ECMAScript da exactamente tres maneras de alcanzar una
+  capacidad: el objeto global, un identificador global desnudo, y `eval`/`Function`.
+  CA-2.3 cierra el `import`; ésta cierra las otras tres. Es un conjunto cerrado
+  por el lenguaje, no por nosotros.
+  **Se cumple hoy sin tocar una línea**: `globalThis` aparece una sola vez en
+  todo `src/`, dentro de `globalFetcher`.
+
+  **Lo que este criterio NO promete, y está medido** (ADR-016 §6). *Añadido el
+  2026-09-01 tras la quinta verificación. El texto de arriba **no se borra**,
+  porque es lo que se firmó; lo que sigue dice en qué es falso, que es lo que
+  ADR-015 §3.3 pide y lo que ADR-016 §6 obliga a escribir dentro del propio
+  criterio.*
+
+  1. **El conjunto no está cerrado por el lenguaje: está cerrado por nueve
+     nombres.** `process` es un global del **anfitrión**, no de ECMAScript, y
+     desde Node 22 `process.getBuiltinModule(id)` es API **estable** que devuelve
+     cualquier módulo interno **sin ningún `import`**. Medido: un `.ts` corriente
+     bajo una raíz, escaneado y alcanzable desde `ENTRY_POINTS`, con
+     `const cp = process.getBuiltinModule('node:child_process');` deja
+     `lint exit=0`, `npm test` **772/772** y `tests/polite` **86/86**, y manda una
+     petición real —contra un servidor local propio— **sin `User-Agent`, sin
+     `robots.txt` y sin turno** (F-SPEC-008-V34). CA-2.3 no la ve porque no hay
+     `import` que juzgar, y CA-2.1 tampoco, porque `node:child_process` no pasa
+     por `net.Socket.prototype.connect`.
+  2. **El mecanismo es una lista negra viviendo dentro del criterio.**
+     `CAPABILITY_NAMES` son nueve nombres prohibidos, que es exactamente lo que
+     **ADR-016 §3.5 —aprobado el 2026-09-01 e inmutable— prohíbe**: una lista de
+     lo permitido no puede esconder una lista de lo prohibido en su condición de
+     admisión. Es el mismo defecto que CA-2.3 borró de `ALLOWED_PACKAGES`, un
+     criterio más allá y donde nadie miró.
+  3. **Y no se tapa añadiendo `process` a la lista.** Lo dice el propio CA-2.3
+     con esas palabras: *«no se añade ningún nombre a ninguna lista negra: se
+     borra la lista negra»*. Un nombre más taparía este caso y dejaría abierto el
+     siguiente.
+
+  **Por eso CA-2 queda ⚠️ y nunca ✅**, y cerrar esta mitad —enumerar los
+  identificadores globales **permitidos**, con superficie y motivo, como
+  `ALLOWED_PACKAGES`— es materia de **SPEC-009** y de una firma humana, no de un
+  parche aquí. **Qué lo despierta**: el día que se firme el criterio de SPEC-009,
+  o —antes— el día que algo de `src/` se despliegue y pida a un tercero, porque
+  entonces esta infracción deja de ser latente.
+
+  **CA-2.5 — Nada huérfano en los tres destinos que el CA nombra.**
+  Todo fichero de código —con las extensiones que CA-2.6 declara— bajo
+  `src/ingest/`, `src/polite/` y `src/site/` es
+  alcanzable, por el grafo de `import`, desde `ENTRY_POINTS` —la lista declarada
+  de puntos de entrada del repositorio: `next.config.ts`, las rutas de
+  `src/app/`, las CLI, y el API público de `src/ingest/`—.
+  Un fichero que nadie importa es **rojo**: para dejar de serlo hay que
+  importarlo —y entonces le aplican CA-2.3 y CA-2.4 y lo alcanza CA-2.1— o hay
+  que añadirlo a `ENTRY_POINTS`, que es un diff visible en un fichero que se
+  llama así.
+  `reachableModules` de `tests/mirror/support/imports.ts` implementa el
+  recorrido y **hay que ensancharlo primero**: hoy solo lee
+  `import`/`export … from '…'`, así que no ve ni los `import` de efecto lateral
+  —`src/app/(gl)/layout.tsx` usa uno— ni los `import()` dinámicos —las tres
+  `src/mirror/cli/*-cli.ts` usan uno—. Mientras no los vea, el cierre no es un
+  cierre. El ensanche es parte de este CA y no toca `src/`.
+
+  **CA-2.6 — El escaneo cubre todo el código del repositorio, no solo `src/`; su
+  lista de ficheros no la decide `git`, y qué extensiones considera código va
+  declarado.**
+
+  > *Ampliado el 2026-09-01. Lo anterior no se afloja: se le añade de dónde sale
+  > la lista de ficheros. Motivo y medición en el ledger: «Enmienda —
+  > 2026-09-01: el cierre estático lo lee el compilador, y la lista de ficheros
+  > deja de heredarse de `.gitignore`» §1 y §2 (F-SPEC-008-V28).*
+  >
+  > *Ampliado por segunda vez el 2026-09-01, tras la quinta verificación. Otra
+  > vez no se afloja nada: se le añade **qué extensiones se leen**, que era la
+  > tercera lista escrita dentro de una función en vez de declarada. Motivo y
+  > medición en el ledger: «Enmienda — 2026-09-01: CA-2 se queda ⚠️ con su
+  > residuo escrito, y la frontera de capacidad sale a SPEC-009» §3
+  > (F-SPEC-008-V33). **Es lo único que esa enmienda manda arreglar dentro de
+  > esta spec.***
+
+  Las raíces del escaneo van declaradas, y un caso exige que **todo fichero de
+  código versionado fuera de `tests/` caiga bajo una de ellas**.
+  No es hipotético: **`next.config.ts` es código ejecutable que hoy queda entero
+  fuera del escaneo**, y `src/site/redirects.ts` solo es alcanzable desde ahí.
+  ADR-014 §4 dice «en un script»; hoy no hay `scripts/`, pero sí hay
+  configuración ejecutable en la raíz.
+
+  Y además, porque una frontera que audita ficheros la decide su lista de
+  ficheros:
+
+  1. **La lista de lo que se lee sale del árbol de ficheros bajo las raíces
+     declaradas, no de una herramienta que excluye por otros motivos.** Hoy sale
+     de `git ls-files --exclude-standard`, así que **hereda `.gitignore`**, y
+     `.gitignore:17` esconde `**/robots/*` —por una razón legítima y que no se
+     toca: los `robots.txt` de terceros que ADR-009 §3 mantiene fuera del
+     repositorio—. Medido: un `src/ingest/robots/side.ts` con un
+     `cheerio.fromURL` sin restricción deja `tests/polite` en **76/76**
+     (F-SPEC-008-V28). Ninguna regla que exista para otra cosa puede decidir qué
+     código se audita.
+  2. **Las exclusiones del escaneo son suyas, van declaradas en el mismo fichero
+     que las raíces y cada una lleva su motivo**, como las entradas de CA-2.3.
+     Hoy la única que se justifica sola es `node_modules/`, que no es código
+     nuestro.
+  3. **Control positivo, y es la reproducción exacta de F-SPEC-008-V28**: un
+     fichero bajo una raíz del escaneo, dentro de un directorio que `.gitignore`
+     esconde, **se lee y se juzga** como cualquier otro. El caso se pone rojo el
+     día que la lista vuelva a derivarse de las exclusiones de git.
+  4. **Lo que `git` sigue decidiendo, porque es de lo que es autoridad**: qué
+     está versionado. El caso de cobertura —«todo fichero de código versionado
+     fuera de `tests/` cae bajo una raíz»— puede seguir preguntándoselo. Lo que
+     no puede es decidir **qué se lee**: la cobertura y la lectura son dos listas
+     distintas, y la segunda tiene que ser la más ancha de las dos bajo las
+     raíces.
+
+  Y una tercera cosa, porque una frontera que audita ficheros la decide también
+  **qué considera un fichero de código**:
+
+  5. **Las extensiones que el escaneo lee van declaradas junto a `SCAN_ROOTS`,
+     con su motivo escrito**, exactamente como ya van las exclusiones — y **no
+     escritas dentro de la función que recorre el árbol** ni dentro de un
+     pathspec de `git`. Hoy son las de TypeScript que este proyecto compila y
+     ejecuta: **`.ts`, `.tsx`, `.mts` y `.cts`**. La lista es cerrada en cada
+     momento: una extensión nueva es un diff con motivo, como una entrada de
+     `ALLOWED_PACKAGES`, y **nunca un arbitraje**.
+  6. **La cobertura pregunta por la misma declaración, no por una segunda.** El
+     caso del punto anterior —«todo fichero de código versionado fuera de
+     `tests/` cae bajo una raíz»— deriva su pathspec **de esa misma lista**. Dos
+     listas de extensiones son dos oportunidades de que una se quede corta, y es
+     literalmente lo que pasó: `scannedSources()` filtraba con
+     `endsWith('.ts') || endsWith('.tsx')` y `versionedSources()` le pasaba a
+     `git` el pathspec `'*.ts', '*.tsx'`, **y ninguna de las dos casaba con
+     `.mts`**.
+  7. **Control positivo, y es la reproducción exacta de F-SPEC-008-V33**: un
+     `src/ingest/door.mts` bajo una raíz del escaneo, con un `import` de un
+     paquete que **no** es entrada de `ALLOWED_PACKAGES`, es **rojo** — y es rojo
+     **por el mismo caso** por el que lo es el mismo fichero renombrado a `.ts`.
+     Hoy el `.mts` deja `lint exit=0`, `npm test` **772/772** y `tests/polite`
+     **86/86**, y **se commitea con un `git add` normal**: a diferencia de
+     F-SPEC-008-V28, que necesitaba `git add -f`, **este fichero llega a
+     producción**. La única diferencia entre verde y rojo es **una letra en el
+     nombre del fichero**.
+
+  **Lo que esta parte NO promete** (ADR-016 §6): un fichero fuera de todas las
+  raíces sigue sin leerse, y eso es deliberado —`tests/` es el caso vivo—; lo que
+  el criterio garantiza es que **quedar fuera sea una decisión declarada en las
+  raíces**, no un efecto colateral de otra regla.
+
+  **Y una cosa que sí prometía y no entrega, escrita aquí y no en un
+  *follow-up*** *(añadido el 2026-09-01)*: **fuera de las raíces, la lista de
+  cobertura la sigue decidiendo `.gitignore`**. `versionedSources()` le pregunta a
+  `git`, y `git` no ve lo que `.gitignore` esconde, así que un `robots/side.ts`
+  **en la raíz del repositorio** —importado desde `src/ingest/adapter.ts` con una
+  ruta relativa que `resolvesInsideRepository` acepta— no lo echa de menos nadie:
+  medido, `lint exit=0`, `npm test` **772/772**, `tests/polite` **86/86**, y
+  `git status` no enseña nada (F-SPEC-008-V35). Es la lección del punto 1 una capa
+  más afuera: la **lectura** dejó de heredar `.gitignore` bajo las raíces, la
+  **cobertura** no. Es más estrecho que F-SPEC-008-V33 —hace falta `git add -f`
+  para commitearlo— y **no se cierra aquí**: se muda a **SPEC-009**.
+  **`.gitignore` no se toca**: protege lo que ADR-009 §3 hace irreversible.
+
+  **CA-2.7 — Cada mecanismo lleva su control positivo, y las evasiones vivas se
+  escriben como controles.**
+  Apagar cualquiera de CA-2.1..CA-2.6 pone rojo al menos un caso nombrado. Y las
+  evasiones que hoy sobreviven se escriben como control positivo, cada una contra
+  el mecanismo que le toca: `const { fetch: send } = globalThis` con
+  `['User','Agent'].join('-')` (F-SPEC-008-V6) → CA-2.4 en estático y CA-2.1 en
+  ejecución; `await import('node:' + 'https')` (F-SPEC-008-V7) → CA-2.3; un
+  fichero nuevo en `src/ingest/` que nadie importa → CA-2.5.
+  **No queda ninguna exención por nombre de fichero.** CA-2 deja de mirar
+  palabras, así que `src/site/robots-txt.ts` y
+  `src/mirror/analysis/referenceless/report.ts` dejan de necesitar una, y con la
+  lista desaparece el agujero de F-SPEC-008-V9. Ninguno de los dos ficheros
+  cambia (CA-3).
+
+  **CA-2.8 — Lo que este criterio NO promete, dicho dentro del criterio.**
+  No prohíbe que exista, fuera de `src/polite/`, una función que lea el texto de
+  un `robots.txt`: prohíbe que **decida** (CA-2.2) y prohíbe que la petición
+  salga por otro sitio (CA-2.1, CA-2.3, CA-2.4). El segundo parser de
+  F-SPEC-008-V8 **deja de ser una evasión porque deja de ser una infracción**: no
+  manda un byte y no puede abrir una puerta.
+  Y CA-2.1 solo ve los caminos que se ejecutan. El residuo es finito y
+  nombrable: **código alcanzable desde `ENTRY_POINTS` cuya rama de red no la
+  ejecuta ningún test**. Estrecharlo es cuestión de cobertura, no de detección, y
+  no es de esta spec.
 
 - **CA-3 — El traslado no cambia el comportamiento del instrumento.**
   Dada la suite `tests/mirror/` tal como está en `main`,
@@ -355,6 +895,94 @@ un equipo sin alias confirmado por una persona*.
   íntegros; y no existe ningún camino que fabrique un `MatchId`, lo normalice por
   parecido o lo tome del texto de la fuente.
 
+- **CA-14 — El ritmo de RN-11 sobrevive al proceso (RN-11, ADR-004, ADR-006).**
+
+  > *Criterio añadido el 2026-09-01 por la enmienda de alcance que Alberto Fojo
+  > arbitró ese día, contra la recomendación de `sdd-arquitecto`. Motivo,
+  > mecanismo descartado y coste están en el ledger: «Enmienda — 2026-09-01: el
+  > estado durable del limitador de RN-11 entra en SPEC-008 (F-SPEC-008-V13)».*
+
+  *La forma real de producción es **una instancia nueva por tick**: ADR-004 dice
+  que en Vercel no hay proceso vivo. Un limitador que sea un campo de instancia
+  cumple RN-11 dentro de una ejecución y no la cumple entre ejecuciones —diez
+  peticiones al mismo par en el mismo minuto, medidas—. Este criterio no se
+  comprueba con un proceso largo: se comprueba **construyendo el adaptador de
+  nuevo**, como lo construye un arranque en frío.*
+
+  **CA-14.1 — Un solo paso, no dos.**
+  El puerto del ritmo expone **una** operación: conceder el turno y sellarlo a la
+  vez. Un test comprueba que el adaptador **no tiene ninguna forma de preguntar
+  sin sellar**: entre preguntar y sellar cabe otra instancia, y ése es
+  exactamente el fallo que se está arreglando. El puerto es **obligatorio** en
+  las opciones del `SourceAdapter`, sin default permisivo, igual que `robots`.
+
+  **CA-14.2 — Instancia nueva por tick.**
+  Dado un reloj falso detenido y **diez `SourceAdapter` construidos por
+  separado**, cada uno con su propio puerto del ritmo recién creado y
+  compartiendo únicamente el almacén durable,
+  cuando cada uno captura una vez el mismo par (fuente, competición),
+  entonces **sale exactamente una petición**, y las otras nueve devuelven
+  `skipped` con la frase de `rateLimitSkipReason`.
+  Con el reloj adelantado 60 s entre construcciones, salen **diez**.
+
+  **CA-14.3 — Control positivo, y es el que nombra el defecto.**
+  La misma batería corrida contra la implementación **en memoria** da **diez
+  peticiones**, y el caso lo afirma como resultado esperado: es la reproducción
+  exacta de F-SPEC-008-V13 y la prueba de que CA-14.2 no pasa por casualidad.
+
+  **CA-14.4 — Dos que llegan a la vez, uno solo sale.**
+  Dadas dos concesiones **concurrentes** sobre el mismo par y el mismo instante,
+  **exactamente una** obtiene el turno. Se comprueba contra el almacén durable
+  real: es el caso que producen una invocación manual, un reintento del cron o un
+  despliegue solapado, y el único que un doble en memoria no puede simular.
+
+  **CA-14.5 — Una batería de contrato, dos implementaciones.**
+  La semántica del puerto **dentro de una instancia** —concede, niega dentro del
+  minuto, concede pasado el minuto, y **un minuto sin pedir no da derecho a dos
+  peticiones en el siguiente**— se escribe **una vez** y corre contra las dos
+  implementaciones, como `tests/raw/contract.ts` corre contra disco y Blob
+  (ADR-005). La supervivencia **entre** instancias no es parte de esta batería:
+  es CA-14.2, y solo la implementación durable la pasa. La cláusula del no
+  acumular no es adorno: es lo que `/robot` promete literalmente en galego y en
+  castellano (`src/i18n/gl.ts`, `src/i18n/es.ts`, SPEC-005).
+
+  **CA-14.6 — El número vive donde vivía, y el SQL no lo repite.**
+  El intervalo sigue siendo `MIN_REQUEST_INTERVAL_MS` de
+  `src/polite/rate-limit.ts`; la implementación durable recibe el **instante
+  límite ya calculado** y no escribe ningún intervalo en su SQL. Un test cambia
+  el intervalo en un solo sitio y ve cambiar el comportamiento de las dos
+  implementaciones. Acceso con `postgres.js` y SQL etiquetado, **sin ORM**;
+  migración `migrations/0002_<slug>.sql`, en orden y sin rollback (ADR-006).
+
+  **CA-14.7 — Se falla cerrado.**
+  Si la concesión **falla** —no hay base de datos configurada, la consulta
+  revienta—, **no sale ninguna petición**, no se archiva nada, no se produce
+  ninguna `Observation` y el tick registra el motivo. Sin estado del ritmo no hay
+  ritmo demostrable, y ADR-014 §3.3 ya fijó que en producción eso se resuelve
+  cerrando.
+
+  **CA-14.8 — El instrumento se queda como está, y se dice por qué.**
+  `src/mirror/` sigue usando la implementación en memoria. No es una excepción
+  tolerada: es el motivo que F-SPEC-002-2 escribió y ADR-014 §3 reutilizó —la
+  ventana dura una hora, corre en **un** proceso, y el operador está delante—. Un
+  test comprueba que las CLI de `src/mirror/` siguen construyendo la
+  implementación en memoria y que **ningún módulo bajo `src/ingest/` puede
+  construirla**.
+
+  **CA-14.9 — Lo que este criterio NO promete.**
+  No hay reserva de turno ni reintento: **un turno concedido cuya petición
+  después falla se ha gastado**, y el par espera al minuto siguiente. Es
+  deliberado —RN-11 cuenta peticiones que **salen**, no respuestas que vuelven— y
+  es lo que impide que un tercero caído se lleve una ráfaga. Tampoco cubre a
+  `src/mirror/` (CA-14.8), ni dice nada del ritmo del `robots.txt`, que ADR-014
+  §3.2 contabiliza aparte.
+
+  **Cómo se corre.** CA-14.1, CA-14.3, CA-14.8, CA-14.9 y la mitad en memoria de
+  CA-14.5 van en `npm test`. CA-14.4 y la mitad durable de CA-14.2, CA-14.5 y
+  CA-14.6 van en `npm run test:db` y **necesitan `DATABASE_URL_TEST`**: sin él son
+  **UNMET, no *skipped*** (gate del 2026-08-29). El ledger tiene que llevar las
+  dos salidas.
+
 ## Entidades y reglas afectadas
 
 **Reglas de negocio** (`docs/fundacion/reglas.md`, no se duplican aquí):
@@ -367,7 +995,8 @@ un equipo sin alias confirmado por una persona*.
 - **RN-10** — archivo antes de parseo, sin modo degradado (CA-4), y también para
   el `robots.txt` (CA-6).
 - **RN-11** — `robots.txt` obedecido de verdad (CA-1, CA-5, CA-6), user-agent
-  identificado (CA-5) y 1 petición/minuto por competición (CA-7).
+  identificado (CA-5) y 1 petición/minuto por competición **dentro de una
+  instancia** (CA-7) **y entre instancias** (CA-14).
 - **RN-12** — no aplica aquí y se dice por qué: solo una regla del motor produce
   una `Decision`, y esta spec no produce ninguna.
 - **RN-13** — las `Observation` salen congeladas y el adaptador no reescribe
@@ -375,8 +1004,8 @@ un equipo sin alias confirmado por una persona*.
 
 **ADRs:**
 
-- **ADR-014** (esta épica, `borrador`) — dónde vive la cortesía y que es una
-  sola. Esta spec lo ejecuta entero: §1 en CA-2 y CA-3, §2 en CA-1, §3 en CA-6,
+- **ADR-014** (esta épica, **`aprobada`** el 2026-09-01) — dónde vive la cortesía
+  y que es una sola. Esta spec lo ejecuta entero: §1 en CA-2 y CA-3, §2 en CA-1, §3 en CA-6,
   §4 en CA-2.
 - **ADR-008 §1** — `futgal.es` no es capturable; §2 — la segunda candidata es
   `besoccer.es` y ninguna respuesta se archiva bajo un `SourceId` ajeno (CA-5.3);
@@ -385,8 +1014,20 @@ un equipo sin alias confirmado por una persona*.
   2026-11-29) y la prohibición **irreversible** de versionar HTML real de
   terceros (CA-8).
 - **ADR-006** — instantes como cadena ISO 8601 UTC, nunca `Date` (CA-9.3);
-  `postgres.js` y SQL etiquetado, sin ORM, para cuando llegue la persistencia,
-  que no llega aquí.
+  `postgres.js` y SQL etiquetado, sin ORM, y migraciones numeradas y **sin
+  rollback** — que a partir de la enmienda del 2026-09-01 **sí** aplican aquí, en
+  `migrations/0002` y en la implementación durable del ritmo (CA-14.6).
+- **ADR-016** (**`aprobada`** el 2026-09-01, escrito ese mismo día por encargo del
+  gate) — cómo se demuestra una frontera de capacidad: enumerar lo permitido y
+  exigir que el resto sea vacío. **CA-2 es su primera aplicación**; el ADR fija
+  la regla general y esta spec no la redefine. Desde que está aprobado, su
+  **§3.5** —una lista de lo permitido no puede esconder una lista de lo prohibido
+  en su condición de admisión— es lo que deja a **CA-2.4 en ⚠️** y lo que manda
+  su cierre a SPEC-009; y su **§6** es lo que obliga a que el residuo esté
+  escrito dentro del criterio y no en un *follow-up*.
+- **ADR-015** (**`aprobada`** el 2026-09-01) — la forma de una enmienda sobre un
+  criterio ya firmado. Es la que usan, por analogía declarada, las **cinco**
+  enmiendas del ledger de esta spec.
 - **ADR-005** — `RawStore` como puerto: Vercel Blob en producción, disco en local
   y tests. Esta spec no lo toca; lo usa.
 - **ADR-011** — forma estable del user-agent declarado; la mitad de RN-11 que se
@@ -406,18 +1047,36 @@ estados de un partido y la representación del tiempo.
 
 Aparcado a propósito, no por descuido. Cada línea tiene dueño futuro.
 
+- **La frontera de capacidad, a partir del 2026-09-01** (enmienda del ledger «CA-2
+  se queda ⚠️ con su residuo escrito, y la frontera de capacidad sale a
+  SPEC-009»). CA-2 sigue vivo y sigue mordiendo para todo lo que ya cierra, pero
+  **queda ⚠️ y nunca ✅**: lo que le falta —enumerar los identificadores globales
+  permitidos en vez de prohibir nueve (F-SPEC-008-V34), y que la cobertura fuera
+  de las raíces deje de decidirla `.gitignore` (F-SPEC-008-V35)— es de
+  **SPEC-009**, junto con la batería de las once evasiones. Lo único que se cierra
+  aquí es **F-SPEC-008-V33**, en CA-2.6.
+
 - **El motor de decisiones (RN-01..RN-07) y cualquier `Decision`.** Nace con
   **una sola vía en RN-02**: con una única fuente automática de peso 0.7, nada
   llega a *confirmado* por vía automática. Es dato de partida, no incógnita.
 - **El cron de planificación, el calendario y las ventanas por partido.** Esta
-  spec deja el limitador y el puerto listos; quién los dispara y cuándo es de la
-  spec del cron.
+  spec deja el limitador y el puerto listos —y, desde la enmienda del
+  2026-09-01, también **el estado durable del ritmo** (CA-14), que ya no viaja a
+  la spec del cron—; quién dispara el tick y cuándo sigue siendo de ella. La spec
+  del cron hereda un limitador que **ya** sobrevive al proceso, y no una
+  precondición de despliegue que cumplir.
 - **El catálogo de alias de los 36 equipos y su confirmación humana (RN-09).**
   Aquí solo se define y se dobla el puerto `MatchResolver`.
-- **La persistencia.** La implementación Postgres de `ObservationStore` y
-  `DecisionStore` sigue siendo de «la primera spec que la necesite»
-  (F-SPEC-001-3), y esta no la necesita: devuelve `Observation`, no las guarda.
-  Tampoco hay `migrations/0002`.
+- **La persistencia del modelo canónico.** La implementación Postgres de
+  `ObservationStore` y `DecisionStore` sigue siendo de «la primera spec que la
+  necesite» (F-SPEC-001-3), y ésta no la necesita: devuelve `Observation`, no las
+  guarda. **Ninguna `Observation` y ninguna `Decision` tocan la base de datos en
+  esta spec**, ni el calendario, ni el catálogo de alias.
+  **Enmendado el 2026-09-01 (arbitraje de Alberto Fojo):** `migrations/0002`
+  **sí entra**, y solo para el estado durable del ritmo de RN-11 —una tabla, la
+  clave del par y un instante (CA-14)—. El texto que decía «tampoco hay
+  `migrations/0002`» queda sustituido; el original, el motivo y el mecanismo
+  descartado están en el ledger.
 - **El adaptador de `besoccer.es`.** Sirve armazones vacíos y su dato vive tras
   un `Disallow: /ajax*` que, **a partir de CA-1, por fin se respeta de verdad**.
   Su superficie servida no encaja en el modelo (`hallazgos/fontes-capturables.md`).
@@ -446,6 +1105,17 @@ Aparcado a propósito, no por descuido. Cada línea tiene dueño futuro.
   de calibrar; ver notas §5.
 
 ## Notas para el gate humano
+
+> **Estado de estas notas tras el arbitraje del 2026-09-01.** Los puntos 1..8 son
+> los del gate original y siguen tal cual; los puntos 3 y 4 quedaron **firmados**
+> ese día y no se reabren. Los puntos **9 y 10** los añade la aplicación de las
+> dos enmiendas que Alberto Fojo arbitró. Los puntos **11 y 12** los añade la
+> tercera enmienda —la reescritura de CA-2.1 y CA-2.3 tras la tercera
+> verificación—. Los puntos **13 y 14** los añade la cuarta —el lector de CA-2.3
+> pasa a ser el compilador y la lista de ficheros deja de salir de `git`—. Y los
+> puntos **15 y 16** los añade la quinta enmienda —**CA-2 se queda ⚠️ y la
+> frontera de capacidad sale a SPEC-009**—, que es lo último que hay que mirar y
+> lo único que cambia el alcance de lo que esta spec dice entregar.
 
 Lo que hay que mirar con lupa antes de firmar. Los siete puntos son decisiones,
 no detalles, y cuatro de ellos son preguntas abiertas de verdad.
@@ -509,3 +1179,93 @@ no detalles, y cuatro de ellos son preguntas abiertas de verdad.
    una regla dura que por fin se cumple. Medir sigue estando a cinco specs de
    distancia, y el desglose propuesto va en el informe de este encargo, no aquí:
    el desglose es orientativo hasta que cada spec se escriba.
+
+9. **CA-2 ya no mecaniza la primera prohibición de ADR-014 §4, y eso está
+   firmado.** Un segundo parser de `robots.txt` puede existir mientras no pueda
+   decidir ni abrir una puerta. La regla del ADR sigue vigente y pasa a
+   sostenerse en **revisión humana**. **No hay CI**: el gate de calidad corre en
+   local, así que esa revisión humana es literalmente una persona leyendo un
+   diff. Es la firma incómoda del 2026-09-01 y conviene releerla cada vez que se
+   toque `src/site/` o `src/mirror/`.
+
+10. **La spec deja de ser verificable con un solo comando.** CA-14 mete
+    `migrations/0002` —irreversible en la práctica, ADR-006— y parte de su
+    evidencia solo existe contra un Postgres real: `npm run test:db` con
+    `DATABASE_URL_TEST`, y sin él esos criterios son **UNMET, no *skipped***.
+    Además, el camino de ingesta gana una dependencia de base de datos que no
+    tenía: **un tick sin ella no manda nada** (CA-14.7). Es fallo cerrado y es lo
+    correcto, pero significa que una caída de Postgres es cobertura perdida, y
+    esa cifra es uno de los cuatro entregables de la épica.
+
+11. **CA-2.1 y CA-2.3 se han reescrito por segunda vez el mismo día, y este texto
+    Alberto no lo ha visto.** La **decisión** —cerrar las dos mitades que la
+    tercera verificación dejó abiertas— es suya, del 2026-09-01; el **texto
+    literal** es de `sdd-arquitecto`, y por eso la spec sigue en `en-progreso`.
+    Lo que hay que mirar con lupa son dos cosas concretas:
+    - **La concesión por superficie encarece cada dependencia nueva**: ya no es
+      una línea por paquete, sino una línea por paquete **y una por nombre**. Es
+      deliberado, y por la doctrina ya firmada («que crezca es lo natural») **no
+      vuelve al gate**. Si eso se considera demasiado peaje, el sitio de decirlo
+      es ahora y no en la cuarta verificación.
+    - **Lo único que sigue exigiendo firma humana** es declarar en una superficie
+      un nombre cuyo trabajo sea pedirle bytes a un tercero. Todo lo demás de la
+      lista es diff revisable.
+
+12. **CA-2.1 deja de apoyarse en una lista de módulos y pasa a apoyarse en una
+    propiedad del runtime, medida hoy.** Consecuencias que van dichas antes de
+    firmar: si Node mueve el punto por el que pasa un socket, el criterio sigue
+    siendo cierto pero **el test hay que reescribirlo**, y no se enterará nadie
+    hasta que se reescriba —el control positivo de la dependencia es lo que
+    avisa—. Y el residuo nuevo es real: **UDP, un subproceso y un binario nativo
+    no pasan por un socket de `node:net`**, así que la contención en ejecución no
+    los ve y su único cierre es el estático de CA-2.3 y CA-2.4. Está escrito
+    dentro del propio CA-2.1, como ADR-016 §6 obliga, y no como follow-up.
+
+13. **El cierre estático pasa a costar una dependencia de compilador, y eso es
+    una decisión con precio.** Hasta hoy CA-2.3 se sostenía en expresiones
+    regulares —baratas, sin dependencias, y **rotas tres veces por el mismo
+    motivo**: se comían media sentencia, anclaban a principio de línea, y ahora
+    la lista de ficheros—. A partir de aquí el guardián de una regla dura
+    depende del API del compilador de TypeScript, que en la 7.x está publicado
+    como **`unstable`**. Lo que eso significa, dicho antes de firmar: **una
+    subida de `typescript` puede romper el test**, y romperlo es lo bueno —falla
+    ruidosamente, no en silencio—, pero es trabajo que aparecerá sin avisar. La
+    alternativa era seguir tapando patrones de uno en uno, que es lo que el
+    verificador desaconseja con tres medidas delante. **La decisión es de Alberto
+    Fojo, del 2026-09-01; el texto es de `sdd-arquitecto` y él no lo ha visto.**
+
+14. **Lo que este cambio deliberadamente NO arregla, para que no se lea de más.**
+    Sigue habiendo una mitad de CA-2 que se lee como texto: CA-2.4, las tres
+    maneras de alcanzar una capacidad sin `import`. Está escrito dentro de
+    CA-2.3 y no se cierra aquí porque nadie lo ha medido roto — y este expediente
+    enseña que **la medida va antes que el ensanche**, no al revés. Si el gate
+    prefiere cerrarlo ya que el árbol está ahí, el sitio de decirlo es ahora.
+    *(La quinta verificación lo midió roto: es F-SPEC-008-V34, y va al punto 15.
+    Esta nota se conserva tal cual porque es lo que se escribió entonces.)*
+
+15. **CA-2 se queda ⚠️ y nunca ✅, y la frontera de capacidad sale de esta spec.**
+    Es la decisión de Alberto Fojo del 2026-09-01, y lo que hay que mirar es que
+    **la spec deja de prometer lo que su título de CA-2 dice**. Lo que sí
+    entrega, y no es poco: el cierre de imports por superficie leído con el
+    compilador, la contención en ejecución sobre `net.Socket.prototype.connect`
+    —que **deniega por defecto**, así que ninguna petición de ningún test puede
+    llegar a un tercero, y eso es mecanismo y no disciplina— y la contención de
+    conjuntos contra la política real. Lo que **no** alcanza queda medido y
+    escrito dentro de los propios criterios: **F-SPEC-008-V34** (el conjunto de
+    CA-2.4 está medido abierto y su mecanismo es una lista negra de nueve
+    nombres) y **F-SPEC-008-V35** (fuera de las raíces, la cobertura la decide
+    `.gitignore`), más los residuos ya firmados de CA-2.1 y CA-2.8. **Lo único
+    que se arregla aquí es F-SPEC-008-V33**, la lista de extensiones de CA-2.6,
+    porque es una línea y **el fichero que la aprovecha se commitea con un
+    `git add` normal**: llega a producción. Lo demás es **SPEC-009**.
+
+16. **Y lo que hay que mirar con más lupa, porque es lo que aún no está
+    contestado.** SPEC-009 nace en `borrador` con **una pregunta abierta de
+    verdad**: si CA-2.4 pasa a **enumerar los identificadores globales
+    permitidos** —lista blanca con superficie y motivo, como `ALLOWED_PACKAGES`—
+    o si se acepta la lista negra y el residuo se escribe dentro del criterio
+    (ADR-016 §6). `sdd-arquitecto` propone lo primero y **dice que su coste no
+    está medido**: el lector de hoy no resuelve símbolos, y cuántos globales
+    distintos usa el escaneo no está contado. **Si el gate quiere ese número
+    antes de firmar, el sitio de pedirlo es la aprobación de SPEC-009 y no la de
+    ésta.**

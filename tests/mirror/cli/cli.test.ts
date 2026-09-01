@@ -20,7 +20,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { DiskRawStore } from '@/raw/disk';
-import { USER_AGENT } from '@/mirror/user-agent';
+import { USER_AGENT } from '@/polite/user-agent';
 import { FINDINGS_DIR, FINDINGS_JSON, FINDINGS_MARKDOWN } from '@/mirror/analysis/findings';
 import { buildFixture, FIXTURE_COMPETITION, FIXTURE_EXTRACTOR_CONFIG } from '../support/archive';
 import { padding, plan } from '../support/plans';

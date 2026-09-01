@@ -585,3 +585,126 @@ el estado de la spec con `estado.mjs` —el encargo lo prohibía explícitamente
 así que sigue en `aprobada` y no en `en-progreso`/`en-revision`. No se ha hecho
 push ni PR. No se ha invocado ningún rol consultivo. No se ha tocado
 `src/model/`, `src/db/` ni `migrations/`, y de `src/mirror/` solo `user-agent.ts`.
+
+## Enmienda — 2026-09-01: ADR-014 §1 invalida el guardián de CA-10
+
+**Esto es una enmienda, no una reapertura y no una autorización.** SPEC-005
+sigue en `hecho`, su veredicto sigue siendo **GREEN** y no se ha tocado una sola
+línea del cuerpo de la spec: **CA-10 dice hoy exactamente lo que decía el
+2026-08-31**, porque un CA es el contrato contra el que se emitió un veredicto y
+no se reescribe. Lo que esta sección registra es un cambio en el **alcance** de
+ese veredicto, que es de lo que un ledger da fe (ADR-011 §6).
+
+La regla general que sostiene esta forma de registro se propone en **ADR-015**,
+que nace hoy en `borrador` y **no está firmada**. Esta nota no depende de que se
+firme: el hecho que registra es de hoy.
+
+### 1. Qué afirmaba CA-10, y por qué era razonable
+
+CA-10 exigía que, además de suite, `typecheck` y `lint` en verde, el cambio del
+user-agent fuera **de un solo fichero** dentro de `src/mirror/`:
+`user-agent.ts`, y ninguna otra línea del directorio. Su guardián era el **caso
+15 de `tests/mirror/user-agent.test.ts`**, que ejecutaba
+`git diff --name-only main -- src/mirror/` y fallaba si aparecía cualquier
+fichero distinto de `src/mirror/user-agent.ts`.
+
+Era razonable, y lo sigue siendo como razonamiento: `USER_AGENT` era código de
+**SPEC-002**, una spec `hecho` y verificada. ADR-011 §6 decidió que ese cambio
+viviera en una spec propia de EPIC-003 en vez de en el ledger de SPEC-002 o en
+una reapertura, y lo que a SPEC-002 se le debía eran dos cosas —suite verde y
+cambio mínimo—. **CA-10 era la mecanización de la segunda**: sin él, la frontera
+entre «alinear una cadena» y «reabrir una spec cerrada» era una intención. La
+propia spec lo dice con esas palabras.
+
+### 2. Qué lo invalida
+
+**ADR-014 §1** (`aprobada` por Alberto Fojo el 2026-09-01). La cortesía RN-11
+sale de `src/mirror/` a `src/polite/`: `robots.ts`, `http.ts`, `user-agent.ts` y
+el mínimo de 1 petición/minuto dejan de vivir en el instrumento de medición. Ese
+traslado **toca `src/mirror/` entero a propósito**, así que la aserción del caso
+15 no puede sobrevivir.
+
+**Y reapuntarla a `src/polite/` tampoco la salva**: el traslado *crea* ese
+directorio, de modo que un diff acotado a él listaría los cuatro módulos nuevos
+y fallaría igual. No es un cambio de ruta; es que la forma «un solo fichero
+tocado» ya no describe ningún estado admisible del árbol.
+
+Conviene dejar dicho que **ADR-014 no lo vio**: sus consecuencias negativas
+nombran las dos specs `hecho` cuyo código traslada y hasta la única línea de
+EPIC-003 que cambia de `import`, pero no que un CA de SPEC-005 dejara de ser
+satisfacible. Apareció después, como test en rojo, al implementar SPEC-008.
+
+### 3. Con qué se sustituye, y por qué la red es MENOR
+
+Al implementar SPEC-008 el caso 15 se sustituye por **dos casos que escanean
+`src/`** y exigen que la cadena del user-agent se componga en
+`polite/user-agent.ts` y en ningún otro sitio (**SPEC-008 CA-2**, el test de
+arquitectura de una sola implementación de la cortesía). La evidencia de esa
+sustitución vive en el ledger de SPEC-008, no aquí.
+
+**El guardián nuevo es más débil, y no hay que suavizarlo:**
+
+- **No vigila el diff.** Vigila *dónde vive* una cadena, no *cuánto se movió* al
+  cambiarla. Es una propiedad estática del árbol, no una restricción sobre el
+  tamaño del cambio: con él en verde, una spec futura puede reescribir medio
+  `src/polite/` mientras la composición siga en su sitio. Eso es exactamente lo
+  que CA-10 existía para impedir.
+- **Solapa con un test que ya existía.** `tests/site/crawler-page.test.ts` caso 2
+  —que es de **SPEC-005 CA-2**, no de CA-10— ya afirma que la cadena entera no
+  está transcrita en ningún fichero y que el propósito declarado
+  (`medicion de latencia`) aparece en **exactamente uno**. El sustituto vuelve a
+  decir eso con otra ruta; no aporta una red independiente, reformula una que ya
+  estaba puesta bajo otro criterio.
+- **Resultado neto:** de los dos deberes de CA-10 sobrevive el primero —suite,
+  `typecheck` y `lint` en verde, que SPEC-008 CA-3 conserva al exigir que
+  `tests/mirror/` pase entera sin enmendar una aserción— y **el segundo, el
+  cambio mínimo, queda sin ningún guardián**. Está levantado como
+  **F-SPEC-008-1** y Alberto Fojo aceptó la sustitución el 2026-09-01 con
+  **SPEC-008 CA-3 en ⚠️**.
+
+Hay un matiz que **no repone nada** y que se dice por precisión, no por
+consuelo: el caso 15 comparaba contra `main`, así que una vez fusionado el diff
+quedaba vacío y la aserción pasaba trivialmente. Su valor real era **en la rama,
+antes del merge**, en la revisión. Es decir: lo que se pierde no es una red
+permanente, es la única red que había **en el momento en que sirve** — cuando
+alguien podía todavía colar trabajo ajeno en el cambio. Perderla ahí es perderla
+donde importaba.
+
+### 4. El GREEN de SPEC-005 sigue en pie
+
+Lo que cambió es el mundo alrededor del criterio, **no la calidad de la
+verificación**. El 2026-09-01 CA-10 se comprobó de verdad y con evidencia:
+`git diff --stat main -- src/mirror/` devolvió `src/mirror/user-agent.ts` y solo
+ese fichero, y los tres gates corrieron enteros (`oxlint --type-aware` exit 0,
+`tsc --noEmit` limpio, 66 ficheros y 591 tests verdes). Ese hecho ocurrió y no lo
+deshace ninguna decisión posterior.
+
+SPEC-005 responde de que la página y la cadena no puedan divergir, y eso **sigue
+siendo cierto** después de ADR-014: `src/site/crawler-page.tsx` cambia de
+`import`, no de contrato, y sigue publicando la cadena literal de ADR-011
+(SPEC-008 CA-3 y CA-5.2). **Nada de esta enmienda degrada el veredicto ni pide
+reverificar SPEC-005.**
+
+### 5. Qué lo despierta
+
+Hay que recuperar un guardián equivalente al del diff —una aserción que acote el
+**tamaño** del cambio, no su domicilio— en cuanto se dé **cualquiera** de estas
+condiciones:
+
+1. **Otra spec vuelve a cambiar `USER_AGENT` o sus constantes.** Es el escenario
+   original de CA-10 con el fichero en su nuevo domicilio: el guardián renace
+   como `git diff --name-only <base> -- src/polite/` acotado a
+   `user-agent.ts`, en la spec que haga el cambio y mientras su rama esté
+   abierta.
+2. **`src/polite/` deja de moverse.** Hoy no se puede acotar un diff sobre un
+   directorio que se está creando; en cuanto ADR-014 §1 esté ejecutado y
+   asentado, esa objeción caduca y la aserción vuelve a ser escribible.
+3. **F-SPEC-008-1 se cierra con algo distinto de «aceptado».** Si el gate revisa
+   la salvedad y no le basta, el guardián que reponga tiene que vigilar el diff,
+   porque es lo único que el sustituto no hace.
+4. **Aparece una segunda vía de composición de la cadena** —un adaptador, un
+   script, una interfaz— que el escaneo estático de SPEC-008 CA-2 no cubra. Sería
+   la señal de que la propiedad estática no basta y hace falta la dinámica.
+
+Mientras ninguna se dé, la ausencia es **conocida, aceptada y con fecha**, no un
+descuido.

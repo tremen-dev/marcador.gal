@@ -22,7 +22,7 @@ vi.mock('@/mirror/analysis/extract', () => ({
 }));
 
 const { Capturer } = await import('@/mirror/capture/capturer');
-const { allowAllRobots } = await import('@/mirror/capture/robots');
+const { allowAllRobots } = await import('@/polite/robots');
 const { FakeClock } = await import('../support/fake-clock');
 const { FailingRawStore, MemoryRawStore } = await import('../support/memory-store');
 const { spyFetcher } = await import('../support/spy-fetcher');

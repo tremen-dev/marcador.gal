@@ -13,13 +13,16 @@
  */
 import { captureThenParse } from '@/raw/capture';
 import { instantToEpochMs, normalizeInstant } from '@/mirror/instants';
-import { MIN_REQUEST_INTERVAL_MS } from '@/mirror/thresholds';
-import { USER_AGENT } from '@/mirror/user-agent';
-import { politeFetch } from './http';
+import { politeFetch } from '@/polite/http';
+import { MemoryRateLimit } from '@/polite/rate-limit';
+import { robotsSkipReason } from '@/polite/robots';
+import { USER_AGENT } from '@/polite/user-agent';
 import { pairKey } from './ports';
-import { robotsSkipReason } from './robots';
-import type { CaptureTarget, Clock, HttpFetcher } from './ports';
-import type { RobotsPolicy } from './robots';
+import type { Clock } from '@/polite/clock';
+import type { HttpFetcher } from '@/polite/http';
+import type { RateLimit } from '@/polite/rate-limit';
+import type { RobotsPolicy } from '@/polite/robots';
+import type { CaptureTarget } from './ports';
 import type { DeclaredPair, TickRecord, WindowLog } from '@/mirror/window';
 import type { RawStore } from '@/raw/store';
 
@@ -30,6 +33,14 @@ export interface CapturerOptions {
   readonly clock: Clock;
   /** RN-11. Required on purpose: there is no permissive default (CA-2). */
   readonly robots: RobotsPolicy;
+  /**
+   * RN-11's rhythm. Optional HERE and required in `SourceAdapter`, and the
+   * asymmetry is the frontier of CA-14.8, not an oversight: the window lasts
+   * one hour, runs in ONE process and has the operator watching
+   * (F-SPEC-002-2), so memory is memory enough. What is deployed uses the
+   * durable one; what a person supervises by hand does not.
+   */
+  readonly rateLimit?: RateLimit;
   /** Overridable only so a test can prove the guard; defaults to the declared UA. */
   readonly userAgent?: string;
 }
@@ -41,11 +52,12 @@ export class Capturer {
   readonly #clock: Clock;
   readonly #robots: RobotsPolicy;
   readonly #userAgent: string;
-  /** Last instant at which a request LEFT, per pair. Epoch ms. */
-  readonly #lastRequestAt = new Map<string, number>();
+  /** RN-11's one-per-minute, owned by `src/polite/` (ADR-014 §1). */
+  readonly #rateLimit: RateLimit;
   readonly #ticks: TickRecord[] = [];
 
   constructor(options: CapturerOptions) {
+    this.#rateLimit = options.rateLimit ?? new MemoryRateLimit();
     this.#targets = options.targets;
     this.#fetcher = options.fetcher;
     this.#store = options.store;
@@ -64,8 +76,13 @@ export class Capturer {
     const epochMs = instantToEpochMs(at);
 
     for (const target of this.#targets) {
-      if (!this.#isDue(target, epochMs)) continue;
-      await this.#capture(target, at, epochMs);
+      // ONE step, not two: the turn is granted AND stamped here, BEFORE the
+      // await and before the robots check. RN-11 is about the rate at which
+      // requests leave, so a slow response must not buy the next tick an
+      // early turn, and a forbidden target is asked about once a minute
+      // rather than on every pass.
+      if (!(await this.#rateLimit.takeTurn(pairKey(target), epochMs))) continue;
+      await this.#capture(target, at);
     }
   }
 
@@ -89,18 +106,7 @@ export class Capturer {
     return { ticks: [...this.#ticks], declared_pairs: [...declared.values()] };
   }
 
-  #isDue(target: CaptureTarget, epochMs: number): boolean {
-    const last = this.#lastRequestAt.get(pairKey(target));
-    return last === undefined || epochMs - last >= MIN_REQUEST_INTERVAL_MS;
-  }
-
-  async #capture(target: CaptureTarget, at: string, epochMs: number): Promise<void> {
-    // Stamped BEFORE the await: RN-11 is about the rate at which requests
-    // leave, so a slow response must not buy the next tick an early turn.
-    // Stamped before the robots check too, so a forbidden target is asked
-    // about once a minute and not on every pass of the cron.
-    this.#lastRequestAt.set(pairKey(target), epochMs);
-
+  async #capture(target: CaptureTarget, at: string): Promise<void> {
     if (!this.#robots.isAllowed(target.url)) {
       this.#record(target, at, 'skipped', robotsSkipReason(target.url), null);
       return;

@@ -12,12 +12,13 @@ import { dirname, resolve } from 'node:path';
 import { BlobRawStore } from '@/raw/blob.ts';
 import { DiskRawStore } from '@/raw/disk.ts';
 import { competitionId, sourceId } from '@/mirror/ids.ts';
-import { USER_AGENT } from '@/mirror/user-agent.ts';
+import { systemClock } from '@/polite/clock.ts';
+import { globalFetcher } from '@/polite/http.ts';
+import { MemoryRateLimit } from '@/polite/rate-limit.ts';
+import { parseRobots, robotsRegistry } from '@/polite/robots.ts';
+import { USER_AGENT } from '@/polite/user-agent.ts';
 import { Capturer } from '@/mirror/capture/capturer.ts';
 import { WindowConfigSchema } from '@/mirror/capture/config.ts';
-import { globalFetcher } from '@/mirror/capture/http.ts';
-import { parseRobots, robotsRegistry } from '@/mirror/capture/robots.ts';
-import { systemClock } from '@/mirror/capture/ports.ts';
 import type { CaptureTarget } from '@/mirror/capture/ports.ts';
 import type { RawStore } from '@/raw/store.ts';
 
@@ -57,6 +58,11 @@ export async function main(argv: readonly string[]): Promise<void> {
     store,
     clock: systemClock,
     robots: robotsRegistry(robots),
+    // The instrument keeps the rhythm IN MEMORY, and it is not a tolerated
+    // exception (CA-14.8): the window lasts an hour, it runs in this one
+    // process, and the operator is watching (F-SPEC-002-2). What is deployed
+    // uses the durable one; this is not deployed.
+    rateLimit: new MemoryRateLimit(),
   });
 
   const ticks = Math.ceil((config.duration_minutes * 60) / config.tick_seconds);

@@ -20,7 +20,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import nextConfig from '../../next.config';
-import { USER_AGENT_CONTACT } from '@/mirror/user-agent';
+import { USER_AGENT_CONTACT } from '@/polite/user-agent';
 import { SITE_REDIRECTS } from '@/site/redirects';
 import { CRAWLER_PATH, SITE_ORIGIN } from '@/site/routes';
 
