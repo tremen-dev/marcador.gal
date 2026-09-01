@@ -16,10 +16,16 @@
  * `crawler` is the namespace of `/robot` (SPEC-005). Separate from `site` on
  * purpose: the presence tests of the project page walk every key of the site
  * namespace, so text that belongs to another page cannot live there.
+ *
+ * `titles` is the namespace of the document titles (SPEC-006), one key per
+ * page. Separate for the same reason taken to its extreme: a title is never
+ * served in the body of any page, so no presence test over the HTML could find
+ * it. It is a DATUM each route declares, not markup the document emits.
  */
 import type { MatchQualifier } from '../model/qualifier';
 import type { CrawlerBundle } from './crawler-bundle';
 import type { SiteBundle } from './site-bundle';
+import type { TitlesBundle } from './titles-bundle';
 
 export const gl = {
   qualifiers: {
@@ -29,8 +35,12 @@ export const gl = {
     sen_sinal: 'Sen sinal',
   } satisfies Record<MatchQualifier, string>,
 
+  titles: {
+    project: 'O proxecto — marcador.gal',
+    crawler: 'O rastrexador — marcador.gal',
+  } satisfies TitlesBundle,
+
   site: {
-    documentTitle: 'O proxecto — marcador.gal',
     heading: 'marcador.gal',
 
     aboutHeading: 'Quen está detrás',

@@ -18,12 +18,12 @@
  * `src/site/contact.ts` and is interpolated. A bundle per language would
  * already be two copies of an address we know is going to move.
  *
- * THERE IS NO `documentTitle` HERE, AND THAT IS A KNOWN GAP, NOT AN OVERSIGHT.
- * `<title>` is emitted by `SiteDocument`, which is a ROOT LAYOUT and therefore
- * cannot receive anything from the page it wraps, so `/robot` inherits the
- * title of the project page. Fixing it means moving `<title>` out of the
- * document shell and into each page — a change to SPEC-004 code that no
- * criterion of SPEC-005 asks for. Recorded as F-SPEC-005-1.
+ * THERE IS NO DOCUMENT TITLE HERE, AND IT IS NOT A GAP ANY MORE. F-SPEC-005-1
+ * —`/robot` inheriting «O proxecto» from the project page— is closed by
+ * SPEC-006, and the fix did NOT put the title in this namespace: titles live in
+ * `titles-bundle.ts`, on their own, because they are the one kind of text that
+ * is never served in the body of a page. `/robot` declares its own through the
+ * metadata mechanism of the App Router; `SiteDocument` no longer emits any.
  */
 
 export interface CrawlerBundle {
