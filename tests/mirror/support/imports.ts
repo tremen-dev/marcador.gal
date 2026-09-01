@@ -62,6 +62,7 @@ import {
 } from 'typescript/unstable/ast';
 import { API } from 'typescript/unstable/sync';
 import type { Node, SourceFile } from 'typescript/unstable/ast';
+import type { NodeHandle, Project, Symbol as ResolvedSymbol } from 'typescript/unstable/sync';
 
 const ROOT = process.cwd();
 const SRC = join(ROOT, 'src');
@@ -390,6 +391,250 @@ function collectReferences(
 
   file.forEachChild(walk);
   return { namespaceReads, bareIdentifiers };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SPEC-009 CA-1 — free identifiers, and it is THE COMPILER who says what binds.
+//
+// `bareIdentifiers` collects every identifier used as a reference — locals,
+// imports and globals alike — which is what CA-2.4 could afford while its
+// criterion was a list of nine forbidden names. A whitelist of GLOBALS needs
+// the opposite cut: only the identifiers the file does NOT bind. Writing our
+// own scope analysis would be a list of declaration forms — the exact family
+// of defect ADR-016 §5 bis names — so the question goes to the checker: the
+// symbol a reference resolves to, and where that symbol's declarations live.
+//
+// A reference is FREE when any of these holds, and each one fails closed:
+//
+//   - the checker resolves NO symbol for it (nothing we can prove binds it);
+//   - the symbol has no declarations at all (`globalThis` is like that);
+//   - none of its declarations lives in the file itself (a global of the
+//     platform, or something leaking across files);
+//   - its in-file declarations are all AMBIENT — `declare const fetch`,
+//     `declare global { var sneak }`, or anything in a `.d.ts` — because an
+//     ambient declaration emits NO binding: at runtime that reference resolves
+//     to the host's global, and a reader that believed the declaration would
+//     hand the capability over. Describing a capability is not creating it.
+//
+// TYPE POSITIONS ARE EXEMPT, for the same reason `import type` is exempt in
+// CA-2.3: the emitted JavaScript contains nothing for them
+// (`verbatimModuleSyntax`, type erasure), so they cross no capability, and
+// asking a `Promise<void>` annotation for a surface would be a toll. What is a
+// type position comes off the tree — the compiler's own `FirstTypeNode..
+// LastTypeNode` range, type parameters, and the erased halves of a heritage
+// clause (`implements`, and `extends` of an interface; `extends` of a CLASS is
+// a value use and is judged).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** One use of an identifier the file does not bind. What CA-1 judges. */
+export interface FreeReference {
+  /** The identifier, as the compiler reads it — Unicode escapes resolved. */
+  readonly name: string;
+  /**
+   * `member` — `name.x`, and `x` must be in the entry's declared surface.
+   * `computed` — `name[…]`, which no enumeration can read.
+   * `value` — the identifier itself used as a value: called, constructed,
+   * passed, spread. Conceded only when the entry says so.
+   */
+  readonly use: 'member' | 'computed' | 'value';
+  readonly member: string | null;
+}
+
+interface FreeCandidate {
+  readonly node: Node;
+  readonly reference: FreeReference;
+  readonly shorthand: Node | null;
+}
+
+/** `parent.label === node`: a control-flow label is syntax, not a reference. */
+function isLabel(node: Node): boolean {
+  const parent = node.parent as unknown as { label?: { index: number } } | undefined;
+  if (parent === undefined) return false;
+  return parent.label?.index === (node as unknown as { index: number }).index;
+}
+
+/** A lowercase JSX tag compiles to a string literal, not to a reference. */
+function isIntrinsicJsxTag(node: Node): boolean {
+  const parent = node.parent;
+  if (parent === undefined) return false;
+  const kind = parent.kind;
+  if (
+    kind !== SyntaxKind.JsxOpeningElement &&
+    kind !== SyntaxKind.JsxSelfClosingElement &&
+    kind !== SyntaxKind.JsxClosingElement
+  ) {
+    return false;
+  }
+  const tag = (parent as unknown as { tagName?: { index: number } }).tagName;
+  if (tag?.index !== (node as unknown as { index: number }).index) return false;
+  const text = (node as unknown as { text: string }).text;
+  return text.length > 0 && text[0] === text[0]!.toLowerCase();
+}
+
+/** Erased at emit: type nodes, type parameters, the type half of a heritage. */
+function inTypePosition(node: Node): boolean {
+  for (let current = node.parent; current !== undefined; current = current.parent) {
+    if (current.kind >= SyntaxKind.FirstTypeNode && current.kind <= SyntaxKind.LastTypeNode) {
+      return true;
+    }
+    if (current.kind === SyntaxKind.TypeParameter) return true;
+    if (current.kind === SyntaxKind.HeritageClause) {
+      const clause = current as unknown as { token: number; parent?: { kind: number } };
+      if (clause.token === SyntaxKind.ImplementsKeyword) return true;
+      return clause.parent?.kind === SyntaxKind.InterfaceDeclaration;
+    }
+  }
+  return false;
+}
+
+function candidateOf(node: Node): FreeCandidate {
+  const parent = node.parent;
+  const index = (node as unknown as { index: number }).index;
+  const name = (node as unknown as { text: string }).text;
+
+  if (parent !== undefined && parent.kind === SyntaxKind.ShorthandPropertyAssignment) {
+    // `{ fetch }` — the name is a declaration AND a reference to the value.
+    return { node, reference: { name, use: 'value', member: null }, shorthand: parent };
+  }
+  if (
+    parent !== undefined &&
+    isPropertyAccessExpression(parent) &&
+    (parent.expression as unknown as { index: number }).index === index
+  ) {
+    return {
+      node,
+      reference: {
+        name,
+        use: 'member',
+        member: (parent.name as unknown as { text: string }).text,
+      },
+      shorthand: null,
+    };
+  }
+  if (
+    parent !== undefined &&
+    isElementAccessExpression(parent) &&
+    (parent.expression as unknown as { index: number }).index === index
+  ) {
+    return { node, reference: { name, use: 'computed', member: null }, shorthand: null };
+  }
+  return { node, reference: { name, use: 'value', member: null }, shorthand: null };
+}
+
+function collectFreeCandidates(file: SourceFile): FreeCandidate[] {
+  const candidates: FreeCandidate[] = [];
+
+  const walk = (node: Node): void => {
+    if (isIdentifier(node)) {
+      const shorthand =
+        node.parent !== undefined && node.parent.kind === SyntaxKind.ShorthandPropertyAssignment;
+      if (
+        (shorthand || !isDeclarationName(node)) &&
+        !isLabel(node) &&
+        !isIntrinsicJsxTag(node) &&
+        !inTypePosition(node)
+      ) {
+        candidates.push(candidateOf(node));
+      }
+    }
+    node.forEachChild(walk);
+  };
+
+  file.forEachChild(walk);
+  return candidates;
+}
+
+/**
+ * Whether a declaration handle names something that emits NO runtime binding.
+ * Cached per declaration: the same handle backs many references.
+ */
+const ambientVerdicts = new Map<string, boolean>();
+
+function isAmbientDeclaration(handle: NodeHandle, project: Project): boolean {
+  const path = String(handle.path);
+  const key = `${path}:${handle.index}`;
+  const cached = ambientVerdicts.get(key);
+  if (cached !== undefined) return cached;
+
+  let ambient = false;
+  if (path.endsWith('.d.ts')) {
+    ambient = true;
+  } else {
+    const declaration = handle.resolve(project);
+    if (declaration === undefined) {
+      // Cannot even look at it: nothing proves it binds. FAIL CLOSED.
+      ambient = true;
+    } else {
+      for (let current: Node | undefined = declaration; current !== undefined; current = current.parent) {
+        const modifiers = (current as unknown as { modifiers?: readonly { kind: number }[] })
+          .modifiers;
+        if (modifiers?.some((modifier) => modifier.kind === SyntaxKind.DeclareKeyword) === true) {
+          ambient = true;
+          break;
+        }
+      }
+    }
+  }
+
+  ambientVerdicts.set(key, ambient);
+  return ambient;
+}
+
+const freeReadings = new Map<string, readonly FreeReference[]>();
+
+/**
+ * Every identifier `path` uses as a FREE reference, in value position, judged
+ * by the compiler's own symbol resolution. THE SAME ONE READER: same compiler,
+ * same tree, same overlay as `readModule`.
+ *
+ * A file the compiler cannot parse returns nothing here — its red is
+ * `readModule(path).unparseable`, which every caller checks first.
+ */
+export function freeReferences(path: string): readonly FreeReference[] {
+  const absolute = resolve(ROOT, path);
+  const key = `${overlayVersion}:${absolute}`;
+  const cached = freeReadings.get(key);
+  if (cached !== undefined) return cached;
+
+  const project = currentSnapshot().getDefaultProjectForFile(absolute);
+  const file = project?.program.getSourceFile(absolute);
+  if (project === undefined || file === undefined) {
+    freeReadings.set(key, []);
+    return [];
+  }
+
+  const candidates = collectFreeCandidates(file);
+  const plain = candidates.filter((candidate) => candidate.shorthand === null);
+  const symbols = new Map<Node, ResolvedSymbol | undefined>();
+  const resolved = project.checker.getSymbolAtLocation(plain.map((candidate) => candidate.node));
+  plain.forEach((candidate, position) => symbols.set(candidate.node, resolved[position]));
+  for (const candidate of candidates) {
+    if (candidate.shorthand !== null) {
+      // `getSymbolAtLocation` on a shorthand name answers for the PROPERTY,
+      // which is declared right there; the VALUE it reads is another symbol.
+      symbols.set(
+        candidate.node,
+        project.checker.getShorthandAssignmentValueSymbol(candidate.shorthand),
+      );
+    }
+  }
+
+  const lowerAbsolute = absolute.toLowerCase();
+  const free: FreeReference[] = [];
+  for (const candidate of candidates) {
+    const symbol = symbols.get(candidate.node);
+    if (symbol !== undefined) {
+      const inFile = symbol.declarations.filter(
+        (declaration) => String(declaration.path).toLowerCase() === lowerAbsolute,
+      );
+      const binds = inFile.some((declaration) => !isAmbientDeclaration(declaration, project));
+      if (binds) continue;
+    }
+    free.push(candidate.reference);
+  }
+
+  freeReadings.set(key, free);
+  return free;
 }
 
 const readings = new Map<string, ModuleReading>();

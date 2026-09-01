@@ -40,6 +40,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import {
+  freeReferences,
   readModule,
   registerSyntheticSource,
   resolveModule,
@@ -678,42 +679,236 @@ export async function importOffences(
 }
 
 /**
- * CA-2.4 — the ways of reaching a capability WITHOUT an import.
+ * SPEC-009 CA-1 — the capability of the HOST is conceded, never forbidden.
  *
- * Without an import, ECMAScript gives exactly three: the global object, a bare
- * global identifier, and `eval`/`Function`. CA-2.3 closes the import; this
- * closes the other three. It is a set closed by the language, not by us —
- * which is the whole difference with the mechanism this replaced.
+ * This replaces `CAPABILITY_NAMES`, and the reason is measured, not taste.
+ * CA-2.4 of SPEC-008 claimed that without an import «ECMAScript gives exactly
+ * three ways of reaching a capability» and that the set was «closed by the
+ * language, not by us». Both halves were false: the mechanism was NINE
+ * FORBIDDEN NAMES — a blacklist living inside the criterion written to abolish
+ * blacklists (ADR-016 §3.5) — and the set was open: `process` is a global of
+ * the host, not of ECMAScript, and `process.getBuiltinModule(id)` has been
+ * stable API since Node 22, handing back any internal module WITH NO IMPORT
+ * AT ALL. Eleven lines sent a real request with no `User-Agent`, no
+ * `robots.txt` and no turn, with the three gates green (F-SPEC-008-V34).
+ * Patching that by adding `process` to the list would have been the defect
+ * returning: a blacklist grows one name after every evasion, and it has no
+ * last entry.
  *
- * `require` is here too: it is CommonJS's import, and it is not a literal the
- * import scan can see.
+ * So the mechanism turned around, exactly as `ALLOWED_PACKAGES` did: a file
+ * may use, as a FREE reference — one the compiler says the file itself does
+ * not bind —, only an identifier DECLARED HERE, and only inside the surface
+ * the entry concedes. `process.getBuiltinModule` is red because `env`,
+ * `stdout` and `argv` are the declared surface and `getBuiltinModule` is not
+ * on it — NOBODY HAD TO KNOW IT EXISTS. The same fate awaits the next one.
  *
- * IT IS READ OFF THE SAME TREE, from the fifth round on. The text pattern this
- * replaces could not tell a bare `fetch` from an interface member called
- * `fetch` (it flagged one in `src/polite/http.ts` that is a declaration, not a
- * use), it needed comments stripped first because half of this repository's
- * prose quotes the very lines it hunted, and A NAME WRITTEN WITH UNICODE
- * ESCAPES —`globalThis`— WAS THE SAME IDENTIFIER FOR THE COMPILER AND A
- * DIFFERENT ONE FOR THE PATTERN. The tree has none of those three problems.
+ * Who says what is free is the checker, not us (`freeReferences`, the one
+ * reader): a reference is bound only by a declaration that EMITS a binding.
+ * `declare const fetch` binds nothing at runtime — the emitted JavaScript
+ * reaches the host's global — so ambient declarations do not count, and
+ * neither does a `.d.ts`. Type positions are exempt for the same reason
+ * `import type` is: erasure leaves nothing behind them.
+ *
+ * The list is closed by something that exists outside this test — the global
+ * surface the platform publishes — and it grows like every other list here:
+ * one entry, its motive, in a diff a reviewer reads. Two axes per entry: may
+ * the identifier itself be TAKEN AS A VALUE (called, constructed, passed —
+ * from there every member is reachable off-file), and which MEMBERS may be
+ * read off it. What still needs a human signature is declaring an entry whose
+ * job is to ask a third party for bytes — which is why `globalThis` and
+ * `fetch` are not here, and why the single `globalThis.fetch` of the door
+ * (`src/polite/http.ts`, ADR-014 §4) stays AN OFFENCE that case 9 pins to
+ * exactly one place instead of an entry that would concede it everywhere.
  */
-const CAPABILITY_NAMES: readonly (readonly [string, string])[] = [
-  ['globalThis', 'globalThis'],
-  ['fetch', 'bare `fetch`'],
-  ['XMLHttpRequest', 'XMLHttpRequest'],
-  ['WebSocket', 'WebSocket'],
-  ['EventSource', 'EventSource'],
-  ['navigator', 'navigator'],
-  ['eval', 'eval'],
-  // The constructor is the capability however it is spelled, so a bare
-  // reference counts and not only `new Function(…)`.
-  ['Function', 'new Function'],
-  ['require', 'require'],
+export interface GlobalEntry {
+  /** The identifier, exactly as the compiler resolves it. */
+  readonly identifier: string;
+  /**
+   * Whether the bare identifier may be used AS A VALUE — called, constructed,
+   * passed on. `false` concedes only the declared members.
+   */
+  readonly asValue: boolean;
+  /** The members that may be read off it. Nothing else, `[]` is legitimate. */
+  readonly surface: readonly string[];
+  /** Why this repository takes this from the host. Obligatory, every entry. */
+  readonly motive: string;
+}
+
+export const ALLOWED_GLOBALS: readonly GlobalEntry[] = [
+  {
+    identifier: 'Buffer',
+    asValue: false,
+    surface: ['from'],
+    motive:
+      "Node's byte buffer. `src/raw/` decodes stored bodies and hashes them (`Buffer.from`); the constructor itself is not taken.",
+  },
+  {
+    identifier: 'Date',
+    asValue: true,
+    surface: ['parse'],
+    motive:
+      'Instants CROSS the system as ISO 8601 UTC strings, never as `Date` (ADR-006); parsing and formatting at the edge is what `Date.parse` and a locally-scoped `new Date` are for (`src/polite/clock.ts`, `src/mirror/instants.ts`).',
+  },
+  {
+    identifier: 'Error',
+    asValue: true,
+    surface: [],
+    motive: 'Throwing and subclassing errors. Every `throw new Error(…)` of `src/` is this entry.',
+  },
+  {
+    identifier: 'JSON',
+    asValue: false,
+    surface: ['parse', 'stringify'],
+    motive:
+      'The serialization boundary: raw-store metadata, CLI configs and reports are JSON on disk, and the model crosses to the client by JSON (ADR-006).',
+  },
+  {
+    identifier: 'Map',
+    asValue: true,
+    surface: [],
+    motive: 'Keyed collections all over `src/`: registries, rate-limit turns, analysis pairing.',
+  },
+  {
+    identifier: 'Math',
+    asValue: false,
+    surface: ['ceil'],
+    motive: 'Arithmetic on windows and turns (`src/mirror/window.ts`). No randomness is taken.',
+  },
+  {
+    identifier: 'Number',
+    asValue: true,
+    surface: ['isFinite', 'isNaN'],
+    motive: 'Parsing counted things — scores, ports, tick numbers — and validating them.',
+  },
+  {
+    identifier: 'Object',
+    asValue: false,
+    surface: ['entries'],
+    motive: 'Iterating declared records, e.g. the robots files of a capture config.',
+  },
+  {
+    identifier: 'Promise',
+    asValue: true,
+    surface: ['resolve'],
+    motive: 'The async runtime this codebase is written on. Constructed for sleeps and adapters.',
+  },
+  {
+    identifier: 'RegExp',
+    asValue: true,
+    surface: [],
+    motive: 'Building anchored patterns from literals (`src/polite/robots.ts` compiles rules).',
+  },
+  {
+    identifier: 'Response',
+    asValue: true,
+    surface: [],
+    motive:
+      "The App Router's route contract: `src/app/robots.txt/route.ts` answers with a `Response`. RECEIVING one is not this entry; only building our own.",
+  },
+  {
+    identifier: 'Set',
+    asValue: true,
+    surface: [],
+    motive: 'Deduplication: seen files, seen URLs, seen competition ids.',
+  },
+  {
+    identifier: 'String',
+    asValue: true,
+    surface: ['raw'],
+    motive: 'Coercion of unknowns for messages, and `String.raw` in SQL-adjacent templates.',
+  },
+  {
+    identifier: 'TextDecoder',
+    asValue: true,
+    surface: [],
+    motive: 'Decoding stored raw bytes back into text for analysis (RN-10: bytes first).',
+  },
+  {
+    identifier: 'URL',
+    asValue: true,
+    surface: [],
+    motive: 'Parsing and resolving the URLs of targets and of `robots.txt` origins (RN-11).',
+  },
+  {
+    identifier: 'Uint8Array',
+    asValue: true,
+    surface: [],
+    motive: 'The byte contract of the raw store: `RawStore.put` takes bytes, not text (RN-10).',
+  },
+  {
+    identifier: 'console',
+    asValue: false,
+    surface: ['log'],
+    motive:
+      'The CLIs of `src/mirror/cli/` report to the operator on stdout. Nothing else of the console is taken.',
+  },
+  {
+    identifier: 'process',
+    asValue: false,
+    surface: ['argv', 'env', 'stdout'],
+    motive:
+      'The host process, at the NARROWEST surface that runs the CLIs: arguments in, environment read, progress out. `getBuiltinModule` is deliberately NOT here — it hands back any internal module with no import (F-SPEC-008-V34) — and it stays out by not being written, not by being named.',
+  },
+  {
+    identifier: 'setTimeout',
+    asValue: true,
+    surface: [],
+    motive: 'The sleep of the rate limiter (RN-11: waiting is the mechanism).',
+  },
+  {
+    identifier: 'undefined',
+    asValue: true,
+    surface: [],
+    motive: "ECMAScript's absent value. It concedes nothing, and the scan uses it everywhere.",
+  },
 ];
 
-export function capabilityOffences(file: ScannedFile): readonly string[] {
+/** The entry a free identifier names, or `null` when it is not declared. */
+export function globalEntry(
+  identifier: string,
+  allowed: readonly GlobalEntry[] = ALLOWED_GLOBALS,
+): GlobalEntry | null {
+  return allowed.find((entry) => entry.identifier === identifier) ?? null;
+}
+
+/**
+ * SPEC-009 CA-1 — every free reference of the file is judged against the
+ * declared list, and against NOTHING else. What is not declared is red,
+ * naming the file and the identifier; a member outside the declared surface is
+ * red naming the member; a computed access on a free identifier is red by
+ * construction, like everything an enumeration cannot read.
+ */
+export function capabilityOffences(
+  file: ScannedFile,
+  allowed: readonly GlobalEntry[] = ALLOWED_GLOBALS,
+): readonly string[] {
   if (file.reading.unparseable) return [`${file.path}: the compiler cannot parse this file`];
 
-  return CAPABILITY_NAMES.filter(([name]) => file.reading.bareIdentifiers.has(name)).map(
-    ([, label]) => `${file.path}: ${label}`,
-  );
+  const offences = new Set<string>();
+  for (const reference of freeReferences(file.path)) {
+    const entry = globalEntry(reference.name, allowed);
+    if (entry === null) {
+      offences.add(`${file.path}: \`${reference.name}\` is not a declared global identifier`);
+      continue;
+    }
+    if (reference.use === 'computed') {
+      offences.add(`${file.path}: computed access on the global \`${reference.name}\``);
+      continue;
+    }
+    if (reference.use === 'value') {
+      if (!entry.asValue) {
+        offences.add(
+          `${file.path}: the global \`${reference.name}\` is not conceded as a bare value`,
+        );
+      }
+      continue;
+    }
+    if (reference.member !== null && !entry.surface.includes(reference.member)) {
+      offences.add(
+        `${file.path}: the global \`${reference.name}\` does not declare \`${reference.member}\` in its surface`,
+      );
+    }
+  }
+
+  return [...offences];
 }
