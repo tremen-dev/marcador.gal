@@ -28,7 +28,7 @@
  * La mitad en EJECUCIÓN —CA-2.1 y CA-2.2— vive en `containment.test.ts`, que
  * instala las trampas antes de importar nada de `src/`.
  */
-import { existsSync, mkdirSync, rmSync, rmdirSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, rmSync, rmdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { describe, expect, test } from 'vitest';
 import { freeReferences, readModule, reachableModules } from '../mirror/support/imports';
@@ -52,6 +52,7 @@ import {
   syntheticFile,
   underScanRoots,
   versionedSources,
+  walkRefusals,
 } from './support/capability';
 import type { GlobalEntry } from './support/capability';
 
@@ -179,6 +180,60 @@ describe('CA-2.6 — el escaneo cubre todo el código, no solo `src/`', () => {
 
     expect(existsSync(path)).toBe(false);
     expect(repositorySources().filter((entry) => !underScanRoots(entry))).not.toContain(path);
+  });
+
+  test('2l. un symlink NO queda fuera en silencio: el paseo lo REFUSA, nombrándose (F-SPEC-009-V1)', () => {
+    // F-SPEC-009-V1, la duodécima evasión en su primera forma. Un dirent de
+    // symlink no es `isFile()` ni `isDirectory()`, y el paseo lo saltaba EN
+    // SILENCIO — sin raíz, sin exclusión y sin motivo: un accidente de
+    // `readdirSync(withFileTypes)`, «una regla escrita para otra cosa» ni
+    // siquiera. Medido dos veces (2026-09-02): un `robots/evil-link.ts` en la
+    // raíz y un `src/ingest/robots/evil.ts` BAJO UNA RAÍZ, importado desde
+    // `adapter.ts`, dejaron `lint exit=0` y `npm test` 800/800 con
+    // `cheerio.fromURL` dentro y sin que NADIE juzgara el fichero. Hoy el paseo
+    // decide de forma DECLARADA: refusa el symlink, nombrándose, y la única
+    // salida es una exclusión declarada con su motivo.
+    const SYMLINK = 'a symbolic link, which the walk refuses by construction (F-SPEC-009-V1)';
+
+    // Hoy el árbol está limpio: nada que el paseo no sepa clasificar.
+    expect(walkRefusals()).toEqual([]);
+
+    // Control positivo, con nombre propio (el verificador repite S1/S2 con
+    // `evil-link.ts`/`evil.ts`, y este caso no los pisa): las dos formas
+    // medidas. `existsSync` SIGUE el enlace y mentiría sobre uno colgante, así
+    // que se pregunta con `lstatSync`.
+    const filePath = 'robots/refusal-control.ts';
+    const treePath = 'src/ingest/refusal-control-tree';
+    const present = (path: string): boolean => {
+      try {
+        lstatSync(path);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    expect(present(filePath), `${filePath} ya existe: este caso no lo pisa`).toBe(false);
+    expect(present(treePath), `${treePath} ya existe: este caso no lo pisa`).toBe(false);
+    try {
+      // Colgantes a propósito: refusar no es seguir, y el destino da igual —
+      // también da igual para el paseo, que no hace `stat` de lo que refusa.
+      symlinkSync('outside-the-repository.ts', filePath);
+      symlinkSync('outside-the-repository-tree', treePath);
+
+      const refusals = walkRefusals();
+      expect(refusals).toContain(`${filePath}: ${SYMLINK}`);
+      expect(refusals).toContain(`${treePath}: ${SYMLINK}`);
+
+      // Y refusar NO es leer: ninguno entra en la lista de ficheros de nadie.
+      expect(repositorySources()).not.toContain(filePath);
+      expect(scannedSources()).not.toContain(treePath);
+    } finally {
+      rmSync(filePath, { force: true });
+      rmSync(treePath, { force: true });
+    }
+    expect(present(filePath)).toBe(false);
+    expect(present(treePath)).toBe(false);
+    expect(walkRefusals()).toEqual([]);
   });
 
   test('2c. la lista de lo que se LEE no la decide `git`: es la más ancha de las dos', () => {

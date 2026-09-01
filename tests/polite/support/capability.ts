@@ -424,27 +424,67 @@ function excluded(
  * extension under a root IS RED. Stopping being red is deleting it or
  * declaring an exclusion with its motive.
  */
+/**
+ * What one walk of the tree found: the code files it read, and the entries it
+ * REFUSED to classify. Every dirent lands in exactly one fate — file judged,
+ * directory walked, excluded by a declared entry, or refused naming itself —
+ * because the silent fourth fate is measured (F-SPEC-009-V1, below).
+ */
+interface TreeWalk {
+  readonly files: string[];
+  readonly refusals: string[];
+}
+
 function walkTree(
   directory: string,
-  files: string[],
+  found: TreeWalk,
   extensions: readonly ScanExtension[],
   exclusions: readonly ScanExclusion[],
+  base: string,
 ): void {
   let entries;
   try {
-    entries = readdirSync(join(ROOT, directory), { withFileTypes: true });
+    entries = readdirSync(join(base, directory), { withFileTypes: true });
   } catch {
     return;
   }
   for (const entry of entries) {
     const path = directory === '' ? entry.name : `${directory}/${entry.name}`;
-    if (entry.isDirectory()) {
-      if (!excluded(`${path}/`, exclusions)) walkTree(path, files, extensions, exclusions);
+    // A SYMLINK IS NEITHER OF THE TWO SHAPES THE WALK CAN JUDGE, AND UNTIL THE
+    // SECOND ROUND OF SPEC-009 IT FELL THROUGH IN SILENCE: not a file, not a
+    // directory, not behind any root or declared exclusion — an accident of
+    // `readdirSync(withFileTypes)`, not even «a rule written for something
+    // else». Measured twice with the three gates green (F-SPEC-009-V1): a
+    // `robots/evil-link.ts` at the root and a `src/ingest/robots/evil.ts`
+    // UNDER A SCAN ROOT, imported from `adapter.ts`, both pointing at a file
+    // with `cheerio.fromURL` that nobody judged — and with a DIRECTORY
+    // symlink the hole is a whole tree. The walk does not follow links —
+    // following would audit files outside the repository under a path inside
+    // it — so it REFUSES them by construction, naming themselves. Leaving the
+    // scan takes a declared exclusion with its motive, like everything else.
+    if (entry.isSymbolicLink()) {
+      if (!excluded(path, exclusions) && !excluded(`${path}/`, exclusions)) {
+        found.refusals.push(
+          `${path}: a symbolic link, which the walk refuses by construction (F-SPEC-009-V1)`,
+        );
+      }
       continue;
     }
-    if (!entry.isFile()) continue;
+    if (entry.isDirectory()) {
+      if (!excluded(`${path}/`, exclusions)) walkTree(path, found, extensions, exclusions, base);
+      continue;
+    }
+    // The same fate for anything else the platform can put in a directory — a
+    // FIFO, a socket, a device: what the walk cannot classify is red, never
+    // silent (ADR-016 §5 bis, the same obligation the reader carries).
+    if (!entry.isFile()) {
+      if (!excluded(path, exclusions)) {
+        found.refusals.push(`${path}: neither a file nor a directory, which the walk refuses by construction`);
+      }
+      continue;
+    }
     if (excluded(path, exclusions)) continue;
-    if (isCodeFile(path, extensions)) files.push(path);
+    if (isCodeFile(path, extensions)) found.files.push(path);
   }
 }
 
@@ -452,21 +492,21 @@ export function scannedSources(
   extensions: readonly ScanExtension[] = SCAN_EXTENSIONS,
   exclusions: readonly ScanExclusion[] = SCAN_EXCLUSIONS,
 ): readonly string[] {
-  const files: string[] = [];
+  const found: TreeWalk = { files: [], refusals: [] };
 
   for (const root of SCAN_ROOTS) {
     if (root.endsWith('/')) {
-      walkTree(root.slice(0, -1), files, extensions, exclusions);
+      walkTree(root.slice(0, -1), found, extensions, exclusions, ROOT);
     } else if (
       !excluded(root, exclusions) &&
       isCodeFile(root, extensions) &&
       existsSync(join(ROOT, root))
     ) {
-      files.push(root);
+      found.files.push(root);
     }
   }
 
-  return files.sort();
+  return found.files.sort();
 }
 
 /**
@@ -496,9 +536,41 @@ export function repositorySources(
   extensions: readonly ScanExtension[] = SCAN_EXTENSIONS,
   exclusions: readonly ScanExclusion[] = SCAN_EXCLUSIONS,
 ): readonly string[] {
-  const files: string[] = [];
-  walkTree('', files, extensions, exclusions);
-  return files.sort();
+  const found: TreeWalk = { files: [], refusals: [] };
+  walkTree('', found, extensions, exclusions, ROOT);
+  return found.files.sort();
+}
+
+/**
+ * SPEC-009 CA-2 — WHAT THE WALK REFUSES TO CLASSIFY, over the whole tree.
+ *
+ * The dirents the ONE walk cannot judge: symlinks first of all, and anything
+ * else that is neither a file nor a directory. Until the second round they
+ * fell through in silence — «being outside the scan» was an accident of
+ * `readdirSync(withFileTypes)` and not a declared decision, which is the exact
+ * defect CA-2 exists to close, one mechanism further in than F-SPEC-008-V35.
+ * Measured (F-SPEC-009-V1, 2026-09-02): a symlink of code was invisible to
+ * `scannedSources`, `versionedSources` and `repositorySources` AT ONCE, under
+ * a root and outside them, with the three gates green.
+ *
+ * A refusal is red by construction, naming the path: case 2l keeps this list
+ * EMPTY on the real tree, and the only way out is a declared exclusion with
+ * its motive. The walk never follows a link — resolving one would audit a file
+ * outside the repository under a path inside it, and a directory link would
+ * graft a whole foreign tree.
+ *
+ * `base` exists for the battery (E12a): the reproduction runs the SAME walk
+ * and the SAME declared lists over a synthetic tree outside the repository,
+ * because a real symlink written by a test would race this very guardian.
+ */
+export function walkRefusals(
+  extensions: readonly ScanExtension[] = SCAN_EXTENSIONS,
+  exclusions: readonly ScanExclusion[] = SCAN_EXCLUSIONS,
+  base: string = ROOT,
+): readonly string[] {
+  const found: TreeWalk = { files: [], refusals: [] };
+  walkTree('', found, extensions, exclusions, base);
+  return found.refusals.sort();
 }
 
 /**

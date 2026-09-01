@@ -35,7 +35,10 @@
  * de SPEC-008 (su ledger: cinco verificaciones, cuatro enmiendas) sigue
  * siendo ejecutable sin leerse entero.
  */
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import {
   USER_AGENT,
@@ -46,12 +49,15 @@ import {
 import { readModule } from '../mirror/support/imports';
 import { stripComments } from '../support/source-tree';
 import {
+  SCAN_EXCLUSIONS,
+  SCAN_EXTENSIONS,
   capabilityOffences,
   extensionPathspec,
   importOffences,
   isCodeFile,
   scannedSources,
   syntheticFile,
+  walkRefusals,
 } from './support/capability';
 import type { ScannedFile } from './support/capability';
 
@@ -262,6 +268,54 @@ describe('CA-3 — las que hoy mueren, siguen muriendo, y se comprueba ejecutand
     expect(capabilityOffences(evasion)).toEqual([
       'src/ingest/evasion11.ts: the global `process` does not declare `getBuiltinModule` in its surface',
     ]);
+  });
+
+  test('E12a — un SYMLINK de código era invisible a las TRES listas a la vez (F-SPEC-009-V1)', () => {
+    // Duodécima evasión, primera forma (primera verificación de SPEC-009,
+    // 2026-09-02). Un dirent de symlink no es `isFile()` ni `isDirectory()`, y
+    // el paseo viejo lo saltaba EN SILENCIO: sin raíz, sin exclusión y sin
+    // motivo. Medido dos veces con los tres gates en verde: (S1)
+    // `robots/evil-link.ts` en la raíz, escondido además por `.gitignore:17` —
+    // `tests/polite` 114/114—; (S2) `src/ingest/robots/evil.ts` BAJO UNA RAÍZ
+    // del escaneo, importado desde `src/ingest/adapter.ts` — `lint exit=0`,
+    // `npm test` 800/800—. Y con un symlink de DIRECTORIO el agujero es un
+    // árbol entero. Hoy el paseo DECIDE: un symlink es rojo por construcción,
+    // nombrándose (`walkRefusals`), y la única salida es una exclusión
+    // declarada con su motivo — que es literalmente lo que CA-2 pide.
+    //
+    // La reproducción vive sobre un árbol sintético FUERA del repositorio por
+    // lo mismo que E10 no escribe en disco: un symlink real aquí correría en
+    // paralelo con el control 2l de `architecture.test.ts` y lo pondría rojo
+    // por el motivo equivocado. El paseo y las listas declaradas son los
+    // REALES; solo la raíz del árbol es del caso.
+    const SYMLINK = 'a symbolic link, which the walk refuses by construction (F-SPEC-009-V1)';
+    const base = mkdtempSync(join(tmpdir(), 'spec009-e12a-'));
+    try {
+      const outside = join(base, 'outside-evil.ts');
+      writeFileSync(outside, "import { fromURL } from 'cheerio';\nexport const ask = fromURL;\n", 'utf8');
+
+      const tree = join(base, 'tree');
+      mkdirSync(join(tree, 'robots'), { recursive: true });
+      mkdirSync(join(tree, 'src', 'ingest', 'robots'), { recursive: true });
+      mkdirSync(join(tree, 'node_modules'), { recursive: true });
+      symlinkSync(outside, join(tree, 'robots', 'evil-link.ts')); // S1: la raíz
+      symlinkSync(outside, join(tree, 'src', 'ingest', 'robots', 'evil.ts')); // S2: bajo una raíz
+      symlinkSync(base, join(tree, 'src', 'vendor')); // de DIRECTORIO: un árbol entero
+
+      // Y las dos formas de quedar fuera POR DECISIÓN DECLARADA: dentro de una
+      // exclusión el paseo no entra, y un symlink EN una ruta excluida tampoco
+      // se refusa — la exclusión con su motivo es la decisión.
+      symlinkSync(outside, join(tree, 'node_modules', 'hidden.ts'));
+      symlinkSync(base, join(tree, 'raw'));
+
+      expect(walkRefusals(SCAN_EXTENSIONS, SCAN_EXCLUSIONS, tree)).toEqual([
+        `robots/evil-link.ts: ${SYMLINK}`,
+        `src/ingest/robots/evil.ts: ${SYMLINK}`,
+        `src/vendor: ${SYMLINK}`,
+      ]);
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
   });
 });
 
