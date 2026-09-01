@@ -92,8 +92,17 @@ puede medir sin referencia oficial.
 **Dentro:**
 - **Cron de planificación y calendario**, cargado a mano, con refresco cada 6 h.
   Vercel Cron a 1/minuto, que coincide con el techo de RN-11 (ADR-004).
-- **Adaptadores** de las fuentes capturables (ADR-008): ceroacero.es y
-  besoccer.es. El de futgal.es entra **el día que sea capturable**, y no antes.
+- **Adaptadores** de las fuentes capturables (ADR-008): hoy **solo
+  `ceroacero.es`**. El de `futgal.es` entra **el día que sea capturable**, y no
+  antes.
+
+  **`besoccer.es` sale de aquí el 2026-09-01**, y sale por coherencia con lo que
+  esta misma épica ya dice más arriba: sirve armazones vacíos y su dato vive
+  tras un `Disallow: /ajax*`. Mientras nuestro parser de `robots.txt` trataba el
+  `*` como carácter literal (F-SPEC-002-23), esa puerta **parecía** abierta;
+  CA-1 de SPEC-008 la cierra de verdad, así que un adaptador de besoccer sería
+  hoy o inútil o un incumplimiento de RN-11. No es un recorte de ambición: es
+  retirar algo que estaba prometido y no se puede hacer.
 - **Bot de Telegram** con parseo LLM y confirmación humana (ADR-002, RN-09).
 - **Catálogo de alias** de los 36 equipos, confirmado por una persona (RN-09).
 - **Motor de decisiones** con RN-01..RN-07 y tests de replay sobre HTML guardado.
@@ -121,11 +130,21 @@ puede medir sin referencia oficial.
 
 <!-- El estado por spec vive en el frontmatter de cada spec; el tablero agregado se regenera con /sdd-tablero (docs/tablero.md). No mantengas listas de specs a mano aquí. -->
 
-Sin specs todavía. Descomposición **orientativa**, a decidir y redactar por
-`/sdd-arquitecto`: cron de planificación y calendario · adaptador ceroacero ·
-adaptador besoccer · bot de Telegram · catálogo de alias · motor de decisiones ·
-snapshot + página mínima por polling · panel de alertas · instrumentación de las
-cuatro métricas.
+**Su primera spec ya existe: SPEC-008** —adaptador de `ceroacero.es` y cortesía
+RN-11 con una sola implementación—, en `borrador` y esperando firma humana,
+junto con **ADR-014**. El estado fino vive en el tablero, no aquí.
+
+Descomposición **orientativa** del resto, propuesta por `/sdd-arquitecto` el
+2026-09-01 y no vinculante: calendario y repositorios de `Observation`/`Decision`
+· catálogo de alias · cron de ingesta · motor de decisiones · bot de Telegram ·
+panel del operador · snapshot y página mínima por polling · instrumentación de
+las cuatro cifras.
+
+**El orden importa, y no es el obvio:** el bot y el panel van **antes** que el
+snapshot y las cifras. Con una sola fuente automática son la única ruta a un
+marcador *confirmado*, y la cifra de operación manual —la del corte duro de los
+30 min, que decide si esto pide comunidad de corresponsales en vez de producto—
+no se puede medir sin ellos.
 
 **El modelo canónico, el raw store y el acceso a datos ya existen** (SPEC-001,
 `hecho`), y el instrumento de captura de `src/mirror/` ya resolvió cosas que esta
