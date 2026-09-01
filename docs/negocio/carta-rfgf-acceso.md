@@ -81,6 +81,18 @@ ola@tremen.dev
 
 ---
 
+## A quién se manda
+
+**`info@futgal.es`** — RFGF, C/ Juan de Ciorraga 3 bajo, 15008 A Coruña, tel. 981 900 600.
+Localizado el 2026-09-01 **por buscador, no entrando en `futgal.es`**: su `robots.txt`
+nos lo prohíbe y RN-11 obliga a respetarlo, que es justamente lo que esta carta pide
+cambiar. Conviene que quien la mande lo confirme antes de enviar.
+
+**Es un buzón general, y la petición es técnica.** Quien abra `info@` no es quien
+edita el `robots.txt`. Por eso el asunto importa más de lo normal: «les está
+bloqueando también en Google» es lo que hace que alguien la reenvíe a quien puede
+resolverla. Si hubiera un contacto de sistemas o de comunicación, mejor ese.
+
 ## Notas para quien lo manda
 
 - **Va en galego a propósito.** Es la lengua de la federación y del proyecto
