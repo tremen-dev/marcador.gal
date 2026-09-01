@@ -91,6 +91,75 @@ export const SCAN_EXCLUSIONS: readonly ScanExclusion[] = [
   },
 ];
 
+export interface ScanExtension {
+  /** The file-name suffix, dot included, exactly as a file name ends. */
+  readonly suffix: string;
+  /** Why it is code this repository runs. Same obligation as a package entry. */
+  readonly motive: string;
+}
+
+/**
+ * CA-2.6 — WHAT COUNTS AS A FILE OF CODE, DECLARED NEXT TO THE ROOTS.
+ *
+ * THE FOURTH LIST WRITTEN INSIDE A FUNCTION, AND THE LAST ONE OF ITS FAMILY.
+ * The roots, the exclusions and the package entries were already declared; this
+ * one lived in an `endsWith('.ts') || endsWith('.tsx')` inside
+ * `scannedSources()` AND, SEPARATELY, in a `'*.ts', '*.tsx'` pathspec inside
+ * `versionedSources()`. Two lists of extensions are two chances for one of them
+ * to fall short, and that is literally what happened: neither matched `.mts`,
+ * so a `src/ingest/door.mts` with `node:child_process` was NOT READ (CA-2.3,
+ * CA-2.4) and the coverage case DID NOT MISS IT either — `lint exit=0`,
+ * `npm test` 772/772, `tests/polite` 86/86 (F-SPEC-008-V33).
+ *
+ * And unlike F-SPEC-008-V28, which needed `git add -f`, THAT FILE REACHES
+ * PRODUCTION WITH A PLAIN `git add`. One letter of a file name separated green
+ * from red.
+ *
+ * From here on there is ONE declaration and both lists derive from it: what is
+ * read (`scannedSources`) and what the coverage asks `git` for
+ * (`versionedSources`). The list is closed at every moment: A NEW EXTENSION IS
+ * A DIFF WITH ITS MOTIVE, like an entry of `ALLOWED_PACKAGES`, AND NEVER AN
+ * ARBITRATION.
+ */
+export const SCAN_EXTENSIONS: readonly ScanExtension[] = [
+  { suffix: '.ts', motive: 'The ordinary module of this project.' },
+  {
+    suffix: '.tsx',
+    motive: 'The same with JSX: the routes of src/app/ and the components of src/site/.',
+  },
+  {
+    suffix: '.mts',
+    motive:
+      "TypeScript's explicit ESM module. Node runs it and a plain `git add` commits it, which is the whole of F-SPEC-008-V33: a src/ingest/door.mts with node:child_process left the three gates green because neither of the two lists matched it.",
+  },
+  {
+    suffix: '.cts',
+    motive:
+      'The CommonJS twin of .mts, and it is declared BEFORE anybody writes one. A list that only grows after the measurement is a list that arrives late.',
+  },
+];
+
+/** True when the file name ends in one of the declared extensions. */
+export function isCodeFile(
+  path: string,
+  extensions: readonly ScanExtension[] = SCAN_EXTENSIONS,
+): boolean {
+  return extensions.some((extension) => path.endsWith(extension.suffix));
+}
+
+/**
+ * The `git` pathspec of the SAME declaration — never a second list.
+ *
+ * `versionedSources()` used to write `'*.ts', '*.tsx'` by hand here, and that
+ * is the half of F-SPEC-008-V33 that made the hole invisible to the coverage
+ * case as well as to the reader.
+ */
+export function extensionPathspec(
+  extensions: readonly ScanExtension[] = SCAN_EXTENSIONS,
+): readonly string[] {
+  return extensions.map((extension) => `*${extension.suffix}`);
+}
+
 /**
  * CA-2.3 — WHAT MAY BE IMPORTED FROM OUTSIDE THE REPOSITORY, AND WHICH NAMES.
  *
@@ -257,7 +326,11 @@ function excluded(path: string): boolean {
 }
 
 /**
- * CA-2.6 — EVERY `.ts`/`.tsx` UNDER THE DECLARED ROOTS, FROM THE FILE TREE.
+ * CA-2.6 — EVERY FILE OF CODE UNDER THE DECLARED ROOTS, FROM THE FILE TREE.
+ *
+ * WHAT COUNTS AS CODE IS `SCAN_EXTENSIONS` AND NOT AN `endsWith` WRITTEN HERE
+ * (F-SPEC-008-V33). The walk asks the declaration; it does not keep its own
+ * opinion about file names.
  *
  * Not from `git`. `git ls-files --exclude-standard` inherits `.gitignore`, and
  * a rule written to protect third-party data — everything under any `robots/`
@@ -271,7 +344,9 @@ function excluded(path: string): boolean {
  * extension under a root IS RED. Stopping being red is deleting it or
  * declaring an exclusion with its motive.
  */
-export function scannedSources(): readonly string[] {
+export function scannedSources(
+  extensions: readonly ScanExtension[] = SCAN_EXTENSIONS,
+): readonly string[] {
   const files: string[] = [];
 
   function walk(directory: string): void {
@@ -289,31 +364,47 @@ export function scannedSources(): readonly string[] {
       }
       if (!entry.isFile()) continue;
       if (excluded(path)) continue;
-      if (path.endsWith('.ts') || path.endsWith('.tsx')) files.push(path);
+      if (isCodeFile(path, extensions)) files.push(path);
     }
   }
 
   for (const root of SCAN_ROOTS) {
-    if (root.endsWith('/')) walk(root.slice(0, -1));
-    else if (!excluded(root) && existsSync(join(ROOT, root))) files.push(root);
+    if (root.endsWith('/')) {
+      walk(root.slice(0, -1));
+    } else if (!excluded(root) && isCodeFile(root, extensions) && existsSync(join(ROOT, root))) {
+      files.push(root);
+    }
   }
 
   return files.sort();
 }
 
 /**
- * Every `.ts`/`.tsx` `git` knows about outside `tests/`.
+ * Every file of code `git` knows about outside `tests/`.
  *
  * `git` KEEPS WHAT IT IS THE AUTHORITY ON: what is versioned. That is what the
  * coverage case needs — «every versioned file outside `tests/` falls under a
  * declared root» — and nothing else. WHAT GETS READ is `scannedSources()`, and
  * the two lists are different on purpose: under the roots, the read list has
  * to be the wider of the two.
+ *
+ * WHAT THEY ARE NOT ALLOWED TO DIFFER IN IS THE EXTENSIONS. The pathspec is
+ * DERIVED from the same declaration `scannedSources()` asks, because writing it
+ * by hand here is exactly how the coverage stopped missing what the reader
+ * stopped reading (F-SPEC-008-V33).
  */
-export function versionedSources(): readonly string[] {
+export function versionedSources(
+  extensions: readonly ScanExtension[] = SCAN_EXTENSIONS,
+): readonly string[] {
   return execFileSync(
     'git',
-    ['ls-files', '--cached', '--others', '--exclude-standard', '*.ts', '*.tsx'],
+    [
+      'ls-files',
+      '--cached',
+      '--others',
+      '--exclude-standard',
+      ...extensionPathspec(extensions),
+    ],
     { encoding: 'utf8' },
   )
     .split('\n')

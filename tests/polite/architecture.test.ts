@@ -15,7 +15,8 @@
  *           literal estático es rojo por construcción.
  *   CA-2.4  fuera de `src/polite/` no se toma prestada la capacidad global.
  *   CA-2.5  nada huérfano en `src/ingest/`, `src/polite/` y `src/site/`.
- *   CA-2.6  el escaneo cubre todo el `.ts`/`.tsx` versionado fuera de `tests/`.
+ *   CA-2.6  el escaneo cubre todo el código versionado fuera de `tests/`, y qué
+ *           extensiones son código va DECLARADO junto a las raíces.
  *   CA-2.7  cada mecanismo lleva su control positivo, y las tres evasiones
  *           vivas están escritas como controles.
  *
@@ -38,6 +39,7 @@ import {
   COURTESY_DIR,
   ENTRY_POINTS,
   SCAN_EXCLUSIONS,
+  SCAN_EXTENSIONS,
   SCAN_ROOTS,
   capabilityOffences,
   importOffences,
@@ -62,7 +64,7 @@ async function offendersOf(
 }
 
 describe('CA-2.6 — el escaneo cubre todo el código, no solo `src/`', () => {
-  test('1. todo `.ts`/`.tsx` versionado fuera de `tests/` cae bajo una raíz declarada', () => {
+  test('1. todo fichero de código versionado fuera de `tests/` cae bajo una raíz declarada', () => {
     const uncovered = versionedSources().filter((path) => !underScanRoots(path));
 
     // `next.config.ts` es código ejecutable y hasta hoy quedaba ENTERO fuera
@@ -149,6 +151,117 @@ describe('CA-2.6 — el escaneo cubre todo el código, no solo `src/`', () => {
     }
 
     expect(existsSync(path)).toBe(false);
+  });
+
+  test('2e. las extensiones que se leen van DECLARADAS junto a las raíces, y llevan motivo', () => {
+    // La cuarta lista escrita dentro de una función, y la que faltaba. Las
+    // raíces, las exclusiones y las entradas de paquete ya estaban declaradas;
+    // ésta vivía en un `endsWith` dentro de `scannedSources()` y en un pathspec
+    // de `git` dentro de `versionedSources()` (F-SPEC-008-V33).
+    expect(SCAN_EXTENSIONS.map((extension) => extension.suffix)).toEqual([
+      '.ts',
+      '.tsx',
+      '.mts',
+      '.cts',
+    ]);
+    for (const extension of SCAN_EXTENSIONS) {
+      expect(extension.motive, `${extension.suffix} sin motivo`).toBeTruthy();
+      // Es un sufijo de nombre de fichero, no un patrón: si algún día lleva un
+      // `*`, la lista dejó de ser una lista de extensiones.
+      expect(extension.suffix.startsWith('.')).toBe(true);
+      expect(extension.suffix).not.toContain('*');
+    }
+  });
+
+  test('2f. la cobertura pregunta por la MISMA declaración, no por una segunda', () => {
+    // Dos listas de extensiones son dos oportunidades de que una se quede
+    // corta, y es literalmente lo que pasó. Se comprueba haciéndolas mover
+    // JUNTAS: con una declaración recortada, la lista que se LEE y la lista de
+    // COBERTURA se recortan las dos. Si `versionedSources()` volviera a
+    // escribir su pathspec a mano, este caso se pone rojo.
+    const onlyTsx = [{ suffix: '.tsx', motive: 'sólo para este caso' }];
+
+    const scanned = scannedSources(onlyTsx);
+    const versioned = versionedSources(onlyTsx);
+
+    expect(scanned.length).toBeGreaterThan(0);
+    expect(versioned.length).toBeGreaterThan(0);
+    expect(scanned.filter((path) => !path.endsWith('.tsx'))).toEqual([]);
+    expect(versioned.filter((path) => !path.endsWith('.tsx'))).toEqual([]);
+
+    // Y con la declaración entera vuelven a ser las dos más anchas, así que el
+    // recorte de arriba mide algo y no es una lista vacía disfrazada.
+    expect(scannedSources().length).toBeGreaterThan(scanned.length);
+    expect(versionedSources().length).toBeGreaterThan(versioned.length);
+  });
+
+  test('2g. control positivo (F-SPEC-008-V33): un `.mts` bajo una raíz se lee, se juzga y es ROJO', async () => {
+    // Reproducción exacta de la décima evasión. `scannedSources()` filtraba con
+    // `endsWith('.ts') || endsWith('.tsx')` y `versionedSources()` le pasaba a
+    // `git` el pathspec `'*.ts', '*.tsx'`: ninguna de las dos casaba con
+    // `.mts`, así que el fichero no se leía Y la cobertura tampoco lo echaba de
+    // menos. Con `node:child_process` dentro dejaba `lint exit=0`, `npm test`
+    // 772/772 y `tests/polite` 86/86 — y, a diferencia de F-SPEC-008-V28, SE
+    // COMMITEA CON UN `git add` NORMAL: llega a producción.
+    // Nombre propio de este caso, y NO el `door.mts` de la medición, por lo
+    // mismo que 2d no usa `side.ts`: el verificador repite la mutación con ese
+    // nombre, y un caso que se niega a pisar un fichero que ya existe se
+    // pondría rojo por la guarda y no por la detección. Con nombre propio, la
+    // mutación y el control conviven y el rojo lo da el caso 3.
+    const path = 'src/ingest/extension-control.mts';
+    const twin = 'src/ingest/extension-control.ts';
+    const outside = 'extension-control-outside-the-roots.mts';
+    const source = [
+      "import { execFileSync } from 'node:child_process';",
+      '',
+      'export function preflight(url: string): string {',
+      "  return execFileSync('curl', ['-s', '-A', '', url], { encoding: 'utf8' });",
+      '}',
+    ].join('\n');
+
+    expect(existsSync(path), `${path} ya existe: este caso no lo pisa`).toBe(false);
+    expect(existsSync(outside), `${outside} ya existe: este caso no lo pisa`).toBe(false);
+    try {
+      writeFileSync(path, `${source}\n`, 'utf8');
+
+      // La mitad de la LECTURA: el escaneo lo ve, y lo juzga con el mismo
+      // mensaje que su gemelo `.ts`. Una letra en el nombre del fichero
+      // separaba verde de rojo.
+      expect(scannedSources()).toContain(path);
+      const scanned = await scanRepository();
+      const file = scanned.find((entry) => entry.path === path);
+      expect(file, 'el escaneo no leyó el `.mts`').toBeDefined();
+      const offences = await importOffences(file!);
+      expect(offences).toEqual([`${path}: node:child_process is not a declared package entry`]);
+
+      // «Rojo POR EL MISMO CASO»: el gemelo renombrado a `.ts` da la misma
+      // ofensa, del mismo detector, salvo el nombre del fichero.
+      const twinOffences = await importOffences(syntheticFile(twin, source));
+      expect(twinOffences).toEqual([`${twin}: node:child_process is not a declared package entry`]);
+      expect(offences.map((offence) => offence.replace(path, ''))).toEqual(
+        twinOffences.map((offence) => offence.replace(twin, '')),
+      );
+
+      // La mitad de la COBERTURA: `git` lo lista —el pathspec sale de la misma
+      // declaración—, así que el caso 1 sí lo echaría de menos si estuviera
+      // fuera de las raíces. Y no es hipotético: se escribe uno fuera.
+      expect(versionedSources()).toContain(path);
+      expect(underScanRoots(path)).toBe(true);
+
+      writeFileSync(outside, `${source}\n`, 'utf8');
+      expect(versionedSources()).toContain(outside);
+      expect(versionedSources().filter((entry) => !underScanRoots(entry))).toContain(outside);
+    } finally {
+      rmSync(path, { force: true });
+      rmSync(outside, { force: true });
+    }
+
+    expect(existsSync(path)).toBe(false);
+    expect(existsSync(outside)).toBe(false);
+    // Y sin la mutación, la cobertura deja de echarlo de menos. Se comprueba
+    // por este fichero y no sobre el conjunto entero, para no ponerse rojo por
+    // la mutación de otro (el caso 1 es el que juzga el conjunto).
+    expect(versionedSources().filter((entry) => !underScanRoots(entry))).not.toContain(outside);
   });
 });
 
@@ -622,7 +735,7 @@ describe('CA-2.4 — la capacidad global no se toma prestada fuera de `src/polit
 const reachable = await reachableModules(ENTRY_POINTS);
 
 describe('CA-2.5 — nada huérfano en los tres destinos que el CA nombra', () => {
-  test('13. todo `.ts`/`.tsx` de `src/ingest/`, `src/polite/` y `src/site/` se alcanza', () => {
+  test('13. todo fichero de código de `src/ingest/`, `src/polite/` y `src/site/` se alcanza', () => {
     // La lista sale del escaneo y no de `git`, por lo mismo que CA-2.6: un
     // fichero que `.gitignore` esconda bajo uno de los tres destinos es código
     // que corre, y hasta la cuarta vuelta no era huérfano porque no existía
