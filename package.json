@@ -2,7 +2,7 @@
   "name": "marcador",
   "version": "0.0.1",
   "private": true,
-  "description": "Marcador do f\u00fatbol galego nunha pantalla \u2014 spike de ingesta",
+  "description": "Marcador do fútbol galego nunha pantalla — spike de ingesta",
   "type": "module",
   "engines": {
     "node": ">=22.15"
@@ -36,6 +36,7 @@
   "devDependencies": {
     "@types/node": "^22",
     "@types/react": "^19",
+    "@types/react-dom": "^19.2.5",
     "oxlint": "^1.80.0",
     "oxlint-tsgolint": "^7.0.2001",
     "typescript": "^7.0.2",

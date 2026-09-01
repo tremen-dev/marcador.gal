@@ -19,7 +19,7 @@ aprobada-por: Alberto Fojo
 
 Producir **las cuatro cifras** que deciden si marcador.gal existe: latencia,
 cobertura, conflictos y minutos de operación manual, medidas sobre dos jornadas
-reales de Tercera RFEF G1 y Preferente Futgal G1.
+reales de Terceira RFEF G1 y Preferente Futgal G1.
 
 Sigue siendo **medición, no producto**. El entregable es un informe con cuatro
 números y una lista de fallos observados. Lo que se construye es el andamio

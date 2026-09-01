@@ -1,0 +1,95 @@
+/*
+ * The whole stylesheet of the public site (SPEC-004 CA-9).
+ *
+ * Mobile first and readable on a bad connection (D-8): system fonts only —
+ * nothing is downloaded from anywhere, so there is no @font-face and no
+ * @import — and nothing depends on JavaScript. Long strings wrap instead of
+ * pushing the page sideways, which is what keeps a 360 px viewport free of
+ * horizontal scroll.
+ *
+ * No identity, no palette, no logo: EPIC-003 leaves those out on purpose and
+ * the OEPM check is still pending. This page gets by with type and space.
+ */
+
+:root {
+  color-scheme: light dark;
+  --ink: #14181c;
+  --ink-soft: #5b656f;
+  --paper: #fbfbf9;
+  --link: #14459b;
+  --rule: #dcdcd4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e7eaed;
+    --ink-soft: #98a2ac;
+    --paper: #101315;
+    --link: #8fb6f5;
+    --rule: #262c31;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 2rem 1.25rem 4rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+
+main {
+  max-width: 34rem;
+  margin: 0 auto;
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  margin: 0 0 2rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+h2 {
+  margin: 2.25rem 0 0.5rem;
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+a {
+  color: var(--link);
+}
+
+nav {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.9375rem;
+}

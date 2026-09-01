@@ -62,9 +62,12 @@ Queda público e auditable, e poden revertelo cando queiran.
 
 **O que fago e o que non.** Non republico os seus datos: isto é medición, e o
 resultado é un informe interno. Non uso a app nin ningunha API interna, só as
-páxinas públicas. Identifícome en cada petición con `marcador.gal/0.0.1
-(+mailto:ola@tremen.dev; medicion RN-11)` e respondo nese enderezo. E se prefiren
-que non o faga, dígano e non o fago: é máis doado preguntar antes.
+páxinas públicas. Identifícome en cada petición con
+`marcador.gal/0.0.1 (+https://marcador.gal/robot; medicion de latencia)`. Esa
+ligazón leva a unha páxina que explica como rastrexo, con que límites e que fago
+co que leo, e que leva o enderezo de contacto no primeiro bloque: escríbanme a
+ola@tremen.dev e respondo. E se prefiren que non o faga, dígano e non o fago: é
+máis doado preguntar antes.
 
 Se máis adiante ten sentido falar de algo maior —un feed, un acordo de datos,
 levar o resultado oficial a máis xente— encantaríame, pero non é o que veño pedir
@@ -81,9 +84,15 @@ ola@tremen.dev
 
 - **Va en galego a propósito.** Es la lengua de la federación y del proyecto
   (D-2). Si prefieres castellano, se traduce sin perder nada.
-- **El contacto `ola@tremen.dev` tiene que seguir leyéndose.** Es el mismo que
-  viaja en la User-Agent y lo confirmaste el 2026-08-31; si deja de leerse, RN-11
-  vuelve a estar incumplida y ningún test lo detectará.
+- **El contacto `ola@tremen.dev` tiene que seguir leyéndose.** Lo confirmaste el
+  2026-08-31; si deja de leerse, RN-11 vuelve a estar incumplida y ningún test lo
+  detectará.
+- **La User-Agent ya no lleva el correo, lleva la URL** (SPEC-005, ADR-011). El
+  buzón sigue cumpliendo RN-11 porque `https://marcador.gal/robot` lo lleva en su
+  primer bloque. **Consecuencia operativa: no mandes esta carta hasta que esa
+  dirección responda `200`**, o el enlace que la respalda la desmiente. La cadena
+  que se cita arriba está sujeta por un test contra la constante del código
+  (SPEC-005 CA-8): si alguien la edita a mano, la suite se pone roja.
 - **Si dicen que sí por robots.txt**, no hay nada que cambiar en el código:
   `robotsRegistry` resuelve por origen y lo recogería solo. ADR-008 §1 ya
   contempla ese levantamiento como una de las dos únicas vías, así que tampoco

@@ -16,7 +16,7 @@
 
 Responder con números, no con opiniones, a una pregunta: **¿podemos servir el fútbol gallego y el nacional en una pantalla, en tiempo casi real, con un esfuerzo de operación asumible?**
 
-**Alcance:** Tercera RFEF grupo 1 (representa lo nacional) + Preferente Futgal grupo 1 (representa lo gallego). Dos jornadas reales.
+**Alcance:** Terceira RFEF grupo 1 (representa lo nacional) + Preferente Futgal grupo 1 (representa lo gallego). Dos jornadas reales.
 
 **Métricas de salida (las cuatro que decidirán el proyecto):**
 
@@ -34,17 +34,17 @@ Responder con números, no con opiniones, a una pregunta: **¿podemos servir el 
 | # | Fuente | Cubre | Conexión | Latencia esperada | Situación legal | Uso en el spike |
 |---|---|---|---|---|---|---|
 | 1 | RFGF — backend de la app oficial | Todo el fútbol gallego | HTTP/JSON privado (a descubrir) | Minutos, depende del árbitro/delegado | Privado; producción requiere acuerdo | Descubrimiento y contraste |
-| 2 | futgal.es | Todo el fútbol gallego **incluida Tercera RFEF G1** (la organiza la RFGF) | HTML | Igual que 1 | Público, sin API | **Fuente oficial del spike para ambas competiciones** |
+| 2 | futgal.es | Todo el fútbol gallego **incluida Terceira RFEF G1** (la organiza la RFGF) | HTML | Igual que 1 | Público, sin API | **Fuente oficial del spike para ambas competiciones** |
 | 3 | ceroacero.es | Desde Primera hasta Terceira Futgal | HTML | A medir | Público, ToS restringen scraping | **Contraste del spike para ambas competiciones**, ritmo bajo |
 | 4 | BeSoccer (resultados-futbol.com) | Preferente y nacional | HTML + API de pago | A medir | API comercial disponible | Fuera del spike; candidato a proveedor en producción |
-| 5 | API-Football (api-sports.io) o similar | Tercera RFEF, Primera, Segunda | REST JSON, polling | 30–60 s | Licencia de pago, legal | Fuera del spike; entra con Primera y Segunda |
+| 5 | API-Football (api-sports.io) o similar | Terceira RFEF, Primera, Segunda | REST JSON, polling | 30–60 s | Licencia de pago, legal | Fuera del spike; entra con Primera y Segunda |
 | 6 | Cuentas de clubes en X | Goles al instante | X API v2 (de pago, lectura limitada) | Segundos | Legal pero cara | Aparcado; medir a mano en 3 partidos |
 | 7 | Corresponsal por Telegram | Cualquier partido | Bot API (push, gratis) | Segundos | Propio | Sí, es la fuente más barata y fiable |
 
 Notas:
 - La fuente 1 se explora observando el tráfico de la app (proxy local). Sirve para entender qué datos publica la RFGF y con qué latencia, no para construir sobre ella. El objetivo es llegar a la RFGF con una propuesta concreta ("vuestro dato, nuestra pantalla").
 - Todo scraping en el spike respeta robots.txt, identifica el user-agent, y no baja de 1 petición por minuto por competición. No es producción; es medición.
-- Cobertura de Tercera RFEF grupo 1 en API-Football: confirmar en su listado de ligas antes de contratar. Alternativas: Sportmonks, BeSoccer API.
+- Cobertura de Terceira RFEF grupo 1 en API-Football: confirmar en su listado de ligas antes de contratar. Alternativas: Sportmonks, BeSoccer API.
 
 ## 3. Tipos de conexión
 

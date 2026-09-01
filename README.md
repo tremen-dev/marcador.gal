@@ -7,12 +7,12 @@ femenino) y de las divisiones nacionales, en una sola pantalla y en galego.
 Retoma la idea de marcadorgalego.gal con nombre, imagen y tecnología propios:
 inspiración, no sucesión.
 
-Proyecto de [tremen.dev](https://tremen.dev). Dominio `.gal` aún sin contratar.
+Proyecto de [tremen.dev](https://tremen.dev). Dominio `marcador.gal` contratado (2026-08-31, Dinahosting; expira 2027-08-31).
 
 ## Estado
 
 **Sin código todavía.** El trabajo en curso es `EPIC-001 — Spike de ingesta`: una
-semana de medición sobre Tercera RFEF G1 + Preferente Futgal G1 para responder con
+semana de medición sobre Terceira RFEF G1 + Preferente Futgal G1 para responder con
 números si el proyecto es viable. Ver `docs/tablero.md` y `docs/roadmap.md`.
 
 ## Cómo se trabaja aquí
