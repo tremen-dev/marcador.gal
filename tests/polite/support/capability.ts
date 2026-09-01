@@ -1021,6 +1021,23 @@ export function globalEntry(
  * naming the file and the identifier; a member outside the declared surface is
  * red naming the member; a computed access on a free identifier is red by
  * construction, like everything an enumeration cannot read.
+ *
+ * WHAT THIS JUDGMENT DOES NOT PROMISE, WRITTEN WHERE IT JUDGES (ADR-016 §6,
+ * F-SPEC-009-V2). A member is judged ONLY when its base is a free identifier.
+ * A member read off ANY OTHER expression — a literal, a call result, a bound
+ * local — is never judged, at any depth; and because every value's
+ * `constructor.constructor` is `Function`, the `eval` capability is reachable
+ * without writing `eval`, `Function`, or any free identifier at all:
+ * `(''.constructor.constructor)("return process.getBuiltinModule('node:child_process')")()`
+ * hands back `node:child_process` whole, measured on 2026-09-02 with the
+ * three gates green. CA-1.3 keeps the NAMES red; the capability behind them
+ * stays open. No mechanism closes it without a blacklist — judging
+ * `constructor` by its name would be a name again (ADR-016 §3.5) — so it
+ * stays a DECLARED, MEASURED residue: E12b in the battery is its executable
+ * example and keeps this very paragraph in place. What narrows it is the
+ * runtime containment of CA-2.1 — the expression still has to open a socket
+ * to send a byte — and what would close it is coverage, which this project
+ * does not measure (EPIC-MEJORA, ADR-016 §Consecuencias negativas 2).
  */
 export function capabilityOffences(
   file: ScannedFile,

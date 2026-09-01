@@ -22,18 +22,29 @@
  *   E10 el `.mts` bajo una raíz → la declaración de extensiones (CA-2.6)
  *   E11 `process.getBuiltinModule` → la lista blanca de globales (CA-1)
  *
+ * Y LA DUODÉCIMA APARECIÓ, COMO ESTA CABECERA DECÍA QUE PASARÍA: la escribió
+ * el verificador en la primera verificación de SPEC-009 (2026-09-02), en DOS
+ * formas, y las dos están aquí como manda CA-3.3:
+ *
+ *   E12a el symlink invisible a las tres listas (F-SPEC-009-V1) → el paseo lo
+ *        refusa por construcción (`walkRefusals`, y el control 2l)
+ *   E12b la capacidad `eval` por `constructor.constructor`, sin ningún
+ *        identificador libre (F-SPEC-009-V2) → SOBREVIVE: es el residuo del
+ *        cierre estático, escrito dentro del criterio (ADR-016 §6)
+ *
  * Y la que sobrevive A PROPÓSITO va nombrada: N4, el parser funcional dentro
  * de `src/site/robots-txt.ts`, es la pérdida que Alberto Fojo firmó el
  * 2026-09-01 (SPEC-008 CA-2.8, F-SPEC-008-20). Un cierre que la matara por
  * accidente sería un cambio de criterio sin firma, y el caso N4 existe para
- * que se note.
+ * que se note. E12b es de la misma familia: matarla exigiría un mecanismo
+ * nuevo con su firma, no un arreglo.
  *
- * LA DUODÉCIMA ENTRA AQUÍ EL DÍA QUE APAREZCA. Quien la encuentre — casi
- * seguro un verificador, que es quien ha encontrado las once — la escribe como
+ * LA DECIMOTERCERA ENTRA AQUÍ EL DÍA QUE APAREZCA. Quien la encuentre — casi
+ * seguro un verificador, que es quien ha encontrado las doce — la escribe como
  * caso en este fichero, contra el mecanismo que la deja pasar, ANTES de que
  * nadie escriba el cierre. Así la batería no envejece y el expediente entero
- * de SPEC-008 (su ledger: cinco verificaciones, cuatro enmiendas) sigue
- * siendo ejecutable sin leerse entero.
+ * (los ledgers de SPEC-008 y SPEC-009: seis verificaciones, cuatro enmiendas)
+ * sigue siendo ejecutable sin leerse entero.
  */
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
@@ -418,5 +429,53 @@ describe('CA-4.3 — el residuo del cierre estático, alcanzable con un ejemplo'
 
     expect(await importOffences(inside)).toEqual([]);
     expect(capabilityOffences(inside)).toEqual([]);
+  });
+
+  test('E12b — la capacidad `eval` sin escribir `eval`, `Function` ni NINGÚN identificador libre (F-SPEC-009-V2)', async () => {
+    // Duodécima evasión, segunda forma, y SOBREVIVE A PROPÓSITO, como N4: es
+    // el residuo del cierre estático, medido más ancho de lo que estaba
+    // escrito. `capabilityOffences` juzga miembros SOLO cuando la base es un
+    // identificador libre; el miembro sobre un literal —o sobre cualquier
+    // valor local— no se juzga jamás, a ningún nivel, y por
+    // `constructor.constructor` TODO valor alcanza `Function`. Medido
+    // (2026-09-02, primera verificación de SPEC-009): esta línea en
+    // `src/db/fdoor.ts` dejó `lint exit=0` y `tests/polite` 114/114, y entrega
+    // `node:child_process` entero. No hay mecanismo que la cierre sin lista
+    // negra —juzgar `constructor` por su nombre sería un nombre otra vez
+    // (ADR-016 §3.5)—, así que el residuo se ESCRIBE dentro del criterio
+    // (ADR-016 §6) y este caso lo mantiene medible. Un cierre futuro que la
+    // matara sería una decisión nueva, con su firma: este caso es el que lo
+    // haría visible.
+    const evasion = syntheticFile(
+      'src/db/evasion12b.ts',
+      [
+        `const cp = (''.constructor.constructor)("return process.getBuiltinModule('node:child_process')")();`,
+        '',
+        'export function preflight(url: string): string {',
+        "  return cp.execFileSync('curl', ['-s', '-A', '', url], { encoding: 'utf8' });",
+        '}',
+      ].join('\n'),
+    );
+
+    // Sobrevive a los DOS juicios estáticos: ni un `import`, ni un
+    // identificador libre — `process` solo existe dentro de una cadena.
+    expect(await importOffences(evasion)).toEqual([]);
+    expect(capabilityOffences(evasion)).toEqual([]);
+
+    // Y el residuo es ALCANZABLE con este ejemplo, en este mismo proceso y
+    // sin mandar un byte: la expresión entrega el módulo entero (RN-11: aquí
+    // no se pide nada a nadie, solo se demuestra que se podría).
+    const evil = ''.constructor.constructor as (source: string) => () => unknown;
+    const grabbed = evil(
+      "return process.getBuiltinModule('node:child_process')",
+    )() as typeof import('node:child_process');
+    expect(typeof grabbed.execFileSync).toBe('function');
+
+    // El residuo está ESCRITO dentro del criterio, de forma medible: el
+    // guardián lo nombra donde juzga (ADR-016 §6). Borrar el texto sin borrar
+    // este caso es rojo.
+    const guard = await readFile(new URL('./support/capability.ts', import.meta.url), 'utf8');
+    expect(guard).toMatch(/F-SPEC-009-V2/);
+    expect(guard).toMatch(/constructor\.constructor/);
   });
 });
