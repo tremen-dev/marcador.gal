@@ -1420,3 +1420,324 @@ Nada de esto se aplica hasta que Alberto arbitre. Cuando lo haga, la aplicación
 —sustituir el CA-2 del cuerpo de la spec y anotar aquí que se aplicó— es una
 tanda posterior, como la «Segunda tanda — aplicación de la enmienda» del ledger
 de SPEC-001.
+
+
+## Arbitraje del gate humano — 2026-09-01 (Alberto Fojo)
+
+Cierra las tres cosas que la *Enmienda — 2026-09-01* dejó sin arbitrar: su §8
+pedía cuatro firmas, se conceden tres y la cuarta se convierte en encargo.
+**Nada de esto cambia el estado de la spec**, que sigue `en-progreso` con su
+última verificación en RED, ni toca `src/` ni `tests/`. Lo que sí hace, por
+primera vez en este expediente, es **aplicarse al cuerpo de SPEC-008**: la
+enmienda estaba escrita y sin arbitrar, y su propio cierre decía que la
+aplicación —sustituir el CA-2 del cuerpo y anotar aquí que se aplicó— sería una
+tanda posterior, como la «Segunda tanda — aplicación de la enmienda» del ledger
+de SPEC-001. **Ésta es esa tanda.**
+
+### 1. CA-2 se firma tal cual, y la pérdida se firma con él
+
+**Alberto Fojo firma el texto literal de la *Enmienda — 2026-09-01* §3**, entero
+y sin retoques: CA-2 pasa de detección textual a contención de capacidad más
+cierre de imports, con sus ocho apartados CA-2.1..CA-2.8. Queda aplicado al
+cuerpo de la spec con esta misma fecha.
+
+**Y firma la pérdida a sabiendas.** Se registra como hecho fechado, no como
+salvedad: CA-2 **deja de mecanizar la primera prohibición de ADR-014 §4**. Un
+segundo parser de `robots.txt` podrá existir en el repositorio aunque no pueda
+**decidir** ni abrir una puerta de salida. La regla de ADR-014 §4 **sigue vigente
+y no se toca** —ADR-014 es `aprobada` e inmutable—, pero a partir de hoy se
+sostiene en **revisión humana** y en el argumento de que un parser que no puede
+decidir es inerte, no en un test que se ponga rojo solo.
+
+Lo que despierta esa pérdida está escrito en la *Enmienda* §5 y no se repite. El
+primero es el operativo: **el día que un módulo fuera de `src/polite/` necesite
+usar un veredicto de permiso sobre la URL de un tercero, CA-2.2 se pone roja
+sola**; si alguien la relaja para dejarlo pasar, hay que recuperar un guardián
+sobre la primera prohibición.
+
+**Texto que queda sustituido**, conservado aquí íntegro porque es lo que Alberto
+firmó la mañana del 2026-09-01, y ADR-015 §1 existe precisamente para que la
+diferencia entre «Alberto aprobó esto» y «Alberto aprobó algo parecido» no se
+borre:
+
+> - **CA-2 — Una sola implementación de la cortesía RN-11 (ADR-014).**
+>   Dado el árbol del repositorio,
+>   cuando un test de arquitectura busca fuera de `src/polite/` (a) cualquier
+>   análisis de un `robots.txt`, (b) cualquier construcción de la cabecera
+>   `User-Agent`, y (c) cualquier llamada a `globalThis.fetch` o equivalente
+>   dirigida a un tercero,
+>   entonces **no encuentra ninguna**; `src/mirror/`, `src/ingest/` y
+>   `src/site/crawler-page.tsx` importan de `src/polite/`, y el test **falla** si
+>   se le añade una segunda implementación en cualquiera de los tres.
+
+### 2. F-SPEC-008-V13 se arregla en SPEC-008, contra la recomendación de `sdd-arquitecto`
+
+**La recomendación era rutar el arreglo a la spec del cron** (*Enmienda* §7.1):
+exige estado durable, y estado durable es o el raw store o `migrations/0002`,
+ambos fuera del alcance firmado, en una spec que va por su tercera vuelta el
+mismo día en que se aprobó.
+
+**Alberto la ha oído entera y decide lo contrario: entra aquí.** El motivo que da
+—y queda como el motivo de la decisión— es que la promesa de `/robot` está
+publicada a terceros en dos lenguas y **no se retira**; una barrera que producción
+no puede cumplir es RN-11 incumplida **más** una afirmación falsa a terceros, y
+eso no viaja a otra spec.
+
+Consecuencias que asume con la decisión, puestas delante antes de tomarla:
+
+- **Ensancha el alcance de una spec aprobada.** No es añadir un CA: entran
+  `migrations/0002` y una implementación de persistencia. Se registra como
+  **enmienda de alcance** en la sección siguiente.
+- **Una migración es irreversible en la práctica** (ADR-006: no hay rollback;
+  deshacer es escribir la siguiente).
+- **Parte del criterio nuevo solo se puede verificar contra un Postgres real.**
+  SPEC-008 era hasta hoy verificable entera con `npm test`; con CA-14 necesita
+  también `npm run test:db` y `DATABASE_URL_TEST`. El gate del 2026-08-29
+  dictaminó que sin esa variable los criterios que dependen de ella son **UNMET,
+  no *skipped***, y ese dictamen aplica igual aquí.
+
+**La vía descartada explícitamente**: retirar o suavizar la promesa de `/robot`.
+Alberto la descarta. `src/i18n/gl.ts:101` y `src/i18n/es.ts:80` siguen diciendo
+lo que dicen, y el código pasa a tener que cumplirlo.
+
+### 3. ADR-016 se encarga
+
+La cuarta firma que pedía la *Enmienda* §8.4 —*«si esto debe ser un ADR»*— se
+contesta **sí**. Materia: cómo se demuestra en este proyecto una frontera de
+capacidad —enumerar lo permitido y exigir que el resto sea vacío— y qué obliga
+eso a toda spec futura que escriba un test de arquitectura. Escrito el 2026-09-01
+en `docs/adr/ADR-016-como-se-demuestra-una-frontera-de-capacidad-se-enumera-lo-permitido-y-el-resto-tiene-que-ser-vacio.md`,
+en **`borrador`**: lo firma una persona, y `sdd-arquitecto` no aprueba sus
+propios artefactos.
+
+El ADR fija **la regla general**; SPEC-008 CA-2 es **su primera aplicación**.
+Nada de lo específico de esta spec —las listas concretas, los puntos de entrada,
+los paquetes permitidos— vive en el ADR.
+
+### 4. Lo que este arbitraje NO toca
+
+No reabre **ADR-014** ni ningún ADR aprobado. No cambia el estado de SPEC-008 ni
+su frontmatter. No toca `src/`, `tests/`, `docs/roadmap.md`, `CLAUDE.md` ni el
+`_epica.md` de EPIC-002. No revisita los seis puntos ya arbitrados y verificados
+—las 6 h de ADR-014 §3.2, la licencia de `competition_id: 'robots'`,
+F-SPEC-008-1, F-SPEC-008-2 y las ratificadas—. Y **no contesta la pregunta legal**
+(F-SPEC-008-7): el dictamen de `sdd-legal-datos` sobre `ceroacero.es` en régimen
+de ingesta sigue sin pedir, y sigue siendo precondición de correr la primera
+jornada, no de escribir el código.
+
+
+## Enmienda — 2026-09-01: el estado durable del limitador de RN-11 entra en SPEC-008 (F-SPEC-008-V13)
+
+**Estado: ARBITRADA por Alberto Fojo el 2026-09-01** (sección anterior, §2).
+Escrita por `sdd-arquitecto`, que no aprueba sus propios artefactos y que
+**recomendó lo contrario**: la recomendación consta entera y la decisión es del
+humano.
+
+Se usa la forma de **ADR-015 §2 y §3** por analogía, y se dice que es por
+analogía: su caso literal es el de una spec `hecho`, y SPEC-008 está
+`en-progreso`. Lo que se comparte es el hecho que importa —una persona firmó este
+alcance con fecha, y esto lo ensancha—, y se cubren los cinco puntos que ADR-015
+§3 declara obligatorios: §1 y §2 (qué decía y qué lo invalida), §3 y §4 (qué
+entra y con qué mecanismo), §5 (qué se pierde), §6 (si el veredicto sigue en pie)
+y §7 (qué la despierta).
+
+### 1. Qué decía «Fuera de alcance», y por qué era razonable
+
+El texto firmado la mañana del 2026-09-01 dice, literalmente:
+
+> - **La persistencia.** La implementación Postgres de `ObservationStore` y
+>   `DecisionStore` sigue siendo de «la primera spec que la necesite»
+>   (F-SPEC-001-3), y esta no la necesita: devuelve `Observation`, no las guarda.
+>   **Tampoco hay `migrations/0002`.**
+
+Y el §2 del *Diseño* apoya el orden entero de la épica sobre esa base: esta spec
+abre el camino **por su primer tramo, y solo por el primero**. Era razonable por
+tres motivos que siguen siendo ciertos:
+
+- **La spec devuelve `Observation`, no las guarda.** Sin persistencia del modelo
+  canónico no hace falta base de datos, y no haberla necesitado es lo que dejaba
+  a esta spec verificable entera con `npm test`.
+- **`migrations/0002` es irreversible en la práctica** (ADR-006). Añadir una
+  migración es una decisión que no se deshace, solo se sucede.
+- **ADR-014 acababa de rechazar una tabla** —`robots_policies`— *«por
+  desproporción: añade una migración irreversible para guardar un documento que el
+  raw store ya sabe guardar»*. Meter otra tabla el mismo día, en la spec que
+  ejecuta ese ADR, pedía un motivo mejor que el que había entonces.
+
+### 2. Qué lo invalida
+
+**F-SPEC-008-V13**, medido por el verificador en la segunda vuelta: con una
+instancia nueva de `SourceAdapter` por llamada —que es la forma real de Vercel
+Cron, donde **ADR-004** dice que no hay proceso vivo— **diez `capture()` con el
+reloj parado envían diez peticiones al mismo par**. El limitador es
+`#lastRequestAt`, un `Map` en un campo de instancia: nace vacío en cada arranque
+en frío.
+
+Lo que convierte eso de anotación en ensanche de alcance es lo que hay publicado
+encima. `/robot` afirma, en galego y en castellano, ante terceros y con el
+propósito declarado de que nos auditen (SPEC-005, ADR-011):
+
+> *«Como máximo unha petición por minuto a cada sitio e por cada competición. As
+> peticións non gastadas non se acumulan: un minuto sen pedir non dá dereito a
+> dúas no seguinte.»*
+
+Una promesa pública que producción no puede cumplir no es una barrera floja: es
+**RN-11 incumplida más una afirmación falsa a terceros**. RN-11 es regla dura, y
+el no-negociable de legalidad de `FOUNDATION.md` la repite.
+
+Hoy la infracción es **latente, no consumada** —`src/ingest/` no está cableado a
+nada, no hay cron, no hay despliegue, y el verificador confirmó dos veces que
+nada se ha corrido nunca contra `ceroacero.es`—. Se vuelve real **el día que se
+despliegue algo que pida**. Ésa es exactamente la ventana en la que arreglarlo
+cuesta lo mínimo, y es el argumento del humano.
+
+### 3. Qué entra, y dónde queda la frontera nueva
+
+**Entra en SPEC-008:**
+
+1. Un **puerto del ritmo** con **una sola operación**: conceder el turno y
+   sellarlo a la vez. No un par consultar/sellar — entre los dos pasos cabe otra
+   instancia, y ése es el fallo que se arregla.
+2. Dos implementaciones del puerto: la **en memoria** (el `Map` de hoy, que se
+   queda sirviendo a `src/mirror/` y a los tests unitarios) y la **durable**.
+3. **`migrations/0002`**: una tabla, la clave del par y el último instante de
+   petición.
+4. El `SourceAdapter` deja de construirse su propio limitador y **exige** el
+   puerto, igual que ya exige `robots: PolicyGate`.
+5. **CA-14**, con su control positivo y su batería de contrato.
+
+**No entra, y la frontera es exacta:** ni `ObservationStore` ni `DecisionStore`
+en Postgres —siguen siendo de «la primera spec que la necesite», F-SPEC-001-3—,
+ni calendario, ni catálogo de alias, ni cron, ni motor, ni ventanas por partido.
+**Ninguna `Observation` y ninguna `Decision` tocan la base de datos en esta
+spec.** Lo único que se persiste es un instante por par: es cortesía, no modelo
+canónico.
+
+Se sustituye, por tanto, la línea de *Fuera de alcance* citada en §1 por su
+versión enmendada, que dice lo mismo salvo en la mitad que cambia. Y se reescribe
+el §4 del *Diseño*, que hoy promete de más (era la *Enmienda* §7 anterior, ahora
+absorbida aquí: **acotar la promesa a «dentro de un proceso» deja de ser
+suficiente por sí sola**, porque el arreglo entra en esta spec y §4 tiene que
+decir que entra).
+
+### 4. El mecanismo elegido: `migrations/0002`. Y por qué no el raw store
+
+Las dos vías estaban nombradas en la *Enmienda* §7.1. Se elige la migración, y el
+motivo no es de gusto.
+
+**Por qué el raw store como índice se descarta.** Por dos defectos que no son de
+coste sino de corrección, y cualquiera de los dos basta:
+
+1. **El archivo registra lo que volvió, y RN-11 cuenta lo que salió.** Una
+   petición que sale y falla —un 500, un *timeout*, un 3xx que produce
+   `RedirectNotFollowedError`, un `robots.txt` que no se sirve— **no archiva
+   nada**. La instancia siguiente no vería ninguna clave y pediría otra vez de
+   inmediato. El resultado es que **la fuente que más falla es la que más ráfaga
+   recibe**: el peor comportamiento posible, y el contrario del que RN-11 pide.
+2. **No se puede sellar antes del `await`**, que es lo que convierte el ritmo en
+   una barrera y no en una estadística. La clave del raw store solo existe cuando
+   la respuesta ya volvió; entre la consulta y el sellado cabe la petición
+   entera. Dos instancias concurrentes leerían las dos «me toca» y saldrían las
+   dos — que es literalmente el escenario de V13.
+
+Y dos motivos más, que solos no bastarían pero que confirman:
+
+3. **La clave lleva el día como segmento**, así que una consulta correcta cruza el
+   límite de medianoche listando dos prefijos, y en producción cada `list` es una
+   llamada de red a Vercel Blob por tick y por par.
+4. **ADR-009 lo purga a los 30 días.** Un almacén diseñado para ser borrado no
+   puede ser la memoria de una barrera de cumplimiento. Y ADR-014 dejó escrito que
+   el raw store no tiene índice propio: *«si algún día el raw store crece un
+   índice propio, esto es lo primero que se recoloca»*. Hacerlo índice hoy sería
+   tomar por la puerta de atrás una decisión que un ADR aprobado aplazó.
+
+**Por qué la migración sí, aunque sea más cara.** Porque Postgres da la única
+propiedad que el problema pide y el archivo no puede dar: **conceder y sellar en
+un solo paso atómico**. Una sentencia `insert … on conflict (pair) do update …
+where <el último instante es anterior al límite> returning …` devuelve fila
+cuando concede el turno y ninguna cuando lo niega, y **dos instancias
+concurrentes no pueden ganar las dos**. Eso es estrictamente más de lo que daba
+el `Map`: sobrevive al proceso *y* es correcto bajo concurrencia, que es lo que
+un reintento del cron, una invocación manual o un despliegue solapado necesitan.
+
+Además —y no es adorno— el `do update` fija el último instante **al instante
+actual**, no al anterior más un minuto, así que **los turnos no se acumulan**,
+que es la segunda frase exacta de lo que `/robot` promete.
+
+**Lo que ADR-014 rechazó era otra cosa**, y conviene decirlo para que esto no se
+lea como una contradicción: rechazó guardar en una tabla **un documento** que el
+raw store ya sabe guardar, versionar por instante y purgar. Aquí no se guarda un
+documento: se guarda **un instante que hay que comparar y sustituir
+atómicamente**, que es exactamente para lo que sirve una base de datos y para lo
+que un almacén de objetos no sirve. La proporción es distinta porque el problema
+es distinto.
+
+### 5. Qué se lleva por delante. Sin suavizar
+
+1. **`migrations/0002` es irreversible en la práctica.** ADR-006 no tiene
+   rollback: deshacer es escribir `0003`. Se acepta a cambio de que la migración
+   sea del tamaño mínimo —una tabla— y de que no arrastre nada del modelo
+   canónico.
+2. **SPEC-008 deja de ser verificable con un solo comando.** Hasta hoy `npm test`
+   la cubría entera. CA-14.4 y la mitad durable de CA-14.2, CA-14.5 y CA-14.6
+   necesitan `npm run test:db` con `DATABASE_URL_TEST`, y el **gate del
+   2026-08-29** dictaminó que sin esa variable esos criterios son **UNMET, no
+   *skipped***. Es un ensanche real de lo que el verificador tiene que correr, y
+   el implementador tiene que dejar en el ledger las **dos** salidas.
+3. **El camino de ingesta gana una dependencia de Postgres que no tenía.** En
+   producción, un tick sin base de datos **no manda nada** (CA-14.7). Es fallo
+   cerrado, coherente con ADR-014 §3.3, y significa que una caída de la base de
+   datos es cobertura perdida. Es la decisión correcta —lo contrario es incumplir
+   RN-11 justo cuando peor se está— pero hay que verla escrita.
+4. **La tercera vuelta crece.** Era «reescribir un test de arquitectura»; pasa a
+   ser eso **más** una migración, un puerto, dos implementaciones y una batería de
+   contrato. Es la última vuelta que el método permite. La lista cerrada de lo que
+   hay que hacer va en el informe del encargo, para que no se gaste adivinando.
+5. **`src/mirror/` no se arregla, y no se va a arreglar en esta spec.** Sigue con
+   el limitador en memoria (CA-14.8). Es defendible por el motivo que F-SPEC-002-2
+   escribió y ADR-014 §3 reutilizó —un proceso, una hora, el operador delante—
+   pero es una **asimetría**, y el día que alguien ejecute dos CLI de espejo a la
+   vez contra la misma competición, RN-11 se incumple sin que nada avise.
+   **Destino: EPIC-MEJORA**, y queda dicho aquí para que no se descubra por
+   sorpresa.
+6. **Un turno concedido cuya petición falla se ha gastado.** No hay reserva ni
+   devolución. Es deliberado y está escrito dentro de CA-14.9, pero significa que
+   un tercero inestable reduce nuestra cobertura además de la suya.
+
+### 6. Si el veredicto sigue en pie
+
+**No hay veredicto que sostener:** SPEC-008 está `en-progreso` y su última
+verificación es RED. Esta enmienda no rescata un GREEN ni anota uno emitido:
+añade un criterio contra el que la tercera verificación va a juzgar. Los CA
+existentes no se tocan —salvo CA-2, que sustituye la *Enmienda* anterior, ya
+arbitrada— y su evidencia sigue valiendo.
+
+**CA-7 sigue siendo cierto y sigue verificado.** Dice lo que dice sobre una
+instancia y lo entrega; CA-14 no lo contradice, lo extiende al caso que CA-7 no
+podía ver. Las dos piezas conviven porque hablan de cosas distintas: CA-7, del
+ritmo dentro de una ejecución; CA-14, de que la memoria del ritmo sobreviva a la
+ejecución.
+
+### 7. Qué la despierta
+
+- **El día que el ritmo tenga que contarse por algo que no sea el par (fuente,
+  competición).** Hoy la clave es el par porque así lo dice RN-11. Si alguna vez
+  hay que limitar por origen, por franja o por partido, la tabla deja de valer y
+  hay que decidir de nuevo, no ensanchar en silencio.
+- **El día que `src/mirror/` se despliegue, se automatice, o se corra a la vez
+  desde dos sitios.** Ese día muere el argumento de CA-14.8 y la asimetría del
+  §5.5 pasa de anotada a bloqueante.
+- **El día que alguien pida seguir capturando con la base de datos caída.** Eso es
+  pedir relajar CA-14.7, y entonces hay que recuperar por otra vía la demostración
+  de que el ritmo se cumple.
+
+### 8. Qué findings cierra y cuáles mueve
+
+| Finding | Qué pasa |
+|---|---|
+| **F-SPEC-008-V13** | **DEJA DE ESTAR RUTADO A LA SPEC DEL CRON Y SE CIERRA AQUÍ**, en CA-14. La «precondición de despliegue» que proponía la *Enmienda* §7.4 **desaparece**: no hace falta una precondición para lo que la propia spec entrega |
+| **F-SPEC-008-V4** (CA-7) | **INTACTO y cerrado.** CA-7 no cambia |
+| Los demás | Sin cambio respecto de lo que dice la *Enmienda* §6 |
+
+Y una asimetría nueva, nombrada en §5.5, que **no existía como finding**:
+`src/mirror/` conserva el limitador en memoria. Destino: **EPIC-MEJORA**.

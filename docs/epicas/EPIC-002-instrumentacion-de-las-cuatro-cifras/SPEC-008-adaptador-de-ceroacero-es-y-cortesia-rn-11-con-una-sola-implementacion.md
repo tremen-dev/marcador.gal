@@ -79,12 +79,15 @@ ejecuta.
 
 ## Usuarios / roles afectados
 
-- **`sdd-implementador`**: construye `src/polite/` y `src/ingest/`. La rama tiene
-  que nombrar `SPEC-008`, o el hook `require-spec` deniega la escritura sobre
-  `src/` y `tests/` (`.sdd.json`, `rutasVigiladas`).
-- **`sdd-verificador`**: juzga contra estos CA. Dos de ellos —CA-2 y CA-12— son
-  **tests de arquitectura**, no de comportamiento: se verifican buscando en el
-  árbol, no ejecutando una función.
+- **`sdd-implementador`**: construye `src/polite/` y `src/ingest/`, y —desde la
+  enmienda del 2026-09-01— `migrations/0002` y la implementación durable del
+  ritmo. La rama tiene que nombrar `SPEC-008`, o el hook `require-spec` deniega la
+  escritura sobre `src/` y `tests/` (`.sdd.json`, `rutasVigiladas`).
+- **`sdd-verificador`**: juzga contra estos CA. **CA-12** y las mitades estáticas
+  de **CA-2** (CA-2.3..CA-2.6) y de **CA-14.8** son **tests de arquitectura**, no
+  de comportamiento; **CA-2.1 y CA-2.2** son contención en ejecución, y se
+  verifican conduciendo los puntos de entrada con trampas, no buscando texto. Y
+  hay que correr **dos** suites: `npm test` y `npm run test:db` (CA-14).
 - **El operador del spike** (el autor, RN-01): calibra los selectores de
   `ceroacero.es` mirando el HTML **ya archivado**, y es quien sufre si el
   adaptador miente.
@@ -178,15 +181,51 @@ CA-8 manda mirar, y **el `robots.txt` de `ceroacero.es` prohíbe una sola ruta**
 `/zzmap_v3.php`, que no es ninguna de estas dos (verificado el 2026-08-31,
 `dominio.md`).
 
-### §4. El ritmo de RN-11 se cumple dentro, no fuera
+### §4. El ritmo de RN-11 se cumple dentro, no fuera — y sobrevive al proceso
+
+> *Enmendado el 2026-09-01, arbitrado por Alberto Fojo. El texto original y el
+> motivo del cambio están en el ledger: «Arbitraje del gate humano — 2026-09-01»
+> §2 y «Enmienda — 2026-09-01: el estado durable del limitador de RN-11 entra en
+> SPEC-008 (F-SPEC-008-V13)».*
 
 RN-11 dice **1 petición/minuto por competición**. El limitador vive **dentro** del
 camino del adaptador, como ya vive dentro del `Capturer` y por el mismo motivo
 escrito allí: un cron que dispare cada diez segundos, un bucle local supervisado
 y un test con reloj falso tienen que ser **igual de incapaces** de excederlo.
 
-Consecuencia que el cron heredará y conviene decir aquí: **un tick suprimido no
-es un tick fallido**. No produce petición y no cuenta como cobertura perdida.
+**Dentro de un proceso, eso no basta.** ADR-004 dice que en Vercel **no hay
+proceso vivo**: cada tick del cron es una instancia nueva, así que un limitador
+que sea un campo de instancia nace sin memoria en cada arranque en frío, y diez
+ticks en el mismo minuto mandan diez peticiones. Está **medido**, no supuesto
+(F-SPEC-008-V13). El techo de Vercel Cron (1/min) tapa el camino nominal por
+accidente de tarificación y no por diseño, y no tapa una invocación manual, un
+reintento, un despliegue solapado ni una segunda ruta que capture.
+
+Por eso el **último instante de petición por par (fuente, competición) es estado
+durable**, y la concesión del turno es **un solo paso atómico**: conceder y
+sellar a la vez, nunca consultar y luego sellar —entre los dos pasos cabe otra
+instancia—. Es **CA-14**, y el mecanismo está decidido: una tabla en
+`migrations/0002` y una sentencia `insert … on conflict … where … returning …`
+que devuelve fila cuando concede y ninguna cuando niega. El motivo de elegir eso
+y no el raw store como índice está en el ledger; el resumen es que el archivo
+registra lo que **volvió** y RN-11 cuenta lo que **salió**.
+
+**El instrumento de `src/mirror/` se queda con el limitador en memoria**, y no es
+una excepción tolerada: corre en un solo proceso, durante una hora, con el
+operador delante (F-SPEC-002-2, y es el mismo argumento con el que ADR-014 §3
+justificó el `RobotsGate`). La frontera es exacta: **lo que se despliega usa el
+durable; lo que un operador supervisa a mano, no.**
+
+Y esto no es higiene interna. Lo que `/robot` publica en galego y en castellano
+—*«Como máximo unha petición por minuto a cada sitio e por cada competición. As
+peticións non gastadas non se acumulan»*— es una afirmación a terceros cuyo
+propósito entero es que nos auditen (SPEC-005, ADR-011). **Producción tiene que
+poder cumplirla, no solo los tests.**
+
+Consecuencias que el cron heredará y conviene decir aquí: **un tick suprimido no
+es un tick fallido** —no produce petición y no cuenta como cobertura perdida—, y
+**un turno concedido cuya petición falla se ha gastado**, porque RN-11 cuenta
+peticiones que salen y no respuestas que vuelven.
 
 ### §5. El archivo es la memoria, y el replay es lo que lo paga
 
@@ -237,15 +276,128 @@ un equipo sin alias confirmado por una persona*.
      `Disallow: /edicion/` + `Allow: /edicion/publica/` significando lo que su
      autor quiso.
 
-- **CA-2 — Una sola implementación de la cortesía RN-11 (ADR-014).**
-  Dado el árbol del repositorio,
-  cuando un test de arquitectura busca fuera de `src/polite/` (a) cualquier
-  análisis de un `robots.txt`, (b) cualquier construcción de la cabecera
-  `User-Agent`, y (c) cualquier llamada a `globalThis.fetch` o equivalente
-  dirigida a un tercero,
-  entonces **no encuentra ninguna**; `src/mirror/`, `src/ingest/` y
-  `src/site/crawler-page.tsx` importan de `src/polite/`, y el test **falla** si
-  se le añade una segunda implementación en cualquiera de los tres.
+- **CA-2 — Una sola puerta de salida, y se demuestra enumerando lo permitido
+  (ADR-014 §1 y §4; ADR-016 es la regla general y éste su primer caso).**
+
+  > *Sustituye, el 2026-09-01, al CA-2 que Alberto Fojo firmó esa misma mañana.
+  > El texto anterior, el motivo del cambio y **la pérdida que se firmó con él**
+  > están en el ledger: «Arbitraje del gate humano — 2026-09-01» §1 y
+  > «Enmienda — 2026-09-01: CA-2 pasa de detección textual a contención de
+  > capacidad».*
+
+  *El criterio deja de buscar lo prohibido: **enumera lo permitido y exige que el
+  resto sea vacío**. Las tres listas que lo sostienen no son listas de formas de
+  escribir una llamada —ésas crecen con la imaginación de quien las rodea—, sino
+  listas cerradas por algo que no fijamos nosotros: la superficie de salida de la
+  plataforma, las dependencias que ya tenemos, y las maneras que ECMAScript da de
+  obtener una capacidad.*
+
+  **CA-2.1 — Contención en ejecución: la única salida que se dispara es la de
+  `src/polite/http.ts`.**
+  Dado un test que, **antes de importar ningún módulo de `src/`**, sustituye por
+  trampas todas las salidas de red de la plataforma —`globalThis.fetch` y los
+  módulos `node:http`, `node:https`, `node:http2`, `node:net`, `node:tls`,
+  `node:dgram`—,
+  cuando se conducen los puntos de entrada declarados de `src/ingest/` y las CLI
+  de `src/mirror/` **con el `globalFetcher` real**,
+  entonces toda trampa que se dispara se atribuye, por su pila, a
+  `src/polite/http.ts`, y el número de disparos coincide con el de llamadas a
+  `politeFetch`;
+  y cuando se conducen los mismos puntos de entrada **con un `HttpFetcher`
+  doble**, **no se dispara ninguna trampa**.
+  La trampa se instala **antes** de cualquier `import` de `src/` porque una
+  segunda puerta puede capturar la referencia en el ámbito del módulo, que es
+  exactamente la forma de F-SPEC-008-V6; instalarla después la dejaría pasar.
+  Quedan fuera de la atribución las salidas que abren `@vercel/blob` y
+  `postgres`: son nuestra propia infraestructura y no un tercero, están en la
+  lista de CA-2.3, y RN-11 habla de la fuente, no del almacén.
+
+  **CA-2.2 — Ninguna petición sale sin que la política real haya dicho que sí.**
+  Bajo la misma trampa, con el `RobotsPolicy` de `src/polite/robots.ts`
+  instrumentado,
+  entonces el conjunto de URL que llegaron a una trampa está **contenido** en el
+  de las URL sobre las que la política real fue consultada y contestó `true`,
+  con una sola excepción nombrada: el `robots.txt` de un origen, que es la única
+  petición que ninguna política puede gatear (ADR-014 §3.1).
+  El test se pone rojo si sale una petición cuyo permiso lo concedió otro código.
+
+  **CA-2.3 — Cierre de imports: todo especificador es un literal de una lista de
+  lo permitido.**
+  Dado todo `.ts`/`.tsx` bajo las raíces declaradas en CA-2.6,
+  entonces cada especificador de módulo —estático, de efecto lateral o
+  dinámico— es (i) una ruta relativa o `@/…` que resuelve dentro del
+  repositorio, o (ii) una **cadena literal presente en `ALLOWED_PACKAGES`**, que
+  hoy es exactamente `node:crypto`, `node:fs`, `node:fs/promises`, `node:module`,
+  `node:path`, `node:url`, `@vercel/blob`, `cheerio`, `next`, `postgres`,
+  `react` y `zod`;
+  y **un especificador que no sea un literal estático** —`import(MOD)`,
+  `import('node:' + 'https')`— es **rojo por construcción**, también dentro de
+  `src/polite/`.
+  `node:module` entra en la lista con su motivo escrito: `src/mirror/cli/node-resolve.ts`
+  registra un hook de resolución para poder ejecutar las CLI en TypeScript. Es la
+  única capacidad de resolución de módulos fuera de `src/polite/`, y va nombrada,
+  no tolerada en silencio.
+
+  **CA-2.4 — La capacidad global no se toma prestada fuera de `src/polite/`.**
+  Fuera de `src/polite/` no aparece el identificador `globalThis`, ni un uso
+  desnudo de los globales de red de la plataforma (`fetch`, `XMLHttpRequest`,
+  `WebSocket`, `EventSource`, `navigator`), ni `eval`, ni `new Function`, ni
+  `require`.
+  Sin un `import`, ECMAScript da exactamente tres maneras de alcanzar una
+  capacidad: el objeto global, un identificador global desnudo, y `eval`/`Function`.
+  CA-2.3 cierra el `import`; ésta cierra las otras tres. Es un conjunto cerrado
+  por el lenguaje, no por nosotros.
+  **Se cumple hoy sin tocar una línea**: `globalThis` aparece una sola vez en
+  todo `src/`, dentro de `globalFetcher`.
+
+  **CA-2.5 — Nada huérfano en los tres destinos que el CA nombra.**
+  Todo `.ts`/`.tsx` bajo `src/ingest/`, `src/polite/` y `src/site/` es
+  alcanzable, por el grafo de `import`, desde `ENTRY_POINTS` —la lista declarada
+  de puntos de entrada del repositorio: `next.config.ts`, las rutas de
+  `src/app/`, las CLI, y el API público de `src/ingest/`—.
+  Un fichero que nadie importa es **rojo**: para dejar de serlo hay que
+  importarlo —y entonces le aplican CA-2.3 y CA-2.4 y lo alcanza CA-2.1— o hay
+  que añadirlo a `ENTRY_POINTS`, que es un diff visible en un fichero que se
+  llama así.
+  `reachableModules` de `tests/mirror/support/imports.ts` implementa el
+  recorrido y **hay que ensancharlo primero**: hoy solo lee
+  `import`/`export … from '…'`, así que no ve ni los `import` de efecto lateral
+  —`src/app/(gl)/layout.tsx` usa uno— ni los `import()` dinámicos —las tres
+  `src/mirror/cli/*-cli.ts` usan uno—. Mientras no los vea, el cierre no es un
+  cierre. El ensanche es parte de este CA y no toca `src/`.
+
+  **CA-2.6 — El escaneo cubre todo el código del repositorio, no solo `src/`.**
+  Las raíces del escaneo van declaradas, y un caso exige que **todo `.ts`/`.tsx`
+  versionado fuera de `tests/` caiga bajo una de ellas**.
+  No es hipotético: **`next.config.ts` es código ejecutable que hoy queda entero
+  fuera del escaneo**, y `src/site/redirects.ts` solo es alcanzable desde ahí.
+  ADR-014 §4 dice «en un script»; hoy no hay `scripts/`, pero sí hay
+  configuración ejecutable en la raíz.
+
+  **CA-2.7 — Cada mecanismo lleva su control positivo, y las evasiones vivas se
+  escriben como controles.**
+  Apagar cualquiera de CA-2.1..CA-2.6 pone rojo al menos un caso nombrado. Y las
+  evasiones que hoy sobreviven se escriben como control positivo, cada una contra
+  el mecanismo que le toca: `const { fetch: send } = globalThis` con
+  `['User','Agent'].join('-')` (F-SPEC-008-V6) → CA-2.4 en estático y CA-2.1 en
+  ejecución; `await import('node:' + 'https')` (F-SPEC-008-V7) → CA-2.3; un
+  fichero nuevo en `src/ingest/` que nadie importa → CA-2.5.
+  **No queda ninguna exención por nombre de fichero.** CA-2 deja de mirar
+  palabras, así que `src/site/robots-txt.ts` y
+  `src/mirror/analysis/referenceless/report.ts` dejan de necesitar una, y con la
+  lista desaparece el agujero de F-SPEC-008-V9. Ninguno de los dos ficheros
+  cambia (CA-3).
+
+  **CA-2.8 — Lo que este criterio NO promete, dicho dentro del criterio.**
+  No prohíbe que exista, fuera de `src/polite/`, una función que lea el texto de
+  un `robots.txt`: prohíbe que **decida** (CA-2.2) y prohíbe que la petición
+  salga por otro sitio (CA-2.1, CA-2.3, CA-2.4). El segundo parser de
+  F-SPEC-008-V8 **deja de ser una evasión porque deja de ser una infracción**: no
+  manda un byte y no puede abrir una puerta.
+  Y CA-2.1 solo ve los caminos que se ejecutan. El residuo es finito y
+  nombrable: **código alcanzable desde `ENTRY_POINTS` cuya rama de red no la
+  ejecuta ningún test**. Estrecharlo es cuestión de cobertura, no de detección, y
+  no es de esta spec.
 
 - **CA-3 — El traslado no cambia el comportamiento del instrumento.**
   Dada la suite `tests/mirror/` tal como está en `main`,
@@ -360,6 +512,94 @@ un equipo sin alias confirmado por una persona*.
   íntegros; y no existe ningún camino que fabrique un `MatchId`, lo normalice por
   parecido o lo tome del texto de la fuente.
 
+- **CA-14 — El ritmo de RN-11 sobrevive al proceso (RN-11, ADR-004, ADR-006).**
+
+  > *Criterio añadido el 2026-09-01 por la enmienda de alcance que Alberto Fojo
+  > arbitró ese día, contra la recomendación de `sdd-arquitecto`. Motivo,
+  > mecanismo descartado y coste están en el ledger: «Enmienda — 2026-09-01: el
+  > estado durable del limitador de RN-11 entra en SPEC-008 (F-SPEC-008-V13)».*
+
+  *La forma real de producción es **una instancia nueva por tick**: ADR-004 dice
+  que en Vercel no hay proceso vivo. Un limitador que sea un campo de instancia
+  cumple RN-11 dentro de una ejecución y no la cumple entre ejecuciones —diez
+  peticiones al mismo par en el mismo minuto, medidas—. Este criterio no se
+  comprueba con un proceso largo: se comprueba **construyendo el adaptador de
+  nuevo**, como lo construye un arranque en frío.*
+
+  **CA-14.1 — Un solo paso, no dos.**
+  El puerto del ritmo expone **una** operación: conceder el turno y sellarlo a la
+  vez. Un test comprueba que el adaptador **no tiene ninguna forma de preguntar
+  sin sellar**: entre preguntar y sellar cabe otra instancia, y ése es
+  exactamente el fallo que se está arreglando. El puerto es **obligatorio** en
+  las opciones del `SourceAdapter`, sin default permisivo, igual que `robots`.
+
+  **CA-14.2 — Instancia nueva por tick.**
+  Dado un reloj falso detenido y **diez `SourceAdapter` construidos por
+  separado**, cada uno con su propio puerto del ritmo recién creado y
+  compartiendo únicamente el almacén durable,
+  cuando cada uno captura una vez el mismo par (fuente, competición),
+  entonces **sale exactamente una petición**, y las otras nueve devuelven
+  `skipped` con la frase de `rateLimitSkipReason`.
+  Con el reloj adelantado 60 s entre construcciones, salen **diez**.
+
+  **CA-14.3 — Control positivo, y es el que nombra el defecto.**
+  La misma batería corrida contra la implementación **en memoria** da **diez
+  peticiones**, y el caso lo afirma como resultado esperado: es la reproducción
+  exacta de F-SPEC-008-V13 y la prueba de que CA-14.2 no pasa por casualidad.
+
+  **CA-14.4 — Dos que llegan a la vez, uno solo sale.**
+  Dadas dos concesiones **concurrentes** sobre el mismo par y el mismo instante,
+  **exactamente una** obtiene el turno. Se comprueba contra el almacén durable
+  real: es el caso que producen una invocación manual, un reintento del cron o un
+  despliegue solapado, y el único que un doble en memoria no puede simular.
+
+  **CA-14.5 — Una batería de contrato, dos implementaciones.**
+  La semántica del puerto **dentro de una instancia** —concede, niega dentro del
+  minuto, concede pasado el minuto, y **un minuto sin pedir no da derecho a dos
+  peticiones en el siguiente**— se escribe **una vez** y corre contra las dos
+  implementaciones, como `tests/raw/contract.ts` corre contra disco y Blob
+  (ADR-005). La supervivencia **entre** instancias no es parte de esta batería:
+  es CA-14.2, y solo la implementación durable la pasa. La cláusula del no
+  acumular no es adorno: es lo que `/robot` promete literalmente en galego y en
+  castellano (`src/i18n/gl.ts`, `src/i18n/es.ts`, SPEC-005).
+
+  **CA-14.6 — El número vive donde vivía, y el SQL no lo repite.**
+  El intervalo sigue siendo `MIN_REQUEST_INTERVAL_MS` de
+  `src/polite/rate-limit.ts`; la implementación durable recibe el **instante
+  límite ya calculado** y no escribe ningún intervalo en su SQL. Un test cambia
+  el intervalo en un solo sitio y ve cambiar el comportamiento de las dos
+  implementaciones. Acceso con `postgres.js` y SQL etiquetado, **sin ORM**;
+  migración `migrations/0002_<slug>.sql`, en orden y sin rollback (ADR-006).
+
+  **CA-14.7 — Se falla cerrado.**
+  Si la concesión **falla** —no hay base de datos configurada, la consulta
+  revienta—, **no sale ninguna petición**, no se archiva nada, no se produce
+  ninguna `Observation` y el tick registra el motivo. Sin estado del ritmo no hay
+  ritmo demostrable, y ADR-014 §3.3 ya fijó que en producción eso se resuelve
+  cerrando.
+
+  **CA-14.8 — El instrumento se queda como está, y se dice por qué.**
+  `src/mirror/` sigue usando la implementación en memoria. No es una excepción
+  tolerada: es el motivo que F-SPEC-002-2 escribió y ADR-014 §3 reutilizó —la
+  ventana dura una hora, corre en **un** proceso, y el operador está delante—. Un
+  test comprueba que las CLI de `src/mirror/` siguen construyendo la
+  implementación en memoria y que **ningún módulo bajo `src/ingest/` puede
+  construirla**.
+
+  **CA-14.9 — Lo que este criterio NO promete.**
+  No hay reserva de turno ni reintento: **un turno concedido cuya petición
+  después falla se ha gastado**, y el par espera al minuto siguiente. Es
+  deliberado —RN-11 cuenta peticiones que **salen**, no respuestas que vuelven— y
+  es lo que impide que un tercero caído se lleve una ráfaga. Tampoco cubre a
+  `src/mirror/` (CA-14.8), ni dice nada del ritmo del `robots.txt`, que ADR-014
+  §3.2 contabiliza aparte.
+
+  **Cómo se corre.** CA-14.1, CA-14.3, CA-14.8, CA-14.9 y la mitad en memoria de
+  CA-14.5 van en `npm test`. CA-14.4 y la mitad durable de CA-14.2, CA-14.5 y
+  CA-14.6 van en `npm run test:db` y **necesitan `DATABASE_URL_TEST`**: sin él son
+  **UNMET, no *skipped*** (gate del 2026-08-29). El ledger tiene que llevar las
+  dos salidas.
+
 ## Entidades y reglas afectadas
 
 **Reglas de negocio** (`docs/fundacion/reglas.md`, no se duplican aquí):
@@ -372,7 +612,8 @@ un equipo sin alias confirmado por una persona*.
 - **RN-10** — archivo antes de parseo, sin modo degradado (CA-4), y también para
   el `robots.txt` (CA-6).
 - **RN-11** — `robots.txt` obedecido de verdad (CA-1, CA-5, CA-6), user-agent
-  identificado (CA-5) y 1 petición/minuto por competición (CA-7).
+  identificado (CA-5) y 1 petición/minuto por competición **dentro de una
+  instancia** (CA-7) **y entre instancias** (CA-14).
 - **RN-12** — no aplica aquí y se dice por qué: solo una regla del motor produce
   una `Decision`, y esta spec no produce ninguna.
 - **RN-13** — las `Observation` salen congeladas y el adaptador no reescribe
@@ -390,8 +631,16 @@ un equipo sin alias confirmado por una persona*.
   2026-11-29) y la prohibición **irreversible** de versionar HTML real de
   terceros (CA-8).
 - **ADR-006** — instantes como cadena ISO 8601 UTC, nunca `Date` (CA-9.3);
-  `postgres.js` y SQL etiquetado, sin ORM, para cuando llegue la persistencia,
-  que no llega aquí.
+  `postgres.js` y SQL etiquetado, sin ORM, y migraciones numeradas y **sin
+  rollback** — que a partir de la enmienda del 2026-09-01 **sí** aplican aquí, en
+  `migrations/0002` y en la implementación durable del ritmo (CA-14.6).
+- **ADR-016** (`borrador`, escrito el 2026-09-01 por encargo del gate) — cómo se
+  demuestra una frontera de capacidad: enumerar lo permitido y exigir que el
+  resto sea vacío. **CA-2 es su primera aplicación**; el ADR fija la regla
+  general y esta spec no la redefine.
+- **ADR-015** (`borrador`) — la forma de una enmienda sobre un criterio ya
+  firmado. Es la que usan, por analogía declarada, las dos enmiendas del ledger
+  de esta spec.
 - **ADR-005** — `RawStore` como puerto: Vercel Blob en producción, disco en local
   y tests. Esta spec no lo toca; lo usa.
 - **ADR-011** — forma estable del user-agent declarado; la mitad de RN-11 que se
@@ -415,14 +664,23 @@ Aparcado a propósito, no por descuido. Cada línea tiene dueño futuro.
   **una sola vía en RN-02**: con una única fuente automática de peso 0.7, nada
   llega a *confirmado* por vía automática. Es dato de partida, no incógnita.
 - **El cron de planificación, el calendario y las ventanas por partido.** Esta
-  spec deja el limitador y el puerto listos; quién los dispara y cuándo es de la
-  spec del cron.
+  spec deja el limitador y el puerto listos —y, desde la enmienda del
+  2026-09-01, también **el estado durable del ritmo** (CA-14), que ya no viaja a
+  la spec del cron—; quién dispara el tick y cuándo sigue siendo de ella. La spec
+  del cron hereda un limitador que **ya** sobrevive al proceso, y no una
+  precondición de despliegue que cumplir.
 - **El catálogo de alias de los 36 equipos y su confirmación humana (RN-09).**
   Aquí solo se define y se dobla el puerto `MatchResolver`.
-- **La persistencia.** La implementación Postgres de `ObservationStore` y
-  `DecisionStore` sigue siendo de «la primera spec que la necesite»
-  (F-SPEC-001-3), y esta no la necesita: devuelve `Observation`, no las guarda.
-  Tampoco hay `migrations/0002`.
+- **La persistencia del modelo canónico.** La implementación Postgres de
+  `ObservationStore` y `DecisionStore` sigue siendo de «la primera spec que la
+  necesite» (F-SPEC-001-3), y ésta no la necesita: devuelve `Observation`, no las
+  guarda. **Ninguna `Observation` y ninguna `Decision` tocan la base de datos en
+  esta spec**, ni el calendario, ni el catálogo de alias.
+  **Enmendado el 2026-09-01 (arbitraje de Alberto Fojo):** `migrations/0002`
+  **sí entra**, y solo para el estado durable del ritmo de RN-11 —una tabla, la
+  clave del par y un instante (CA-14)—. El texto que decía «tampoco hay
+  `migrations/0002`» queda sustituido; el original, el motivo y el mecanismo
+  descartado están en el ledger.
 - **El adaptador de `besoccer.es`.** Sirve armazones vacíos y su dato vive tras
   un `Disallow: /ajax*` que, **a partir de CA-1, por fin se respeta de verdad**.
   Su superficie servida no encaja en el modelo (`hallazgos/fontes-capturables.md`).
@@ -451,6 +709,11 @@ Aparcado a propósito, no por descuido. Cada línea tiene dueño futuro.
   de calibrar; ver notas §5.
 
 ## Notas para el gate humano
+
+> **Estado de estas notas tras el arbitraje del 2026-09-01.** Los puntos 1..8 son
+> los del gate original y siguen tal cual; los puntos 3 y 4 quedaron **firmados**
+> ese día y no se reabren. Los puntos **9 y 10** los añade la aplicación de las
+> dos enmiendas que Alberto Fojo arbitró, y son lo nuevo que hay que mirar.
 
 Lo que hay que mirar con lupa antes de firmar. Los siete puntos son decisiones,
 no detalles, y cuatro de ellos son preguntas abiertas de verdad.
@@ -514,3 +777,20 @@ no detalles, y cuatro de ellos son preguntas abiertas de verdad.
    una regla dura que por fin se cumple. Medir sigue estando a cinco specs de
    distancia, y el desglose propuesto va en el informe de este encargo, no aquí:
    el desglose es orientativo hasta que cada spec se escriba.
+
+9. **CA-2 ya no mecaniza la primera prohibición de ADR-014 §4, y eso está
+   firmado.** Un segundo parser de `robots.txt` puede existir mientras no pueda
+   decidir ni abrir una puerta. La regla del ADR sigue vigente y pasa a
+   sostenerse en **revisión humana**. **No hay CI**: el gate de calidad corre en
+   local, así que esa revisión humana es literalmente una persona leyendo un
+   diff. Es la firma incómoda del 2026-09-01 y conviene releerla cada vez que se
+   toque `src/site/` o `src/mirror/`.
+
+10. **La spec deja de ser verificable con un solo comando.** CA-14 mete
+    `migrations/0002` —irreversible en la práctica, ADR-006— y parte de su
+    evidencia solo existe contra un Postgres real: `npm run test:db` con
+    `DATABASE_URL_TEST`, y sin él esos criterios son **UNMET, no *skipped***.
+    Además, el camino de ingesta gana una dependencia de base de datos que no
+    tenía: **un tick sin ella no manda nada** (CA-14.7). Es fallo cerrado y es lo
+    correcto, pero significa que una caída de Postgres es cobertura perdida, y
+    esa cifra es uno de los cuatro entregables de la épica.
