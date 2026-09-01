@@ -330,6 +330,10 @@ export const ENTRY_POINTS: readonly string[] = [
   'src/app/_contract/model-client.tsx',
   'src/app/robots.txt/route.ts',
   // The commands of `package.json`.
+  // `calendario:cargar` (SPEC-010 CA-6): loads a declared calendar against
+  // `DATABASE_URL` from the operator's machine. It reads one local file and
+  // talks to our own Postgres; it asks no third party for anything.
+  'src/calendar/cli.ts',
   'src/db/cli.ts',
   'src/mirror/cli/analizar-cli.ts',
   'src/mirror/cli/analizar-sin-referencia-cli.ts',
