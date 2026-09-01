@@ -30,6 +30,7 @@ Roles de dominio consultivos: `/sdd-competicion`, `/sdd-legal-datos`,
 Fase: **spike de ingesta** (`EPIC-001`), paralelo con **sitio público de proyecto** (`EPIC-003`).
 - EPIC-001: Objetivo: medir latencia, cobertura, conflictos y minutos de operación manual con Terceira RFEF G1 + Preferente Futgal G1. Código: `src/model/`, `src/raw/`, `src/db/` (SPEC-001), `src/mirror/` (SPEC-002 y SPEC-003), `migrations/0001` aplicada. Las tres specs están hechas y verificadas GREEN. `src/ingest/`, `src/decide/` y `src/api/` siguen sin existir.
 - EPIC-003: **SPEC-004 está `hecho`** (verificada GREEN, 2026-08-31): sitio público en `marcador.gal` con soporte galego/castellano, respaldo de la carta a la RFGF. Código: `src/app/(gl)/`, `src/app/(es)/` (rutas del sitio), `src/site/` (componentes reutilizables), `src/i18n/` (bundles gl/es). SPEC-005 `aprobada` (2026-08-31), aguardando implementación.
+- EPIC-004: **aprobada y CONGELADA de nacimiento** (2026-09-01). Guarda el sistema de diseño del marcador (`docs/diseno/`) y no se descongela hasta el go/no-go. Si vas a tocar interfaz, léela antes: su inventario tiene dos entradas que ya disparan —qué cualificador es el estado normal, y que el panel del operador no tiene ningún diseño.
 
 **La ventana de observación no se ha corrido, y hoy no se puede correr entera.**
 `futgal.es` prohíbe el rastreo en su `robots.txt` y RN-11 obliga a respetarlo, así
@@ -37,9 +38,14 @@ que la fuente oficial **no es capturable** (ADR-008). SPEC-002 queda a la espera
 que lo sea; SPEC-003 mide lo que sí se puede medir sin ella. EPIC-001 **no tiene
 todavía ninguna de sus cuatro cifras**.
 
-Los ADRs están **aprobados** (ADR-001 a ADR-009) y son inmutables — dos nuevos en EPIC-003 (ADR-010 y ADR-011), en borrador. Para cambiar cualquiera, escribe otro ADR que lo supersede; no los
-edites. ADR-008 y ADR-009 superseden **parcialmente** a ADR-002 y ADR-005: lee
-siempre el que supersede antes de apoyarte en el viejo.
+Hay **trece ADRs**. Aprobados e inmutables: **ADR-001 a ADR-009, ADR-012 y
+ADR-013**. En borrador: **ADR-010 y ADR-011** (EPIC-003). Para cambiar uno
+aprobado, escribe otro ADR que lo supersede; no lo edites. ADR-008 y ADR-009
+superseden **parcialmente** a ADR-002 y ADR-005: lee siempre el que supersede
+antes de apoyarte en el viejo. **ADR-013 fija la semántica visual del marcador**
+—el acento de marca nunca es un color de estado, ningún estado se codifica solo
+con color, dígitos tabulares, sin escudos— y te obliga en cuanto toques
+interfaz, aunque sea una página mínima de medición.
 
 ## Reglas duras
 
@@ -141,6 +147,7 @@ docs/epicas/             épicas y sus specs
 docs/adr/                ADRs
 docs/procedimientos/     runbooks operativos (la ventana de observación)
 docs/negocio/            monetización y marca
+docs/diseno/             sistema de diseño del marcador: fuentes, tokens y lienzo (EPIC-004)
 ```
 
 ## Principios de marca (para Frontend y cualquier texto)
