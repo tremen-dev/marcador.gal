@@ -2,12 +2,13 @@
 id: SPEC-010
 tipo: spec
 epica: EPIC-002
-estado: en-progreso
+estado: en-revision
 aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-09-01, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-09-02, por: Alberto Fojo}
   - {estado: en-progreso, fecha: 2026-09-02, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-09-02, por: sdd-implementador}
 ---
 # SPEC-010 — Calendario declarado a mano y repositorios de Observation y Decision en Postgres
 
