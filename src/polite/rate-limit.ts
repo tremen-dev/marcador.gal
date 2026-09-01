@@ -24,6 +24,18 @@ export function pairKey(source: string, competitionId: string): string {
 }
 
 /**
+ * Why a turn was suppressed, in the words of the rule.
+ *
+ * It lives beside the limiter and not at the call site for the same reason
+ * `robotsSkipReason` lives beside the policy: the archive is the only artefact
+ * of the spike that outlives it, and a skip whose reason nobody can read is a
+ * hole in it.
+ */
+export function rateLimitSkipReason(key: string, intervalMs = MIN_REQUEST_INTERVAL_MS): string {
+  return `${key}: asked less than ${intervalMs} ms ago; at most 1 request/minute per competition (RN-11)`;
+}
+
+/**
  * Last instant at which a request LEFT, per key. Epoch milliseconds.
  *
  * A suppressed turn is NOT a failed one: it produces no request and no record,

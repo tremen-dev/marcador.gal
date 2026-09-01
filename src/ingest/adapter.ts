@@ -23,7 +23,7 @@
 import { captureThenParse } from '@/raw/capture';
 import { epochMsOf } from '@/polite/clock';
 import { assertUserAgent, politeFetch } from '@/polite/http';
-import { RateLimiter, pairKey } from '@/polite/rate-limit';
+import { RateLimiter, pairKey, rateLimitSkipReason } from '@/polite/rate-limit';
 import { USER_AGENT } from '@/polite/user-agent';
 import { readRows } from './observations';
 import type { Clock } from '@/polite/clock';
@@ -80,6 +80,13 @@ export class SourceAdapter {
    * Asks for one competition page, archives it, and hands back the reference
    * and the bytes.
    *
+   * THE RHYTHM OF RN-11 IS ENFORCED HERE, in the only public way in, and not
+   * only in `tick()`. This method is public API: if it did not consult the
+   * limiter, a supervised local loop calling it ten times would send ten
+   * requests in the same minute and RN-11 would rest on the discipline of the
+   * caller — which is exactly what CA-7 says it must not. The seam of §5
+   * survives untouched: `capture()` and `read()` still do not call each other.
+   *
    * IT THROWS AND DOES NOT WRAP. If the archive fails, nothing is parsed, no
    * `Observation` is produced and the error leaves as it is: an `Observation`
    * without its raw is one nobody can reprocess, which is the whole reason
@@ -88,8 +95,22 @@ export class SourceAdapter {
    */
   async capture(target: IngestTarget, at: Instant): Promise<CaptureOutcome> {
     // Before ANY I/O: a request that would leave without identifying us is
-    // our defect, and it is caught here rather than at the door (RN-11).
+    // our defect, and it is caught here rather than at the door (RN-11). It
+    // goes before the limiter because a missing user-agent is a defect of
+    // ours, not a turn of the rhythm, and must not be answered with a skip.
     assertUserAgent(target.url, this.#userAgent);
+
+    const key = pairKey(target.source, target.competition_id);
+    const epochMs = epochMsOf(at);
+    if (!this.#limiter.isDue(key, epochMs)) {
+      return { kind: 'skipped', at, reason: rateLimitSkipReason(key) };
+    }
+
+    // Stamped BEFORE the await, and before the robots check: RN-11 is about
+    // the rate at which requests LEAVE, so a slow response must not buy the
+    // next turn an early one, and a forbidden target is asked about once a
+    // minute rather than on every pass of the cron.
+    this.#limiter.stamp(key, epochMs);
 
     const decision = await this.#options.robots.allows(target.url, target.source, at);
     if (!decision.allowed) {
@@ -151,14 +172,13 @@ export class SourceAdapter {
     const records: TickRecord[] = [];
 
     for (const target of this.#options.registry.targets()) {
-      const key = pairKey(target.source, target.competition_id);
-      if (!this.#limiter.isDue(key, epochMs)) continue;
-
-      // Stamped BEFORE the await: RN-11 is about the rate at which requests
-      // leave, so a slow response must not buy the next tick an early turn.
-      // Stamped before the robots check too, so a forbidden target is asked
-      // about once a minute and not on every pass of the cron.
-      this.#limiter.stamp(key, epochMs);
+      // The limiter is consulted here TOO, and the duplication is deliberate:
+      // `capture()` enforces the rhythm on its own (it is public API and RN-11
+      // cannot depend on the caller), while this pass needs to know something
+      // `capture()` cannot tell it — that a suppressed turn produces NO
+      // RECORD. A suppressed tick is not a failed tick, and turning it into a
+      // `skipped` record would read as lost coverage.
+      if (!this.#limiter.isDue(pairKey(target.source, target.competition_id), epochMs)) continue;
 
       records.push(await this.#attempt(target, at));
     }

@@ -231,10 +231,15 @@ describe('CA-5 — ninguna petición sale sin permiso, sin identificarse o cambi
     });
     const target = h.targets[0]!;
 
-    await expect(h.adapter.capture(target, h.clock.now())).rejects.toThrow(
-      RedirectNotFollowedError,
-    );
-    await expect(h.adapter.capture(target, h.clock.now())).rejects.toThrow(/besoccer\.es/);
+    // UNA sola captura, y las dos aserciones sobre el mismo error. Repetirla
+    // con el reloj parado ya no vuelve a pedir: desde el caso 14, `capture()`
+    // consulta el limitador y la segunda llamada sería un `skipped`, no un
+    // rechazo — que es exactamente lo que CA-7 quiere y lo que este caso no
+    // está probando.
+    const error: unknown = await h.adapter.capture(target, h.clock.now()).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(RedirectNotFollowedError);
+    expect(String(error)).toMatch(/besoccer\.es/);
     expect((h.store as MemoryRawStore).keys.filter((k) => !k.includes('/robots/'))).toEqual([]);
   });
 
@@ -310,5 +315,62 @@ describe('CA-7 — el ritmo lo impone el adaptador, no quien lo llama (RN-11)', 
 
     expect(first.map((r) => r.outcome)).toEqual(['skipped', 'skipped']);
     expect(second).toEqual([]);
+  });
+
+  test('14. el API público tampoco lo rodea: diez `capture()` con el reloj parado, UNA petición', async () => {
+    // F-SPEC-008-V4. El §4 de la spec exige que un cron a diez segundos, UN
+    // BUCLE LOCAL SUPERVISADO y un test con reloj falso sean *igual de
+    // incapaces* de exceder el ritmo. `capture()` es público: si el limitador
+    // solo viviera en `tick()`, el bucle de diez lo rodearía entero y RN-11
+    // dependería de la disciplina de quien llama, que es justo lo que el CA
+    // dice que no.
+    const h = harness();
+    const target = h.targets[0]!;
+
+    const outcomes = [];
+    for (let i = 0; i < 10; i += 1) outcomes.push(await h.adapter.capture(target, h.clock.now()));
+
+    expect(h.spy.forUrl(target.url)).toHaveLength(1);
+    expect(outcomes.filter((o) => o.kind === 'captured')).toHaveLength(1);
+    expect(outcomes.filter((o) => o.kind === 'skipped')).toHaveLength(9);
+
+    // Un `skipped` sin motivo legible es un agujero en el archivo, que es lo
+    // único del spike que sobrevive: el motivo nombra el par y la regla.
+    const suppressed = outcomes.at(-1);
+    expect(suppressed?.kind).toBe('skipped');
+    if (suppressed?.kind !== 'skipped') return;
+    expect(suppressed.reason).toContain('RN-11');
+    expect(suppressed.reason).toContain('ceroacero/futgal-preferente-g1');
+  });
+
+  test('15. y el limitador del API público es POR PAR, no un cerrojo global', async () => {
+    // Si `capture()` se limitara con una sola llave para todo el adaptador, el
+    // caso 14 pasaría igual y RN-11 —«por competición»— quedaría mal leída.
+    const h = harness();
+    const [first, second] = h.targets;
+
+    await h.adapter.capture(first!, h.clock.now());
+    await h.adapter.capture(second!, h.clock.now());
+    expect(h.spy.forUrl(first!.url)).toHaveLength(1);
+    expect(h.spy.forUrl(second!.url)).toHaveLength(1);
+
+    // Y pasado el minuto le vuelve a tocar a cada uno, una vez.
+    h.clock.advance(60_000);
+    await h.adapter.capture(first!, h.clock.now());
+    await h.adapter.capture(first!, h.clock.now());
+    expect(h.spy.forUrl(first!.url)).toHaveLength(2);
+  });
+
+  test('16. y `tick()` no gasta dos turnos por pase al delegar en `capture()`', async () => {
+    // El limitador se consulta en los dos sitios a propósito. Este caso fija
+    // que esa doble consulta no se come el turno: un pase del cron sigue
+    // produciendo exactamente una petición por par, y su registro.
+    const h = harness();
+    const [first] = h.targets;
+
+    const records = await h.adapter.tick();
+
+    expect(records.map((r) => r.outcome)).toEqual(['ok', 'ok']);
+    expect(h.spy.forUrl(first!.url)).toHaveLength(1);
   });
 });

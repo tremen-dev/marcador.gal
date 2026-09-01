@@ -6,9 +6,9 @@ epica: EPIC-002
 # Ledger — SPEC-008 Adaptador de ceroacero.es y cortesia RN-11 con una sola implementacion
 
 ## Resumen
-- Fase: **en-revisión** — verificada el 2026-09-01 por `sdd-verificador`: **RED**. Ver *Veredicto del verificador*.
+- Fase: **en-revisión** (segunda vuelta) — la primera verificación, del 2026-09-01, salió **RED** con dos bloqueantes; ambos arreglados. Ver *Segunda vuelta*.
 - Rama: `ft/SPEC-008-adaptador-ceroacero` (creada sobre `88c359b`)
-- Commits: `a95b5ca` (CA-1 + traslado ADR-014 §1) · `377091d` (CA-2, CA-4..CA-13)
+- Commits: `a95b5ca` (CA-1 + traslado ADR-014 §1) · `377091d` (CA-2, CA-4..CA-13) · `e542193` (veredicto del verificador) · el commit de la segunda vuelta (F-SPEC-008-V1 y F-SPEC-008-V4)
 
 ## Matriz de criterios de aceptación
 <!-- Escritores: sdd-implementador rellena Implementado y Test; sdd-verificador rellena Verif. y Estado. Nunca al revés. -->
@@ -17,12 +17,12 @@ epica: EPIC-002
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
 | CA-1 — comodín `*` y ancla `$` (F-SPEC-002-23) | `src/polite/robots.ts` (`patternToRegExp`, desempate por longitud con `Allow` ganando el empate) | `tests/polite/robots.test.ts` casos 1-18 | M1, M2, M3, M4, V1, V2 corridas por el verificador: las seis mueren en casos nominados de `tests/polite/robots.test.ts`. Las dos mitades del cambio de ADR-014 §2 están probadas **por separado**: comodín y ancla (casos 1-8) y desempate por longitud con el `Allow` ganando el empate (casos 9-11). | ✅ |
-| CA-2 — una sola cortesía RN-11 (arquitectura) | `src/polite/{robots,http,user-agent,rate-limit,clock,policy}.ts`; consumidores: `src/mirror/`, `src/ingest/`, `src/site/crawler-page.tsx` | `tests/polite/architecture.test.ts` casos 1-6 (el 6 es el control positivo por destino) | M15 muere en `architecture` 2, 3 y 4, y el control positivo del caso 6 es real. **Pero el guardián se rodea por tres caminos, demostrados ejecutando** (V4, V5 y V6 sobreviven con la suite entera en verde): una segunda puerta de salida con `node:https.request` y cabecera de clave computada; un segundo parser de `robots.txt` sin literales entrecomillados ni los nombres declarados; y una segunda composición de la cadena declarada fuera de `src/polite/`. Ver **F-SPEC-008-V1**. | ⚠️ |
-| CA-3 — el traslado no cambia comportamiento | traslado sin fachada; `src/mirror/` conserva `capturer.ts`, `ports.ts`, `thresholds.ts` con rutas nuevas | `tests/mirror/**` (48 ficheros, 347 casos con `tests/site` y `tests/docs`) — **una aserción enmendada**: `tests/mirror/user-agent.test.ts` caso 15 | `npx vitest run tests/mirror tests/site tests/docs` → 48 ficheros / 347 casos en verde, reproducido por el verificador. Ningún caso borrado (ocurrencias de `test(` en esas rutas: 340 en `main`, 341 en HEAD). La enmienda del caso 15 está **aceptada por el gate humano** —ADR-014 §1 la vuelve falsa por decisión firmada— y el guardián nuevo muerde: V13 (copia literal de la cadena en `src/site/`) y V14 (cambiar la versión declarada) mueren en 2 y 4 casos. **El recuento del ledger es incorrecto**: hay cuatro ficheros más de suites cerradas con cambios que no son rutas de `import`. Ver **F-SPEC-008-V2**. | ⚠️ |
+| CA-2 — una sola cortesía RN-11 (arquitectura) | `src/polite/{robots,http,user-agent,rate-limit,clock,policy}.ts`; consumidores: `src/mirror/`, `src/ingest/`, `src/site/crawler-page.tsx` | `tests/polite/architecture.test.ts` casos 1-8 — el 6 es el control positivo por destino, el **7** el control positivo de las tres evasiones de F-SPEC-008-V1 (cada una contra su detector, más la comprobación de que el guardián viejo NO las cazaba) y el **8** el que vigila las dos exenciones nominales del detector (a) | M15 muere en `architecture` 2, 3 y 4, y el control positivo del caso 6 es real. **Pero el guardián se rodea por tres caminos, demostrados ejecutando** (V4, V5 y V6 sobreviven con la suite entera en verde): una segunda puerta de salida con `node:https.request` y cabecera de clave computada; un segundo parser de `robots.txt` sin literales entrecomillados ni los nombres declarados; y una segunda composición de la cadena declarada fuera de `src/polite/`. Ver **F-SPEC-008-V1**. | ⚠️ |
+| CA-3 — el traslado no cambia comportamiento | traslado sin fachada; `src/mirror/` conserva `capturer.ts`, `ports.ts`, `thresholds.ts` con rutas nuevas | `tests/mirror/**` (48 ficheros, 347 casos con `tests/site` y `tests/docs`). **Cambios en suites cerradas: CINCO ficheros, no uno** (recuento corregido, F-SPEC-008-V2). Solo uno es una aserción reescrita de verdad; los otros cuatro son literales que nombran una ruta que se movió, autorizados por ADR-014 §1 y semánticamente iguales: 1) `tests/mirror/user-agent.test.ts` — el caso 15 **se sustituyó** por dos casos nuevos (15 y 16) y es la única enmienda de fondo (F-SPEC-008-1); 2) `tests/mirror/capture/no-parse.test.ts`, caso final — `expect(reachable).toContain('src/mirror/thresholds.ts')` → `'src/polite/rate-limit.ts'`; **no es una ruta de `import`, es la aserción**, y cambia porque `MIN_REQUEST_INTERVAL_MS` salió de `thresholds.ts` y el `Capturer` ya no alcanza ese módulo (sigue diciendo lo mismo: «el capturador alcanza el limitador»); 3) `tests/site/crawler-page.test.ts`, caso 2 — el literal esperado pasa de `'mirror/user-agent.ts'` a `'polite/user-agent.ts'`; 4) `tests/mirror/capture/robots.test.ts`, caso 8 — el directorio escaneado; 5) `tests/mirror/capture/redirects.test.ts`, caso 4 — ídem | `npx vitest run tests/mirror tests/site tests/docs` → 48 ficheros / 347 casos en verde, reproducido por el verificador. Ningún caso borrado (ocurrencias de `test(` en esas rutas: 340 en `main`, 341 en HEAD). La enmienda del caso 15 está **aceptada por el gate humano** —ADR-014 §1 la vuelve falsa por decisión firmada— y el guardián nuevo muerde: V13 (copia literal de la cadena en `src/site/`) y V14 (cambiar la versión declarada) mueren en 2 y 4 casos. **El recuento del ledger es incorrecto**: hay cuatro ficheros más de suites cerradas con cambios que no son rutas de `import`. Ver **F-SPEC-008-V2**. | ⚠️ |
 | CA-4 — archivar antes de parsear (RN-10) | `src/ingest/adapter.ts` (`capture` vía `captureThenParse`, lanza sin envolver) | `tests/ingest/adapter.test.ts` casos 1-5 | M5, M7, M8, M13, V3b, V3c y V9 mueren en `adapter` 1-5. El `put` precede al lector, el `raw_ref` devuelto es el que llevan todas las `Observation`, y un `put` fallido no deja resultado parcial ni error envuelto. | ✅ |
-| CA-5 — robots / UA / sin redirección (RN-11) | `src/ingest/adapter.ts` (`assertUserAgent` primero, `PolicyGate`, `politeFetch`) | `tests/ingest/adapter.test.ts` casos 5-9 | M5, M6 y V10 mueren en `adapter` 5-9. Los tres escenarios están: política prohibitiva (cero peticiones al objetivo, motivo con la ruta y RN-11), user-agent vacío (`MissingUserAgentError` antes de abrir política, tocar el archivo o mirar el `robots.txt` — el doble del `PolicyGate` registra que no le preguntaron) y 3xx (`RedirectNotFollowedError`, `Location` en el motivo, nada archivado bajo la competición). | ✅ |
+| CA-5 — robots / UA / sin redirección (RN-11) | `src/ingest/adapter.ts` (`assertUserAgent` primero, luego el limitador, luego `PolicyGate` y `politeFetch`) | `tests/ingest/adapter.test.ts` casos 5-9. El **caso 8 se reescribió en la segunda vuelta**: pedía dos veces para asertar dos cosas, y desde que `capture()` respeta el limitador la segunda llamada es un `skipped` y no un rechazo. Ahora captura **una vez** y asienta las dos aserciones sobre el mismo error. Es de esta spec, no de una cerrada | M5, M6 y V10 mueren en `adapter` 5-9. Los tres escenarios están: política prohibitiva (cero peticiones al objetivo, motivo con la ruta y RN-11), user-agent vacío (`MissingUserAgentError` antes de abrir política, tocar el archivo o mirar el `robots.txt` — el doble del `PolicyGate` registra que no le preguntaron) y 3xx (`RedirectNotFollowedError`, `Location` en el motivo, nada archivado bajo la competición). | ✅ |
 | CA-6 — `robots.txt` obtenido, archivado y caducado | `src/polite/policy.ts` (`RobotsGate`, `ROBOTS_MAX_AGE_MS`, `ROBOTS_COMPETITION_ID`) | `tests/ingest/robots-policy.test.ts` casos 1-9 | M7, M8, V3b y V3c mueren en `robots-policy` 1-9. La clave `ceroacero/robots/2026-09-06/…z-<12hex>.txt` está asertada literalmente; las 6 h se comprueban por arriba y por abajo; se falla cerrado en las tres formas (nunca obtenida, caducada, petición fallida). Salvedad menor: V3 —parsear antes de archivar **sin** usar el resultado antes del `put`— sobrevive. Ver **F-SPEC-008-V3**. | ✅ |
-| CA-7 — 1 pet./min por competición dentro | `src/polite/rate-limit.ts` (`RateLimiter`) + `src/ingest/adapter.ts` (`tick`) | `tests/ingest/adapter.test.ts` casos 10-13 | M9 y V7 mueren en `adapter` 10-13; el sello antes del `await` está probado con el escenario realista. **Pero el ritmo lo puede imponer quien llama**: `SourceAdapter.capture()` es público y no consulta el limitador. Sonda del verificador (fichero temporal, borrado): diez llamadas seguidas a `capture()` con el reloj parado producen **diez peticiones** al mismo par (source, competición). En SPEC-002 el equivalente, `Capturer.#capture`, es privado y solo `tick()` es público. Ver **F-SPEC-008-V4**. | ⚠️ |
+| CA-7 — 1 pet./min por competición dentro | `src/polite/rate-limit.ts` (`RateLimiter`, `rateLimitSkipReason`) + `src/ingest/adapter.ts`: **el limitador se consulta y se sella dentro de `capture()`**, que es la única entrada pública al camino de red, y `tick()` lo consulta además para saber que un turno suprimido no produce registro | `tests/ingest/adapter.test.ts` casos 10-16 (el **14** es la sonda del verificador vuelta test: diez `capture()` con el reloj parado; el **15** que el limitador es por par y no un cerrojo global; el **16** que la doble consulta no gasta dos turnos por pase) | M9 y V7 mueren en `adapter` 10-13; el sello antes del `await` está probado con el escenario realista. **Pero el ritmo lo puede imponer quien llama**: `SourceAdapter.capture()` es público y no consulta el limitador. Sonda del verificador (fichero temporal, borrado): diez llamadas seguidas a `capture()` con el reloj parado producen **diez peticiones** al mismo par (source, competición). En SPEC-002 el equivalente, `Capturer.#capture`, es privado y solo `tick()` es público. Ver **F-SPEC-008-V4**. | ⚠️ |
 | CA-8 — extracción de ceroacero, fixtures sintéticos | `src/ingest/ceroacero.ts` (`CEROACERO_SHAPE`, `tableExtractor`) | `tests/ingest/ceroacero.test.ts` casos 1-10 · fixtures `tests/fixtures/ceroacero.ts` | M13 y M14 mueren en `ceroacero` 1-10: las cinco ramas, el marcador, la hora y las tres formas de fila ilegible están cubiertas, y el segundo señuelo del fixture hace que ensanchar el `rowSelector` sea rojo. `tests/fixtures/ceroacero.ts` es sintético y escrito a mano; **ningún HTML real de terceros versionado** en la rama (comprobado sobre `git ls-files` y sobre el diff completo contra `main`). Salvedad viva: **F-SPEC-008-2** —solo la rama `scheduled` está calibrada contra el archivo—. V11 sobrevive pero es **equivalente**: `scheduled` implica `kickoff !== null` por construcción de `statusFromResult`. | ⚠️ |
 | CA-9 — forma de la `Observation` (RN-01, ADR-006) | `src/ingest/observations.ts` (`readRows`) + `src/ingest/sources.ts` (`RN01_WEIGHTS`) | `tests/ingest/observations.test.ts` casos 1-7 · `tests/ingest/registry.test.ts` casos 4-6 | M10, V8, V9 y V12 mueren. Los cinco puntos verificados uno a uno: `ObservationSchema.parse` y no un cast, `confidence` leído del registro, `observed_at` como cadena ISO 8601 con `Z` (ADR-006: el único `Date` del código nuevo es el conversor transitorio de `src/polite/clock.ts`, documentado), `raw_ref` obligatorio y apuntando a lo archivado, y salida congelada. | ✅ |
 | CA-10 — replay determinista | `src/ingest/observations.ts` (`observationId`, digest de `raw_ref` + `source_ref`) | `tests/ingest/observations.test.ts` casos 8-10 | M11 muere en `observations` 10. Determinismo, independencia del orden de las filas y `id` distintos para dos capturas del mismo partido, los tres comprobados; el `id` es un digest de `raw_ref` + `source_ref`. | ✅ |
@@ -37,7 +37,7 @@ src/polite/            la cortesía RN-11, con un solo dueño (ADR-014 §1)
   robots.ts            RobotsPolicy, parseRobots (RFC 9309), robotsRegistry, robotsSkipReason
   http.ts              puertos HTTP, assertUserAgent, politeRequest, politeFetch, globalFetcher, 3 errores
   user-agent.ts        USER_AGENT y las constantes de ADR-011
-  rate-limit.ts        MIN_REQUEST_INTERVAL_MS, RateLimiter, pairKey
+  rate-limit.ts        MIN_REQUEST_INTERVAL_MS, RateLimiter, pairKey, rateLimitSkipReason
   clock.ts             Clock, systemClock, epochMsOf
   policy.ts            PolicyGate, RobotsGate: obtener, archivar, caducar (ADR-014 §3)
 
@@ -54,6 +54,11 @@ Se borraron `src/mirror/user-agent.ts`, `src/mirror/capture/robots.ts` y
 reexport, así que no hay dos nombres para la misma cosa.
 
 ## Gates
+
+**Estos son los de la PRIMERA vuelta y se conservan como estaban.** Los vigentes
+—los dos verdes— están en *Segunda vuelta*; el `npm run lint` rojo de aquí lo
+cerró el verificador añadiendo `/docs/diseno/` a `ignorePatterns`
+(**F-SPEC-008-5**, cerrado).
 
 `npm test` — **verde**, salida literal:
 
@@ -231,6 +236,27 @@ nombres en las dos celdas `td.text` en orden local-visitante, y `HH:MM` en
   una sola vez**: todo lo que hay aquí corre contra dobles y fixtures
   sintéticos. Destino: **gate humano / `sdd-legal-datos`**, antes de la primera
   captura real.
+- **F-SPEC-008-9 — El detector (a) de CA-2 vive con dos exenciones nombradas, y
+  eso es lo que cuesta ensancharlo.** `site/robots-txt.ts` y
+  `mirror/analysis/referenceless/report.ts` escriben las palabras del formato
+  sin analizar el de nadie —uno **genera** el nuestro, el otro **cita** el de
+  futgal en una frase en castellano—, así que quedan exentos de `ROBOTS_WORD` y
+  solo de él: `ROBOTS_FIELD` y `ROBOTS_SYMBOL` les siguen aplicando, y el caso 8
+  lo comprueba. Es más flojo que no tener exención ninguna, y se dice: un
+  segundo parser escondido **dentro de esos dos ficheros concretos** solo lo
+  cazarían los otros dos detectores. Se aceptó porque la alternativa —tocar
+  código de SPEC-003 y SPEC-004, dos specs `hecho`, para que dejen de escribir
+  una palabra que escriben con razón— es peor y CA-3 la prohíbe. Destino:
+  **EPIC-MEJORA**, si algún día conviene un detector semántico (quién *lee*
+  bytes de un `robots.txt`) en vez de uno textual.
+- **F-SPEC-008-10 — Los detectores de CA-2 siguen siendo textuales, y por tanto
+  siguen siendo una lista de lo que ya sabemos escribir.** Las tres evasiones
+  del verificador están cerradas y viven como control positivo en `EVASIONS`,
+  pero el guardián no es una prueba: es una barrera calibrada contra los
+  ataques conocidos. La forma correcta de mantenerlo es **añadir la cuarta
+  evasión a `EVASIONS` el día que alguien la encuentre**, y el comentario de
+  cabecera del fichero lo dice para quien llegue sin este ledger. Destino:
+  **`sdd-verificador`** de cada spec futura que toque `src/polite/`.
 - **F-SPEC-008-8 — Ninguna de las cuatro cifras se mueve.** Es lo que la spec
   prometía (§8 de las notas) y se cumple: hay `Observation` en memoria, un
   archivo que sabe reproducirse y una regla dura que por fin se cumple. No hay
@@ -483,21 +509,181 @@ AssertionError: expected 10 to be less than or equal to 1
    están escritas.
 
 
+## Segunda vuelta — respuesta al RED (2026-09-01, `sdd-implementador`)
+
+Los **dos bloqueantes** están arreglados, y el tercer finding —el recuento falso
+del ledger— corregido arriba, en la fila de CA-3. Los otros dos hallazgos del
+verificador (**F-SPEC-008-V3** y **F-SPEC-008-V5**) van a **EPIC-MEJORA** y no se
+tocan aquí, por encargo explícito del orquestador.
+
+### F-SPEC-008-V1 — CA-2: las tres evasiones mueren, y ninguna toca `src/`
+
+Es un solo fichero de tests, `tests/polite/architecture.test.ts`, como el
+verificador anticipó. Los tres detectores dejan de ser literales:
+
+| Evasión (V4, V5, V6) | Por qué pasaba | Qué la mata ahora |
+|---|---|---|
+| Segunda puerta de salida: `import { request } from 'node:https'`, cabecera por clave computada (`'User-' + 'Agent'`) | `callsPlatformFetch` solo conoce `fetch`, y el CA dice «o **equivalente**» | `NETWORK_MODULE`: se prohíbe **importar** la puerta —`node:http(s)`, `http2`, `net`, `tls`, `dgram`, `dns`, `child_process` y los clientes HTTP de terceros—, más `NETWORK_GLOBAL` (`XMLHttpRequest`, `WebSocket`, `EventSource`, `sendBeacon`) y `COMPUTED_IMPORT` (un `import()` cuyo especificador no se puede leer). Se vigila el `import` y no la llamada porque el `import` es lo que no se puede escribir de veinte maneras. `UA_SPLIT` caza además la clave partida |
+| Segundo parser con `/^\s*disallow\s*:/i` y ningún nombre de `ROBOTS_SYMBOL` | el detector miraba el token **entrecomillado y exacto**, y una regex no lo está | `ROBOTS_WORD`: la palabra del campo escrita como sea —cadena, regex o identificador—. RFC 9309 fija los nombres: no hay parser que no los escriba |
+| Segunda composición de la cadena declarada desde las constantes exportadas, sin el literal del propósito | ni `UA_HEADER` ni `UA_LITERAL` casan si no se asigna a un nombre `USER_AGENT*` | `UA_PARTS`: `USER_AGENT_PRODUCT`, `_VERSION` y `_CONTACT` son de `src/polite/` y solo ahí se leen. Quien necesite la cadena importa `USER_AGENT`, ya compuesta |
+
+Dos decisiones que conviene mirar, porque son las que pagan el ensanche:
+
+1. **Los `import` se quitan del texto antes de aplicar los detectores (a) y (b)**
+   —`withoutModuleSpecifiers`—. Sin eso, `from '@/polite/user-agent'` contaría
+   como la palabra `user-agent` y el detector se volvería ruido en cinco
+   ficheros. El detector (c) sí mira los especificadores, que es donde vive.
+2. **`ROBOTS_WORD` tiene DOS exenciones, nombradas una a una**:
+   `site/robots-txt.ts` —que **genera** el nuestro (SPEC-004 CA-11)— y
+   `mirror/analysis/referenceless/report.ts` —que **cita** el de futgal dentro
+   de una frase en castellano—. Van por nombre y no por patrón, y el **caso 8**
+   comprueba que la lista es exactamente esa, que los dos ficheros existen, que
+   los dos siguen necesitando la exención y que **ninguno queda exento de
+   `ROBOTS_FIELD` ni de `ROBOTS_SYMBOL`**: la exención es solo de la palabra
+   suelta. Una exención por patrón sería un agujero; ésta es un diff visible.
+
+El **caso 7** es el control positivo nuevo: las tres evasiones, cada una contra
+el detector que le toca —uno a uno, para que no pase en verde porque otro las
+cazó de rebote— y una segunda vuelta que exige que el **guardián viejo NO las
+cace**. Esa segunda mitad es la prueba, dentro del propio test, de que el
+ensanche hacía falta.
+
+### F-SPEC-008-V4 — CA-7: el limitador se consulta en la única entrada pública
+
+`SourceAdapter.capture()` es API pública y ahora **consulta y sella el
+limitador** antes de nada que salga a la red. Orden dentro de `capture()`:
+
+1. `assertUserAgent` — va **primero** porque una UA vacía es defecto nuestro, no
+   un turno del ritmo, y no se contesta con un `skipped`.
+2. `isDue` → si no toca, `{ kind: 'skipped', reason: rateLimitSkipReason(key) }`.
+3. `stamp` — **antes del `await`** y antes de mirar el `robots.txt`, igual que
+   estaba en el `tick`, y por los mismos dos motivos escritos allí.
+4. política, `politeFetch`, `captureThenParse`.
+
+**La costura del §5 no se toca**: `capture()` y `read()` siguen sin llamarse, y
+el replay desde el archivo sigue siendo `read` sobre los bytes. Se prefirió esto
+a hacer `capture()` privado —la otra salida que el verificador ofrecía— porque
+esa habría metido la costura de replay dentro de `tick()`, que es justo lo que
+§5 separa.
+
+`tick()` **conserva su propia consulta a `isDue`**, y la duplicación es
+deliberada y está comentada en el código: `capture()` impone el ritmo por su
+cuenta, pero el pase del cron necesita saber algo que `capture()` no le puede
+decir —que un turno suprimido **no produce registro**—. Convertirlo en un
+`skipped` lo leería como cobertura perdida. La mutación **M20** prueba que esa
+segunda consulta no es código muerto.
+
+Se añadió `rateLimitSkipReason` en `src/polite/rate-limit.ts`, junto al
+limitador y por el mismo motivo por el que `robotsSkipReason` vive junto a la
+política: el archivo es lo único del spike que le sobrevive, y un `skipped` cuyo
+motivo nadie puede leer es un agujero en él.
+
+**Una aserción de esta spec se reescribió por el arreglo**, y va dicha: el caso
+8 de `tests/ingest/adapter.test.ts` (CA-5.3) pedía dos veces con el mismo
+instante para asertar dos cosas del mismo error; con el limitador dentro, la
+segunda es un `skipped`. Ahora captura una vez y aserta las dos cosas sobre el
+error que devuelve. **No es una suite cerrada**: es de SPEC-008.
+
+### Mutaciones de la segunda vuelta
+
+Siete más, aplicadas una a una sobre el árbol limpio y revertidas. `git status`
+vacío antes y después de cada una. Las tres primeras **no son mutaciones
+sintéticas: son las tres evasiones del verificador escritas como ficheros reales
+de `src/`**, que es como él las demostró.
+
+| # | Mutación | CA | Casos que se pusieron rojos |
+|---|---|---|---|
+| M17 | `capture()` deja de consultar el limitador (el estado que encontró el verificador) | CA-7 | `adapter` 14, 15 |
+| M18 | el limitador de `capture()` usa una llave global (`pairKey('*','*')`) en vez de la del par | CA-7 | `adapter` 4, 5, 10, 11, 13, 14, 15, 16 · `robots-policy` 7 |
+| M19 | el sello se mueve al final, solo si la captura terminó bien (la M9 vieja, en su sitio nuevo) | CA-7 | `adapter` 12, 13 |
+| M20 | `tick()` deja de consultar `isDue` y delega todo en `capture()` | CA-7 | `adapter` 11, 13 |
+| M21 | `src/ingest/back-door.ts`: `node:https` + cabecera por clave computada (**V4 real**) | CA-2 | `architecture` 3, 4 |
+| M22 | `src/ingest/second-robots.ts`: parser con `/^\s*disallow\s*:/i` (**V5 real**) | CA-2 | `architecture` 2 |
+| M23 | `src/site/second-ua.ts`: la cadena recompuesta desde las constantes, sin el literal (**V6 real**) | CA-2 | `architecture` 3 |
+
+Y **tres mutaciones sobre los detectores nuevos**, para comprobar que el control
+positivo del caso 7 no es decorativo: vaciar `NETWORK_MODULE` mata el caso 7 por
+la evasión 1; vaciar `ROBOTS_WORD` lo mata por la 2 **y mata también el caso 8**;
+vaciar `UA_PARTS` lo mata por la 3.
+
+**Dato que vale la pena registrar, del M23**: la evasión 3 se corrió contra
+`tests/polite tests/mirror tests/site` enteros y murió **en un solo caso** —el
+nuevo—, con los otros 367 en verde. Es la confirmación ejecutada de que el
+guardián de `tests/mirror/user-agent.test.ts` (casos 15 y 16) **no la cazaba**, y
+por tanto de que F-SPEC-008-V1 era cierto y sigue siendo el sustituto más débil
+que ya reconocía F-SPEC-008-1.
+
+### Gates de la segunda vuelta
+
+`npm run lint` — **verde**. Salida literal:
+
+```
+> marcador@0.0.1 lint
+> oxlint --type-aware
+
+exit=0
+```
+
+`npm test` — **verde**. Salida literal:
+
+```
+> marcador@0.0.1 test
+> vitest run
+
+ RUN  v4.1.11 /Users/albertofojo/src/tremen-dev/marcador.gal/.claude/worktrees/agent-ac00ce90e4739f6ad
+
+ Test Files  79 passed (79)
+      Tests  705 passed (705)
+Type Errors  no errors
+   Start at  13:43:33
+   Duration  1.79s (transform 1.63s, setup 0ms, import 6.61s, tests 7.37s, environment 4ms, typecheck 144ms)
+```
+
+Cinco casos más que en la primera vuelta (700 → 705): dos en
+`tests/polite/architecture.test.ts` y tres en `tests/ingest/adapter.test.ts`.
+**Ninguno borrado.**
+
+Y las suites de las specs cerradas, **sin mover una coma respecto a la primera
+vuelta** —que es lo que había que demostrar, porque el arreglo no las toca—:
+
+```
+$ npx vitest run tests/mirror tests/site tests/docs
+ RUN  v4.1.11 /Users/albertofojo/src/tremen-dev/marcador.gal/.claude/worktrees/agent-ac00ce90e4739f6ad
+
+ Test Files  48 passed (48)
+      Tests  347 passed (347)
+Type Errors  no errors
+   Duration  1.46s
+```
+
 ## Cómo retomar (handoff)
 
-**Todo está en `ft/SPEC-008-adaptador-ceroacero`, dos commits sobre `88c359b`.
-Sin push y sin PR: el merge es humano.**
+**Todo está en `ft/SPEC-008-adaptador-ceroacero`. Sin push y sin PR: el merge es
+humano.** La spec queda en `en-revision` para la segunda verificación.
 
 Lo que hay que mirar antes que nada, en este orden:
 
-1. **F-SPEC-008-1**: la única aserción enmendada de una spec cerrada. Si el gate
-   no acepta la enmienda, CA-3 no cierra y hay que decidir qué se hace con el
-   caso 15 de `tests/mirror/user-agent.test.ts`.
-2. **F-SPEC-008-5**: el gate `npm run lint` está rojo por `docs/diseno/_logic.js`,
-   que no es de esta spec y ya fallaba en `main`. Sin esa decisión, el gate de
-   calidad no puede declararse verde en ningún sitio del proyecto.
+1. **Los dos bloqueantes están cerrados y hay que volver a atacarlos.**
+   F-SPEC-008-V1 (CA-2) y F-SPEC-008-V4 (CA-7) tienen ahora barrera con
+   mutación propia que muerde —M17 a M23, más el vaciado de los tres detectores
+   nuevos—. El sitio por donde volver a intentarlo es *Segunda vuelta*: la
+   cuarta evasión, si existe, entra en `EVASIONS` de
+   `tests/polite/architecture.test.ts`.
+2. **F-SPEC-008-1**: la enmienda del caso 15 de `tests/mirror/user-agent.test.ts`
+   sigue siendo la única de fondo sobre una spec cerrada, y **está aceptada por
+   el gate humano**. El recuento de la fila de CA-3 ya está corregido: son cinco
+   ficheros, cuatro de ellos literales de ruta.
 3. **F-SPEC-008-2**: cuatro de las cinco ramas de `status` son convención y no
    observación. Está aislado en `CEROACERO_SHAPE`.
+4. **F-SPEC-008-7**: el dictamen de `sdd-legal-datos` sobre `ceroacero.es` en
+   régimen de ingesta sigue **sin pedir**, y va antes de la primera jornada
+   real. El código no se ha corrido contra la fuente ni una vez.
+
+**F-SPEC-008-V3** (RN-10 del `robots.txt` sostenido por la forma de
+`captureThenParse` y no por un test) y **F-SPEC-008-V5** (el `pairKey(target)`
+que sobrevive en `src/mirror/capture/ports.ts`) **no se han tocado aquí**: van a
+**EPIC-MEJORA** por encargo explícito, y siguen tal cual el verificador los
+dejó.
 
 Lo que **no** hay que hacer: implementar `MatchResolver` de verdad (es la spec
 del calendario y la del catálogo de alias), ni el cron, ni el motor. El puerto
