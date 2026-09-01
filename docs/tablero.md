@@ -25,6 +25,11 @@ Actualizado: 2026-09-01
 | SPEC-006 — titulo-de-documento-por-pagina | hecho | 2026-09-01 (sdd-verificador) |
 | SPEC-007 — el-sitio-no-nombra-a-ninguna-persona-y-dice-en-general-que-se-mide | hecho | 2026-09-01 (sdd-verificador) |
 
+## EPIC-004 — identidade-visual-e-interface-do-marcador (aprobada)
+
+| Spec | Estado | Último cambio |
+|---|---|---|
+
 ## EPIC-MEJORA (borrador)
 
 | Spec | Estado | Último cambio |
@@ -46,6 +51,7 @@ Actualizado: 2026-09-01
 | ADR-010 | borrador | un-solo-despliegue-para-el-sitio-de-proyecto-y-el-futuro-producto | 2026-08-31 (sdd-arquitecto) |
 | ADR-011 | borrador | identidad-publica-del-rastreador-forma-estable-del-user-agent | 2026-08-31 (sdd-arquitecto) |
 | ADR-012 | aprobada | identidad-publica-del-sitio-sin-nombre-con-paraguas-y-con-buzon-delante | 2026-09-01 (Alberto Fojo) |
+| ADR-013 | aprobada | semantica-visual-del-marcador-el-acento-de-marca-nunca-es-un-color-de-estado | 2026-09-01 (Alberto Fojo) |
 
 ## Resumen
 
