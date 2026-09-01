@@ -9,6 +9,8 @@ historial:
   - {estado: aprobada, fecha: 2026-09-01, por: Alberto Fojo}
   - {estado: en-progreso, fecha: 2026-09-01, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-09-01, por: sdd-implementador}
+  - {estado: en-progreso, fecha: 2026-09-01, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-09-01, por: sdd-implementador}
 ---
 # SPEC-007 — El sitio no nombra a ninguna persona y dice en general qué se mide
 

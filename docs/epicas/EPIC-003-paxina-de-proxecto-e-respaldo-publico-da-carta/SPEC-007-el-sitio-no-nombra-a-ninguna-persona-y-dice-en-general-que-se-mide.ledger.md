@@ -6,9 +6,11 @@ epica: EPIC-003
 # Ledger — SPEC-007 El sitio no nombra a ninguna persona y dice en general que se mide
 
 ## Resumen
-- Fase: en-revisión (implementación terminada, **con un RED conocido**: ver F-SPEC-007-1)
+- Fase: en-revisión (implementación terminada; **suite entera en verde**, el RED
+  de la primera vuelta —F-SPEC-007-1— resuelto en la segunda)
 - Rama: `ft/SPEC-007-el-sitio-no-nombra-a-ninguna-persona-y-dice-en-general-que-se-mide`
-- Commits: `dac4823` (CA-1), `c199a28` (CA-2), `ac9b90b` (CA-4 y CA-5)
+- Commits: `dac4823` (CA-1), `c199a28` (CA-2), `ac9b90b` (CA-4 y CA-5) y, de la
+  segunda vuelta, el que sustituye el caso 19 de `crawler-page.test.ts`
 - Partida: `c80ff82`, punta de `ft/EPIC-003-evidencia-de-produccion` (PR #10), cuyo
   árbol coincide con `origin/main` salvo dos ledgers. Nada se perdió al ramificar:
   esa rama sigue apuntando a `c80ff82`.
@@ -22,7 +24,7 @@ epica: EPIC-003
 | CA-1 | `src/i18n/gl.ts`, `src/i18n/es.ts` (clave `about` del espacio `site`) | `tests/site/identity.test.ts` 1–5 (los tres espacios de nombres de los dos bundles y el HTML de las cuatro rutas, más el caso 4 que impide que la barrera sea vacua); `tests/site/i18n.test.ts` 6 (modulado: sigue exigiendo `tremen.dev`, pasa a exigir que no haya persona) | | ❌ |
 | CA-2 | `src/site/umbrella.ts` (**nuevo**, `UMBRELLA_URL` + contrato en la cabecera), `src/i18n/site-bundle.ts` (clave `umbrellaLink`), `src/i18n/gl.ts`, `src/i18n/es.ts`, `src/site/project-page.tsx` | `tests/site/identity.test.ts` 6 (el `<a href>` real), 7 (etiqueta desde i18n, distinta en cada lengua), 8 (`about` sigue nombrando tremen.dev en prosa), 9 (una sola constante, y **no** en `site/contact.ts`), 10 (el contrato en la cabecera); `tests/site/pages.test.ts` 16 (modulado: barrera estrechada de URL absolutas) | | ❌ |
 | CA-3 | — (no es código: se comprueba contra dos sitios vivos) | — . Evidencia recogida abajo en «Evidencia de implementación»; **el CA es del verificador** | | ❌ |
-| CA-4 | `src/i18n/gl.ts`, `src/i18n/es.ts` (clave `measuring`) | `tests/site/pages.test.ts` 11 (modulado: de exigir la enumeración a prohibirla, sobre el espacio `site` **entero** y el HTML de las dos rutas de proyecto) | | ❌ |
+| CA-4 | `src/i18n/gl.ts`, `src/i18n/es.ts` (clave `measuring`) | `tests/site/pages.test.ts` 11 (modulado: de exigir la enumeración a prohibirla, sobre el espacio `site` **entero** y el HTML de las dos rutas de proyecto); `tests/site/crawler-page.test.ts` 19 (**sustituido en su sitio**, F-SPEC-007-1: guarda el alcance de la lista negra de SPEC-005 CA-13 en vez de su contenido. El caso 18 no se toca) | | ❌ |
 | CA-5 | `src/i18n/gl.ts`, `src/i18n/es.ts` (clave `measuring`, tercera oración) | `tests/site/i18n.test.ts` 9 (`NOT_MEASURING_YET` ampliada con las cuatro formas de subconjunto) y 10 (referente exigido cambiado; `a fonte oficial` y `robots.txt` intactos) | | ❌ |
 | CA-6 | — (es una cláusula sobre el perímetro, no código) | `npm run lint`, `npm run typecheck`, `npx vitest run --typecheck`; comparación de `/robot` con `git archive` **sin `checkout`** | | ❌ |
 | CA-7 | — (dictámenes) | 7.2 emitido y transcrito abajo; **7.1 PENDIENTE** | | ❌ |
@@ -170,35 +172,131 @@ El diff del **texto visible** de `/proxecto` y `/es/proxecto` entre los dos
 despliegues son exactamente los dos cambios pedidos y nada más: la frase de
 `about` y la de `measuring`, más el enlace nuevo.
 
-### Gates (salida literal)
+### Segunda vuelta (2026-09-01): el caso 19 sustituido, y comprobado rompiendo
+
+El arquitecto resolvió el choque de F-SPEC-007-1 modificando la spec: CA-4 pide
+ahora que el caso 19 **se sustituya en su sitio** —mismo fichero, mismo número— y
+CA-6.2 lo autoriza nominalmente. **El caso 18 no se ha tocado**, y el diff de
+`tests/site/crawler-page.test.ts` en esta vuelta empieza y termina dentro del
+bloque del caso 19: ninguna otra línea del fichero cambia.
+
+El sustituto guarda el **alcance** en vez del contenido, con las dos aserciones
+que pide CA-4 y sin depender de nada que diga `/proxecto`:
+
+```ts
+  /**
+   * Cadena SINTÉTICA de control, escrita a mano aquí y servida a nadie: no es
+   * HTML de terceros (ADR-009) ni sale de ninguna captura. Existe solo para
+   * que la lista de arriba tenga sobre qué morder.
+   */
+  const CONTROL_QUE_NOMBRA_TERCEROS =
+    'control sintético: FutGal.es, ceroacero.es, BeSoccer, resultados-futbol.com e a RFGF';
+
+  /**
+   * Los términos que TIENEN que morder sobre esa cadena, escritos aquí a mano
+   * y no leídos de `THIRD_PARTIES`. Comparar la lista consigo misma pasaría
+   * también con la lista vacía —`[].filter(…)` es `[]`—, que es exactamente lo
+   * que este control existe para impedir. Si mañana se añade un tercero a la
+   * lista de arriba, hay que añadirlo también a la cadena de control y a esta:
+   * ese trabajo es el precio de que la lista no pueda vaciarse en silencio.
+   */
+  const MUERDEN = ['besoccer', 'ceroacero', 'futgal', 'resultados-futbol', 'rfgf'];
+
+  test('19. la prohibición muerde, y muerde EXACTAMENTE sobre estas dos rutas', () => {
+    // Sustituye (SPEC-007 CA-4, F-SPEC-007-1) al caso que guardaba esta misma
+    // frontera afirmando que `/proxecto` seguía nombrando las competiciones.
+    // Ese canario ya no existe: SPEC-007 CA-4 prohíbe nombrarlas ahí. El
+    // propósito sí sigue, y ha EMPEORADO — antes, ensanchar la lista al bundle
+    // entero se delataba solo, porque `site.measuring` contenía `Futgal` y el
+    // caso 18 se ponía rojo; ahora pasaría en silencio, y CA-13 se convertiría
+    // en una prohibición de sitio entero que solo mordería el día —quizá
+    // dentro de años, en una página que no existe— en que alguien necesite
+    // nombrar una fuente legítimamente. Así que se guarda el ALCANCE en vez
+    // del contenido, con dos aserciones que no dependen de lo que diga
+    // `/proxecto`. Forma: caso 1 de `no-hardcoded-literals.test.ts`.
+
+    // (a) Control positivo: la lista no puede quedarse vacía —ni perder un
+    // término— sin que nadie se entere. Los cinco muerden, con el mismo
+    // predicado que usa el caso 18, sobre una cadena que no es de nadie.
+    const control = deaccent(CONTROL_QUE_NOMBRA_TERCEROS);
+
+    expect(THIRD_PARTIES.filter((term) => control.includes(term)).sort()).toEqual(MUERDEN);
+
+    // (b) Alcance: lo que el caso 18 escanea es el HTML de `/robot` y
+    // `/es/robot`, y de ninguna otra ruta ni de ningún bundle. Se re-renderiza
+    // desde los módulos de ruta SIN pasar por `ROUTES` ni por `render`, que es
+    // lo que hace que repuntar el mapa, añadirle una entrada o concatenarle
+    // cualquier otra cosa a la entrada del escaneo se vea desde aquí.
+    expect(Object.keys(HTML).sort()).toEqual([...LOCALES].sort());
+    expect(HTML.gl).toBe(
+      renderToStaticMarkup(createElement(GlLayout, null, createElement(GlCrawlerPage))),
+    );
+    expect(HTML.es).toBe(
+      renderToStaticMarkup(createElement(EsLayout, null, createElement(EsCrawlerPage))),
+    );
+  });
+```
+
+**La cadena de control es sintética y nombra dominios, no republica nada**: no es
+HTML capturado y no viola ADR-009. Y el escaneo de código de SPEC-004 CA-13.3
+recorre `src/`, no `tests/` (`tests/site/source-scan.ts`, `SRC = join(cwd,
+'src')`), así que nombrar terceros aquí no pone en rojo ninguna otra barrera —
+comprobado: la suite entera pasa.
+
+**Comprobado rompiendo: nueve mutaciones más.** Aplicadas sobre el árbol de
+trabajo y revertidas **copiando el fichero original** desde el scratchpad (sin
+`git stash`, `git reset` ni `git restore`); `sha256` del fichero verificado igual
+al de partida después de cada una.
+
+| # | Mutación | Caso 19 | Caso 18 |
+|---|---|---|---|
+| M21 | La **entrada** del escaneo se ensancha al bundle entero (`HTML` pasa a ser `render(l) + JSON.stringify(gl/es)`) | 🔴 | 🟢 — **el fallo silencioso que temía el arquitecto, ahora audible** |
+| M22 | Igual, pero solo con el espacio `site` (`JSON.stringify(gl.site)`) | 🔴 | 🟢 |
+| M23 | `ROUTES` repuntado a las páginas de proyecto | 🔴 | 🟢 (rojos: 1, 3, 6, 7, 9, 17, 19 y 22 — **8**) |
+| M24 | `LOCALES` acotado a `['gl']`: se escanea media lengua | 🔴 | 🟢 |
+| M25 | `THIRD_PARTIES` se **vacía** | 🔴 | 🟢 |
+| M26 | `THIRD_PARTIES` pierde tres términos | 🔴 | 🟢 |
+| M27 | Un término se desactiva con un typo (`rfgf` → `rfgff`) | 🔴 | 🟢 |
+| M28 | La cadena de control se vacía | 🔴 | 🟢 |
+| M29 | (límite declarado) El ensanche se escribe **dentro del cuerpo del caso 18** | 🟢 | 🟢 — ver F-SPEC-007-7 |
+
+**Una tautología propia, encontrada por estas mutaciones y corregida antes de
+cerrar.** La primera redacción del control positivo comparaba la lista consigo
+misma —`expect(THIRD_PARTIES.filter(…)).toEqual(THIRD_PARTIES)`—, y con la lista
+vacía eso es `[] === []`: M25, M26 y M27 pasaban en verde. De ahí el `MUERDEN`
+escrito a mano, que es lo que hace que el control controle algo.
+
+### Gates (salida literal, segunda vuelta)
 
 ```
 $ npm run lint
+
 > marcador@0.0.1 lint
 > oxlint --type-aware
-(exit 0, sin salida)
+
+(exit 0)
 
 $ npm run typecheck
+
 > marcador@0.0.1 typecheck
 > tsc --noEmit
-(exit 0, sin salida)
+
+(exit 0)
 
 $ npx vitest run --typecheck
- Test Files  1 failed | 70 passed (71)
-      Tests  1 failed | 615 passed (616)
-Type Errors  no errors
 
- FAIL  tests/site/crawler-page.test.ts > CA-13 — la página del rastreador no cita
- a ningún tercero > 19. la prohibición es de ESTAS rutas, no del sitio: /proxecto
- sigue nombrando las competiciones
- AssertionError: expected 'O obxecto do estudo son as opcións de…'
-   to contain 'Preferente Futgal G1'
-   ❯ tests/site/crawler-page.test.ts:302:31
+ RUN  v4.1.11 /Users/albertofojo/src/tremen-dev/marcador.gal
+
+ Test Files  71 passed (71)
+      Tests  616 passed (616)
+Type Errors  no errors
 ```
 
-Referencia de partida en `c80ff82`: **70 ficheros, 606 tests, todo verde**.
-Ahora: 71 ficheros, 616 tests, **615 verdes y 1 rojo**, el de F-SPEC-007-1.
-`lint` y `typecheck` en `0`.
+Referencia de partida en `c80ff82`: **70 ficheros, 606 tests, todo verde**. Al
+final de la primera vuelta: 71 ficheros, 616 tests, **615 verdes y 1 rojo**.
+Ahora: **71 ficheros, 616 tests, 616 verdes**. Los recuentos no bajan —un caso
+sustituido por un caso—, así que **no se ha perdido cobertura**. `lint` y
+`typecheck` en `0`. **CA-6.1 queda cumplido.**
 
 ### Perímetro real del cambio (CA-6.2 y CA-6.3)
 
@@ -225,7 +323,16 @@ verificador lo juzgue en vez de descubrirlo.
 
 ## Salvedades / follow-ups
 
-- **F-SPEC-007-1 — CA-4 y CA-6 no pueden cumplirse los dos a la vez: hay un test
+- **F-SPEC-007-1 — RESUELTO el 2026-09-01 por el arquitecto, y ejecutado en la
+  segunda vuelta.** La spec cambió: CA-4 lleva ahora la corrección que ordena
+  **sustituir el caso 19 en su sitio**, con el control positivo y el guardián del
+  alcance, y CA-6.2 lo autoriza nominalmente («caso **19** —y solo el 19—»); el
+  caso 18 sigue intacto. Hecho, con nueve mutaciones que lo comprueban (tabla
+  arriba) y la suite entera en verde. **CA-6.1 pasa de incumplido a cumplido.**
+  Lo que sigue es el enunciado original, que se conserva por ser el registro de
+  lo que la primera vuelta devolvió en RED:
+
+  > **CA-4 y CA-6 no pueden cumplirse los dos a la vez: hay un test
   ajeno que se pone rojo, y NO lo he tocado.** `tests/site/crawler-page.test.ts`
   caso **19** —«la prohibición es de ESTAS rutas, no del sitio: /proxecto sigue
   nombrando las competiciones»— afirma literalmente
@@ -283,6 +390,27 @@ verificador lo juzgue en vez de descubrirlo.
   emita sobre el texto y no sobre el diff. Lo gestiona el orquestador; no se ha
   invocado desde aquí. **CA-7 no puede cerrarse sin él.**
 
+- **F-SPEC-007-7 — hasta dónde llega el caso 19 nuevo, dicho por su autor.**
+  Guarda la **entrada** del escaneo del caso 18 —`HTML` y `LOCALES`, que son lo
+  que ese caso lee—, no el cuerpo del caso 18. Si alguien ensancha la lista negra
+  escribiendo la concatenación **dentro** del propio caso 18 (M29), el caso 19 no
+  se entera. Es el único camino que se le escapa, y es el que CA-6.2 prohíbe
+  expresamente y el que un diff sobre un fichero de una spec `hecho` enseña. La
+  alternativa —extraer la entrada a una constante compartida— **exigiría tocar el
+  caso 18**, que CA-6.2 no autoriza. Se declara aquí en vez de dejarlo implícito.
+  **Destino: nota para el verificador**; si se quiere cerrar también ese camino,
+  es trabajo del arquitecto y no de esta spec.
+
+- **F-SPEC-007-8 — he movido el estado de la spec de `en-revision` a
+  `en-progreso` para poder trabajar, y la devuelvo a `en-revision`.** El hook
+  `require-spec` bloquea toda edición bajo `tests/` si la spec no está en
+  `aprobada` o `en-progreso`, y la primera vuelta la dejó en `en-revision`: sin
+  esa transición esta segunda vuelta no podía escribir ni una línea. Es la
+  transición que manda el paso 2 del rol, no es un gate —no lleva firma humana— y
+  el estado final es el mismo con el que empezó. Quedan dos entradas más en el
+  `historial`, que es el registro veraz de que hubo una segunda vuelta.
+  **Destino: nota para el orquestador**, que me había pedido no tocar estados.
+
 - **F-SPEC-007-6 — el paraguas sigue sin identificar a nadie, y ningún test de
   aquí se enterará si deja de responder.** Es el riesgo que ADR-012 ya registra
   con disparador; queda repetido aquí solo porque ahora hay código que se apoya
@@ -319,24 +447,23 @@ No emitido. Ver F-SPEC-007-5. **Los literales nuevos no están dados por buenos.
 
 ## Cómo retomar (handoff)
 
-**Estado real.** Los cuatro CA de contenido —CA-1, CA-2, CA-4 y CA-5— están
-implementados con test y comprobados rompiendo (20 mutaciones), sobre la suite y
-sobre el HTML servido por `next build && next start`. CA-6 está cumplido en 6.2
-(con la salvedad F-SPEC-007-4), 6.3, 6.4 y 6.5, y **no en 6.1**: la suite tiene un
-rojo. CA-3 y CA-7 no son míos.
+**Estado real (tras la segunda vuelta).** Los cuatro CA de contenido —CA-1, CA-2,
+CA-4 y CA-5— están implementados con test y comprobados rompiendo (**29
+mutaciones**: 20 en la primera vuelta, 9 en la segunda), sobre la suite y sobre el
+HTML servido por `next build && next start`. **CA-6 está cumplido entero**: 6.1
+(los tres gates en verde, 71 ficheros y 616 tests, cero rojos), 6.2 —con la
+autorización nominal del caso 19 que la spec añadió y con F-SPEC-007-4 ya
+confirmado por CA-6.2-bis—, 6.3, 6.4 y 6.5. CA-3 y CA-7 no son míos.
 
-**Lo primero que hay que resolver, y bloquea el cierre.** F-SPEC-007-1: el caso 19
-de `tests/site/crawler-page.test.ts` exige lo contrario que CA-4. Es decisión del
-arquitecto, y CA-6.2 dice explícitamente que no se parchea a mano. Hasta que se
-decida, `npm run test` sale con un fallo y **la spec no puede ir a `hecho`**.
+**Lo único que bloquea el cierre.** CA-7.1: `/sdd-lingua`, sobre los seis
+literales transcritos arriba. Lo gestiona el orquestador; no se ha invocado desde
+aquí. **Los literales no se han tocado en la segunda vuelta**: la spec dice
+—apartado «Qué se ha corregido DESPUÉS de tu firma»— que CA-1, CA-4 y CA-5 no
+cambiaron, y esta vuelta es solo el test.
 
-**Lo segundo.** F-SPEC-007-4: confirmar (o corregir) la interpretación de CA-6.2
-que permitió añadir `tests/site/identity.test.ts`. Si el arquitecto lo rechaza,
-hay que decidir dónde viven los tests de CA-1, CA-2.1, CA-2.2 y CA-2.3, porque
-sin ellos esos criterios no están implementados.
-
-**Lo tercero.** CA-7.1: `/sdd-lingua`, sobre los seis literales transcritos
-arriba. Bloqueante para el cierre.
+**Ya no bloquea.** F-SPEC-007-1 (resuelto por el arquitecto y ejecutado: el caso
+19 sustituido) y F-SPEC-007-4 (confirmado en CA-6.2-bis: un fichero nuevo no
+viola CA-6.2, y `tests/site/identity.test.ts` es correcto).
 
 **Lo que le queda al verificador.** CA-3 entero, contra el despliegue y no contra
 `localhost`: que `/proxecto` y `/es/proxecto` den `200` y sirvan el enlace, que
@@ -347,8 +474,9 @@ responde sin nombrar a nadie ni insinuar tamaño (CA-1, mitad de lectura).
 
 **Dónde está todo.** Rama
 `ft/SPEC-007-el-sitio-no-nombra-a-ninguna-persona-y-dice-en-general-que-se-mide`,
-tres commits (`dac4823`, `c199a28`, `ac9b90b`) sobre `c80ff82`. Sin push y sin PR.
-Los artefactos de documentación que venían sin commitear de la rama anterior
-—`ADR-012`, la spec de SPEC-007, `_epica.md`, `docs/tablero.md`, el ledger de
-SPEC-004 y la carta— **siguen sin commitear**: no son míos y no los he tocado
-salvo este ledger y la transición de estado de la spec.
+**sin push y sin PR**. Tres commits de la primera vuelta (`dac4823`, `c199a28`,
+`ac9b90b`) sobre `c80ff82`, más el de la segunda, que toca **un solo fichero de
+código** —`tests/site/crawler-page.test.ts`, y dentro de él solo el bloque del
+caso 19— además de este ledger y del frontmatter de la spec (F-SPEC-007-8). En la
+segunda vuelta **no se ha tocado `src/`**: ni un literal, ni `measuring`, ni
+`about`, ni `umbrellaLink`, ni la constante del paraguas.
