@@ -15,7 +15,8 @@ Actualizado: 2026-09-01
 
 | Spec | Estado | Último cambio |
 |---|---|---|
-| SPEC-008 — adaptador-de-ceroacero-es-y-cortesia-rn-11-con-una-sola-implementacion | en-revision | 2026-09-01 (sdd-implementador) |
+| SPEC-008 — adaptador-de-ceroacero-es-y-cortesia-rn-11-con-una-sola-implementacion | en-progreso | 2026-09-01 (sdd-verificador) |
+| SPEC-009 — la-frontera-de-capacidad-de-rn-11-demostrada-sin-listas-negras | borrador | 2026-09-01 (sdd-arquitecto) |
 
 ## EPIC-003 — paxina-de-proxecto-e-respaldo-publico-da-carta (hecho)
 
@@ -60,4 +61,5 @@ Actualizado: 2026-09-01
 ## Resumen
 
 - hecho: 7
-- en-revision: 1
+- en-progreso: 1
+- borrador: 1

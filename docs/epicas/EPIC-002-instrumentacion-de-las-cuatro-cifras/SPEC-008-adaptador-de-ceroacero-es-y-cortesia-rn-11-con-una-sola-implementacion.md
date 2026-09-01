@@ -307,6 +307,23 @@ un equipo sin alias confirmado por una persona*.
   > `.gitignore`» (F-SPEC-008-V27 y F-SPEC-008-V28). **CA-2.1, CA-2.2, CA-2.4,
   > CA-2.5, CA-2.7 y CA-2.8 no se tocan**, y el grano de la concesión —superficie
   > y no paquete, literalidad, motivo escrito— tampoco.*
+  >
+  > *Y tras la **quinta** verificación, **este criterio deja de perseguirse
+  > entero en esta spec**. **CA-2 queda ⚠️, nunca ✅**, con su residuo escrito
+  > dentro de sí mismo (ADR-016 §6). Lo único que se cierra aquí es
+  > **F-SPEC-008-V33** —la lista de extensiones que el escaneo lee, en CA-2.6—,
+  > porque es una línea y llega a producción. **F-SPEC-008-V34** (el conjunto de
+  > CA-2.4, medido abierto, y su lista negra de nueve nombres) y
+  > **F-SPEC-008-V35** (la cobertura fuera de las raíces) quedan escritos como
+  > residuo y **se mudan a SPEC-009**, cuya materia es la frontera de capacidad
+  > por derecho propio. Motivo, medición y qué lo despierta: ledger, «Enmienda —
+  > 2026-09-01: CA-2 se queda ⚠️ con su residuo escrito, y la frontera de
+  > capacidad sale a SPEC-009». **CA-2.1, CA-2.2, CA-2.7 y CA-2.8 no se tocan**,
+  > y el grano de la concesión —superficie y no paquete, literalidad, motivo
+  > escrito, un solo lector— tampoco. De **CA-2.3 y CA-2.5** cambia una sola
+  > cosa, y es la misma en las dos: **sobre qué ficheros corren**, que pasa a ser
+  > la declaración de CA-2.6 en vez de un `.ts`/`.tsx` escrito dentro de cada
+  > criterio. F-SPEC-008-V33 estaba rutada a los dos.*
 
   *El criterio deja de buscar lo prohibido: **enumera lo permitido y exige que el
   resto sea vacío**. Las tres listas que lo sostienen no son listas de formas de
@@ -419,7 +436,9 @@ un equipo sin alias confirmado por una persona*.
   > separaban verde de rojo**, y el lector no falló cerrado: **calló**
   > (F-SPEC-008-V27).*
 
-  Dado todo `.ts`/`.tsx` bajo las raíces declaradas en CA-2.6,
+  Dado todo fichero de código bajo las raíces declaradas en CA-2.6 —**las
+  extensiones son las que CA-2.6 declara, y no otra lista escrita aquí**
+  (F-SPEC-008-V33)—,
   entonces cada especificador de módulo —estático, de efecto lateral o
   dinámico— es (i) una ruta relativa o `@/…` que resuelve dentro del
   repositorio, o (ii) una **cadena literal que es una entrada declarada de la
@@ -585,8 +604,44 @@ un equipo sin alias confirmado por una persona*.
   **Se cumple hoy sin tocar una línea**: `globalThis` aparece una sola vez en
   todo `src/`, dentro de `globalFetcher`.
 
+  **Lo que este criterio NO promete, y está medido** (ADR-016 §6). *Añadido el
+  2026-09-01 tras la quinta verificación. El texto de arriba **no se borra**,
+  porque es lo que se firmó; lo que sigue dice en qué es falso, que es lo que
+  ADR-015 §3.3 pide y lo que ADR-016 §6 obliga a escribir dentro del propio
+  criterio.*
+
+  1. **El conjunto no está cerrado por el lenguaje: está cerrado por nueve
+     nombres.** `process` es un global del **anfitrión**, no de ECMAScript, y
+     desde Node 22 `process.getBuiltinModule(id)` es API **estable** que devuelve
+     cualquier módulo interno **sin ningún `import`**. Medido: un `.ts` corriente
+     bajo una raíz, escaneado y alcanzable desde `ENTRY_POINTS`, con
+     `const cp = process.getBuiltinModule('node:child_process');` deja
+     `lint exit=0`, `npm test` **772/772** y `tests/polite` **86/86**, y manda una
+     petición real —contra un servidor local propio— **sin `User-Agent`, sin
+     `robots.txt` y sin turno** (F-SPEC-008-V34). CA-2.3 no la ve porque no hay
+     `import` que juzgar, y CA-2.1 tampoco, porque `node:child_process` no pasa
+     por `net.Socket.prototype.connect`.
+  2. **El mecanismo es una lista negra viviendo dentro del criterio.**
+     `CAPABILITY_NAMES` son nueve nombres prohibidos, que es exactamente lo que
+     **ADR-016 §3.5 —aprobado el 2026-09-01 e inmutable— prohíbe**: una lista de
+     lo permitido no puede esconder una lista de lo prohibido en su condición de
+     admisión. Es el mismo defecto que CA-2.3 borró de `ALLOWED_PACKAGES`, un
+     criterio más allá y donde nadie miró.
+  3. **Y no se tapa añadiendo `process` a la lista.** Lo dice el propio CA-2.3
+     con esas palabras: *«no se añade ningún nombre a ninguna lista negra: se
+     borra la lista negra»*. Un nombre más taparía este caso y dejaría abierto el
+     siguiente.
+
+  **Por eso CA-2 queda ⚠️ y nunca ✅**, y cerrar esta mitad —enumerar los
+  identificadores globales **permitidos**, con superficie y motivo, como
+  `ALLOWED_PACKAGES`— es materia de **SPEC-009** y de una firma humana, no de un
+  parche aquí. **Qué lo despierta**: el día que se firme el criterio de SPEC-009,
+  o —antes— el día que algo de `src/` se despliegue y pida a un tercero, porque
+  entonces esta infracción deja de ser latente.
+
   **CA-2.5 — Nada huérfano en los tres destinos que el CA nombra.**
-  Todo `.ts`/`.tsx` bajo `src/ingest/`, `src/polite/` y `src/site/` es
+  Todo fichero de código —con las extensiones que CA-2.6 declara— bajo
+  `src/ingest/`, `src/polite/` y `src/site/` es
   alcanzable, por el grafo de `import`, desde `ENTRY_POINTS` —la lista declarada
   de puntos de entrada del repositorio: `next.config.ts`, las rutas de
   `src/app/`, las CLI, y el API público de `src/ingest/`—.
@@ -601,16 +656,25 @@ un equipo sin alias confirmado por una persona*.
   `src/mirror/cli/*-cli.ts` usan uno—. Mientras no los vea, el cierre no es un
   cierre. El ensanche es parte de este CA y no toca `src/`.
 
-  **CA-2.6 — El escaneo cubre todo el código del repositorio, no solo `src/`, y
-  su lista de ficheros no la decide `git`.**
+  **CA-2.6 — El escaneo cubre todo el código del repositorio, no solo `src/`; su
+  lista de ficheros no la decide `git`, y qué extensiones considera código va
+  declarado.**
 
   > *Ampliado el 2026-09-01. Lo anterior no se afloja: se le añade de dónde sale
   > la lista de ficheros. Motivo y medición en el ledger: «Enmienda —
   > 2026-09-01: el cierre estático lo lee el compilador, y la lista de ficheros
   > deja de heredarse de `.gitignore`» §1 y §2 (F-SPEC-008-V28).*
+  >
+  > *Ampliado por segunda vez el 2026-09-01, tras la quinta verificación. Otra
+  > vez no se afloja nada: se le añade **qué extensiones se leen**, que era la
+  > tercera lista escrita dentro de una función en vez de declarada. Motivo y
+  > medición en el ledger: «Enmienda — 2026-09-01: CA-2 se queda ⚠️ con su
+  > residuo escrito, y la frontera de capacidad sale a SPEC-009» §3
+  > (F-SPEC-008-V33). **Es lo único que esa enmienda manda arreglar dentro de
+  > esta spec.***
 
-  Las raíces del escaneo van declaradas, y un caso exige que **todo `.ts`/`.tsx`
-  versionado fuera de `tests/` caiga bajo una de ellas**.
+  Las raíces del escaneo van declaradas, y un caso exige que **todo fichero de
+  código versionado fuera de `tests/` caiga bajo una de ellas**.
   No es hipotético: **`next.config.ts` es código ejecutable que hoy queda entero
   fuera del escaneo**, y `src/site/redirects.ts` solo es alcanzable desde ahí.
   ADR-014 §4 dice «en un script»; hoy no hay `scripts/`, pero sí hay
@@ -637,16 +701,57 @@ un equipo sin alias confirmado por una persona*.
      esconde, **se lee y se juzga** como cualquier otro. El caso se pone rojo el
      día que la lista vuelva a derivarse de las exclusiones de git.
   4. **Lo que `git` sigue decidiendo, porque es de lo que es autoridad**: qué
-     está versionado. El caso de cobertura —«todo `.ts`/`.tsx` versionado fuera
-     de `tests/` cae bajo una raíz»— puede seguir preguntándoselo. Lo que no
-     puede es decidir **qué se lee**: la cobertura y la lectura son dos listas
+     está versionado. El caso de cobertura —«todo fichero de código versionado
+     fuera de `tests/` cae bajo una raíz»— puede seguir preguntándoselo. Lo que
+     no puede es decidir **qué se lee**: la cobertura y la lectura son dos listas
      distintas, y la segunda tiene que ser la más ancha de las dos bajo las
      raíces.
+
+  Y una tercera cosa, porque una frontera que audita ficheros la decide también
+  **qué considera un fichero de código**:
+
+  5. **Las extensiones que el escaneo lee van declaradas junto a `SCAN_ROOTS`,
+     con su motivo escrito**, exactamente como ya van las exclusiones — y **no
+     escritas dentro de la función que recorre el árbol** ni dentro de un
+     pathspec de `git`. Hoy son las de TypeScript que este proyecto compila y
+     ejecuta: **`.ts`, `.tsx`, `.mts` y `.cts`**. La lista es cerrada en cada
+     momento: una extensión nueva es un diff con motivo, como una entrada de
+     `ALLOWED_PACKAGES`, y **nunca un arbitraje**.
+  6. **La cobertura pregunta por la misma declaración, no por una segunda.** El
+     caso del punto anterior —«todo fichero de código versionado fuera de
+     `tests/` cae bajo una raíz»— deriva su pathspec **de esa misma lista**. Dos
+     listas de extensiones son dos oportunidades de que una se quede corta, y es
+     literalmente lo que pasó: `scannedSources()` filtraba con
+     `endsWith('.ts') || endsWith('.tsx')` y `versionedSources()` le pasaba a
+     `git` el pathspec `'*.ts', '*.tsx'`, **y ninguna de las dos casaba con
+     `.mts`**.
+  7. **Control positivo, y es la reproducción exacta de F-SPEC-008-V33**: un
+     `src/ingest/door.mts` bajo una raíz del escaneo, con un `import` de un
+     paquete que **no** es entrada de `ALLOWED_PACKAGES`, es **rojo** — y es rojo
+     **por el mismo caso** por el que lo es el mismo fichero renombrado a `.ts`.
+     Hoy el `.mts` deja `lint exit=0`, `npm test` **772/772** y `tests/polite`
+     **86/86**, y **se commitea con un `git add` normal**: a diferencia de
+     F-SPEC-008-V28, que necesitaba `git add -f`, **este fichero llega a
+     producción**. La única diferencia entre verde y rojo es **una letra en el
+     nombre del fichero**.
 
   **Lo que esta parte NO promete** (ADR-016 §6): un fichero fuera de todas las
   raíces sigue sin leerse, y eso es deliberado —`tests/` es el caso vivo—; lo que
   el criterio garantiza es que **quedar fuera sea una decisión declarada en las
   raíces**, no un efecto colateral de otra regla.
+
+  **Y una cosa que sí prometía y no entrega, escrita aquí y no en un
+  *follow-up*** *(añadido el 2026-09-01)*: **fuera de las raíces, la lista de
+  cobertura la sigue decidiendo `.gitignore`**. `versionedSources()` le pregunta a
+  `git`, y `git` no ve lo que `.gitignore` esconde, así que un `robots/side.ts`
+  **en la raíz del repositorio** —importado desde `src/ingest/adapter.ts` con una
+  ruta relativa que `resolvesInsideRepository` acepta— no lo echa de menos nadie:
+  medido, `lint exit=0`, `npm test` **772/772**, `tests/polite` **86/86**, y
+  `git status` no enseña nada (F-SPEC-008-V35). Es la lección del punto 1 una capa
+  más afuera: la **lectura** dejó de heredar `.gitignore` bajo las raíces, la
+  **cobertura** no. Es más estrecho que F-SPEC-008-V33 —hace falta `git add -f`
+  para commitearlo— y **no se cierra aquí**: se muda a **SPEC-009**.
+  **`.gitignore` no se toca**: protege lo que ADR-009 §3 hace irreversible.
 
   **CA-2.7 — Cada mecanismo lleva su control positivo, y las evasiones vivas se
   escriben como controles.**
@@ -895,8 +1000,8 @@ un equipo sin alias confirmado por una persona*.
 
 **ADRs:**
 
-- **ADR-014** (esta épica, `borrador`) — dónde vive la cortesía y que es una
-  sola. Esta spec lo ejecuta entero: §1 en CA-2 y CA-3, §2 en CA-1, §3 en CA-6,
+- **ADR-014** (esta épica, **`aprobada`** el 2026-09-01) — dónde vive la cortesía
+  y que es una sola. Esta spec lo ejecuta entero: §1 en CA-2 y CA-3, §2 en CA-1, §3 en CA-6,
   §4 en CA-2.
 - **ADR-008 §1** — `futgal.es` no es capturable; §2 — la segunda candidata es
   `besoccer.es` y ninguna respuesta se archiva bajo un `SourceId` ajeno (CA-5.3);
@@ -908,13 +1013,17 @@ un equipo sin alias confirmado por una persona*.
   `postgres.js` y SQL etiquetado, sin ORM, y migraciones numeradas y **sin
   rollback** — que a partir de la enmienda del 2026-09-01 **sí** aplican aquí, en
   `migrations/0002` y en la implementación durable del ritmo (CA-14.6).
-- **ADR-016** (`borrador`, escrito el 2026-09-01 por encargo del gate) — cómo se
-  demuestra una frontera de capacidad: enumerar lo permitido y exigir que el
-  resto sea vacío. **CA-2 es su primera aplicación**; el ADR fija la regla
-  general y esta spec no la redefine.
-- **ADR-015** (`borrador`) — la forma de una enmienda sobre un criterio ya
-  firmado. Es la que usan, por analogía declarada, las dos enmiendas del ledger
-  de esta spec.
+- **ADR-016** (**`aprobada`** el 2026-09-01, escrito ese mismo día por encargo del
+  gate) — cómo se demuestra una frontera de capacidad: enumerar lo permitido y
+  exigir que el resto sea vacío. **CA-2 es su primera aplicación**; el ADR fija
+  la regla general y esta spec no la redefine. Desde que está aprobado, su
+  **§3.5** —una lista de lo permitido no puede esconder una lista de lo prohibido
+  en su condición de admisión— es lo que deja a **CA-2.4 en ⚠️** y lo que manda
+  su cierre a SPEC-009; y su **§6** es lo que obliga a que el residuo esté
+  escrito dentro del criterio y no en un *follow-up*.
+- **ADR-015** (**`aprobada`** el 2026-09-01) — la forma de una enmienda sobre un
+  criterio ya firmado. Es la que usan, por analogía declarada, las **cinco**
+  enmiendas del ledger de esta spec.
 - **ADR-005** — `RawStore` como puerto: Vercel Blob en producción, disco en local
   y tests. Esta spec no lo toca; lo usa.
 - **ADR-011** — forma estable del user-agent declarado; la mitad de RN-11 que se
@@ -933,6 +1042,15 @@ estados de un partido y la representación del tiempo.
 ## Fuera de alcance
 
 Aparcado a propósito, no por descuido. Cada línea tiene dueño futuro.
+
+- **La frontera de capacidad, a partir del 2026-09-01** (enmienda del ledger «CA-2
+  se queda ⚠️ con su residuo escrito, y la frontera de capacidad sale a
+  SPEC-009»). CA-2 sigue vivo y sigue mordiendo para todo lo que ya cierra, pero
+  **queda ⚠️ y nunca ✅**: lo que le falta —enumerar los identificadores globales
+  permitidos en vez de prohibir nueve (F-SPEC-008-V34), y que la cobertura fuera
+  de las raíces deje de decidirla `.gitignore` (F-SPEC-008-V35)— es de
+  **SPEC-009**, junto con la batería de las once evasiones. Lo único que se cierra
+  aquí es **F-SPEC-008-V33**, en CA-2.6.
 
 - **El motor de decisiones (RN-01..RN-07) y cualquier `Decision`.** Nace con
   **una sola vía en RN-02**: con una única fuente automática de peso 0.7, nada
@@ -990,8 +1108,10 @@ Aparcado a propósito, no por descuido. Cada línea tiene dueño futuro.
 > dos enmiendas que Alberto Fojo arbitró. Los puntos **11 y 12** los añade la
 > tercera enmienda —la reescritura de CA-2.1 y CA-2.3 tras la tercera
 > verificación—. Los puntos **13 y 14** los añade la cuarta —el lector de CA-2.3
-> pasa a ser el compilador y la lista de ficheros deja de salir de `git`—, y son
-> lo último que hay que mirar.
+> pasa a ser el compilador y la lista de ficheros deja de salir de `git`—. Y los
+> puntos **15 y 16** los añade la quinta enmienda —**CA-2 se queda ⚠️ y la
+> frontera de capacidad sale a SPEC-009**—, que es lo último que hay que mirar y
+> lo único que cambia el alcance de lo que esta spec dice entregar.
 
 Lo que hay que mirar con lupa antes de firmar. Los siete puntos son decisiones,
 no detalles, y cuatro de ellos son preguntas abiertas de verdad.
@@ -1116,3 +1236,32 @@ no detalles, y cuatro de ellos son preguntas abiertas de verdad.
     CA-2.3 y no se cierra aquí porque nadie lo ha medido roto — y este expediente
     enseña que **la medida va antes que el ensanche**, no al revés. Si el gate
     prefiere cerrarlo ya que el árbol está ahí, el sitio de decirlo es ahora.
+    *(La quinta verificación lo midió roto: es F-SPEC-008-V34, y va al punto 15.
+    Esta nota se conserva tal cual porque es lo que se escribió entonces.)*
+
+15. **CA-2 se queda ⚠️ y nunca ✅, y la frontera de capacidad sale de esta spec.**
+    Es la decisión de Alberto Fojo del 2026-09-01, y lo que hay que mirar es que
+    **la spec deja de prometer lo que su título de CA-2 dice**. Lo que sí
+    entrega, y no es poco: el cierre de imports por superficie leído con el
+    compilador, la contención en ejecución sobre `net.Socket.prototype.connect`
+    —que **deniega por defecto**, así que ninguna petición de ningún test puede
+    llegar a un tercero, y eso es mecanismo y no disciplina— y la contención de
+    conjuntos contra la política real. Lo que **no** alcanza queda medido y
+    escrito dentro de los propios criterios: **F-SPEC-008-V34** (el conjunto de
+    CA-2.4 está medido abierto y su mecanismo es una lista negra de nueve
+    nombres) y **F-SPEC-008-V35** (fuera de las raíces, la cobertura la decide
+    `.gitignore`), más los residuos ya firmados de CA-2.1 y CA-2.8. **Lo único
+    que se arregla aquí es F-SPEC-008-V33**, la lista de extensiones de CA-2.6,
+    porque es una línea y **el fichero que la aprovecha se commitea con un
+    `git add` normal**: llega a producción. Lo demás es **SPEC-009**.
+
+16. **Y lo que hay que mirar con más lupa, porque es lo que aún no está
+    contestado.** SPEC-009 nace en `borrador` con **una pregunta abierta de
+    verdad**: si CA-2.4 pasa a **enumerar los identificadores globales
+    permitidos** —lista blanca con superficie y motivo, como `ALLOWED_PACKAGES`—
+    o si se acepta la lista negra y el residuo se escribe dentro del criterio
+    (ADR-016 §6). `sdd-arquitecto` propone lo primero y **dice que su coste no
+    está medido**: el lector de hoy no resuelve símbolos, y cuántos globales
+    distintos usa el escaneo no está contado. **Si el gate quiere ese número
+    antes de firmar, el sitio de pedirlo es la aprobación de SPEC-009 y no la de
+    ésta.**
