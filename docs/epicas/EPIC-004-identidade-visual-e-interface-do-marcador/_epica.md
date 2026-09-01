@@ -1,9 +1,11 @@
 ---
 id: EPIC-004
 tipo: epica
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-01, por: sdd-producto}
+  - {estado: aprobada, fecha: 2026-09-01, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # EPIC-004 — Identidade visual e interface do marcador
 
