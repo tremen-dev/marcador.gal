@@ -225,6 +225,22 @@ bajo SPEC-005 y no anotando el ledger de SPEC-002 ni reabriéndola.
   mandarla sin enlace y con el user-agent corregido a mano: se sostiene sola,
   porque el argumento del `robots.txt` bloqueando a Googlebot no necesita
   respaldo web.
+- **La retención publicada en `/robot` se vuelve falsa sola el día que exista
+  producción.** ADR-009 fija el plazo del archivo de **medición** —30 días desde
+  el fin de la ventana, una prórroga escrita, techo duro de 90— y deja **sin
+  fijar el de producción** (lo dice el propio ADR; F-SPEC-001-1), mientras que la
+  página promete ese plazo **en general**: el día que haya producción con otro
+  plazo, la página pasa a ser falsa **sin que nadie la edite y sin que ningún test
+  se entere**. No depende de que alguien olvide una tarea; se rompe solo.
+  **Disparador: la primera spec que persista datos en producción no se aprueba sin
+  un ADR que fije la retención de producción** — es precondición de su gate, no
+  trabajo de esta épica. Escribir ese ADR hoy sería inventar un plazo sin
+  producción, sin modelo de datos de producción y sin dictamen de
+  `/sdd-legal-datos`, y ADR-009 dejó ese número sin fijar **a propósito**. **No
+  obliga a tocar el texto de `/robot`**: `/sdd-legal-datos` dictaminó el
+  2026-08-31 que declarar el plazo es correcto y cierto como compromiso, con
+  riesgo global bajo. Viene de F-SPEC-005-V2 (segundo riesgo), registrado el
+  2026-09-01.
 - **Coste de oportunidad.** Es la primera vez que el proyecto construye algo que
   no es medición. Es poco trabajo, pero EPIC-001 sigue bloqueada y EPIC-002 sin
   empezar: esta épica no puede convertirse en el sitio cómodo donde refugiarse

@@ -97,6 +97,20 @@ vía de RN-02 queda cerrada para todo lo que no sea una persona.
   escalable (`docs/negocio/monetizacion.md`).
 - Socios, patrocinio y ayudas públicas.
 
+## Deuda técnica
+
+- **EPIC-MEJORA — Mejoras y deuda técnica.** Bucket, sin plazo y sin gate. Creada
+  el 2026-09-01 al descubrirse que **seis artefactos rutaban trabajo ahí y la
+  épica no existía**: ni directorio, ni entrada aquí, ni fila en el tablero. Lo
+  aplazado estaba enterrado en ledgers de specs cerradas. Su inventario del
+  primer día son cinco entradas, y **cuatro son barreras que no muerden**, no
+  funciones que falten: no hay CI, la purga de 30 días no tiene ejecutor, la
+  permanencia de las URL no la vigila ningún test, las barreras de contenido
+  miran un HTML que no es el servido, y los 360 px no se han visto en un
+  navegador. Ninguna bloquea la carta a la RFGF. **No sube de sección por
+  antigüedad**: solo si aporta evidencia para el go/no-go o desbloquea algo con
+  plazo.
+
 ## Criterios de corte
 
 Qué haría subir o bajar una épica de sección:
