@@ -92,10 +92,48 @@ vía de RN-02 queda cerrada para todo lo que no sea una persona.
 
 - **EPIC-002 — Instrumentación de las cuatro cifras.** Latencia, cobertura,
   conflictos y operación, que salieron de EPIC-001 el 2026-08-31 porque exigen el
-  motor, los adaptadores y el cron: ocho o nueve specs. **No empieza hasta que
-  EPIC-001 dicte su veredicto**, porque el motor se diseña sabiendo si RN-02
-  tiene segunda vía o no. Sus cifras nacen **sin referencia oficial**, y la épica
-  obliga a declarar junto a cada una qué la degrada.
+  motor, los adaptadores y el cron: ocho o nueve specs. Sus cifras nacen **sin
+  referencia oficial**, y la épica obliga a declarar junto a cada una qué la
+  degrada.
+
+  **Descongelada en su mayor parte el 2026-09-01, porque su premisa caducó.**
+  Decía «no empieza hasta que EPIC-001 dicte su veredicto, **porque el motor se
+  diseña sabiendo si RN-02 tiene segunda vía o no**». Esa pregunta **ya está
+  respondida**, y lo dice este mismo roadmap más arriba: la segunda vía está
+  cerrada **por aritmética, no hay dos fuentes**. Lo que la respuesta de la RFGF
+  cambia es **si vuelve futgal**, no si hay segunda vía. La restricción de diseño
+  está fijada, así que **el motor se puede escribir hoy**.
+
+  **Lo que no depende de la RFGF, y es casi todo:** cron de planificación y
+  calendario · adaptador de `ceroacero.es` · catálogo de alias de los 36 equipos
+  · motor de decisiones con RN-01..RN-07 y sus tests de replay · snapshot y
+  página mínima por polling · panel de correcciones. Si mañana llega el sí,
+  **futgal entra como un adaptador más y un peso en la configuración**: no se
+  rehace el motor.
+
+  **Lo que sí depende, y conviene no engañarse:** SPEC-002, el test de espejo
+  **con referencia**, que necesita la fuente oficial y está `hecho` esperándola;
+  cualquier *confirmado* sin una persona; y RN-06, porque sin futgal solo un
+  humano puede aplazar un partido.
+
+  **Y lo que sube de rango, que es el cambio de verdad:** con una sola fuente
+  automática de peso 0.7, **nada llega a *confirmado* por vía automática**. RN-01
+  sí tiene caminos humanos —corresponsal 0.8 → *provisional*; operador 1.0 con
+  precedencia → *confirmado*—, así que **el bot de Telegram y el panel dejan de
+  ser accesorios y pasan a ser la única ruta a un marcador confirmado**. Eso
+  reordena la épica por dentro: la vía humana y el motor van primero, y **la
+  cifra de operación manual —la que dispara el corte duro de los 30 min y decide
+  si esto pide comunidad de corresponsales en vez de producto— se puede medir sin
+  la RFGF**, con un corresponsal, una jornada y un cronómetro.
+
+  Esta misma premisa tiene una consecuencia de **diseño**, no de secuencia, y no
+  se desarrolla aquí a propósito: si `confirmado` deja de ser el estado normal,
+  el diseño del marcador **apaga el dominante y destaca el raro**, y eso no se
+  arregla cambiando un color — cambia cuál es la fila por defecto. Lo trabaja
+  **EPIC-004**, que a fecha de hoy vive en la rama `ft/design-system`, en
+  `borrador` y **congelada**, pendiente del gate humano. **Hasta que esa épica
+  entre en `main`, esta referencia no resuelve**, y se deja escrita así en vez de
+  fingir que sí.
 
 - **Decisión go / no-go.** Es un gate humano, no una épica: puede matar el
   proyecto, reducirlo o confirmarlo. **Ahora tiene dos momentos, no uno.** El
