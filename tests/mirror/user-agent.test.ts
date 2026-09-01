@@ -9,21 +9,20 @@
  * silencio tiene que doler. El coste, dicho entero: cualquier cambio futuro
  * rompe este fichero a propósito y exige una spec.
  */
-import { execFileSync } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { readFile, readdir } from 'node:fs/promises';
+import { join, relative } from 'node:path';
 import { describe, expect, test } from 'vitest';
-import { parseRobots } from '@/mirror/capture/robots';
+import { parseRobots } from '@/polite/robots';
 import {
   USER_AGENT,
   USER_AGENT_CONTACT,
   USER_AGENT_PATTERN,
   USER_AGENT_PRODUCT,
   USER_AGENT_VERSION,
-} from '@/mirror/user-agent';
+} from '@/polite/user-agent';
 import { CRAWLER_PATH, SITE_ORIGIN } from '@/site/routes';
 
-const SOURCE = join(process.cwd(), 'src/mirror/user-agent.ts');
+const SOURCE = join(process.cwd(), 'src/polite/user-agent.ts');
 
 /** La cadena vieja, la que filtraba vocabulario interno. No puede volver. */
 const OLD_USER_AGENT = 'marcador.gal/0.0.1 (+mailto:ola@tremen.dev; medicion SPEC-002, RN-11)';
@@ -158,19 +157,60 @@ describe('CA-9 — lo que se le pide a la RFGF sigue funcionando con la cadena n
   });
 });
 
-describe('CA-10 — el cambio es de un solo fichero dentro de src/mirror/', () => {
-  test('15. ninguna otra línea de src/mirror/ se ha tocado', () => {
-    const output = execFileSync('git', ['diff', '--name-only', 'main', '--', 'src/mirror/'], {
-      cwd: process.cwd(),
-      encoding: 'utf8',
-    });
+describe('CA-10 — el cambio de la cadena sigue siendo de un solo fichero', () => {
+  /**
+   * ENMENDADO POR SPEC-008 CA-3, Y ES LA ÚNICA ASERCIÓN QUE SE ENMIENDA.
+   *
+   * El caso original comparaba `git diff --name-only main -- src/mirror/` y
+   * exigía que el único fichero tocado fuera `src/mirror/user-agent.ts`. Esa
+   * aserción es **falsa por decisión firmada**: ADR-014 §1 saca la cortesía
+   * RN-11 de `src/mirror/` —user-agent, robots, http y el limitador— y por
+   * tanto toca seis ficheros de ese directorio a propósito. Ningún reescrito
+   * de rutas la salva: apuntada a `src/polite/` lista los cuatro módulos
+   * nuevos y falla igual.
+   *
+   * Se conserva su PROPÓSITO —que cambiar la cadena declarada no pueda
+   * convertirse en «reabrir una spec cerrada», porque vive en un solo
+   * sitio— sin el mecanismo, que era un guardián sobre el diff de SPEC-005.
+   * Queda anotado como salvedad ⚠️ en el ledger de SPEC-008 (F-SPEC-008-1).
+   */
+  const SRC = join(process.cwd(), 'src');
 
-    const changed = output.split('\n').filter((line) => line.trim().length > 0);
+  async function sourceFiles(dir: string): Promise<{ path: string; text: string }[]> {
+    const found: { path: string; text: string }[] = [];
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        found.push(...(await sourceFiles(full)));
+        continue;
+      }
+      found.push({ path: relative(SRC, full).replaceAll('\\', '/'), text: await readFile(full, 'utf8') });
+    }
+    return found.sort((a, b) => a.path.localeCompare(b.path));
+  }
 
-    // Subconjunto y no igualdad: después de fusionar en `main` el diff queda
-    // vacío y eso también es correcto. Lo que nunca puede aparecer es un
-    // segundo fichero — ahí es donde «alinear una cadena» se convertiría en
-    // «reabrir una spec cerrada».
-    expect(changed.filter((file) => file !== 'src/mirror/user-agent.ts')).toEqual([]);
+  test('15. la cadena declarada se compone en un único módulo de `src/`', async () => {
+    const files = await sourceFiles(SRC);
+
+    // El propósito declarado —el tramo que un copiar-pegar arrastraría— y la
+    // declaración del token de producto viven los dos en el mismo fichero, y
+    // en ninguno más.
+    expect(files.filter((f) => f.text.includes('medicion de latencia')).map((f) => f.path)).toEqual([
+      'polite/user-agent.ts',
+    ]);
+    expect(
+      files.filter((f) => f.text.includes('USER_AGENT_PRODUCT =')).map((f) => f.path),
+    ).toEqual(['polite/user-agent.ts']);
+  });
+
+  test('16. y ya no vive dentro del instrumento de medición (ADR-014 §1)', async () => {
+    const files = await sourceFiles(SRC);
+    const mirror = files.filter((f) => f.path.startsWith('mirror/'));
+
+    // Control de que el escaneo mide algo: el instrumento sigue existiendo.
+    expect(mirror.length).toBeGreaterThan(0);
+    expect(mirror.filter((f) => f.text.includes('USER_AGENT_PRODUCT =')).map((f) => f.path)).toEqual(
+      [],
+    );
   });
 });

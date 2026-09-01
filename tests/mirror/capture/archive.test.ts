@@ -20,7 +20,7 @@ import { afterAll, describe, expect, test } from 'vitest';
 import { DiskRawStore } from '@/raw/disk';
 import { rawKey } from '@/raw/store';
 import { Capturer } from '@/mirror/capture/capturer';
-import { allowAllRobots } from '@/mirror/capture/robots';
+import { allowAllRobots } from '@/polite/robots';
 import { canonicalInstant, instantToEpochMs } from '@/mirror/instants';
 import { FakeClock } from '../support/fake-clock';
 import { spyFetcher } from '../support/spy-fetcher';

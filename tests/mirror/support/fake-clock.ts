@@ -6,7 +6,7 @@
  * keeps phase A out of the "sleep and hope" school of testing.
  */
 import { canonicalInstant, instantToEpochMs } from '@/mirror/instants';
-import type { Clock } from '@/mirror/capture/ports';
+import type { Clock } from '@/polite/clock';
 import type { Instant } from '@/model/ids';
 
 export class FakeClock implements Clock {

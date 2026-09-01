@@ -12,7 +12,7 @@ import { describe, expect, test } from 'vitest';
 import { Capturer } from '@/mirror/capture/capturer';
 import { MINUTE_MS } from '@/mirror/thresholds';
 import { instantToEpochMs } from '@/mirror/instants';
-import { allowAllRobots } from '@/mirror/capture/robots';
+import { allowAllRobots } from '@/polite/robots';
 import { FakeClock } from '../support/fake-clock';
 import { MemoryRawStore } from '../support/memory-store';
 import { spyFetcher } from '../support/spy-fetcher';

@@ -6,40 +6,14 @@
  * That is what lets an hour of RN-11 be tested in milliseconds and what keeps
  * the capturer usable both from a Vercel Cron tick and from a supervised local
  * process (spec, *Fuera de alcance*: the host is not constrained).
+ *
+ * The clock and the fetcher THEMSELVES now live in `src/polite/` (ADR-014 §1):
+ * they are the courtesy of RN-11, which has one owner and is not the property
+ * of the measuring instrument. What stays here is what belongs to the window:
+ * the shape of a target and the key of a pair.
  */
-import type { CompetitionId, Instant, SourceId } from '@/model/ids';
-
-export interface Clock {
-  /** The current instant, ISO 8601 UTC as a string (ADR-006). */
-  now(): Instant;
-}
-
-/** The system clock. The only place the wall clock is read. */
-export const systemClock: Clock = {
-  now: (): Instant => new Date().toISOString() as Instant,
-};
-
-export interface HttpRequest {
-  readonly url: string;
-  readonly headers: Readonly<Record<string, string>>;
-}
-
-export interface HttpResponse {
-  readonly status: number;
-  readonly body: Uint8Array;
-  /**
-   * The `Location` header, when the site answered a 3xx (SPEC-003 CA-10).
-   *
-   * It is here and not thrown away because a redirect is a FACT the operator
-   * has to see: the reason of the failed tick names it, so the archive says
-   * where the source moved to instead of quietly downloading from there.
-   */
-  readonly location?: string | null;
-}
-
-export interface HttpFetcher {
-  fetch(request: HttpRequest): Promise<HttpResponse>;
-}
+import { pairKey as politePairKey } from '@/polite/rate-limit';
+import type { CompetitionId, SourceId } from '@/model/ids';
 
 /** One (source, competition) pair of the window, and where to read it. */
 export interface CaptureTarget {
@@ -55,5 +29,5 @@ export function pairKey(target: {
   readonly source: SourceId;
   readonly competition_id: CompetitionId;
 }): string {
-  return `${target.source}/${target.competition_id}`;
+  return politePairKey(target.source, target.competition_id);
 }

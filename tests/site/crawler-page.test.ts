@@ -25,7 +25,7 @@ import { es } from '@/i18n/es';
 import { gl } from '@/i18n/gl';
 import { SITE_LOCALES } from '@/i18n/site';
 import type { SiteLocale } from '@/i18n/site-bundle';
-import { USER_AGENT } from '@/mirror/user-agent';
+import { USER_AGENT } from '@/polite/user-agent';
 import { MAILBOX } from '@/site/contact';
 import { CRAWLER_PATH } from '@/site/routes';
 
@@ -79,7 +79,7 @@ describe('CA-2 — identidad página ↔ código, carácter a carácter', () => 
     // Y el propósito declarado —el tramo que un copiar-pegar arrastraría—
     // vive en un solo fichero.
     expect(files.filter((f) => f.text.includes('medicion de latencia')).map((f) => f.path)).toEqual([
-      'mirror/user-agent.ts',
+      'polite/user-agent.ts',
     ]);
   });
 

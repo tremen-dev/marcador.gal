@@ -12,12 +12,12 @@ import { dirname, resolve } from 'node:path';
 import { BlobRawStore } from '@/raw/blob.ts';
 import { DiskRawStore } from '@/raw/disk.ts';
 import { competitionId, sourceId } from '@/mirror/ids.ts';
-import { USER_AGENT } from '@/mirror/user-agent.ts';
+import { systemClock } from '@/polite/clock.ts';
+import { globalFetcher } from '@/polite/http.ts';
+import { parseRobots, robotsRegistry } from '@/polite/robots.ts';
+import { USER_AGENT } from '@/polite/user-agent.ts';
 import { Capturer } from '@/mirror/capture/capturer.ts';
 import { WindowConfigSchema } from '@/mirror/capture/config.ts';
-import { globalFetcher } from '@/mirror/capture/http.ts';
-import { parseRobots, robotsRegistry } from '@/mirror/capture/robots.ts';
-import { systemClock } from '@/mirror/capture/ports.ts';
 import type { CaptureTarget } from '@/mirror/capture/ports.ts';
 import type { RawStore } from '@/raw/store.ts';
 

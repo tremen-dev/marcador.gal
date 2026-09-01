@@ -20,7 +20,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
-import { USER_AGENT } from '@/mirror/user-agent';
+import { USER_AGENT } from '@/polite/user-agent';
 
 const LETTER = join(process.cwd(), 'docs/negocio/carta-rfgf-acceso.md');
 

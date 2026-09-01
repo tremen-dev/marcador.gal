@@ -24,6 +24,10 @@
  * stay still, and a spec number rotates. `medicion` has no accent on purpose —
  * HTTP header field values are defined over US-ASCII. The galego, with its
  * accents, lives on the page.
+ *
+ * It lives in `src/polite/` and not inside the measuring instrument because
+ * RN-11 has ONE owner (ADR-014 §1): the public site and every adapter read the
+ * string from here, so there is a single place where it can change.
  */
 
 export const USER_AGENT_PRODUCT = 'marcador.gal';

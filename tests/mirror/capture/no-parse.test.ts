@@ -12,7 +12,7 @@ import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import { Capturer } from '@/mirror/capture/capturer';
-import { allowAllRobots } from '@/mirror/capture/robots';
+import { allowAllRobots } from '@/polite/robots';
 import { FakeClock } from '../support/fake-clock';
 import { FailingRawStore, MemoryRawStore } from '../support/memory-store';
 import { reachableModules } from '../support/imports';
@@ -105,6 +105,6 @@ describe('CA-3 — estructura: la fase A no alcanza al extractor de la fase B', 
     const reachable = await reachableModules(['src/mirror/capture/capturer.ts']);
 
     expect(reachable).toContain('src/raw/capture.ts');
-    expect(reachable).toContain('src/mirror/thresholds.ts');
+    expect(reachable).toContain('src/polite/rate-limit.ts');
   });
 });

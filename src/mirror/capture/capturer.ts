@@ -13,13 +13,15 @@
  */
 import { captureThenParse } from '@/raw/capture';
 import { instantToEpochMs, normalizeInstant } from '@/mirror/instants';
-import { MIN_REQUEST_INTERVAL_MS } from '@/mirror/thresholds';
-import { USER_AGENT } from '@/mirror/user-agent';
-import { politeFetch } from './http';
+import { politeFetch } from '@/polite/http';
+import { RateLimiter } from '@/polite/rate-limit';
+import { robotsSkipReason } from '@/polite/robots';
+import { USER_AGENT } from '@/polite/user-agent';
 import { pairKey } from './ports';
-import { robotsSkipReason } from './robots';
-import type { CaptureTarget, Clock, HttpFetcher } from './ports';
-import type { RobotsPolicy } from './robots';
+import type { Clock } from '@/polite/clock';
+import type { HttpFetcher } from '@/polite/http';
+import type { RobotsPolicy } from '@/polite/robots';
+import type { CaptureTarget } from './ports';
 import type { DeclaredPair, TickRecord, WindowLog } from '@/mirror/window';
 import type { RawStore } from '@/raw/store';
 
@@ -41,8 +43,8 @@ export class Capturer {
   readonly #clock: Clock;
   readonly #robots: RobotsPolicy;
   readonly #userAgent: string;
-  /** Last instant at which a request LEFT, per pair. Epoch ms. */
-  readonly #lastRequestAt = new Map<string, number>();
+  /** RN-11's one-per-minute, owned by `src/polite/` (ADR-014 §1). */
+  readonly #limiter = new RateLimiter();
   readonly #ticks: TickRecord[] = [];
 
   constructor(options: CapturerOptions) {
@@ -90,8 +92,7 @@ export class Capturer {
   }
 
   #isDue(target: CaptureTarget, epochMs: number): boolean {
-    const last = this.#lastRequestAt.get(pairKey(target));
-    return last === undefined || epochMs - last >= MIN_REQUEST_INTERVAL_MS;
+    return this.#limiter.isDue(pairKey(target), epochMs);
   }
 
   async #capture(target: CaptureTarget, at: string, epochMs: number): Promise<void> {
@@ -99,7 +100,7 @@ export class Capturer {
     // leave, so a slow response must not buy the next tick an early turn.
     // Stamped before the robots check too, so a forbidden target is asked
     // about once a minute and not on every pass of the cron.
-    this.#lastRequestAt.set(pairKey(target), epochMs);
+    this.#limiter.stamp(pairKey(target), epochMs);
 
     if (!this.#robots.isAllowed(target.url)) {
       this.#record(target, at, 'skipped', robotsSkipReason(target.url), null);

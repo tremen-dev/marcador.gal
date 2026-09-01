@@ -22,7 +22,7 @@
 import { crawlerBundle } from '@/i18n/crawler';
 import { otherLocale } from '@/i18n/site';
 import type { SiteLocale } from '@/i18n/site-bundle';
-import { USER_AGENT } from '@/mirror/user-agent';
+import { USER_AGENT } from '@/polite/user-agent';
 import { withMailbox } from '@/site/mailbox-link';
 import { CRAWLER_PATH } from '@/site/routes';
 

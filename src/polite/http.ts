@@ -1,11 +1,36 @@
 /**
- * The single exit path of phase A (CA-2).
+ * The single exit path of the whole repository (ADR-014 §4).
  *
- * Every request the capturer makes is built here and nowhere else. That is not
- * tidiness: RN-11's user-agent duty is only provable if there is one door, and
- * `tests/mirror/capture/robots.test.ts` case 8 fails if a second one appears.
+ * Every request that leaves this program towards a third party is built here
+ * and nowhere else. That is not tidiness: RN-11's user-agent duty is only
+ * provable if there is one door, and a test of architecture fails if a second
+ * one appears anywhere in `src/` (SPEC-008 CA-2). It used to live inside the
+ * measuring instrument of EPIC-001; the adapters of EPIC-002 need the same
+ * machine, and duplicating a hard rule duplicates its failure mode, which is
+ * silent by nature.
  */
-import type { HttpFetcher, HttpRequest, HttpResponse } from './ports';
+
+export interface HttpRequest {
+  readonly url: string;
+  readonly headers: Readonly<Record<string, string>>;
+}
+
+export interface HttpResponse {
+  readonly status: number;
+  readonly body: Uint8Array;
+  /**
+   * The `Location` header, when the site answered a 3xx (SPEC-003 CA-10).
+   *
+   * It is here and not thrown away because a redirect is a FACT the operator
+   * has to see: the reason of the failed tick names it, so the archive says
+   * where the source moved to instead of quietly downloading from there.
+   */
+  readonly location?: string | null;
+}
+
+export interface HttpFetcher {
+  fetch(request: HttpRequest): Promise<HttpResponse>;
+}
 
 /** Thrown before any I/O when a request would leave without identifying us. */
 export class MissingUserAgentError extends Error {

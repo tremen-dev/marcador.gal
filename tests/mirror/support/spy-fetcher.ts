@@ -7,7 +7,8 @@
  * can feel.
  */
 import { instantToEpochMs } from '@/mirror/instants';
-import type { Clock, HttpFetcher, HttpRequest, HttpResponse } from '@/mirror/capture/ports';
+import type { Clock } from '@/polite/clock';
+import type { HttpFetcher, HttpRequest, HttpResponse } from '@/polite/http';
 
 export interface RecordedRequest {
   readonly url: string;

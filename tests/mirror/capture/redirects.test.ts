@@ -23,8 +23,8 @@ import { createServer } from 'node:http';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { Capturer } from '@/mirror/capture/capturer';
-import { globalFetcher } from '@/mirror/capture/http';
-import { allowAllRobots, robotsRegistry } from '@/mirror/capture/robots';
+import { globalFetcher } from '@/polite/http';
+import { allowAllRobots, robotsRegistry } from '@/polite/robots';
 import { FakeClock } from '../support/fake-clock';
 import { MemoryRawStore } from '../support/memory-store';
 import { CEROACERO, TERCERA } from '../support/targets';
@@ -114,7 +114,7 @@ describe('CA-10 (RN-11) — un 3xx es un fallo, no un rescate', () => {
 
 describe('CA-10 (RN-11) — la puerta única no sigue redirecciones', () => {
   test('4. ningún camino de salida construye una petición sin redirect: manual', async () => {
-    const dir = join(process.cwd(), 'src/mirror/capture');
+    const dir = join(process.cwd(), 'src/polite');
     const files = (await readdir(dir)).filter((file) => file.endsWith('.ts'));
     const platformCallers: string[] = [];
     const manual: string[] = [];
