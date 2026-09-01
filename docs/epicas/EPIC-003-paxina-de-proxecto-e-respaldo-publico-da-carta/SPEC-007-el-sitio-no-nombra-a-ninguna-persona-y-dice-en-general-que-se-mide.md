@@ -184,9 +184,16 @@ amplía**, no se relaja.
   4. la barrera de URL absolutas **se estrecha**: ninguna URL absoluta aparece en
      un atributo que provoque una descarga por sí solo —`src`, `srcset`, `<link
      href>`, `url(...)` en la hoja de estilo—, y la **única** admitida en el HTML
-     es la de esta constante, dentro de un `href` de `<a>`. Sustituye al caso 16
-     de `pages.test.ts`; forma y precedente, los casos finales de
-     `crawler-page.test.ts`.
+     es la de esta constante, en el `href` de un `<a>`. **La comprobación es sobre
+     el conjunto de URL *distintas*, no sobre el número de apariciones**
+     (F-SPEC-007-2): en el HTML servido, Next serializa una copia de la misma URL
+     dentro de su carga RSC en línea (`self.__next_f.push(…)`), que no es un
+     atributo, no descarga nada y no es una URL nueva. Contar apariciones daría
+     **RED falso contra producción**, y el precedente del repositorio ya cuenta
+     conjuntos y no ocurrencias: el caso 17 de `crawler-page.test.ts` recoge todas
+     las coincidencias y **filtra por origen**. SPEC-006 CA-4.3 ya había excluido
+     esa misma carga RSC de lo que cuenta como contenido. Sustituye al caso 16 de
+     `pages.test.ts`.
 
 - **CA-3 (el paraguas resuelve, y el buzón sigue delante)**: Dado el sitio ya
   desplegado, cuando el verificador cierra la spec, entonces comprueba y **anota
@@ -223,10 +230,37 @@ amplía**, no se relaja.
   proyecto**, nunca al sitio entero: `/robot` sirve la cadena literal del
   user-agent, que contiene `medicion de latencia` (SPEC-005 CA-2), y una barrera
   global la pondría en rojo. Sustituye al caso 11 de `pages.test.ts`, que exige
-  hoy exactamente lo contrario. **Nota de coherencia, no de trabajo**: al dejar de
-  nombrarlas, la salvedad de SPEC-005 CA-13 —«`/proxecto` nombra las competiciones
-  y por eso el test se aplica solo a `/robot`»— queda sin objeto, pero su test
-  **no cambia** y sigue verde.
+  hoy exactamente lo contrario.
+
+  **Corrección del 2026-09-01 (F-SPEC-007-1), que sustituye a la nota de
+  coherencia que había aquí.** Esa nota decía que la salvedad de SPEC-005 CA-13
+  quedaba sin objeto «pero su test no cambia y sigue verde». Era cierto del **caso
+  18** —la lista negra de terceros acotada al HTML de `/robot`, que sigue verde— y
+  **falso del caso 19**, que no mira `/robot`: afirma
+  `gl.site.measuring`/`es.site.measuring`**.toContain('Preferente Futgal G1')**,
+  es decir, exactamente lo que CA-4.1 prohíbe. La suite sale con ese único fallo y
+  **CA-4 y CA-6 eran incompatibles entre sí**. Lo que sigue lo resuelve, y es
+  requisito de CA-4:
+
+  El **caso 19 se sustituye en su sitio** —mismo fichero, mismo número— y **no se
+  elimina**. Motivo: lo que ha quedado obsoleto es su *canario*, no su *propósito*.
+  El caso 19 guarda que la lista negra de SPEC-005 CA-13 no se acote de más, y ese
+  riesgo no ha desaparecido: **ha cambiado de dirección y ha empeorado**. Antes,
+  ensanchar la lista al bundle entero se delataba solo, porque `site.measuring`
+  contenía `Futgal` y el caso 18 se ponía rojo. Después de CA-4 ya no contiene
+  ninguno de esos términos, así que **ensancharla pasaría en silencio** y se
+  convertiría en una prohibición de sitio entero que solo mordería el día —quizá
+  dentro de años, en una página que no existe— en que alguien necesite nombrar una
+  fuente legítimamente. Borrar el caso 19 dejaría la frontera de CA-13 sin nadie
+  que la sostenga. El sustituto guarda **el alcance en vez del contenido**, con dos
+  aserciones que no dependen de lo que diga `/proxecto`: (a) un **control positivo**
+  —la lista muerde sobre una cadena sintética de control que sí nombra a un
+  tercero—, de modo que no pueda quedarse vacía sin que nadie se entere; y (b) que
+  la entrada que escanea el caso 18 es **exactamente el HTML de las dos rutas del
+  rastreador**, y de ninguna otra. Precedente de forma: el caso 1 de
+  `no-hardcoded-literals.test.ts` («el escaneo mira de verdad las rutas del sitio,
+  no un conjunto vacío»). La redacción concreta es del implementador; **CA-6.2 lo
+  autoriza nominalmente**.
 
 - **CA-5 (la cláusula del `robots.txt` se conserva, y sigue siendo verdadera sin
   nombres)**: Dado `measuring` en los dos bundles, cuando corre la suite, entonces
@@ -248,15 +282,34 @@ amplía**, no se relaja.
 - **CA-6 (el perímetro del cambio, enumerado; todo lo demás sigue verde)**: Dado
   el cambio, cuando termina, entonces:
   1. `npm run test`, `npm run typecheck` y `npm run lint` pasan **enteros**;
-  2. acotado a `tests/`, el diff toca **exclusivamente** `tests/site/pages.test.ts`
-     (casos **11** y **16**) y `tests/site/i18n.test.ts` (casos **6**, **9** y
-     **10**). Ningún otro fichero de test se modifica, y dentro de esos dos ningún
+  2. **lo que se puede MODIFICAR de los tests que ya existen está enumerado, y es
+     todo lo que se puede modificar.** Acotado a `tests/`, el diff sobre ficheros
+     **ya existentes** toca exclusivamente:
+     - `tests/site/pages.test.ts`, casos **11** y **16**;
+     - `tests/site/i18n.test.ts`, casos **6**, **9** y **10**;
+     - `tests/site/crawler-page.test.ts`, caso **19** —y solo el 19— por la
+       corrección de CA-4 (F-SPEC-007-1). **Es un fichero de SPEC-005**, que está
+       `hecho`: la autorización es nominal, de un solo caso, y está justificada
+       arriba y en la tabla de modulaciones. El caso **18** no se toca;
+     ningún otro fichero ya existente se modifica, y dentro de esos tres ningún
      otro caso. **Cualquier otro test que se ponga rojo es un RED y una vuelta al
      arquitecto, no una excepción añadida a mano.** Es la misma cláusula que
      SPEC-006 CA-4.2, con la diferencia que justifica esta spec: allí el cambio era
      aditivo y no podía tocar ningún test ajeno; aquí **modula criterios
      verificados**, y por eso la autorización para tocarlos es explícita, nominal y
-     está acotada a cinco casos;
+     está acotada a seis casos de tres ficheros;
+  2-bis. **los ficheros de test NUEVOS están permitidos, y son la vía normal**
+     (F-SPEC-007-4). La restricción del punto 2 es sobre **modificar** lo que ya
+     existe, no sobre añadir: los CA-1, CA-2.1, CA-2.2 y CA-2.3 piden barreras que
+     no caben en los seis casos autorizados y que **no pueden** ir a
+     `contact.test.ts`, cuyo caso 4 exige que `src/site/contact.ts` no exporte nada
+     más que el buzón. La lectura del implementador al crear
+     `tests/site/identity.test.ts` es la correcta y queda confirmada aquí. Con un
+     límite, que es lo que la nota 7 del gate quería decir y decía mal: **un
+     fichero nuevo no puede re-afirmar un criterio que uno de los seis casos
+     modulados ya cubre**, porque entonces convivirían dos criterios
+     contradictorios en verde. Añadir lo que no existía, sí; duplicar lo que se
+     está modulando, no;
   3. acotado a `src/`, el diff toca **solo** `src/i18n/gl.ts`, `src/i18n/es.ts`
      (clave `site`), `src/i18n/site-bundle.ts` (la clave nueva de CA-2.1),
      `src/site/project-page.tsx` y el módulo de la constante de CA-2.2.
@@ -291,17 +344,24 @@ amplía**, no se relaja.
      se supersede ADR-012; no se parchea a mano.
   Sin los dos, la spec no cierra.
 
-## Cláusulas de SPEC-004 que quedan moduladas, y por qué su GREEN sigue valiendo
+## Cláusulas de SPEC-004 y SPEC-005 que quedan moduladas, y por qué su GREEN sigue valiendo
 
-SPEC-004 está `hecho` y **no se edita**. Lo que sigue es la lista completa de lo
-que esta spec cambia de ella, para que nadie tenga que deducirlo del diff.
+SPEC-004 y SPEC-005 están `hecho` y **no se editan**. Lo que sigue es la lista
+completa de lo que esta spec cambia de ellas, para que nadie tenga que deducirlo
+del diff.
 
 | Cláusula de SPEC-004 | Qué queda modulado | Por quién |
 |---|---|---|
 | **CA-7**, segunda mitad: el verificador lee «quen está detrás» y comprueba que **nombra a tremen.dev y a Alberto Fojo** | Sigue leyéndolo y sigue comprobando **tremen.dev**; deja de exigir **Alberto Fojo** y pasa a exigir lo contrario: que no aparezca ninguna persona (CA-1). **La lista negra de D-1 no se toca** | CA-1 |
 | **CA-8.1**: «tremen.dev **y Alberto Fojo**, con el buzón de contacto como `mailto:` tomado de la constante única de CA-13» | Cae «y Alberto Fojo». **Todo lo demás se conserva**: el buzón sigue como `mailto:` interpolado desde la constante única (caso 10 de `pages.test.ts` y caso 8 de `i18n.test.ts` siguen verdes), y el límite de tres o cuatro frases sigue vigente y sin tocar (caso 7) | CA-1, CA-2 |
 | **CA-8.2**: «latencia, cobertura, conflictos y minutos de operación manual, **sobre Terceira RFEF G1 e Preferente Futgal G1**» | Se sustituye por el enunciado general. La cláusula deja de exigir la enumeración y pasa a prohibirla | CA-4 |
-| **CA-9/CA-10** tal como se implementaron en el caso 16: «no lleva una sola URL absoluta» | Se estrecha a «ninguna URL absoluta que provoque una descarga por sí sola», con **una** excepción nominal en un `href` de `<a>` | CA-2.4 |
+| **CA-9/CA-10** tal como se implementaron en el caso 16: «no lleva una sola URL absoluta» | Se estrecha a «ninguna URL absoluta que provoque una descarga por sí sola», con **una** excepción nominal en el `href` de un `<a>`, medida sobre URL distintas y no sobre apariciones | CA-2.4 |
+
+Y una de **SPEC-005**, encontrada al implementar (F-SPEC-007-1):
+
+| Cláusula de SPEC-005 | Qué queda modulado | Por quién |
+|---|---|---|
+| **CA-13**, segundo párrafo: «`/proxecto` nombra *Terceira RFEF G1* y *Preferente Futgal G1* … el test tiene que aplicarse sobre el HTML de `/robot`, no sobre el bundle entero, o chocará con SPEC-004» | **La frontera se conserva entera**; lo que cae es el ejemplo que la ilustraba, porque `/proxecto` deja de nombrarlas. Su caso **18** no se toca. Su caso **19**, que usaba ese contenido como canario, **se sustituye** por un guardián del alcance que no depende de él | CA-4, CA-6.2 |
 
 **Por qué esto no invalida el GREEN de SPEC-004.** Tres razones, y las tres
 importan:
@@ -312,14 +372,18 @@ importan:
    cambiado no es el veredicto, es **el requisito**, y lo ha cambiado su dueño.
    Reabrir SPEC-004 para reescribir sus CA sería falsificar el registro de lo que
    se aprobó y se comprobó aquel día.
-2. **Ninguna de las cuatro modulaciones toca la razón de ser de su CA.** CA-7
+2. **Ninguna de las cinco modulaciones toca la razón de ser de su CA.** CA-7
    existe por **D-1** —no presentarse como sucesión de marcadorgalego.gal— y su
    lista negra se conserva intacta; lo que se modula es una comprobación de
    identidad que viajaba de prestado dentro de ella. CA-8.1 existe para que la
    sección no se convierta en un relato; su límite de longitud sigue en pie.
    CA-10 existe para que no haya rastro del visitante ni terceros cargados sin su
    permiso; después del cambio sigue sin salir un byte hacia nadie hasta que el
-   visitante hace clic.
+   visitante hace clic. Y **SPEC-005 CA-13 existe para que `/robot` no señale a
+   ninguna fuente**: eso sigue comprobado por su caso 18, intacto. Lo que se
+   sustituye es el caso 19, que no comprobaba `/robot` sino un contenido de
+   `/proxecto` usado como canario — y el sustituto guarda lo mismo mejor, porque
+   ya no depende de que un texto ajeno no cambie nunca.
 3. **Lo que se pierde está compensado y escrito.** El nombre sale de la página,
    pero la página no se queda sin responsable ni sin destinatario: sigue diciendo
    bajo qué paraguas está —enlazado, y CA-3.1 comprueba que resuelve— y sigue
@@ -424,12 +488,37 @@ el enlace de CA-2, y existe precisamente para que la resta no deje un hueco.
    medir», que sigue siendo verdad para las dos —`ceroacero.es` sirve ambas; lo no
    capturable es la fuente oficial de ambas— y **la barrera contra la recaída de
    F-SPEC-004-8 se amplía en vez de relajarse**.
-7. **La autorización para tocar cinco casos de dos ficheros de test de SPEC-004 es
-   la parte incómoda de esta spec, y está acotada a propósito** (CA-6.2). SPEC-006
+7. **La autorización para tocar seis casos de tres ficheros de test ajenos es la
+   parte incómoda de esta spec, y está acotada a propósito** (CA-6.2). SPEC-006
    pudo prometer que no tocaba ni un test ajeno porque solo añadía; aquí se cambia
-   lo que se exige, y esconderlo detrás de tests nuevos que conviven con los viejos
-   sería peor: quedarían dos criterios contradictorios verdes a la vez.
+   lo que se exige, y **duplicar** un criterio modulado en un fichero nuevo sería
+   peor que modificarlo: quedarían dos criterios contradictorios verdes a la vez.
+   Lo que **no** quería decir esta nota, y por su culpa se leyó al revés
+   (F-SPEC-007-4): que no se puedan **añadir** ficheros de test. Sí se puede, y es
+   la vía normal para lo que esta spec crea de cero. CA-6.2-bis lo dice ya sin
+   ambigüedad.
 8. **Alcance.** Siete CA para dos cambios de contenido puede parecer mucho. Tres
    de los siete (CA-3, CA-6, CA-7) no describen contenido: describen **cómo se
    comprueba que no se rompe nada** en una spec que modifica material verificado y
    desplegado. El contenido en sí son CA-1, CA-2, CA-4 y CA-5.
+9. **Qué se ha corregido DESPUÉS de tu firma, y por qué no es un cambio de
+   alcance** (2026-09-01, sobre el RED del implementador). Los CA de contenido
+   —CA-1, CA-4, CA-5— **no se han tocado**: siguen pidiendo exactamente lo que
+   aprobaste. Lo corregido son tres defectos míos en la parte de perímetro:
+   - **F-SPEC-007-1**: CA-4 y CA-6 se contradecían. Yo afirmé que el test de la
+     salvedad de SPEC-005 CA-13 «no cambia y sigue verde»; era cierto de su caso
+     18 y falso de su **caso 19**, que lee el bundle del sitio y afirma justo lo
+     que CA-4 prohíbe. **Decisión: el caso 19 se sustituye, no se elimina**, y
+     CA-6.2 lo autoriza nominalmente. El razonamiento está entero bajo CA-4. Es la
+     única ampliación real del perímetro: **un caso más, en un fichero más**.
+   - **F-SPEC-007-4**: CA-6.2 no dejaba sitio a los tests que la propia spec
+     exige. Confirmado que **un fichero nuevo no la viola**;
+     `tests/site/identity.test.ts` es correcto. Redactado en CA-6.2-bis.
+   - **F-SPEC-007-2**: la URL del paraguas aparece dos veces en el HTML servido
+     —el `<a href>` y la copia de la carga RSC de Next—. **No lleva CA nuevo**: un
+     criterio de «exactamente una aparición» daría RED falso contra producción.
+     Se ha precisado CA-2.4 para decir lo que siempre quiso decir —conjunto de URL
+     distintas y atributos que descargan, no recuento de apariciones—, que es
+     además lo que ya hacía el precedente del caso 17 de `crawler-page.test.ts`.
+   Si prefieres que la ampliación del perímetro pase por una firma explícita en
+   vez de por esta nota, es una línea en el ledger; el resto no cambia.
