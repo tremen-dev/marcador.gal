@@ -1,9 +1,11 @@
 ---
 id: ADR-016
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-01, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-01, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # ADR-016: Cómo se demuestra una frontera de capacidad: se enumera lo permitido y el resto tiene que ser vacío
 
