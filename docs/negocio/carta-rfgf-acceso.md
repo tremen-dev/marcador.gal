@@ -1,8 +1,6 @@
 # Carta a la RFGF — petición de acceso técnico
 
-> Borrador para que lo mande **Alberto Fojo**. No es la conversación del acuerdo
-> de datos (`retos.md`, «objetivo estratégico»): es un ask mucho más pequeño y
-> por eso puede ir antes de tener cifras.
+> **Enviada el 2026-09-01 a `info@futgal.es`.**
 >
 > **Contexto de por qué existe:** `futgal.es` termina su `robots.txt` en
 > `User-agent: *` / `Disallow: /`, RN-11 obliga a respetarlo y ADR-008 §1 saca la
@@ -20,7 +18,6 @@
 >
 > **Dos cosas que NO hay que hacer en este correo:** prometer un producto que aún
 > no existe, y pedir el acuerdo de datos. Esto es solo permiso técnico.
-
 ---
 
 **Asunto:** robots.txt de futgal.es — les está bloqueando también en Google
@@ -80,6 +77,25 @@ Alberto Fojo
 ola@tremen.dev
 
 ---
+
+## A quién se manda
+
+**`info@futgal.es`** — RFGF, C/ Juan de Ciorraga 3 bajo, 15008 A Coruña, tel. 981 900 600.
+Localizado el 2026-09-01 **por buscador, no entrando en `futgal.es`**: su `robots.txt`
+nos lo prohíbe y RN-11 obliga a respetarlo, que es justamente lo que esta carta pide
+cambiar. Conviene que quien la mande lo confirme antes de enviar.
+
+**Es un buzón general, y la petición es técnica.** Quien abra `info@` no es quien
+edita el `robots.txt`. Por eso el asunto importa más de lo normal: «les está
+bloqueando también en Google» es lo que hace que alguien la reenvíe a quien puede
+resolverla. Si hubiera un contacto de sistemas o de comunicación, mejor ese.
+
+## Plazo
+
+**Se espera una semana. El 2026-09-08 se da por no contestada** y no se insiste,
+ni por teléfono ni por otra vía. Decisión de Alberto Fojo del 2026-09-01; el
+porqué y qué desbloquea esa fecha están en `docs/roadmap.md`, no aquí, para que
+vivan en un solo sitio.
 
 ## Notas para quien lo manda
 

@@ -6,16 +6,15 @@ epica: EPIC-003
 # Ledger — SPEC-007 El sitio no nombra a ninguna persona y dice en general que se mide
 
 ## Resumen
-- Fase: **hecho** — verificada **GREEN** el 2026-09-01 sobre `8129f84`, con una
-  salvedad aceptada (CA-3.1, ver abajo). Antes: en-revisión tras dos vueltas, con
-  el RED de la primera —F-SPEC-007-1— resuelto por el arquitecto en la spec y
-  ejecutado en la segunda
-- **Lo único que queda para después del merge**, y no es un fallo: **volver a
-  correr CA-3.1 contra `https://marcador.gal`** —que `/proxecto` y `/es/proxecto`
-  respondan `200` y sirvan el `<a href="https://tremen.dev">`—. Hoy ese dominio
-  sirve la versión anterior porque esto no está mergeado. La otra mitad,
-  `https://tremen.dev` → `200`, ya está comprobada, y CA-3.2 está cerrado también
-  contra producción para `/robot`
+- Fase: **hecho** — verificada **GREEN** el 2026-09-01 sobre `8129f84`. Antes: en
+  revisión tras dos vueltas, con el RED de la primera —F-SPEC-007-1— resuelto por
+  el arquitecto en la spec y ejecutado en la segunda
+- **Los siete CA en ✅. No queda ninguna salvedad.** CA-3 quedó ⚠️ en el veredicto
+  del 2026-09-01 porque su mitad 3.1 no se podía cerrar contra un despliegue que
+  todavía no existía. **Cerrado ese mismo día, tras el merge de PR #11 y el
+  despliegue**, con medición propia contra `https://marcador.gal`: ver la fila de
+  CA-3 y la sección «Cierre de CA-3 contra producción». **Nada queda pendiente de
+  comprobar contra producción en esta spec**
 - Rama: `ft/SPEC-007-el-sitio-no-nombra-a-ninguna-persona-y-dice-en-general-que-se-mide`
 - Commits: `dac4823` (CA-1), `c199a28` (CA-2), `ac9b90b` (CA-4 y CA-5) y, de la
   segunda vuelta, el que sustituye el caso 19 de `crawler-page.test.ts`
@@ -31,7 +30,7 @@ epica: EPIC-003
 |---|---|---|---|---|
 | CA-1 | `src/i18n/gl.ts`, `src/i18n/es.ts` (clave `about` del espacio `site`) | `tests/site/identity.test.ts` 1–5 (los tres espacios de nombres de los dos bundles y el HTML de las cuatro rutas, más el caso 4 que impide que la barrera sea vacua); `tests/site/i18n.test.ts` 6 (modulado: sigue exigiendo `tremen.dev`, pasa a exigir que no haya persona) | Cero coincidencias de las doce formas sobre el HTML **servido** por `next build && next start` de las cuatro rutas (V1). Roto por el verificador: el nombre en el bundle `crawler` → `identity` 1 y 3 rojos; en `es.titles.project` → `identity` 1 rojo (V3, V4). Lectura de «Quen está detrás» hecha: dice quién responde —tremen.dev, en prosa y enlazado— sin persona, sin recuento y sin forma jurídica | ✅ |
 | CA-2 | `src/site/umbrella.ts` (**nuevo**, `UMBRELLA_URL` + contrato en la cabecera), `src/i18n/site-bundle.ts` (clave `umbrellaLink`), `src/i18n/gl.ts`, `src/i18n/es.ts`, `src/site/project-page.tsx` | `tests/site/identity.test.ts` 6 (el `<a href>` real), 7 (etiqueta desde i18n, distinta en cada lengua), 8 (`about` sigue nombrando tremen.dev en prosa), 9 (una sola constante, y **no** en `site/contact.ts`), 10 (el contrato en la cabecera); `tests/site/pages.test.ts` 16 (modulado: barrera estrechada de URL absolutas) | 2.1–2.3 rotos y verdes: borrar el `<a>` → 5 rojos; URL a mano en el JSX → `identity` 9; caída de dos frases del contrato → `identity` 10 (V8, V9, V10). 2.4 comprobado por el verificador sobre el HTML servido de las **cuatro** rutas: **cero** URL absolutas en `src`, `srcset`, `<link href>` o `url(…)`, y **una sola URL absoluta distinta**, `https://tremen.dev`, en el `href` del `<a>`. Un `<link rel=stylesheet href=https://…>` inyectado pone el caso 16 en rojo (V7). Ver F-SPEC-007-9 | ✅ |
-| CA-3 | — (no es código: se comprueba contra dos sitios vivos) | — . Evidencia recogida abajo en «Evidencia de implementación»; **el CA es del verificador** | **3.2 CERRADO** (la mitad que no puede caerse): `href="mailto:ola@tremen.dev"` en las cuatro rutas, desde `MAILBOX` interpolado; en `/robot` byte 1181 frente al primer `<h2>` en 1324, en `/es/robot` 1191 frente a 1334 — **el buzón va antes de cualquier encabezado de sección**, SPEC-005 CA-5 intacta, y lo mismo en el `/robot` **de producción**. **3.1 PARCIAL**: `https://tremen.dev` → `200` (2026-09-01); `/proxecto` y `/es/proxecto` → `200` con el enlace servido, pero **en local**: `https://marcador.gal` sirve todavía la versión anterior (contiene `Alberto Fojo` y `Preferente Futgal`), porque esto no está mergeado | ⚠️ |
+| CA-3 | — (no es código: se comprueba contra dos sitios vivos) | — . Evidencia recogida abajo en «Evidencia de implementación»; **el CA es del verificador** | **3.2 CERRADO, y RE-COMPROBADO CONTRA PRODUCCIÓN el 2026-09-01 tras el despliegue** (es la mitad que bloquea, y la que sostiene RN-11 ahora que no hay nombre): `href="mailto:ola@tremen.dev"` presente en las cuatro rutas de `https://marcador.gal`, desde `MAILBOX` interpolado. En el **`/robot` desplegado** el buzón está en el byte **1251** y el primer `<h2>` en el **1394**; en `/es/robot`, **1261** frente a **1404** — **el buzón va antes de cualquier encabezado de sección**, SPEC-005 CA-5 intacta sobre el sitio real y no solo sobre el build local (donde medí 1181/1324 y 1191/1334). En `/proxecto` y `/es/proxecto` el `mailto:` es el `<a>` del primer párrafo de la sección «Quen está detrás», tal y como manda SPEC-004 CA-8.1; ahí el `<h2>` va delante por construcción y la exigencia de «primer bloque» es de las rutas de rastreador, no de estas. **3.1 CIERRA CONTRA PRODUCCIÓN — 2026-09-01, tras el merge de PR #11 y el despliegue, medido por el verificador con `curl` propio contra `https://marcador.gal` y sin heredar ninguna cifra.** `https://marcador.gal/proxecto` → `200`, 10209 bytes, y `https://marcador.gal/es/proxecto` → `200`, 10789 bytes. **Las dos sirven el enlace**: exactamente **una** aparición de `href="https://tremen.dev"` en cada una, en el byte 1154 (gl) y 1164 (es), dentro de la sección «Quen está detrás» / «Quién está detrás» y con su etiqueta de i18n (`tremen.dev — o paraugas deste proxecto` y `tremen.dev — el paraguas de este proyecto`). **La URL enlazada responde**: `https://tremen.dev` → `200`, `url_effective https://tremen.dev/`, `num_redirects=0`. **No se le exige que identifique a nadie** —eso quedó como riesgo con disparador en ADR-012 y F-SPEC-007-6, no como criterio—, así que no se ha mirado su contenido | ✅ |
 | CA-4 | `src/i18n/gl.ts`, `src/i18n/es.ts` (clave `measuring`) | `tests/site/pages.test.ts` 11 (modulado: de exigir la enumeración a prohibirla, sobre el espacio `site` **entero** y el HTML de las dos rutas de proyecto); `tests/site/crawler-page.test.ts` 19 (**sustituido en su sitio**, F-SPEC-007-1: guarda el alcance de la lista negra de SPEC-005 CA-13 en vez de su contenido. El caso 18 no se toca) | Cero coincidencias de las once formas sobre el HTML servido de `/proxecto` y `/es/proxecto`; `medicion de latencia` **sí** sale en `/robot` y no pone nada en rojo, que es lo que CA-4 exige del alcance. Devolver «Terceira RFEF G1 e Preferente Futgal G1» a `gl.site.measuring` → `pages` 11 rojo (V11). **Sustituto del caso 19 comprobado por el verificador**: ensanchar la entrada del escaneo al bundle entero → **19 rojo, 18 verde** (V5); es exactamente el fallo silencioso que el sustituto dice guardar | ✅ |
 | CA-5 | `src/i18n/gl.ts`, `src/i18n/es.ts` (clave `measuring`, tercera oración) | `tests/site/i18n.test.ts` 9 (`NOT_MEASURING_YET` ampliada con las cuatro formas de subconjunto) y 10 (referente exigido cambiado; `a fonte oficial` y `robots.txt` intactos) | Las tres cosas siguen dichas en las dos lenguas, leídas sobre el HTML servido. **Hecho comprobado contra la fuente, no contra el enunciado**: `ceroacero.es` sirve **las dos** competiciones (`hallazgos/fontes-capturables.md:34-35`, 50 equipos cada una) y lo no capturable es la **fuente oficial de ambas** (`:66`, `dominio.md:57`, ADR-008 §1) — el referente «as competicións que se queren medir» las abarca, no es un subconjunto. Barrera ampliada rota y verde: `dunha das competicións` (gl) y `de una de las competiciones` (es) → `i18n` 9 rojo; `de una competición del estudio` → `i18n` 9 **y** 10 rojos; caída de `robots.txt` → `i18n` 10 rojo (V6a–V6d) | ✅ |
 | CA-6 | — (es una cláusula sobre el perímetro, no código) | `npm run lint`, `npm run typecheck`, `npx vitest run --typecheck`; comparación de `/robot` con `git archive` **sin `checkout`** | 6.1 verde (salida literal abajo, sección del verificador). 6.2 y 6.3 comprobados sobre `git diff c80ff82 HEAD`: `src/` toca exactamente los cinco ficheros enumerados y **ni una línea** de `src/mirror/`, `src/model/`, `src/db/`, `src/raw/`, `migrations/`, `crawler` ni `titles`; `tests/` toca los tres ficheros autorizados —y dentro de ellos solo los casos 11, 16, 6, 9, 10 y 19— más el fichero nuevo que CA-6.2-bis autoriza. 6.4 **rehecho por el verificador** con `git archive c80ff82` y build propio: `/robot` y `/es/robot` byte a byte idénticos tras normalizar la **única** aparición del `buildId` (`sha256` `86fbd92a1ae4…` y `f1dbad6ab225…`), y la misma normalización **no** iguala `/proxecto` (control negativo). 6.5: ningún commit de implementación toca la carta; ver F-SPEC-007-3 | ✅ |
@@ -139,6 +138,54 @@ c80ff82` a un directorio temporal con su propio build en `:3188`.
 anterior**: contiene `Alberto Fojo`, `unha soa persoa` y `Preferente Futgal`, y
 ninguna URL absoluta. Es lo esperado —esta rama no está mergeada— y es la razón
 de que CA-3.1 quede ⚠️ y no ✅.
+
+## Cierre de CA-3 contra producción — 2026-09-01, después del despliegue
+
+Añadido **después** del veredicto, que no se toca. El párrafo «Estado de
+producción en el momento de verificar» describe el sitio **antes** del merge de
+PR #11 y sigue siendo el registro veraz de aquel momento; lo que sigue **lo
+sustituye como estado actual**, no lo corrige.
+
+Medido por `sdd-verificador` con `curl` propio contra `https://marcador.gal` tras
+el despliegue. **Ninguna cifra se ha heredado**: las cuatro rutas se volvieron a
+descargar y a analizar con herramienta propia.
+
+| Ruta | code | bytes | nombre / forma jurídica | métricas o competiciones | `href="https://tremen.dev"` | `mailto:ola@tremen.dev` | `<title>` |
+|---|---|---|---|---|---|---|---|
+| `/proxecto` | 200 | 10209 | **0** | **0** | **1** (byte 1154) | 2 (1 como `href`) | `O proxecto — marcador.gal` |
+| `/es/proxecto` | 200 | 10789 | **0** | **0** | **1** (byte 1164) | 2 (1 como `href`) | `El proyecto — marcador.gal` |
+| `/robot` | 200 | 12686 | **0** | 2 · **ambas `latencia`** | 0 | 4 (2 como `href`) | `O rastrexador — marcador.gal` |
+| `/es/robot` | 200 | 13267 | **0** | 2 · ídem | 0 | 4 (2 como `href`) | `El rastreador — marcador.gal` |
+
+- **CA-3.1.** Las dos rutas de proyecto responden `200` y **sirven el enlace**, una
+  sola vez cada una, dentro de «Quen está detrás» / «Quién está detrás» y con la
+  etiqueta que viene de i18n. Estructura servida, literal:
+  `<h2>Quen está detrás</h2><p>marcador.gal é un proxecto de tremen.dev. O
+  enderezo de contacto é <a href="mailto:ola@tremen.dev">ola@tremen.dev</a>. …</p>
+  <p><a href="https://tremen.dev">tremen.dev — o paraugas deste proxecto</a></p>`.
+  **La URL enlazada responde**: `https://tremen.dev` → `200`, `num_redirects=0`.
+  No se ha mirado su contenido: CA-3.1 **no** exige que identifique a nadie.
+- **CA-3.2.** El buzón sigue delante en el sitio real: `/robot`, byte **1251**
+  contra el primer `<h2>` en **1394**; `/es/robot`, **1261** contra **1404**.
+  **RN-11 se sigue cumpliendo sin nombre porque el buzón sigue delante**, y ahora
+  está comprobado donde importa.
+- **Los dos `latencia` de las rutas de rastreador, verificados uno a uno y no por
+  recuento**: los dos están dentro de `marcador.gal/0.0.1
+  (+https://marcador.gal/robot; medicion de latencia)` —el `<code>` visible en el
+  byte 1582 y su copia RSC en el 8921; en `/es/robot`, 1595 y 9450—, que es
+  exactamente la excepción que CA-4 acota. **No hay ningún `latencia` fuera del
+  user-agent**, y ninguna de las cuatro rutas nombra competición alguna.
+- **Comprobado de paso sobre el sitio desplegado, y todo verde**: cero terceros
+  (`futgal`, `ceroacero`, `besoccer`, `resultados-futbol`, `rfgf`, `flashscore`,
+  `sofascore`) y cero formas de sucesión de D-1 en las cuatro rutas; cero URL
+  absolutas en atributos que descargan; en las rutas de proyecto la única URL
+  absoluta distinta es `https://tremen.dev` y en las de rastreador
+  `https://marcador.gal/robot`, dentro del user-agent; `/robots.txt` sirve **58
+  bytes**, volcados con `xxd`: `# marcador.gal — ola@tremen.dev\n\nUser-agent:
+  *\nAllow: /\n`.
+- **Los cuatro `<title>` distintos y correctos** (SPEC-006 CA-1, que se cerró
+  contra un build local porque entonces no había despliegue). No reabre nada: se
+  anota porque es la primera vez que se observan en el sitio real.
 
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-007/. Informe HTML opcional: _qa/SPEC-007/informe.html -->

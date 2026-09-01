@@ -36,17 +36,30 @@ tipo: roadmap
   riesgo de dominio que este roadmap arrastraba. Queda pendiente la comprobación
   en OEPM, que ya no bloquea el dominio sino la inversión en identidad visual.
 
+
 **La acción con plazo externo, y la única que solo puede hacer una persona:**
-mandar la carta a la RFGF (`docs/negocio/carta-rfgf-acceso.md`, escrita y lista).
-**Ahora espera a EPIC-003 por decisión de Alberto Fojo el 2026-08-31**, para que
-salga con una página donde verificar lo que afirma. Con ella va una corrección
-que salió al revisarla: el user-agent del código lleva `medicion SPEC-002, RN-11`,
-identificadores internos que no significan nada fuera del repo y que además
-**rotan con cada spec**. Se arregla en el código, no en la carta.
-Pide **dos líneas en su `robots.txt`**, no un acuerdo de datos, así que no
-necesita cifras y rompe el círculo de «la conversación solo tiene sentido con el
-informe en la mano». Si contestan, la ventana pasa a ser la de **SPEC-002** —
-hecha, verificada y esperando exactamente eso.
+mandar la carta a la RFGF (`docs/negocio/carta-rfgf-acceso.md`). **Enviada el 2026-09-01 a `info@futgal.es`.** Ahora espera respuesta. Pide **dos líneas en su `robots.txt`**, no un acuerdo de datos, así que no necesita cifras y rompe el círculo de «la conversación solo tiene sentido con el informe en la mano». Si contestan, la ventana pasa a ser la de **SPEC-002** — hecha, verificada y esperando exactamente eso.
+
+**El bloqueo de EPIC-001 persiste:** la carta hace una pregunta, no cierra ninguna puerta. El acceso a `futgal.es` sigue dependiendo de una de dos cosas — respuesta de la RFGF, o un `robots.txt` que nos permita. **Sin eso, SPEC-003 sigue sin poder ejecutarse** porque mide el cruce entre dos fuentes y hoy solo hay una. Esto no es un fallo de la carta: es que la pregunta, aun hecha, no tiene respuesta todavía.
+
+**Cuánto se espera, decidido por Alberto Fojo el 2026-09-01: una semana.** Si el
+**2026-09-08** no hay respuesta, la carta se da por **no contestada** y no se
+insiste — **ni por teléfono ni por otra vía**. No es rendirse: es que el silencio
+de un buzón general ante una petición técnica no es información, y esperar más no
+la convierte en información.
+
+**Lo que esa fecha desbloquea es un veredicto, no un acceso.** Hasta hoy EPIC-001
+estaba bloqueada **sin final**: dependía de una respuesta que podía no llegar
+nunca. Con el plazo escrito, el **2026-09-08** la épica puede cerrarse diga lo que
+diga la RFGF — si contestan que sí, la ventana pasa a ser la de SPEC-002, hecha y
+verificada esperando exactamente eso; si no contestan o dicen que no, **EPIC-001
+se cierra con una sola fuente automática capturable**, que es un resultado, no un
+fracaso. Lo que no puede volver a pasar es que se quede esperando.
+
+**Queda una cosa sin decidir, y se anota como tal:** si el 2026-09-08 se manda un
+segundo correo —a otra dirección, a un contacto de sistemas— o no se manda
+ninguno. Alberto descartó el teléfono; sobre un segundo correo no se ha
+pronunciado. Mientras no lo haga, **no se manda ninguno**.
 
 **Bloqueante fuera del código, ya resuelto a medias:** el dominio `marcador.gal`
 **se contrató el 2026-08-31** (Dinahosting), lo que cierra el riesgo de nombre
@@ -65,10 +78,48 @@ vía de RN-02 queda cerrada para todo lo que no sea una persona.
 
 - **EPIC-002 — Instrumentación de las cuatro cifras.** Latencia, cobertura,
   conflictos y operación, que salieron de EPIC-001 el 2026-08-31 porque exigen el
-  motor, los adaptadores y el cron: ocho o nueve specs. **No empieza hasta que
-  EPIC-001 dicte su veredicto**, porque el motor se diseña sabiendo si RN-02
-  tiene segunda vía o no. Sus cifras nacen **sin referencia oficial**, y la épica
-  obliga a declarar junto a cada una qué la degrada.
+  motor, los adaptadores y el cron: ocho o nueve specs. Sus cifras nacen **sin
+  referencia oficial**, y la épica obliga a declarar junto a cada una qué la
+  degrada.
+
+  **Descongelada en su mayor parte el 2026-09-01, porque su premisa caducó.**
+  Decía «no empieza hasta que EPIC-001 dicte su veredicto, **porque el motor se
+  diseña sabiendo si RN-02 tiene segunda vía o no**». Esa pregunta **ya está
+  respondida**, y lo dice este mismo roadmap más arriba: la segunda vía está
+  cerrada **por aritmética, no hay dos fuentes**. Lo que la respuesta de la RFGF
+  cambia es **si vuelve futgal**, no si hay segunda vía. La restricción de diseño
+  está fijada, así que **el motor se puede escribir hoy**.
+
+  **Lo que no depende de la RFGF, y es casi todo:** cron de planificación y
+  calendario · adaptador de `ceroacero.es` · catálogo de alias de los 36 equipos
+  · motor de decisiones con RN-01..RN-07 y sus tests de replay · snapshot y
+  página mínima por polling · panel de correcciones. Si mañana llega el sí,
+  **futgal entra como un adaptador más y un peso en la configuración**: no se
+  rehace el motor.
+
+  **Lo que sí depende, y conviene no engañarse:** SPEC-002, el test de espejo
+  **con referencia**, que necesita la fuente oficial y está `hecho` esperándola;
+  cualquier *confirmado* sin una persona; y RN-06, porque sin futgal solo un
+  humano puede aplazar un partido.
+
+  **Y lo que sube de rango, que es el cambio de verdad:** con una sola fuente
+  automática de peso 0.7, **nada llega a *confirmado* por vía automática**. RN-01
+  sí tiene caminos humanos —corresponsal 0.8 → *provisional*; operador 1.0 con
+  precedencia → *confirmado*—, así que **el bot de Telegram y el panel dejan de
+  ser accesorios y pasan a ser la única ruta a un marcador confirmado**. Eso
+  reordena la épica por dentro: la vía humana y el motor van primero, y **la
+  cifra de operación manual —la que dispara el corte duro de los 30 min y decide
+  si esto pide comunidad de corresponsales en vez de producto— se puede medir sin
+  la RFGF**, con un corresponsal, una jornada y un cronómetro.
+
+  Esta misma premisa tiene una consecuencia de **diseño**, no de secuencia, y no
+  se desarrolla aquí a propósito: si `confirmado` deja de ser el estado normal,
+  el diseño del marcador **apaga el dominante y destaca el raro**, y eso no se
+  arregla cambiando un color — cambia cuál es la fila por defecto. Lo trabaja
+  **EPIC-004**, que a fecha de hoy vive en la rama `ft/design-system`, en
+  `borrador` y **congelada**, pendiente del gate humano. **Hasta que esa épica
+  entre en `main`, esta referencia no resuelve**, y se deja escrita así en vez de
+  fingir que sí.
 
 - **Decisión go / no-go.** Es un gate humano, no una épica: puede matar el
   proyecto, reducirlo o confirmarlo. **Ahora tiene dos momentos, no uno.** El
