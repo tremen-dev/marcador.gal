@@ -59,26 +59,79 @@ function resolverFor(known: readonly string[]): MatchResolver {
   };
 }
 
-const ALL = resolverFor([LIVE.source_ref, SCHEDULED.source_ref, UNKNOWN.source_ref]);
+const POSTPONED: SourceRow = {
+  source_ref: '/partido/2026-09-06-cd-adiado-sd-imaxinaria/90003',
+  home_name: 'CD Adiado',
+  away_name: 'SD Imaxinaria',
+  status: 'postponed',
+  home_score: null,
+  away_score: null,
+  kickoff: null,
+};
 
-async function read(rows: readonly SourceRow[], options?: { readonly weight?: number }) {
+const SUSPENDED: SourceRow = {
+  source_ref: '/partido/2026-09-06-ud-suspendida-cf-ficticio/90004',
+  home_name: 'UD Suspendida',
+  away_name: 'CF Ficticio',
+  status: 'suspended',
+  home_score: 1,
+  away_score: 1,
+  kickoff: null,
+};
+
+/** Las cinco ramas del modelo, para que ninguna escape a la validación. */
+const FIVE_BRANCH_ROWS: readonly SourceRow[] = [LIVE, SCHEDULED, UNKNOWN, POSTPONED, SUSPENDED];
+
+const ALL = resolverFor(FIVE_BRANCH_ROWS.map((row) => row.source_ref));
+
+async function read(
+  rows: readonly SourceRow[],
+  options?: { readonly weight?: number; readonly observedAt?: string },
+) {
   return await readRows({
     rows,
     source: CEROACERO,
     competitionId: TERCERA,
     confidence: options?.weight ?? 0.7,
-    observedAt: AT,
+    observedAt: (options?.observedAt ?? AT) as typeof AT,
     rawRef: RAW_REF,
     resolver: ALL,
   });
 }
 
 describe('CA-9 — la forma de la `Observation`', () => {
-  test('1. valida contra `ObservationSchema` antes de salir del adaptador', async () => {
-    const { observations } = await read([LIVE]);
+  /**
+   * CA-9.1, reescrito. El caso anterior hacía
+   * `expect(() => ObservationSchema.parse(observations[0])).not.toThrow()`:
+   * validaba EN EL TEST, así que no distinguía «el adaptador validó» de «el
+   * dato era válido», y además solo miraba `observations[0]`. Sustituir el
+   * `ObservationSchema.parse` de `readRows` por un `Object.freeze` con cast
+   * dejaba 478/478 en verde, y la variante que ADEMÁS emitía `confidence: 42`
+   * en `postponed`/`suspended` también: salía del adaptador una `Observation`
+   * que viola RN-01 y el `z.number().min(0).max(1)` del esquema, y nada se
+   * ponía rojo (F-SPEC-008-V11, F-SPEC-008-V16).
+   *
+   * La forma que sí lo sujeta es la inversa: un dato que el ESQUEMA rechaza
+   * tiene que hacer fallar a `readRows`. Un test que valida lo que le
+   * devuelven prueba el dato; uno que le da un dato malo prueba el código.
+   */
+  test('1. valida contra `ObservationSchema` antes de salir, y en LAS CINCO RAMAS', async () => {
+    // Sin la validación, esto sale del adaptador tal cual.
+    for (const row of FIVE_BRANCH_ROWS) {
+      await expect(read([row], { weight: 42 })).rejects.toThrow(/"confidence"/);
+    }
+    // Y no es solo el `confidence`: es el esquema entero, ADR-006 incluido.
+    await expect(read(FIVE_BRANCH_ROWS, { observedAt: '6 de septiembre' })).rejects.toThrow(
+      /"observed_at"/,
+    );
 
-    expect(observations).toHaveLength(1);
-    expect(() => ObservationSchema.parse(observations[0])).not.toThrow();
+    // El control de que el escenario mide algo: con datos válidos salen las
+    // cinco, y las cinco —no solo la primera— pasan el esquema.
+    const { observations } = await read(FIVE_BRANCH_ROWS);
+    expect(observations).toHaveLength(5);
+    for (const observation of observations) {
+      expect(() => ObservationSchema.parse(observation)).not.toThrow();
+    }
   });
 
   test('2. lleva la fuente y el marcador de la fila', async () => {

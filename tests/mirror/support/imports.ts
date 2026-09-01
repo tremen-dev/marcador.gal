@@ -24,14 +24,33 @@ import { stripComments } from '../../support/source-tree';
 const ROOT = process.cwd();
 const SRC = join(ROOT, 'src');
 
-/** `import … from '…'` and `export … from '…'`, anchored at the statement. */
-const FROM_PATTERN = /(?:^|\n)\s*(?:import|export)[\s\S]*?from\s*(['"])([^'"]*)\1/g;
+/**
+ * `import … from '…'` and `export … from '…'`, anchored at the statement. The
+ * first group is THE CLAUSE — what crosses the frontier — because SPEC-008
+ * CA-2.3 stopped conceding packages and started conceding SURFACES: it is no
+ * longer enough to know which module was named, one has to know which names
+ * came out of it.
+ */
+const FROM_PATTERN = /(?:^|\n)\s*(?:import|export)\b([^;'"]*?)\bfrom\s*(['"])([^'"]*)\2/g;
 /** `import '…'` — a side-effect import names a module and pulls it in. */
 const SIDE_EFFECT_PATTERN = /(?:^|\n)\s*import\s*(['"])([^'"]*)\1/g;
 /** `import(…)`, literal or not. The argument is captured raw and judged after. */
 const DYNAMIC_PATTERN = /\bimport\s*\(\s*([^)]*)\)/g;
 /** A dynamic argument that is a single, whole, static string literal. */
 const STATIC_LITERAL = /^(['"])([^'"]*)\1$/;
+/** A bare JavaScript identifier. */
+const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
+
+export interface ImportBinding {
+  /**
+   * The name AS THE MODULE EXPORTS IT — never the alias. `import { get as
+   * blobGet }` binds `get`: renaming on the way in cannot widen a surface.
+   */
+  readonly name: string;
+  readonly kind: 'named' | 'default' | 'namespace';
+  /** The identifier it is bound to here. What a namespace's members hang off. */
+  readonly local: string;
+}
 
 export interface ModuleSpecifier {
   /** The module named, when the specifier is a static string literal. */
@@ -39,10 +58,96 @@ export interface ModuleSpecifier {
   /** What was written between the parentheses or quotes, verbatim. */
   readonly raw: string;
   readonly kind: 'static' | 'side-effect' | 'dynamic';
+  /**
+   * `import type …` / `import { type X }`. `verbatimModuleSyntax` erases these
+   * whole: they cross no capability, so CA-2.3 asks them for no surface.
+   */
+  readonly typeOnly: boolean;
+  /** What crosses the frontier. Empty for a type-only or side-effect import. */
+  readonly bindings: readonly ImportBinding[];
+  /**
+   * The clause could not be read. FAIL CLOSED: a surface that cannot be
+   * enumerated is not a surface, and `export * from` a package is exactly the
+   * whole-namespace concession CA-2.3 refuses.
+   */
+  readonly unreadableClause: boolean;
+}
+
+function binding(name: string, local: string): ImportBinding {
+  return { name, kind: name === 'default' ? 'default' : 'named', local };
+}
+
+/** The names a `{ … }` list lets through, or `null` when it cannot be read. */
+function parseNamedList(inner: string): ImportBinding[] | null {
+  const bindings: ImportBinding[] = [];
+
+  for (const piece of inner.split(',')) {
+    const item = piece.trim();
+    if (item === '') continue;
+
+    const typed = /^type\s+([\s\S]+)$/.exec(item);
+    const body = typed === null ? item : typed[1]!.trim();
+
+    const aliased = /^([A-Za-z_$][\w$]*)\s+as\s+([A-Za-z_$][\w$]*)$/.exec(body);
+    const name = aliased === null ? body : aliased[1]!;
+    const local = aliased === null ? body : aliased[2]!;
+
+    if (!IDENTIFIER.test(name) || !IDENTIFIER.test(local)) return null;
+    // An inline `type` name is erased too, so it concedes nothing.
+    if (typed === null) bindings.push(binding(name, local));
+  }
+
+  return bindings;
+}
+
+/** What an `import`/`export … from` clause lets through. */
+function parseClause(clause: string): {
+  typeOnly: boolean;
+  bindings: ImportBinding[];
+  unreadableClause: boolean;
+} {
+  const trimmed = clause.trim();
+  const typeOnly = /^type\b/.test(trimmed);
+  const rest = typeOnly ? trimmed.slice(4).trim() : trimmed;
+
+  // A type-only import is erased whole: no name crosses, nothing to declare.
+  if (typeOnly) return { typeOnly, bindings: [], unreadableClause: false };
+  if (rest === '') return { typeOnly, bindings: [], unreadableClause: false };
+
+  const brace = rest.indexOf('{');
+  const head = (brace === -1 ? rest : rest.slice(0, brace)).replace(/,\s*$/, '').trim();
+  const bindings: ImportBinding[] = [];
+
+  if (head !== '') {
+    const namespace = /^\*\s+as\s+([A-Za-z_$][\w$]*)$/.exec(head);
+    if (namespace !== null) {
+      bindings.push({ name: '*', kind: 'namespace', local: namespace[1]! });
+    } else if (IDENTIFIER.test(head)) {
+      bindings.push({ name: 'default', kind: 'default', local: head });
+    } else {
+      // `export * from 'pkg'` lands here, and so does anything else this
+      // reader cannot name. Red, and on purpose.
+      return { typeOnly, bindings, unreadableClause: true };
+    }
+  }
+
+  if (brace !== -1) {
+    const body = rest.slice(brace);
+    const close = body.lastIndexOf('}');
+    if (close === -1 || body.slice(close + 1).trim() !== '') {
+      return { typeOnly, bindings, unreadableClause: true };
+    }
+    const named = parseNamedList(body.slice(1, close));
+    if (named === null) return { typeOnly, bindings, unreadableClause: true };
+    bindings.push(...named);
+  }
+
+  return { typeOnly, bindings, unreadableClause: false };
 }
 
 /**
- * Every module specifier of a source file, comments already out.
+ * Every module specifier of a source file, comments already out, WITH THE
+ * NAMES IT LETS THROUGH.
  *
  * A `dynamic` entry whose `text` is `null` is a specifier that CANNOT BE READ
  * — `import(MOD)`, `import('node:' + 'https')` — and SPEC-008 CA-2.3 makes
@@ -53,18 +158,45 @@ export function moduleSpecifiers(source: string): readonly ModuleSpecifier[] {
   const found: ModuleSpecifier[] = [];
 
   for (const match of code.matchAll(FROM_PATTERN)) {
-    found.push({ text: match[2]!, raw: match[2]!, kind: 'static' });
+    found.push({ text: match[3]!, raw: match[3]!, kind: 'static', ...parseClause(match[1]!) });
   }
   for (const match of code.matchAll(SIDE_EFFECT_PATTERN)) {
-    found.push({ text: match[2]!, raw: match[2]!, kind: 'side-effect' });
+    found.push({
+      text: match[2]!,
+      raw: match[2]!,
+      kind: 'side-effect',
+      typeOnly: false,
+      bindings: [],
+      unreadableClause: false,
+    });
   }
   for (const match of code.matchAll(DYNAMIC_PATTERN)) {
     const raw = match[1]!.trim();
     const literal = STATIC_LITERAL.exec(raw);
-    found.push({ text: literal === null ? null : literal[2]!, raw, kind: 'dynamic' });
+    found.push({
+      text: literal === null ? null : literal[2]!,
+      raw,
+      kind: 'dynamic',
+      typeOnly: false,
+      bindings: [],
+      unreadableClause: false,
+    });
   }
 
   return found;
+}
+
+/**
+ * The source with its `import`/`export … from` statements removed.
+ *
+ * What is left is where a namespace's members are actually READ, which is what
+ * CA-2.3 has to enumerate. Without this, `import * as cheerio from 'cheerio'`
+ * would read as a use of `cheerio` itself.
+ */
+export function withoutImportStatements(code: string): string {
+  return code
+    .replaceAll(/(?:^|\n)\s*(?:import|export)\b[^;'"]*?\bfrom\s*(['"])[^'"]*\1;?/g, '\n')
+    .replaceAll(/(?:^|\n)\s*import\s*(['"])[^'"]*\1;?/g, '\n');
 }
 
 async function readIfPresent(path: string): Promise<string | null> {

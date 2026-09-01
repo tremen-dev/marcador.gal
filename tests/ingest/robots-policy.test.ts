@@ -194,3 +194,52 @@ describe('CA-6.3 — se falla cerrado', () => {
     expect(h.spy.forUrl(h.registry.targets()[0]!.url)).toHaveLength(1);
   });
 });
+
+/**
+ * CA-6.1 — las seis horas son SEIS HORAS.
+ *
+ * Los casos 4, 5, 6 y 9 mueven el reloj en múltiplos de `ROBOTS_MAX_AGE_MS`,
+ * así que prueban «hay una caducidad y es consistente» y no «son seis horas»:
+ * cambiar la constante a 12 h los dejaba a los cuatro en verde, con la suite
+ * entera en 748/748 (F-SPEC-008-V19). Es la patología de F-SPEC-004-9 —el caso
+ * asertando contra la constante en vez de contra el literal— y las 6 h son una
+ * de las decisiones que las *Notas para el gate humano* §3 subieron a firma:
+ * una firma humana sobre un número que ningún test sujeta es una firma sobre
+ * nada.
+ *
+ * Se atan con las DOS formas, porque la primera sola sería una tautología de
+ * una línea: el literal, y —el que de verdad lo sujeta— el comportamiento a
+ * los dos lados del borde, movido con LITERALES ABSOLUTOS que no derivan de la
+ * constante.
+ */
+describe('CA-6.1 — las 6 h que el gate humano firmó, atadas por literales', () => {
+  const FIVE_HOURS_FIFTY_NINE_MS = 5 * 60 * 60 * 1000 + 59 * 60 * 1000;
+  const SIX_HOURS_ONE_MINUTE_MS = 6 * 60 * 60 * 1000 + 60 * 1000;
+
+  test('10. la constante es exactamente seis horas (ADR-014 §3.2)', () => {
+    expect(ROBOTS_MAX_AGE_MS).toBe(6 * 60 * 60 * 1000);
+  });
+
+  test('11. a 5 h 59 min todavía NO vuelve a pedirlo', async () => {
+    const h = harness();
+
+    await h.adapter.tick();
+    h.clock.advance(FIVE_HOURS_FIFTY_NINE_MS);
+    await h.adapter.tick();
+
+    expect(h.spy.forUrl(ROBOTS_URL)).toHaveLength(1);
+  });
+
+  test('12. a 6 h 01 min lo pide UNA vez más, y solo una', async () => {
+    const h = harness();
+
+    await h.adapter.tick();
+    h.clock.advance(SIX_HOURS_ONE_MINUTE_MS);
+    await h.adapter.tick();
+    // Y el tick siguiente, ya dentro de la ventana nueva, no vuelve a pedirlo.
+    h.clock.advance(60_000);
+    await h.adapter.tick();
+
+    expect(h.spy.forUrl(ROBOTS_URL)).toHaveLength(2);
+  });
+});

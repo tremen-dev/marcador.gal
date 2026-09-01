@@ -39,6 +39,7 @@ import {
   SCAN_ROOTS,
   capabilityOffences,
   importOffences,
+  packageEntry,
   scanRepository,
   syntheticFile,
   underScanRoots,
@@ -81,35 +82,173 @@ describe('CA-2.6 — el escaneo cubre todo el código, no solo `src/`', () => {
   });
 });
 
-describe('CA-2.3 — cierre de imports: todo especificador es un literal permitido', () => {
-  test('3. ningún fichero del escaneo importa nada fuera de la lista', async () => {
+describe('CA-2.3 — no se concede un paquete, se concede una superficie', () => {
+  test('3. ningún fichero del escaneo cruza un nombre fuera de su superficie', async () => {
     expect(await offendersOf(SCANNED)).toEqual([]);
   });
 
-  test('4. y la lista no lleva ningún cliente HTTP ni ninguna puerta de salida', () => {
-    // La lista crece cuando llega una dependencia real, y eso es un diff que
-    // un revisor lee. Este caso es lo que hace que crecer con una puerta de
-    // salida NO sea silencioso.
-    const doors = [
-      'node:http',
-      'node:https',
-      'node:http2',
-      'node:net',
-      'node:tls',
-      'node:dgram',
-      'node:dns',
-      'node:child_process',
-      'undici',
-      'axios',
-      'got',
-      'node-fetch',
-      'superagent',
-    ];
+  test('4. la lista es cerrada EN SUS DOS EJES, y no esconde una lista negra', () => {
+    // La obligación vieja —«que ninguna entrada sea una puerta de salida»— se
+    // mecanizaba con TRECE NOMBRES PROHIBIDOS, y `cheerio` entró porque nadie
+    // sabía que lo era (F-SPEC-008-V15). Había quedado una lista negra viva
+    // dentro del criterio que vino a sustituirlas. Aquí ya no hay ninguna: la
+    // pertenencia se decide contra lo que la entrada DECLARA, y este caso es
+    // lo que impide que la lista negra vuelva por la puerta de atrás.
+    const guard = ALLOWED_PACKAGES;
 
-    for (const door of doors) expect(ALLOWED_PACKAGES).not.toContain(door);
-    // `node:module` sí está, y con su motivo escrito: el hook de resolución de
-    // las CLI. Es la única capacidad de resolución fuera de `src/polite/`.
-    expect(ALLOWED_PACKAGES).toContain('node:module');
+    // Eje 1: qué entradas hay. Cada una es un especificador literal, una vez.
+    const specifiers = guard.map((entry) => entry.specifier);
+    expect(new Set(specifiers).size).toBe(specifiers.length);
+    expect([...specifiers].sort()).toEqual(specifiers);
+
+    // Eje 2: qué nombres concede cada una. Nada de comodines, y una superficie
+    // VACÍA es legítima y explícita — hoy `next` y `react`.
+    for (const entry of guard) {
+      expect(Array.isArray(entry.surface), `${entry.specifier}`).toBe(true);
+      expect(entry.surface, `${entry.specifier}`).not.toContain('*');
+      expect(new Set(entry.surface).size, `${entry.specifier}`).toBe(entry.surface.length);
+    }
+    expect(packageEntry('next')?.surface).toEqual([]);
+    expect(packageEntry('react')?.surface).toEqual([]);
+
+    // Y las dos entradas que no se explican solas llegan con su motivo escrito
+    // junto a la lista (obligación 3).
+    expect(packageEntry('node:module')?.motive).toBeTruthy();
+    expect(packageEntry('vitest/config')?.motive).toBeTruthy();
+  });
+
+  test('4b. `fromURL` es rojo SIN QUE NADIE LO NOMBRE, y `load` no', async () => {
+    // La octava evasión, escrita como control: entró por la puerta principal
+    // porque `cheerio` estaba concedido entero. Con la concesión al grano de
+    // la capacidad, la pregunta «¿es este paquete una puerta?» desaparece.
+    const named = syntheticFile(
+      'src/ingest/preflight.ts',
+      [
+        "import { fromURL } from 'cheerio';",
+        'export async function preflight(url: string): Promise<number> {',
+        '  const $ = await fromURL(url);',
+        "  return $('tr').length;",
+        '}',
+      ].join('\n'),
+    );
+
+    expect(await importOffences(named)).toEqual([
+      'src/ingest/preflight.ts: cheerio does not declare `fromURL` in its surface',
+    ]);
+
+    // Y por el espacio de nombres, que es como el árbol importa `cheerio` de
+    // verdad: cada `ns.x` tiene que estar declarado.
+    const namespaced = syntheticFile(
+      'src/ingest/preflight-ns.ts',
+      [
+        "import * as cheerio from 'cheerio';",
+        'export const read = async (url: string) => await cheerio.fromURL(url);',
+      ].join('\n'),
+    );
+
+    expect(await importOffences(namespaced)).toEqual([
+      'src/ingest/preflight-ns.ts: cheerio does not declare `fromURL` in its surface',
+    ]);
+
+    // El control de que el mecanismo no está apagado: `load` sí está.
+    const allowed = syntheticFile(
+      'src/ingest/reader.ts',
+      [
+        "import * as cheerio from 'cheerio';",
+        'export const rows = (html: string) => cheerio.load(html)(\'tr\').length;',
+      ].join('\n'),
+    );
+
+    expect(await importOffences(allowed)).toEqual([]);
+  });
+
+  test('4c. y el juicio sale SOLO de lo declarado: no hay nombres benditos ni malditos', async () => {
+    // Con una lista sintética, `fromURL` pasa y `load` no. Si quedara un
+    // nombre cableado en el guardián —una lista negra, o una lista blanca de
+    // «nombres seguros»— este caso lo destapa.
+    const inverted = [{ specifier: 'cheerio', surface: ['fromURL'] }];
+    const file = syntheticFile(
+      'src/ingest/inverted.ts',
+      ["import { fromURL, load } from 'cheerio';", 'export const both = [fromURL, load];'].join('\n'),
+    );
+
+    expect(await importOffences(file, inverted)).toEqual([
+      'src/ingest/inverted.ts: cheerio does not declare `load` in its surface',
+    ]);
+  });
+
+  test('4d. un alias no ensancha una superficie: cuenta el nombre original', async () => {
+    const aliased = syntheticFile(
+      'src/ingest/aliased.ts',
+      ["import { fromURL as read } from 'cheerio';", 'export const ask = read;'].join('\n'),
+    );
+
+    expect(await importOffences(aliased)).toEqual([
+      'src/ingest/aliased.ts: cheerio does not declare `fromURL` in its surface',
+    ]);
+  });
+
+  test('4e. un acceso computado sobre un espacio de nombres es rojo por construcción', async () => {
+    const computed = syntheticFile(
+      'src/ingest/computed.ts',
+      [
+        "import * as cheerio from 'cheerio';",
+        'export const ask = (url: string) => cheerio[\'from\' + \'URL\'](url);',
+      ].join('\n'),
+    );
+
+    const offences = await importOffences(computed);
+    expect(offences).toContain(
+      'src/ingest/computed.ts: computed access on the namespace `cheerio` of cheerio',
+    );
+  });
+
+  test('4f. y un espacio de nombres que escapa como valor también', async () => {
+    // Reexportarlo o pasarlo entero devuelve la concesión al grano del
+    // paquete, que es exactamente lo que esta enmienda quitó.
+    const escaping = syntheticFile(
+      'src/ingest/escape.ts',
+      ["import * as cheerio from 'cheerio';", 'export const everything = cheerio;'].join('\n'),
+    );
+
+    expect(await importOffences(escaping)).toContain(
+      'src/ingest/escape.ts: the namespace `cheerio` of cheerio escapes as a value',
+    );
+  });
+
+  test('4g. `import()` dinámico y `import` de efecto lateral de un paquete son rojos', async () => {
+    // Los dos entregan algo que el sitio del `import` no puede cerrar: el
+    // espacio de nombres entero, y ningún nombre en absoluto.
+    const dynamic = syntheticFile(
+      'src/ingest/dyn.ts',
+      "export const open = async () => await import('cheerio');",
+    );
+    const sideEffect = syntheticFile('src/ingest/side.ts', "import 'cheerio';");
+
+    expect(await importOffences(dynamic)).toEqual([
+      'src/ingest/dyn.ts: dynamic import() of the package entry cheerio',
+    ]);
+    expect(await importOffences(sideEffect)).toEqual([
+      'src/ingest/side.ts: side-effect import of the package entry cheerio',
+    ]);
+  });
+
+  test('4h. `import type` no cuenta, y por eso `next` y `react` tienen superficie vacía', async () => {
+    // `verbatimModuleSyntax` lo borra entero: no cruza ninguna capacidad, y
+    // exigirle superficie sería peaje.
+    const typeOnly = syntheticFile(
+      'src/app/(gl)/page.tsx',
+      ["import type { Metadata } from 'next';", 'export const metadata: Metadata = {};'].join('\n'),
+    );
+    const inline = syntheticFile(
+      'src/db/probe.ts',
+      ["import postgres, { type Sql } from 'postgres';", 'export const sql: Sql = postgres();'].join(
+        '\n',
+      ),
+    );
+
+    expect(await importOffences(typeOnly)).toEqual([]);
+    expect(await importOffences(inline)).toEqual([]);
   });
 
   test('5. un especificador NO literal es rojo, también dentro de `src/polite/`', async () => {
@@ -141,7 +280,7 @@ describe('CA-2.3 — cierre de imports: todo especificador es un literal permiti
     );
 
     expect(await importOffences(undici)).toEqual([
-      'src/ingest/undici-door.ts: undici is not in ALLOWED_PACKAGES',
+      'src/ingest/undici-door.ts: undici is not a declared package entry',
     ]);
   });
 
