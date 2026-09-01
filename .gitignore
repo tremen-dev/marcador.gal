@@ -16,3 +16,9 @@ raw/*
 # (RN-11, F-SPEC-002-2). Contenido ajeno: fuera del repo por ADR-009 §3.
 **/robots/*
 !**/robots/.gitkeep
+
+# Worktrees de los agentes: checkouts efimeros de este mismo repositorio.
+# Sin esta linea, un `git add -A` con un agente corriendo los mete como repos
+# embebidos en el commit. Nunca estuvo aqui; la prosa de EPIC-004 daba por
+# "excluido" un worktree que solo lo estaba porque nadie lo habia commiteado.
+.claude/worktrees/
