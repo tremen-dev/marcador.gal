@@ -23,18 +23,61 @@ tipo: roadmap
   *confirmado* sin una persona**. Eso deja de ser una hipótesis del spike y pasa
   a ser una restricción de diseño para el motor.
 
-- **EPIC-003 — Páxina de proxecto e respaldo público da carta.** Sube a *Ahora*
-  el 2026-08-31, desde *Más adelante*, y **no rompe el criterio de corte**: no
-  depende de ninguna cifra. No es la landing de `marca.md` —esa sigue abajo, con
-  su lista de espera y su mockup, esperando al informe—, sino el sitio mínimo
-  donde se puede **verificar lo que la carta afirma**: quién está detrás, el
-  user-agent literal, el tope de 1 pet/min y el respeto a `robots.txt`. Se
-  descubrió al abrir la petición que la landing completa **debilitaría** la
-  carta, porque prometer producto es justo lo que su autor escribió que no había
-  que hacer. Su precondición ya está resuelta: **`marcador.gal` se contrató el
-  2026-08-31** en Dinahosting (verificado en WHOIS y DNS), lo que cierra el
-  riesgo de dominio que este roadmap arrastraba. Queda pendiente la comprobación
-  en OEPM, que ya no bloquea el dominio sino la inversión en identidad visual.
+- **EPIC-002 — Instrumentación de las cuatro cifras.** Latencia, cobertura,
+  conflictos y operación, que salieron de EPIC-001 el 2026-08-31 porque exigen el
+  motor, los adaptadores y el cron: ocho o nueve specs. Sus cifras nacen **sin
+  referencia oficial**, y la épica obliga a declarar junto a cada una qué la
+  degrada.
+
+  **Sube a *Ahora* el 2026-09-01, y no por decisión de prioridad sino porque es
+  donde está el trabajo.** EPIC-003 se cerró ese mismo día y EPIC-001 no puede
+  moverse hasta el 2026-09-08, así que ésta era ya la única épica con trabajo
+  posible. Pasa el criterio de corte por la vía más directa que hay: es **la
+  épica que produce las cuatro cifras del go/no-go**. Su primera spec ya existe
+  —**SPEC-008**, adaptador de `ceroacero.es` y cortesía RN-11, en `borrador`,
+  con **ADR-014** al lado, también en `borrador`— y ambas **esperan firma
+  humana**. El desglose propuesto por `sdd-arquitecto` es de **nueve specs**
+  (008 a 016), con el bot del corresponsal y el panel del operador **antes** que
+  el snapshot y las cifras: es lo que este mismo apartado llama «lo que sube de
+  rango», ya convertido en orden.
+
+  **Descongelada en su mayor parte el 2026-09-01, porque su premisa caducó.**
+  Decía «no empieza hasta que EPIC-001 dicte su veredicto, **porque el motor se
+  diseña sabiendo si RN-02 tiene segunda vía o no**». Esa pregunta **ya está
+  respondida**, y lo dice este mismo roadmap más arriba: la segunda vía está
+  cerrada **por aritmética, no hay dos fuentes**. Lo que la respuesta de la RFGF
+  cambia es **si vuelve futgal**, no si hay segunda vía. La restricción de diseño
+  está fijada, así que **el motor se puede escribir hoy**.
+
+  **Lo que no depende de la RFGF, y es casi todo:** cron de planificación y
+  calendario · adaptador de `ceroacero.es` · catálogo de alias de los 36 equipos
+  · motor de decisiones con RN-01..RN-07 y sus tests de replay · snapshot y
+  página mínima por polling · panel de correcciones. Si mañana llega el sí,
+  **futgal entra como un adaptador más y un peso en la configuración**: no se
+  rehace el motor.
+
+  **Lo que sí depende, y conviene no engañarse:** SPEC-002, el test de espejo
+  **con referencia**, que necesita la fuente oficial y está `hecho` esperándola;
+  cualquier *confirmado* sin una persona; y RN-06, porque sin futgal solo un
+  humano puede aplazar un partido.
+
+  **Y lo que sube de rango, que es el cambio de verdad:** con una sola fuente
+  automática de peso 0.7, **nada llega a *confirmado* por vía automática**. RN-01
+  sí tiene caminos humanos —corresponsal 0.8 → *provisional*; operador 1.0 con
+  precedencia → *confirmado*—, así que **el bot de Telegram y el panel dejan de
+  ser accesorios y pasan a ser la única ruta a un marcador confirmado**. Eso
+  reordena la épica por dentro: la vía humana y el motor van primero, y **la
+  cifra de operación manual —la que dispara el corte duro de los 30 min y decide
+  si esto pide comunidad de corresponsales en vez de producto— se puede medir sin
+  la RFGF**, con un corresponsal, una jornada y un cronómetro.
+
+  Esta misma premisa tiene una consecuencia de **diseño**, no de secuencia, y no
+  se desarrolla aquí a propósito: si `confirmado` deja de ser el estado normal,
+  el diseño del marcador **apaga el dominante y destaca el raro**, y eso no se
+  arregla cambiando un color — cambia cuál es la fila por defecto. Lo trabaja
+  **EPIC-004**, `aprobada` y en `main` desde el 2026-09-01 — **congelada a
+  propósito**, que no es lo mismo que pendiente: existe para dar custodia a un
+  sistema de diseño hecho fuera del pipeline, no para descongelarse todavía.
 
 
 **La acción con plazo externo, y la única que solo puede hacer una persona:**
@@ -90,50 +133,6 @@ vía de RN-02 queda cerrada para todo lo que no sea una persona.
 
 ## Después (comprometido, sin empezar)
 
-- **EPIC-002 — Instrumentación de las cuatro cifras.** Latencia, cobertura,
-  conflictos y operación, que salieron de EPIC-001 el 2026-08-31 porque exigen el
-  motor, los adaptadores y el cron: ocho o nueve specs. Sus cifras nacen **sin
-  referencia oficial**, y la épica obliga a declarar junto a cada una qué la
-  degrada.
-
-  **Descongelada en su mayor parte el 2026-09-01, porque su premisa caducó.**
-  Decía «no empieza hasta que EPIC-001 dicte su veredicto, **porque el motor se
-  diseña sabiendo si RN-02 tiene segunda vía o no**». Esa pregunta **ya está
-  respondida**, y lo dice este mismo roadmap más arriba: la segunda vía está
-  cerrada **por aritmética, no hay dos fuentes**. Lo que la respuesta de la RFGF
-  cambia es **si vuelve futgal**, no si hay segunda vía. La restricción de diseño
-  está fijada, así que **el motor se puede escribir hoy**.
-
-  **Lo que no depende de la RFGF, y es casi todo:** cron de planificación y
-  calendario · adaptador de `ceroacero.es` · catálogo de alias de los 36 equipos
-  · motor de decisiones con RN-01..RN-07 y sus tests de replay · snapshot y
-  página mínima por polling · panel de correcciones. Si mañana llega el sí,
-  **futgal entra como un adaptador más y un peso en la configuración**: no se
-  rehace el motor.
-
-  **Lo que sí depende, y conviene no engañarse:** SPEC-002, el test de espejo
-  **con referencia**, que necesita la fuente oficial y está `hecho` esperándola;
-  cualquier *confirmado* sin una persona; y RN-06, porque sin futgal solo un
-  humano puede aplazar un partido.
-
-  **Y lo que sube de rango, que es el cambio de verdad:** con una sola fuente
-  automática de peso 0.7, **nada llega a *confirmado* por vía automática**. RN-01
-  sí tiene caminos humanos —corresponsal 0.8 → *provisional*; operador 1.0 con
-  precedencia → *confirmado*—, así que **el bot de Telegram y el panel dejan de
-  ser accesorios y pasan a ser la única ruta a un marcador confirmado**. Eso
-  reordena la épica por dentro: la vía humana y el motor van primero, y **la
-  cifra de operación manual —la que dispara el corte duro de los 30 min y decide
-  si esto pide comunidad de corresponsales en vez de producto— se puede medir sin
-  la RFGF**, con un corresponsal, una jornada y un cronómetro.
-
-  Esta misma premisa tiene una consecuencia de **diseño**, no de secuencia, y no
-  se desarrolla aquí a propósito: si `confirmado` deja de ser el estado normal,
-  el diseño del marcador **apaga el dominante y destaca el raro**, y eso no se
-  arregla cambiando un color — cambia cuál es la fila por defecto. Lo trabaja
-  **EPIC-004**, `aprobada` y en `main` desde el 2026-09-01 — **congelada a
-  propósito**, que no es lo mismo que pendiente: existe para dar custodia a un
-  sistema de diseño hecho fuera del pipeline, no para descongelarse todavía.
-
 - **Decisión go / no-go.** Es un gate humano, no una épica: puede matar el
   proyecto, reducirlo o confirmarlo. **Ahora tiene dos momentos, no uno.** El
   primero, barato, con el veredicto de EPIC-001: si las candidatas son espejos
@@ -187,6 +186,37 @@ vía de RN-02 queda cerrada para todo lo que no sea una persona.
 - Datos B2B: feed/widget para medios comarcales, radios y clubes. Es el negocio
   escalable (`docs/negocio/monetizacion.md`).
 - Socios, patrocinio y ayudas públicas.
+
+## Cerrado
+
+- **EPIC-003 — Páxina de proxecto e respaldo público da carta. `hecho` el
+  2026-09-01**, firmada por Alberto Fojo. **Primera épica del proyecto que llega
+  a `hecho`**, así que fija el patrón para EPIC-001. Estuvo en *Ahora* desde el
+  2026-08-31, subida desde *Más adelante* sin romper el criterio de corte porque
+  no dependía de ninguna cifra.
+
+  **Qué entregó:** el sitio mínimo donde se puede **verificar lo que la carta a
+  la RFGF afirma** —quién está detrás, el user-agent literal, el tope de 1
+  pet/min y competición, el respeto a `robots.txt`, la no republicación y el
+  buzón—, en galego por defecto y castellano en `/es` (**D-2**), sin nombrar a
+  ninguna persona y bajo el paraguas de tremen.dev (ADR-012). Cuatro specs,
+  SPEC-004 a SPEC-007, todas verificadas GREEN.
+
+  **Lo que se comprobó antes de firmar**, porque sus criterios son de épica y no
+  de spec: el user-agent que compone el código es idéntico **carácter a
+  carácter** al que cita la carta y al que publica la página del rastreador, y ya
+  no filtra vocabulario interno —`SPEC-NNN` y `RN-NN` fuera, que era el hallazgo
+  con el que nació la épica—; y el `+` del user-agent lleva a una página que
+  existe, no a un `mailto:`.
+
+  **Su precondición quedó resuelta por el camino:** `marcador.gal` se contrató el
+  2026-08-31 en Dinahosting (verificado en WHOIS y DNS), lo que cerró el riesgo
+  de dominio que este roadmap arrastraba. La comprobación en OEPM sigue abierta,
+  pero ya no bloquea el dominio sino la inversión en identidad visual.
+
+  **No es la landing de `marca.md`**, que sigue en *Más adelante* con su lista de
+  espera y su mockup, esperando al informe. Confundirlas es justo el error que
+  esta épica nació para evitar: prometer producto es lo que debilitaría la carta.
 
 ## Deuda técnica
 
