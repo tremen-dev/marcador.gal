@@ -45,6 +45,8 @@ import {
   capabilityOffences,
   importOffences,
   packageEntry,
+  repositorySources,
+  resolvesInsideRepository,
   scanRepository,
   scannedSources,
   syntheticFile,
@@ -92,15 +94,91 @@ describe('CA-2.6 — el escaneo cubre todo el código, no solo `src/`', () => {
     // Hasta la cuarta vuelta esta lista no existía, porque las exclusiones eran
     // las de `.gitignore` — un fichero escrito para otra cosa. La segunda llega
     // con `.js` declarado (F-SPEC-008-V37) y trae su motivo, como manda CA-2.6.2.
-    // Si algún día un motivo es «ahí hay ficheros que molestan», la frontera
-    // está mal trazada.
+    // Desde SPEC-009 CA-2 la cobertura recorre el árbol ENTERO del repositorio,
+    // así que quedar fuera de él también es una decisión declarada: las seis
+    // entradas nuevas son exactamente eso. Si algún día un motivo es «ahí hay
+    // ficheros que molestan», la frontera está mal trazada.
     expect(SCAN_EXCLUSIONS.map((exclusion) => exclusion.path)).toEqual([
       'node_modules/',
       'docs/diseno/',
+      'tests/',
+      '.git/',
+      '.next/',
+      '.claude/',
+      'raw/',
+      'next-env.d.ts',
     ]);
     for (const exclusion of SCAN_EXCLUSIONS) {
       expect(exclusion.motive, `${exclusion.path} sin motivo`).toBeTruthy();
     }
+  });
+
+  test('2j. la cobertura sale del ÁRBOL DE FICHEROS, no de `git` (SPEC-009 CA-2)', () => {
+    // F-SPEC-008-V35: bajo las raíces la LECTURA ya no heredaba `.gitignore`,
+    // pero la COBERTURA —el caso que hace que quedar fuera sea una decisión
+    // declarada— seguía saliendo de `git ls-files --exclude-standard`, y `git`
+    // no ve lo que `.gitignore` esconde. Un `robots/side.ts` en la raíz del
+    // repositorio dejaba `lint exit=0`, `npm test` 772/772 y `tests/polite`
+    // 86/86 sin aparecer en `git status`. Aquí la pregunta se le hace al árbol
+    // de ficheros, que es de lo que ninguna otra regla decide.
+    const uncovered = repositorySources().filter((path) => !underScanRoots(path));
+    expect(uncovered).toEqual([]);
+
+    // Y el paseo mide algo fuera de las raíces: sin la exclusión declarada de
+    // `docs/diseno/`, encuentra los ficheros reales del sistema de diseño —
+    // exactamente los que `git` también echa de menos en 2h.
+    const withoutDesign = SCAN_EXCLUSIONS.filter((exclusion) => exclusion.path !== 'docs/diseno/');
+    const uncoveredThen = repositorySources(SCAN_EXTENSIONS, withoutDesign).filter(
+      (path) => !underScanRoots(path),
+    );
+    expect(uncoveredThen).toContain('docs/diseno/_logic.js');
+    expect(uncoveredThen).toContain('docs/diseno/build.mjs');
+
+    // Dentro de las raíces, el árbol y la lectura son LA MISMA lista: la
+    // cobertura no puede quedarse más corta que lo que se lee.
+    const scanned = scannedSources();
+    const underRoots = repositorySources().filter(underScanRoots);
+    expect(underRoots).toEqual(scanned);
+  });
+
+  test('2k. control positivo (F-SPEC-008-V35): lo que `.gitignore` esconde fuera de las raíces ES ROJO', async () => {
+    // Reproducción exacta del tercer hueco. `.gitignore:17` (`**/robots/*`)
+    // esconde el contenido del directorio `robots/` de la raíz —regla legítima
+    // y ajena: los `robots.txt` de terceros quedan fuera del repositorio por
+    // ADR-009 §3, y NO SE TOCA—. `git` no lo lista, así que el caso 1 no lo
+    // puede echar de menos; `resolvesInsideRepository` acepta la ruta relativa
+    // desde `src/ingest/adapter.ts`, así que el importador NO ofende. La única
+    // red es la cobertura del árbol (2j), y esto comprueba que la tiene.
+    //
+    // Nombre propio de este caso, y NO el `side.ts` de la medición, por lo
+    // mismo que 2d y 2g: el verificador repite la mutación con ese nombre, y
+    // un control que la pisara la borraría al limpiar.
+    const path = 'robots/side-control.ts';
+    const source = [
+      "import { fromURL } from 'cheerio';",
+      'export const ask = async (url: string) => await fromURL(url);',
+    ].join('\n');
+
+    expect(existsSync(path), `${path} ya existe: este caso no lo pisa`).toBe(false);
+    try {
+      writeFileSync(path, `${source}\n`, 'utf8');
+
+      // Las tres mitades de la reproducción: `git` NO lo ve…
+      expect(versionedSources()).not.toContain(path);
+      // …el importador no ofendería —la ruta resuelve dentro del repositorio—…
+      expect(await resolvesInsideRepository('../../robots/side-control', 'src/ingest/adapter.ts')).toBe(
+        true,
+      );
+      // …y el árbol SÍ lo ve, fuera de toda raíz y de toda exclusión: rojo,
+      // nombrándose, por el mismo juicio que aplica 2j.
+      expect(repositorySources()).toContain(path);
+      expect(repositorySources().filter((entry) => !underScanRoots(entry))).toContain(path);
+    } finally {
+      rmSync(path, { force: true });
+    }
+
+    expect(existsSync(path)).toBe(false);
+    expect(repositorySources().filter((entry) => !underScanRoots(entry))).not.toContain(path);
   });
 
   test('2c. la lista de lo que se LEE no la decide `git`: es la más ancha de las dos', () => {
