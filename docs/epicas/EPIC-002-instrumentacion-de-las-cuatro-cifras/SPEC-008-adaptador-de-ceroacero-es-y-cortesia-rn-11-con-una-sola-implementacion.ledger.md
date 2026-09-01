@@ -7,6 +7,11 @@ epica: EPIC-002
 
 ## Resumen
 - Fase: **en-progreso** (tercera vuelta) — la primera verificación salió **RED** (dos bloqueantes) y la segunda vuelve a salir **RED**: F-SPEC-008-V4 (CA-7) queda **cerrado y comprobado**, pero CA-2 se sigue rodeando, ahora por **tres caminos nuevos** que el verificador escribió y ejecutó. Ver *Veredicto del verificador — segunda vuelta*.
+- **Hay una enmienda propuesta y sin arbitrar sobre CA-2**, escrita por
+  `sdd-arquitecto` el 2026-09-01 tras el segundo RED: *«## Enmienda — 2026-09-01:
+  CA-2 pasa de detección textual a contención de capacidad»*, al final de este
+  fichero. **Léela antes de volver a tocar `tests/polite/architecture.test.ts`**:
+  mientras Alberto no la arbitre, CA-2 sigue siendo el que firmó por la mañana.
 - Rama: `ft/SPEC-008-adaptador-ceroacero` (creada sobre `88c359b`)
 - Commits: `a95b5ca` (CA-1 + traslado ADR-014 §1) · `377091d` (CA-2, CA-4..CA-13) · `e542193` (veredicto del verificador) · el commit de la segunda vuelta (F-SPEC-008-V1 y F-SPEC-008-V4)
 
@@ -1035,3 +1040,383 @@ vuelta. **Tres sobreviven.**
 
 **La spec vuelve a `en-progreso`** firmada por `sdd-verificador`, para que el
 hook `require-spec` no deniegue la escritura al siguiente implementador.
+
+
+## Enmienda — 2026-09-01: CA-2 pasa de detección textual a contención de capacidad
+
+**Estado: PROPUESTA. Pendiente de arbitraje de Alberto Fojo.** Nada de lo que
+sigue está firmado. **El cuerpo de la spec no se ha tocado**: CA-2 sigue diciendo
+en `SPEC-008…md` exactamente lo que Alberto firmó esta mañana, y la spec sigue en
+`en-progreso`. Escrita por `sdd-arquitecto`, que no aprueba sus propios
+artefactos.
+
+**Por qué en el ledger y no en el cuerpo de la spec.** Se usa la forma de
+**ADR-015 §2 y §3** (`borrador`, escrito hoy, vive en la rama
+`ft/enmienda-spec-005-ca-10` y **no está en esta rama**) **por analogía, y se
+dice que es por analogía**: su caso literal es el de una spec `hecho`, y SPEC-008
+está `en-progreso`. Lo que se comparte es el hecho que importa: **una persona
+firmó este CA con fecha, esta misma mañana, y lo que sigue lo cambia**. Reescribir
+en silencio el texto que Alberto aprobó borraría la diferencia entre «Alberto
+aprobó esto» y «Alberto aprobó algo parecido», que es la razón entera por la que
+ADR-015 existe. El precedente de arbitraje a mitad de vuelo de este repositorio
+—`## Arbitraje del gate humano` en el ledger de SPEC-001, y su tanda
+«aplicación de la enmienda»— es el mismo camino: la enmienda se escribe, el
+humano la arbitra, y **otra tanda posterior la aplica**.
+
+Se cubren los cinco puntos que ADR-015 §3 declara obligatorios, en §1 (qué
+afirmaba y por qué era razonable), §2 (qué lo invalida), §3 y §4 (con qué se
+sustituye y qué red se pierde), §5 (si el veredicto sigue en pie) y §5 (qué lo
+despierta).
+
+**Lo que esta enmienda NO hace:** no reabre **ADR-014**, que es `aprobada` e
+inmutable; no toca `src/` ni `tests/`; no cambia el estado de la spec; y no
+exige modificar una sola línea de `src/site/robots-txt.ts` (SPEC-004, `hecho`)
+ni de `src/mirror/analysis/referenceless/report.ts` (SPEC-003, `hecho`), que es
+lo que **CA-3** prohíbe.
+
+### 1. Qué exigía CA-2, y por qué era razonable
+
+CA-2 exige que, fuera de `src/polite/`, un test de arquitectura no encuentre
+**ninguna** de las tres cosas que **ADR-014 §4** prohíbe: análisis de un
+`robots.txt`, construcción de la cabecera `User-Agent`, y «cualquier llamada a
+`globalThis.fetch` **o equivalente** dirigida a un tercero».
+
+Era razonable, y hay que decirlo antes de cambiarlo, porque la enmienda no
+corrige un error:
+
+- **El modo de fallo de RN-11 es silencioso.** Una petición que sale, se sirve y
+  no vuelve. No hay excepción en un log ni test que se ponga rojo solo. ADR-014
+  §4 dice, con razón, que «una prohibición que solo vive en un ADR es una
+  prohibición que se incumple el día que nadie relee el ADR — que es exactamente
+  cómo nació F-SPEC-002-23».
+- **Hay prueba documental de que la convención no basta.** F-SPEC-002-23 vivió
+  semanas en `main` sin que nada se pusiera rojo.
+- **Un test de arquitectura es barato** y no necesita ejecutar el sistema.
+
+Y el criterio **funcionó en su parte más cara**: la mutación M15 y las tres
+evasiones de la primera vuelta (F-SPEC-008-V1) están cerradas con control
+positivo que muerde (W25, W26, W27, verificado). No se enmienda por flojo. Se
+enmienda porque su mecanismo no puede terminar.
+
+### 2. Qué lo invalida
+
+**El propio expediente, en dos vueltas idénticas.** El patrón está medido y no
+se discute: se enseñan tres evasiones, se cierran las tres con detectores nuevos
+que sí muerden, y aparecen tres más. Hoy sobreviven, con `npm test` en 705/705 y
+`npm run lint` en `exit=0`:
+
+| Evasión | Por qué se cuela |
+|---|---|
+| **F-SPEC-008-V6** — `const { fetch: send } = globalThis;` con `['User','Agent'].join('-')` | La llamada es `send(`, no `fetch(`; no hay `import`, luego `NETWORK_MODULE` y `COMPUTED_IMPORT` no aplican; `NETWORK_GLOBAL` no lista `globalThis`; y la cadena `user-agent` no se escribe nunca entera |
+| **F-SPEC-008-V7** — `await import('node:' + 'https')` | Empieza por comilla, luego `COMPUTED_IMPORT` no casa; el literal que ve `NETWORK_MODULE` es `'node:'` |
+| **F-SPEC-008-V8** — un parser real dentro de `src/site/robots-txt.ts`, uno de los dos ficheros con exención nominal | `ROBOTS_FIELD` pide el token entrecomillado exacto y `ROBOTS_SYMBOL` uno de cinco nombres declarados; una regex `/^\s*disallow\s*:/iu` no es ninguno de los dos |
+
+**La razón de fondo, que ya está escrita en el propio ledger antes de que ningún
+verificador la demostrara** (F-SPEC-008-10): *«los detectores son textuales, y
+por tanto siguen siendo una lista de lo que ya sabemos escribir»*. Una lista de
+formas de escribir una llamada crece con la imaginación de quien la rodea, y esa
+lista no tiene última entrada. **CA-2, tal como está escrito, describe un
+resultado —"no encuentra ninguna"— que su mecanismo no puede alcanzar.** No es
+un defecto del implementador: es una promesa que el mecanismo no puede cumplir.
+
+Y hay un segundo motivo, independiente y estructural, que **la enmienda hace
+tratable y el criterio viejo no**: la salida limpia para F-SPEC-008-V8 exigiría
+tocar `src/site/robots-txt.ts`, que es de **SPEC-004** (`hecho`), y **CA-3 lo
+prohíbe**. Un criterio que solo se puede satisfacer violando otro criterio de la
+misma spec está atascado por construcción.
+
+### 3. Con qué se sustituye: el texto literal del CA-2 enmendado
+
+Lo que sigue es el texto propuesto, entero, para sustituir el CA-2 actual. La
+decisión de mecanismo —detección semántica en vez de textual— es de Alberto,
+tomada hoy; **el texto concreto es de `sdd-arquitecto` y él no lo ha visto**.
+
+> **CA-2 — Una sola puerta de salida, y se demuestra enumerando lo permitido
+> (ADR-014 §1 y §4).**
+>
+> *El criterio deja de buscar lo prohibido: **enumera lo permitido y exige que el
+> resto sea vacío**. Las tres listas que lo sostienen no son listas de formas de
+> escribir una llamada —ésas crecen con la imaginación de quien las rodea—, sino
+> listas cerradas por algo que no fijamos nosotros: la superficie de salida de la
+> plataforma, las dependencias que ya tenemos, y las maneras que ECMAScript da de
+> obtener una capacidad.*
+>
+> **CA-2.1 — Contención en ejecución: la única salida que se dispara es la de
+> `src/polite/http.ts`.**
+> Dado un test que, **antes de importar ningún módulo de `src/`**, sustituye por
+> trampas todas las salidas de red de la plataforma —`globalThis.fetch` y los
+> módulos `node:http`, `node:https`, `node:http2`, `node:net`, `node:tls`,
+> `node:dgram`—,
+> cuando se conducen los puntos de entrada declarados de `src/ingest/` y las CLI
+> de `src/mirror/` **con el `globalFetcher` real**,
+> entonces toda trampa que se dispara se atribuye, por su pila, a
+> `src/polite/http.ts`, y el número de disparos coincide con el de llamadas a
+> `politeFetch`;
+> y cuando se conducen los mismos puntos de entrada **con un `HttpFetcher`
+> doble**, **no se dispara ninguna trampa**.
+> La trampa se instala **antes** de cualquier `import` de `src/` porque una
+> segunda puerta puede capturar la referencia en el ámbito del módulo, que es
+> exactamente la forma de F-SPEC-008-V6; instalarla después la dejaría pasar.
+> Quedan fuera de la atribución las salidas que abren `@vercel/blob` y
+> `postgres`: son nuestra propia infraestructura y no un tercero, están en la
+> lista de CA-2.3, y RN-11 habla de la fuente, no del almacén.
+>
+> **CA-2.2 — Ninguna petición sale sin que la política real haya dicho que sí.**
+> Bajo la misma trampa, con el `RobotsPolicy` de `src/polite/robots.ts`
+> instrumentado,
+> entonces el conjunto de URL que llegaron a una trampa está **contenido** en el
+> de las URL sobre las que la política real fue consultada y contestó `true`,
+> con una sola excepción nombrada: el `robots.txt` de un origen, que es la única
+> petición que ninguna política puede gatear (ADR-014 §3.1).
+> El test se pone rojo si sale una petición cuyo permiso lo concedió otro código.
+>
+> **CA-2.3 — Cierre de imports: todo especificador es un literal de una lista de
+> lo permitido.**
+> Dado todo `.ts`/`.tsx` bajo las raíces declaradas en CA-2.6,
+> entonces cada especificador de módulo —estático, de efecto lateral o
+> dinámico— es (i) una ruta relativa o `@/…` que resuelve dentro del
+> repositorio, o (ii) una **cadena literal presente en `ALLOWED_PACKAGES`**, que
+> hoy es exactamente `node:crypto`, `node:fs`, `node:fs/promises`, `node:module`,
+> `node:path`, `node:url`, `@vercel/blob`, `cheerio`, `next`, `postgres`,
+> `react` y `zod`;
+> y **un especificador que no sea un literal estático** —`import(MOD)`,
+> `import('node:' + 'https')`— es **rojo por construcción**, también dentro de
+> `src/polite/`.
+> `node:module` entra en la lista con su motivo escrito: `src/mirror/cli/node-resolve.ts`
+> registra un hook de resolución para poder ejecutar las CLI en TypeScript. Es la
+> única capacidad de resolución de módulos fuera de `src/polite/`, y va nombrada,
+> no tolerada en silencio.
+>
+> **CA-2.4 — La capacidad global no se toma prestada fuera de `src/polite/`.**
+> Fuera de `src/polite/` no aparece el identificador `globalThis`, ni un uso
+> desnudo de los globales de red de la plataforma (`fetch`, `XMLHttpRequest`,
+> `WebSocket`, `EventSource`, `navigator`), ni `eval`, ni `new Function`, ni
+> `require`.
+> Sin un `import`, ECMAScript da exactamente tres maneras de alcanzar una
+> capacidad: el objeto global, un identificador global desnudo, y `eval`/`Function`.
+> CA-2.3 cierra el `import`; ésta cierra las otras tres. Es un conjunto cerrado
+> por el lenguaje, no por nosotros.
+> **Se cumple hoy sin tocar una línea**: `globalThis` aparece una sola vez en
+> todo `src/`, dentro de `globalFetcher`.
+>
+> **CA-2.5 — Nada huérfano en los tres destinos que el CA nombra.**
+> Todo `.ts`/`.tsx` bajo `src/ingest/`, `src/polite/` y `src/site/` es
+> alcanzable, por el grafo de `import`, desde `ENTRY_POINTS` —la lista declarada
+> de puntos de entrada del repositorio: `next.config.ts`, las rutas de
+> `src/app/`, las CLI, y el API público de `src/ingest/`—.
+> Un fichero que nadie importa es **rojo**: para dejar de serlo hay que
+> importarlo —y entonces le aplican CA-2.3 y CA-2.4 y lo alcanza CA-2.1— o hay
+> que añadirlo a `ENTRY_POINTS`, que es un diff visible en un fichero que se
+> llama así.
+> `reachableModules` de `tests/mirror/support/imports.ts` implementa el
+> recorrido y **hay que ensancharlo primero**: hoy solo lee
+> `import`/`export … from '…'`, así que no ve ni los `import` de efecto lateral
+> —`src/app/(gl)/layout.tsx` usa uno— ni los `import()` dinámicos —las tres
+> `src/mirror/cli/*-cli.ts` usan uno—. Mientras no los vea, el cierre no es un
+> cierre. El ensanche es parte de este CA y no toca `src/`.
+>
+> **CA-2.6 — El escaneo cubre todo el código del repositorio, no solo `src/`.**
+> Las raíces del escaneo van declaradas, y un caso exige que **todo `.ts`/`.tsx`
+> versionado fuera de `tests/` caiga bajo una de ellas**.
+> No es hipotético: **`next.config.ts` es código ejecutable que hoy queda entero
+> fuera del escaneo**, y `src/site/redirects.ts` solo es alcanzable desde ahí.
+> ADR-014 §4 dice «en un script»; hoy no hay `scripts/`, pero sí hay
+> configuración ejecutable en la raíz.
+>
+> **CA-2.7 — Cada mecanismo lleva su control positivo, y las evasiones vivas se
+> escriben como controles.**
+> Apagar cualquiera de CA-2.1..CA-2.6 pone rojo al menos un caso nombrado. Y las
+> evasiones que hoy sobreviven se escriben como control positivo, cada una contra
+> el mecanismo que le toca: `const { fetch: send } = globalThis` con
+> `['User','Agent'].join('-')` (F-SPEC-008-V6) → CA-2.4 en estático y CA-2.1 en
+> ejecución; `await import('node:' + 'https')` (F-SPEC-008-V7) → CA-2.3; un
+> fichero nuevo en `src/ingest/` que nadie importa → CA-2.5.
+> **No queda ninguna exención por nombre de fichero.** CA-2 deja de mirar
+> palabras, así que `src/site/robots-txt.ts` y
+> `src/mirror/analysis/referenceless/report.ts` dejan de necesitar una, y con la
+> lista desaparece el agujero de F-SPEC-008-V9. Ninguno de los dos ficheros
+> cambia (CA-3).
+>
+> **CA-2.8 — Lo que este criterio NO promete, dicho dentro del criterio.**
+> No prohíbe que exista, fuera de `src/polite/`, una función que lea el texto de
+> un `robots.txt`: prohíbe que **decida** (CA-2.2) y prohíbe que la petición
+> salga por otro sitio (CA-2.1, CA-2.3, CA-2.4). El segundo parser de
+> F-SPEC-008-V8 **deja de ser una evasión porque deja de ser una infracción**: no
+> manda un byte y no puede abrir una puerta.
+> Y CA-2.1 solo ve los caminos que se ejecutan. El residuo es finito y
+> nombrable: **código alcanzable desde `ENTRY_POINTS` cuya rama de red no la
+> ejecuta ningún test**. Estrecharlo es cuestión de cobertura, no de detección, y
+> no es de esta spec.
+
+### 4. Qué se gana y qué se pierde. Sin suavizar
+
+**Se gana, y es lo que cierra el bucle de las dos vueltas:**
+
+1. **Las listas cambian de naturaleza.** Dejan de enumerar *formas de escribir*
+   —abiertas, infinitas, calibradas contra lo que ya sabemos— y pasan a enumerar
+   *lo que ya existe*: las seis salidas de red de Node, las doce dependencias que
+   tenemos, las cuatro maneras que da el lenguaje de obtener una capacidad. Esas
+   listas crecen **cuando llega una dependencia real**, que es un diff revisable,
+   y no cuando alguien inventa una forma nueva de escribir `fetch`. Es la
+   respuesta directa a F-SPEC-008-10.
+2. **La trampa se pone sobre la capacidad, no sobre el texto.** `const { fetch:
+   send } = globalThis` obtiene la trampa, porque la trampa **es** lo que hay en
+   `globalThis.fetch`. `await import('node:' + 'https')` obtiene el módulo
+   simulado, porque la simulación está en el registro de módulos y no en el
+   texto del especificador. Ninguna de las dos depende de cómo se escriba la
+   línea.
+3. **Desaparecen las exenciones y su agujero.** F-SPEC-008-9 y F-SPEC-008-V9
+   dejan de existir, no se mitigan.
+4. **CA-2.2 es más fuerte que lo que había.** El criterio viejo comprobaba la
+   *ausencia de unas palabras*; nunca comprobó que la política real se hubiera
+   consultado antes de cada petición. Ahora sí.
+5. **Se cumple hoy sin tocar código de specs cerradas.** Comprobado sobre el
+   árbol: `globalThis` aparece una vez y está en `src/polite/http.ts`; ningún
+   fichero de `src/` importa un módulo de red; los doce especificadores de
+   paquete son los de la lista.
+
+**Se pierde, y hay que verlo antes de firmar:**
+
+1. **CA-2 deja de comprobar mecánicamente la primera prohibición de ADR-014 §4.**
+   El ADR sigue prohibiendo «un segundo parser de `robots.txt` en el
+   repositorio» —eso no se toca y sigue vigente como regla—, pero **CA-2 ya no lo
+   mecaniza**. Pasa a sostenerse en revisión humana y en el argumento de que un
+   parser que no puede decidir es inerte. Es **menos red que antes** sobre ese
+   punto concreto, y es el precio de que el criterio pueda terminar.
+2. **La contención de CA-2.1 solo alcanza lo que se ejecuta.** Un fichero
+   importado desde `ENTRY_POINTS` cuya rama de red no ejecute ningún test no
+   dispara la trampa. Lo estrecha CA-2.5 (nada huérfano) y lo cierra la
+   cobertura, que no es de esta spec. Dicho al revés, y es lo justo: **las siete
+   evasiones que el verificador escribió en dos vueltas son todas código muerto**
+   —ninguna mandó jamás un paquete—, así que el criterio nuevo es más fuerte en
+   el eje que importa (paquetes que salen) y más débil en el eje de código
+   latente que nadie llama.
+3. **El criterio nuevo es más caro de construir.** Un fichero de tests deja de
+   bastar: hay que ensanchar `reachableModules`, montar la instalación de
+   trampas antes de los `import`, y declarar `ENTRY_POINTS`, `ALLOWED_PACKAGES` y
+   las raíces. Es trabajo de `tests/` y de configuración; **no toca `src/`**.
+4. **`ALLOWED_PACKAGES` se puede ensanchar.** Añadir `undici` a la lista es una
+   línea. Pero es **una línea en un fichero que se llama así**, en un diff que un
+   revisor lee, y no una forma nueva de escribir una llamada que nadie ve. La
+   diferencia entre las dos cosas es la enmienda entera.
+
+### 5. Si el veredicto sigue en pie, y qué despierta esto
+
+**No hay veredicto que sostener: SPEC-008 está `en-progreso` y su última
+verificación es RED.** La enmienda no rescata un GREEN ni anota uno emitido; lo
+que hace es cambiar el criterio contra el que la tercera verificación va a
+juzgar. Los doce CA restantes no se tocan y su evidencia sigue valiendo.
+
+**Qué la despierta**, en el sentido de ADR-015 §3.5 —bajo qué condición concreta
+habría que recuperar un guardián equivalente al que se retira:
+
+- **El día que un módulo de `src/` fuera de `polite/` necesite *usar* un veredicto
+  de permiso sobre una URL de un tercero.** Ese día CA-2.2 se pone roja sola, que
+  es exactamente lo que se quiere; si alguien la relaja para dejarlo pasar, hay
+  que volver a tener un guardián sobre la primera prohibición de ADR-014 §4.
+- **El día que aparezca una evasión que no sea código muerto** —una que llegue a
+  mandar un paquete—. Sería la señal de que CA-2.1 no la alcanzó por falta de
+  cobertura, y entonces el residuo del punto 2 deja de ser aceptable.
+- **El día que `ALLOWED_PACKAGES` crezca con un cliente HTTP.** No está
+  prohibido; está obligado a ser visible. Si crece sin que nadie lo discuta, el
+  mecanismo se ha vuelto ceremonia.
+
+### 6. Qué findings vuelve *moot* esta enmienda, y cuáles siguen vivos
+
+| Finding | Qué pasa con la enmienda |
+|---|---|
+| **F-SPEC-008-9** (dos exenciones nominales del detector (a)) | **MOOT.** No hay detector de palabras, luego no hay exenciones |
+| **F-SPEC-008-V9** (el caso 8 vigila la lista de exenciones, no el mecanismo) | **MOOT**, por lo mismo: desaparece la lista que vigilaba |
+| **F-SPEC-008-V10** (`COMPUTED_IMPORT` sin control positivo) | **MOOT.** El detector desaparece; lo sustituye CA-2.3, y CA-2.7 exige control positivo para **cada** mecanismo, que es la enfermedad de la que V10 era un síntoma |
+| **F-SPEC-008-V6** (`const { fetch: send } = globalThis`) | **CERRADO por dos vías**: CA-2.4 en estático, CA-2.1 en ejecución |
+| **F-SPEC-008-V7** (`import('node:' + 'https')`) | **CERRADO** por CA-2.3: el especificador no es un literal de la lista, y un especificador no literal es rojo por construcción |
+| **F-SPEC-008-V8** (segundo parser dentro de un fichero exento) | **NO se caza: deja de ser infracción** (CA-2.8). Es la pérdida del §4.1, y es la única forma de cerrarlo sin tocar `src/site/robots-txt.ts`, que **CA-3 prohíbe** |
+| **F-SPEC-008-10** (los detectores son una lista de lo que sabemos escribir) | **SUPERADO, no borrado.** Las listas invierten su naturaleza (§4.1), pero nace un residuo nuevo y distinto: la cobertura de CA-2.1 (§4.2, CA-2.8). El finding se cierra y su sombra queda escrita dentro del propio CA |
+| **F-SPEC-008-V14** (el escaneo cubre `src/`, ADR-014 §4 dice «en un script») | **DEJA DE ESTAR RUTADO A EPIC-MEJORA Y SE CIERRA AQUÍ**, en CA-2.6. Y era peor de lo que decía: no es que «el día que aparezca un script», es que **`next.config.ts` existe hoy** y queda entero fuera del escaneo |
+| **F-SPEC-008-V11** (CA-9.1 no muerde), **F-SPEC-008-V12** y **F-SPEC-008-V3** (RN-10 sostenido por la estructura), **F-SPEC-008-V5**, **F-SPEC-008-1**, **F-SPEC-008-2**, **F-SPEC-008-7** | **INTACTOS.** Esta enmienda no los toca ni los mueve de destino |
+
+### 7. Segunda enmienda, más pequeña: §4 promete de más, y F-SPEC-008-V13
+
+**Esto es una enmienda distinta y se firma aparte.** Toca el §4 del *Diseño* de
+la spec, no un CA.
+
+**Lo que dice §4 hoy:** el limitador vive dentro del camino del adaptador, para
+que «un cron que dispare cada diez segundos, un bucle local supervisado y un
+test con reloj falso» sean *«igual de incapaces de excederlo»*.
+
+**Lo que es cierto:** eso vale **dentro de un proceso**, y ahí está verificado
+—CA-7 quedó ✅ con sonda propia de siete escenarios y con M17..M20 y W12
+muriendo—. **Entre procesos no vale**: el limitador es un campo de instancia
+(`#lastRequestAt`), y ADR-004 dice que en Vercel **no hay proceso vivo**, así que
+cada tick del cron es una instancia nueva. El verificador midió **diez peticiones
+al mismo par en el mismo minuto** por esa vía (F-SPEC-008-V13).
+
+**Lo que decido, y por qué:**
+
+1. **El verificador tiene razón en no bloquear, y el ruteo del *arreglo* a la
+   spec del cron es correcto.** Persistir el último instante por par exige estado
+   durable, y estado durable es o el raw store —que no es un índice; ADR-014 ya
+   rechazó por esa razón la tabla `robots_policies`— o Postgres, y Postgres es
+   `migrations/0002`, que SPEC-008 pone **explícitamente fuera de alcance**.
+   Meterlo aquí sería reventar el alcance de una spec que va por su tercera vuelta
+   el mismo día en que se firmó. El domicilio correcto es la spec del cron, cuyo
+   asunto es precisamente el estado del planificador.
+2. **Pero dejarlo solo como «CA de la spec del cron» es insuficiente, y por eso
+   esta enmienda dice algo ya.** Dos motivos, y el segundo es el que me preocupa:
+   - **§4 promete hoy algo que el código no entrega.** Un lector de la spec sale
+     creyendo que el cron no puede excederlo. Se enmienda el alcance de la
+     promesa: **dentro de un proceso**, CA-7 la entrega; **entre procesos**,
+     SPEC-008 no la entrega y deja de prometerla.
+   - **La promesa está publicada, en dos lenguas, en la página cuyo propósito
+     entero es que un tercero nos audite.** `src/i18n/gl.ts` y `src/i18n/es.ts`
+     dicen en `/robot`: *«Como máximo unha petición por minuto a cada sitio e por
+     cada competición»*. Eso es SPEC-005 y ADR-011. Una promesa pública que
+     producción no puede cumplir no es una barrera floja: es **RN-11 incumplida
+     más una afirmación falsa a terceros**, y RN-11 es regla dura.
+3. **Hoy la infracción es latente, no consumada, y ésa es la diferencia
+   exacta.** `src/ingest/` no está cableado a nada, no hay cron, no hay
+   despliegue que capture, y el verificador confirmó dos veces que **nada se ha
+   corrido nunca contra `ceroacero.es`**. Se convierte en infracción real **el
+   día que se despliegue algo que pida**.
+4. **De ahí la forma que propongo, que es una precondición y no un follow-up:**
+
+> **Precondición de despliegue (propuesta, para la spec del cron).** Ninguna ruta
+> ni cron desplegado puede emitir una petición hacia un tercero mientras el
+> último instante de petición por par (fuente, competición) **no sobreviva al
+> proceso**. Es CA bloqueante de la spec del cron, no salvedad: mientras no se
+> cumpla, lo que `/robot` publica en galego y en castellano no es cierto en
+> producción.
+
+5. **Y una advertencia que conviene que quede escrita: el techo de Vercel Cron no
+   es una garantía.** Que el plan no deje programar por debajo de 1/min tapa el
+   camino nominal por accidente de tarificación, no por diseño, y no tapa una
+   invocación manual, un reintento, un despliegue solapado ni una segunda ruta
+   que capture. `src/mirror/` arrastra la misma limitación, y **ahí es tolerable
+   por el motivo que F-SPEC-002-2 ya escribió** —la ventana dura una hora y el
+   operador está delante—; en producción no hay ninguna de las dos cosas, que es
+   literalmente el argumento con el que ADR-014 §3 justificó el `RobotsGate`.
+
+### 8. Qué se le pide a Alberto que firme
+
+Cuatro firmas separadas, a propósito, porque son cuatro decisiones distintas:
+
+1. **El cambio de mecanismo de CA-2** —de detección textual a contención de
+   capacidad más cierre de imports— con el texto literal de §3. Es lo que Alberto
+   ya decidió; lo que no ha visto es el texto.
+2. **La pérdida del §4.1, explícitamente**: CA-2 deja de comprobar
+   mecánicamente que no exista un segundo parser de `robots.txt`, y pasa a
+   comprobar que ninguno pueda decidir. ADR-014 §4 no se toca y sigue
+   prohibiéndolo como regla. **Ésta es la firma incómoda y va suelta.**
+3. **La enmienda de §4 y la precondición de despliegue de F-SPEC-008-V13** (§7),
+   incluido que el arreglo va a la spec del cron y que allí es **bloqueante**.
+4. **Si esto debe ser un ADR.** El mecanismo que propone §3 —cómo se verifica en
+   este repositorio una frontera de arquitectura— constriñe a toda spec futura
+   que escriba un test de arquitectura, y eso es materia de ADR, no de CA. **No
+   lo he escrito**: no se me encargó, y un segundo artefacto sin firmar no ayuda
+   al gate de hoy. Si Alberto quiere que ate a las specs siguientes, es un
+   ADR-016 y lo escribo aparte.
+
+Nada de esto se aplica hasta que Alberto arbitre. Cuando lo haga, la aplicación
+—sustituir el CA-2 del cuerpo de la spec y anotar aquí que se aplicó— es una
+tanda posterior, como la «Segunda tanda — aplicación de la enmienda» del ledger
+de SPEC-001.
