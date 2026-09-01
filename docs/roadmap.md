@@ -36,17 +36,11 @@ tipo: roadmap
   riesgo de dominio que este roadmap arrastraba. Queda pendiente la comprobación
   en OEPM, que ya no bloquea el dominio sino la inversión en identidad visual.
 
+
 **La acción con plazo externo, y la única que solo puede hacer una persona:**
-mandar la carta a la RFGF (`docs/negocio/carta-rfgf-acceso.md`, escrita y lista).
-**Ahora espera a EPIC-003 por decisión de Alberto Fojo el 2026-08-31**, para que
-salga con una página donde verificar lo que afirma. Con ella va una corrección
-que salió al revisarla: el user-agent del código lleva `medicion SPEC-002, RN-11`,
-identificadores internos que no significan nada fuera del repo y que además
-**rotan con cada spec**. Se arregla en el código, no en la carta.
-Pide **dos líneas en su `robots.txt`**, no un acuerdo de datos, así que no
-necesita cifras y rompe el círculo de «la conversación solo tiene sentido con el
-informe en la mano». Si contestan, la ventana pasa a ser la de **SPEC-002** —
-hecha, verificada y esperando exactamente eso.
+mandar la carta a la RFGF (`docs/negocio/carta-rfgf-acceso.md`). **Enviada el 2026-09-01 a `info@futgal.es`.** Ahora espera respuesta. Pide **dos líneas en su `robots.txt`**, no un acuerdo de datos, así que no necesita cifras y rompe el círculo de «la conversación solo tiene sentido con el informe en la mano». Si contestan, la ventana pasa a ser la de **SPEC-002** — hecha, verificada y esperando exactamente eso.
+
+**El bloqueo de EPIC-001 persiste:** la carta hace una pregunta, no cierra ninguna puerta. El acceso a `futgal.es` sigue dependiendo de una de dos cosas — respuesta de la RFGF, o un `robots.txt` que nos permita. **Sin eso, SPEC-003 sigue sin poder ejecutarse** porque mide el cruce entre dos fuentes y hoy solo hay una. Esto no es un fallo de la carta: es que la pregunta, aun hecha, no tiene respuesta todavía.
 
 **Bloqueante fuera del código, ya resuelto a medias:** el dominio `marcador.gal`
 **se contrató el 2026-08-31** (Dinahosting), lo que cierra el riesgo de nombre

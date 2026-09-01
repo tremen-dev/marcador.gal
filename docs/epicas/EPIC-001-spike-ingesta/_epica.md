@@ -147,11 +147,7 @@ aritmética, no por espejo: no hay dos fuentes de 0.7.
 
 ### Lo que desbloquea, por orden de a quién le toca
 
-1. **Mandar la carta a la RFGF** — `docs/negocio/carta-rfgf-acceso.md`, escrita y
-   lista. Pide **dos líneas en su `robots.txt`**, no un acuerdo de datos. **Le
-   toca a Alberto Fojo.** Es lo único con plazo externo: si contestan, la ventana
-   pasa a ser la de **SPEC-002** (con referencia), que está hecha y verificada
-   esperando exactamente esto, y la épica recupera su forma original.
+1. **Enviar la carta a la RFGF** — `docs/negocio/carta-rfgf-acceso.md`. **Enviada el 2026-09-01 a `info@futgal.es`.** Pide **dos líneas en su `robots.txt`**, no un acuerdo de datos. La carta hace una pregunta, no cierra ninguna puerta. **El bloqueo persiste:** si contestan que sí, la ventana pasa a ser la de **SPEC-002** (con referencia), que está hecha y verificada esperando exactamente esto, y la épica recupera su forma original. Si no contestan o contestan que no, EPIC-001 se cierra con una sola fuente automática capturable.
 2. **Verificar `lapreferente.com` el domingo 6 de septiembre**, con partidos en
    juego. Es la candidata a tercera fuente: sirve HTML real y usa el nombre
    canónico `preferente-futgal-grupo-1`, pero **no se le encontró ni una hora de

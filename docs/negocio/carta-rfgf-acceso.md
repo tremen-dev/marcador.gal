@@ -1,8 +1,6 @@
 # Carta a la RFGF — petición de acceso técnico
 
-> Borrador para que lo mande **Alberto Fojo**. No es la conversación del acuerdo
-> de datos (`retos.md`, «objetivo estratégico»): es un ask mucho más pequeño y
-> por eso puede ir antes de tener cifras.
+> **Enviada el 2026-09-01 a `info@futgal.es`.**
 >
 > **Contexto de por qué existe:** `futgal.es` termina su `robots.txt` en
 > `User-agent: *` / `Disallow: /`, RN-11 obliga a respetarlo y ADR-008 §1 saca la
@@ -20,7 +18,6 @@
 >
 > **Dos cosas que NO hay que hacer en este correo:** prometer un producto que aún
 > no existe, y pedir el acuerdo de datos. Esto es solo permiso técnico.
-
 ---
 
 **Asunto:** robots.txt de futgal.es — les está bloqueando también en Google
