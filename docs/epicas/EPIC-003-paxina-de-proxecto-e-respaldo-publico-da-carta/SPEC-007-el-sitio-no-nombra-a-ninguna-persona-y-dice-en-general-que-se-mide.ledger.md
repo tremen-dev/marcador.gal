@@ -6,8 +6,16 @@ epica: EPIC-003
 # Ledger — SPEC-007 El sitio no nombra a ninguna persona y dice en general que se mide
 
 ## Resumen
-- Fase: en-revisión (implementación terminada; **suite entera en verde**, el RED
-  de la primera vuelta —F-SPEC-007-1— resuelto en la segunda)
+- Fase: **hecho** — verificada **GREEN** el 2026-09-01 sobre `8129f84`, con una
+  salvedad aceptada (CA-3.1, ver abajo). Antes: en-revisión tras dos vueltas, con
+  el RED de la primera —F-SPEC-007-1— resuelto por el arquitecto en la spec y
+  ejecutado en la segunda
+- **Lo único que queda para después del merge**, y no es un fallo: **volver a
+  correr CA-3.1 contra `https://marcador.gal`** —que `/proxecto` y `/es/proxecto`
+  respondan `200` y sirvan el `<a href="https://tremen.dev">`—. Hoy ese dominio
+  sirve la versión anterior porque esto no está mergeado. La otra mitad,
+  `https://tremen.dev` → `200`, ya está comprobada, y CA-3.2 está cerrado también
+  contra producción para `/robot`
 - Rama: `ft/SPEC-007-el-sitio-no-nombra-a-ninguna-persona-y-dice-en-general-que-se-mide`
 - Commits: `dac4823` (CA-1), `c199a28` (CA-2), `ac9b90b` (CA-4 y CA-5) y, de la
   segunda vuelta, el que sustituye el caso 19 de `crawler-page.test.ts`
@@ -21,19 +29,124 @@ epica: EPIC-003
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 | `src/i18n/gl.ts`, `src/i18n/es.ts` (clave `about` del espacio `site`) | `tests/site/identity.test.ts` 1–5 (los tres espacios de nombres de los dos bundles y el HTML de las cuatro rutas, más el caso 4 que impide que la barrera sea vacua); `tests/site/i18n.test.ts` 6 (modulado: sigue exigiendo `tremen.dev`, pasa a exigir que no haya persona) | | ❌ |
-| CA-2 | `src/site/umbrella.ts` (**nuevo**, `UMBRELLA_URL` + contrato en la cabecera), `src/i18n/site-bundle.ts` (clave `umbrellaLink`), `src/i18n/gl.ts`, `src/i18n/es.ts`, `src/site/project-page.tsx` | `tests/site/identity.test.ts` 6 (el `<a href>` real), 7 (etiqueta desde i18n, distinta en cada lengua), 8 (`about` sigue nombrando tremen.dev en prosa), 9 (una sola constante, y **no** en `site/contact.ts`), 10 (el contrato en la cabecera); `tests/site/pages.test.ts` 16 (modulado: barrera estrechada de URL absolutas) | | ❌ |
-| CA-3 | — (no es código: se comprueba contra dos sitios vivos) | — . Evidencia recogida abajo en «Evidencia de implementación»; **el CA es del verificador** | | ❌ |
-| CA-4 | `src/i18n/gl.ts`, `src/i18n/es.ts` (clave `measuring`) | `tests/site/pages.test.ts` 11 (modulado: de exigir la enumeración a prohibirla, sobre el espacio `site` **entero** y el HTML de las dos rutas de proyecto); `tests/site/crawler-page.test.ts` 19 (**sustituido en su sitio**, F-SPEC-007-1: guarda el alcance de la lista negra de SPEC-005 CA-13 en vez de su contenido. El caso 18 no se toca) | | ❌ |
-| CA-5 | `src/i18n/gl.ts`, `src/i18n/es.ts` (clave `measuring`, tercera oración) | `tests/site/i18n.test.ts` 9 (`NOT_MEASURING_YET` ampliada con las cuatro formas de subconjunto) y 10 (referente exigido cambiado; `a fonte oficial` y `robots.txt` intactos) | | ❌ |
-| CA-6 | — (es una cláusula sobre el perímetro, no código) | `npm run lint`, `npm run typecheck`, `npx vitest run --typecheck`; comparación de `/robot` con `git archive` **sin `checkout`** | | ❌ |
-| CA-7 | — (dictámenes) | 7.2 emitido y transcrito abajo; **7.1 PENDIENTE** | | ❌ |
+| CA-1 | `src/i18n/gl.ts`, `src/i18n/es.ts` (clave `about` del espacio `site`) | `tests/site/identity.test.ts` 1–5 (los tres espacios de nombres de los dos bundles y el HTML de las cuatro rutas, más el caso 4 que impide que la barrera sea vacua); `tests/site/i18n.test.ts` 6 (modulado: sigue exigiendo `tremen.dev`, pasa a exigir que no haya persona) | Cero coincidencias de las doce formas sobre el HTML **servido** por `next build && next start` de las cuatro rutas (V1). Roto por el verificador: el nombre en el bundle `crawler` → `identity` 1 y 3 rojos; en `es.titles.project` → `identity` 1 rojo (V3, V4). Lectura de «Quen está detrás» hecha: dice quién responde —tremen.dev, en prosa y enlazado— sin persona, sin recuento y sin forma jurídica | ✅ |
+| CA-2 | `src/site/umbrella.ts` (**nuevo**, `UMBRELLA_URL` + contrato en la cabecera), `src/i18n/site-bundle.ts` (clave `umbrellaLink`), `src/i18n/gl.ts`, `src/i18n/es.ts`, `src/site/project-page.tsx` | `tests/site/identity.test.ts` 6 (el `<a href>` real), 7 (etiqueta desde i18n, distinta en cada lengua), 8 (`about` sigue nombrando tremen.dev en prosa), 9 (una sola constante, y **no** en `site/contact.ts`), 10 (el contrato en la cabecera); `tests/site/pages.test.ts` 16 (modulado: barrera estrechada de URL absolutas) | 2.1–2.3 rotos y verdes: borrar el `<a>` → 5 rojos; URL a mano en el JSX → `identity` 9; caída de dos frases del contrato → `identity` 10 (V8, V9, V10). 2.4 comprobado por el verificador sobre el HTML servido de las **cuatro** rutas: **cero** URL absolutas en `src`, `srcset`, `<link href>` o `url(…)`, y **una sola URL absoluta distinta**, `https://tremen.dev`, en el `href` del `<a>`. Un `<link rel=stylesheet href=https://…>` inyectado pone el caso 16 en rojo (V7). Ver F-SPEC-007-9 | ✅ |
+| CA-3 | — (no es código: se comprueba contra dos sitios vivos) | — . Evidencia recogida abajo en «Evidencia de implementación»; **el CA es del verificador** | **3.2 CERRADO** (la mitad que no puede caerse): `href="mailto:ola@tremen.dev"` en las cuatro rutas, desde `MAILBOX` interpolado; en `/robot` byte 1181 frente al primer `<h2>` en 1324, en `/es/robot` 1191 frente a 1334 — **el buzón va antes de cualquier encabezado de sección**, SPEC-005 CA-5 intacta, y lo mismo en el `/robot` **de producción**. **3.1 PARCIAL**: `https://tremen.dev` → `200` (2026-09-01); `/proxecto` y `/es/proxecto` → `200` con el enlace servido, pero **en local**: `https://marcador.gal` sirve todavía la versión anterior (contiene `Alberto Fojo` y `Preferente Futgal`), porque esto no está mergeado | ⚠️ |
+| CA-4 | `src/i18n/gl.ts`, `src/i18n/es.ts` (clave `measuring`) | `tests/site/pages.test.ts` 11 (modulado: de exigir la enumeración a prohibirla, sobre el espacio `site` **entero** y el HTML de las dos rutas de proyecto); `tests/site/crawler-page.test.ts` 19 (**sustituido en su sitio**, F-SPEC-007-1: guarda el alcance de la lista negra de SPEC-005 CA-13 en vez de su contenido. El caso 18 no se toca) | Cero coincidencias de las once formas sobre el HTML servido de `/proxecto` y `/es/proxecto`; `medicion de latencia` **sí** sale en `/robot` y no pone nada en rojo, que es lo que CA-4 exige del alcance. Devolver «Terceira RFEF G1 e Preferente Futgal G1» a `gl.site.measuring` → `pages` 11 rojo (V11). **Sustituto del caso 19 comprobado por el verificador**: ensanchar la entrada del escaneo al bundle entero → **19 rojo, 18 verde** (V5); es exactamente el fallo silencioso que el sustituto dice guardar | ✅ |
+| CA-5 | `src/i18n/gl.ts`, `src/i18n/es.ts` (clave `measuring`, tercera oración) | `tests/site/i18n.test.ts` 9 (`NOT_MEASURING_YET` ampliada con las cuatro formas de subconjunto) y 10 (referente exigido cambiado; `a fonte oficial` y `robots.txt` intactos) | Las tres cosas siguen dichas en las dos lenguas, leídas sobre el HTML servido. **Hecho comprobado contra la fuente, no contra el enunciado**: `ceroacero.es` sirve **las dos** competiciones (`hallazgos/fontes-capturables.md:34-35`, 50 equipos cada una) y lo no capturable es la **fuente oficial de ambas** (`:66`, `dominio.md:57`, ADR-008 §1) — el referente «as competicións que se queren medir» las abarca, no es un subconjunto. Barrera ampliada rota y verde: `dunha das competicións` (gl) y `de una de las competiciones` (es) → `i18n` 9 rojo; `de una competición del estudio` → `i18n` 9 **y** 10 rojos; caída de `robots.txt` → `i18n` 10 rojo (V6a–V6d) | ✅ |
+| CA-6 | — (es una cláusula sobre el perímetro, no código) | `npm run lint`, `npm run typecheck`, `npx vitest run --typecheck`; comparación de `/robot` con `git archive` **sin `checkout`** | 6.1 verde (salida literal abajo, sección del verificador). 6.2 y 6.3 comprobados sobre `git diff c80ff82 HEAD`: `src/` toca exactamente los cinco ficheros enumerados y **ni una línea** de `src/mirror/`, `src/model/`, `src/db/`, `src/raw/`, `migrations/`, `crawler` ni `titles`; `tests/` toca los tres ficheros autorizados —y dentro de ellos solo los casos 11, 16, 6, 9, 10 y 19— más el fichero nuevo que CA-6.2-bis autoriza. 6.4 **rehecho por el verificador** con `git archive c80ff82` y build propio: `/robot` y `/es/robot` byte a byte idénticos tras normalizar la **única** aparición del `buildId` (`sha256` `86fbd92a1ae4…` y `f1dbad6ab225…`), y la misma normalización **no** iguala `/proxecto` (control negativo). 6.5: ningún commit de implementación toca la carta; ver F-SPEC-007-3 | ✅ |
+| CA-7 | — (dictámenes) | Los dos emitidos y transcritos abajo: 7.1 el 2026-09-01 (**CORRECTO, sin cambios**, con una observación no bloqueante) y 7.2 el 2026-09-01 (no bloquea, con disparador escrito) | ✅ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
 
+**GREEN — 2026-09-01, `sdd-verificador`, sobre `8129f84`.** Seis CA ✅ y uno ⚠️
+justificada y aceptada (CA-3.1, que por definición no se puede cerrar contra un
+despliegue que todavía no existe). Nada se ha verificado leyendo el informe del
+implementador: los tres gates, las cuatro rutas servidas y **doce mutaciones
+propias** se han vuelto a ejecutar desde cero.
+
+### Gates (salida literal, ejecutados por el verificador el 2026-09-01)
+
+```
+$ npm run lint
+
+> marcador@0.0.1 lint
+> oxlint --type-aware
+
+EXIT=0
+
+$ npm run typecheck
+
+> marcador@0.0.1 typecheck
+> tsc --noEmit
+
+EXIT=0
+
+$ npx vitest run --typecheck
+
+ RUN  v4.1.11 /Users/albertofojo/src/tremen-dev/marcador.gal
+
+ Test Files  71 passed (71)
+      Tests  616 passed (616)
+Type Errors  no errors
+```
+
+Coincide con la referencia del encargo: **71 ficheros, 616 tests**. Partida
+`c80ff82`: 70 y 606. No hay regresión y no hay pérdida de cobertura.
+
+### Comprobado rompiendo por el verificador: doce mutaciones
+
+Aplicadas sobre el árbol de trabajo con `python3` y revertidas **copiando el
+fichero original** desde el scratchpad. **Sin `git stash`, `git checkout`,
+`git reset` ni `git restore`.** `git status --short` y `git diff HEAD` vacíos al
+terminar.
+
+| # | Mutación | Resultado |
+|---|---|---|
+| V3 | El nombre reaparece en el bundle **`crawler`** (`gl.crawler.intro`) | 🔴 `identity` 1 y 3. `i18n` 6 sigue verde, que es exactamente por qué la barrera tenía que ser ancha |
+| V4 | El nombre reaparece en un **título** (`es.titles.project`) | 🔴 `identity` 1 |
+| V5 | **La entrada del escaneo del caso 18 se ensancha al bundle entero** | 🔴 caso **19** · 🟢 caso **18** — el sustituto guarda lo que dice guardar |
+| V5-bis | El mismo ensanche escrito **dentro del cuerpo del caso 18** | 🟢 los dos — F-SPEC-007-7 reproducido y confirmado |
+| V6a | `a fonte oficial **dunha das** competicións…` (gl) | 🔴 `i18n` 9 |
+| V6b | `la fuente oficial **de una de las** competiciones…` (es) | 🔴 `i18n` 9 |
+| V6c | `la fuente oficial **de una competición del estudio**` (es) | 🔴 `i18n` 9 **y** 10 |
+| V6d | Cae `robots.txt` de `es.measuring` | 🔴 `i18n` 10 |
+| V7 | `<link rel="stylesheet" href="https://cdn.example.com/a.css">` en `/proxecto` | 🔴 `pages` 16 — la mitad «atributos que descargan» de CA-2.4 muerde |
+| V8 | La URL del paraguas escrita a mano en el JSX (segunda copia en `src/`) | 🔴 `identity` 9 |
+| V9 | Cae `THE MAILBOX IS NOT TO BE TOUCHED` de la cabecera | 🔴 `identity` 10 |
+| V10 | Se borra el `<a>` del paraguas | 🔴 `identity` 6 y 7, `pages` 2, 5 y 16 |
+| V11 | Vuelven las dos competiciones a `gl.site.measuring` | 🔴 `pages` 11 · 🟢 `crawler-page` 18 y 19 |
+| V12 | (control, no mutación) `/robot` sirve `medicion de latencia` | 🟢 nada en rojo — la barrera de CA-4 no es global, y ese es el criterio |
+
+### Sobre el HTML servido, comprobado de nuevo por el verificador
+
+`npm run build` limpio, `next start` en `:3177`, y en paralelo `git archive
+c80ff82` a un directorio temporal con su propio build en `:3188`.
+
+- **CA-1.** Cero coincidencias de `alberto|fojo|unha soa persoa|una sola persona|
+  por conta propia|por cuenta propia|autonomo|autonoma|non hai empresa|no hay
+  empresa|nin equipo|ni equipo` (desacentuado, en minúsculas) en las **cuatro**
+  rutas. Se buscaron además `nif|cif|sociedad|s.l.|freelance|titular`: la única
+  coincidencia es `cif` dentro de «ningunha **cif**ra», falso positivo.
+- **CA-2.4.** Cero URL absolutas en `src`, `srcset`, `<link href>` o `url(…)` en
+  las cuatro rutas. En las de proyecto la **única URL absoluta distinta** es
+  `https://tremen.dev`, con **dos** apariciones: el `<a href>` en el byte 1084
+  (gl) / 1094 (es) y una copia dentro del payload RSC
+  (`self.__next_f.push(…)`, byte 7241 / 7756), que va en un `<script>` y no es un
+  atributo. **F-SPEC-007-2 confirmado y la precisión de CA-2.4 es correcta**: la
+  segunda aparición no descarga nada de `tremen.dev` y no es una URL nueva.
+- **CA-3.2.** `href="mailto:ola@tremen.dev"` en las cuatro rutas. En `/robot`,
+  byte 1181 contra el primer `<h2>` en 1324; en `/es/robot`, 1191 contra 1334.
+  El buzón va **antes de cualquier encabezado de sección**, en local y en el
+  `/robot` de producción.
+- **CA-6.4.** `/robot` y `/es/robot` idénticos al árbol de `c80ff82` una vez
+  normalizada la **única** aparición del `buildId`
+  (`UYuX_G6yZgaRQ_0YwYdBA` → `4_FuZ1hitnjUWSR6RwxbO`): `sha256`
+  `86fbd92a1ae4…` y `f1dbad6ab225…` en los dos árboles. **Control negativo en la
+  misma ejecución**: la misma normalización deja `/proxecto` distinto
+  (`6ff3c70993…` contra `26b3b11f2e…`), así que no está tapando nada.
+- **Lectura de «Quen está detrás» (mitad no automatizable de CA-1).** Dice
+  «marcador.gal é un proxecto de tremen.dev», da el buzón, promete respuesta y
+  enlaza el paraguas con su etiqueta. **Dice quién responde sin nombrar a nadie y
+  sin insinuar tamaño**: no queda ninguna fórmula de recuento ni de forma
+  jurídica, y el «unha soa» que sobrevive en `purpose` («decidir unha soa cousa»)
+  no habla de personas.
+
+### Estado de producción en el momento de verificar
+
+`https://marcador.gal/proxecto` responde `200` y sirve **todavía la versión
+anterior**: contiene `Alberto Fojo`, `unha soa persoa` y `Preferente Futgal`, y
+ninguna URL absoluta. Es lo esperado —esta rama no está mergeada— y es la razón
+de que CA-3.1 quede ⚠️ y no ✅.
+
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-007/. Informe HTML opcional: _qa/SPEC-007/informe.html -->
+
+No hay capturas: las cuatro rutas son HTML sin JavaScript, sin CSS de terceros y
+sin estado de cliente (SPEC-004 CA-9/CA-10, verificado y verde), así que el
+documento servido **es** la evidencia y va transcrito arriba. Una captura de
+pantalla diría estrictamente menos que el `grep` sobre el byte servido.
 
 ## Evidencia de implementación
 
@@ -411,6 +524,65 @@ verificador lo juzgue en vez de descubrirlo.
   `historial`, que es el registro veraz de que hubo una segunda vuelta.
   **Destino: nota para el orquestador**, que me había pedido no tocar estados.
 
+- **F-SPEC-007-9 — NUEVO, del verificador. El caso 16 cuenta apariciones, no
+  URL distintas, que es lo contrario de lo que dice CA-2.4.** La aserción es
+  `expect(absolute).toEqual([UMBRELLA_URL])` sobre la lista de **coincidencias**,
+  no sobre el conjunto. Comprobado rompiendo: una segunda copia benigna de la
+  **misma** URL en texto plano —que CA-2.4 admite expresamente— pone el caso 16
+  en rojo. **No es un agujero y no bloquea**: la desviación es hacia el lado
+  estricto, no hacia el laxo, y hoy no produce ningún RED falso porque la entrada
+  del test es `renderToStaticMarkup`, donde la URL sale una sola vez; la copia del
+  payload RSC solo existe en el HTML servido, que este test no mira. Queda escrito
+  porque el día que alguien renderice la URL también como texto visible se
+  encontrará un rojo que el CA no pide. Arreglo de una línea:
+  `[...new Set(absolute)]`. **Destino: `sdd-arquitecto`**, fuera de esta spec.
+
+- **F-SPEC-007-10 — NUEVO, del verificador. La observación de `/sdd-lingua` no la
+  guarda ningún test.** «No hay una sola primera persona del singular en la
+  página» es hoy verdad —comprobado sobre las cuatro rutas servidas— y es parte de
+  cómo se cumple ADR-012 §1: sin ella, «sen especificar se son un ou mil» se
+  sostiene solo en la ausencia del nombre. Ningún caso de la suite lo vigila, así
+  que un futuro «respondo» o «fago» en un literal reintroduciría el singular con
+  los doce términos de `identity` 1 y 2 en verde. **No bloquea**: el dictamen la
+  marca no bloqueante y hoy el sitio la cumple. **Destino: `sdd-arquitecto`**,
+  como barrera de una spec futura.
+
+- **F-SPEC-007-7 — DICTAMINADO por el verificador: basta, y la salvedad queda
+  aceptada.** Reproducido: escribir el ensanche **dentro** del cuerpo del caso 18
+  deja los casos 18 y 19 en verde. Se acepta por tres razones y no por comodidad:
+  cerrarlo exige extraer la entrada a una constante compartida, es decir **tocar
+  el caso 18**, que CA-6.2 prohíbe nominalmente; los caminos que **no** requieren
+  editar un fichero de una spec `hecho` —repuntar `ROUTES`, ensanchar `HTML`,
+  acotar `LOCALES`, vaciar o mutilar `THIRD_PARTIES`— están **todos** cubiertos, y
+  lo he comprobado; y el único camino que queda deja un diff sobre un fichero de
+  SPEC-005 que ningún revisor puede no ver. Si se quiere cerrar también ese
+  camino, es trabajo del arquitecto. **Destino: EPIC-MEJORA.**
+
+- **F-SPEC-007-8 — DICTAMINADO por el verificador: no invalida nada. Es la
+  heurística del hook, por tercera vez.** Comprobado en el `historial` del
+  frontmatter y en el diff de `8129f84`: la única línea de la spec que ese commit
+  toca son **dos entradas de `historial`** —`en-progreso` y `en-revision`, las dos
+  del 2026-09-01 y por `sdd-implementador`—, el campo `estado:` vuelve a ser
+  `en-revision`, que es el de partida de la segunda vuelta, y `aprobada-por:
+  Alberto Fojo` y la entrada `aprobada` siguen intactas. **No se ha esquivado
+  ningún gate humano**: el único de esta spec es la aprobación, que ya estaba
+  firmada, y el rodeo no la tocó. Lo que sí queda registrado es que el hook
+  `require-spec` obliga a un movimiento de estado para poder escribir bajo
+  `tests/` durante una **vuelta de corrección**, que es un estado que el ciclo no
+  tiene: es el mismo rodeo de F-SPEC-006-1 y F-SPEC-006-3. **Destino:
+  `sdd-arquitecto`** — el problema es del gate, no de esta implementación.
+
+- **F-SPEC-007-3 — CONFIRMADO por el verificador, y CA-6.5 se cumple.**
+  `docs/negocio/carta-rfgf-acceso.md` está modificado en la rama respecto a
+  `c80ff82`, pero el cambio entra en `b627bef` («ADR-012 y lo que estaba a un git
+  stash de perderse»), commit de **Alberto Fojo** que trae también ADR-012, la
+  corrección de la spec, `_epica.md`, `docs/tablero.md` y el ledger de SPEC-004.
+  **Ninguno de los cuatro commits de implementación lo toca.** La frase añadida
+  —«En https://marcador.gal/proxecto está quen hai detrás disto e que se vai
+  medir; non hai produto nin lista de espera, só iso»— sigue siendo verdadera
+  después del cambio, y `tests/docs/carta-y-rastro.test.ts`, que lee ese fichero,
+  está en verde.
+
 - **F-SPEC-007-6 — el paraguas sigue sin identificar a nadie, y ningún test de
   aquí se enterará si deja de responder.** Es el riesgo que ADR-012 ya registra
   con disparador; queda repetido aquí solo porque ahora hay código que se apoya
@@ -441,9 +613,33 @@ suficiente. El disparador queda escrito, y lo que lo dispararía —patrocinio,
 publicidad, lista de espera— es exactamente lo que `pages.test.ts` caso 8 y CA-6
 de SPEC-004 ya prohíben en el HTML, así que el propio sitio avisa antes.
 
-### `/sdd-lingua` (CA-7.1) — **PENDIENTE**
+### `/sdd-lingua` (CA-7.1) — EMITIDO el 2026-09-01. **No bloquea.**
 
-No emitido. Ver F-SPEC-007-5. **Los literales nuevos no están dados por buenos.**
+Emitido por Alberto Fojo el 2026-09-01 sobre los **seis literales íntegros** en
+las dos lenguas —`about`, `umbrellaLink` y `measuring` de `gl` y de `es`—,
+transcritos arriba en «Los literales nuevos, citados textualmente». Se transcribe
+tal y como llegó. Cierra F-SPEC-007-5.
+
+> **CORRECTO, sin cambios.** `paraugas` es la forma RAG —no *paraguas*—, y es
+> justo donde caería un castellanohablante. Los enclíticos `lelos` (ler + os) y
+> `respectalo` están bien formados. Correctos también `aí`, `teña`, `co
+> rastrexador`, `deste`, `polas que`, `obxecto`, `estudo`, `opcións`, `obter`,
+> `comezou`. El registro tutea, coherente con `/robot`, ya anotado como
+> deliberado desde SPEC-005. Se mantiene la excepción consciente de
+> `otherLanguage: 'Castellano'`.
+>
+> **Observación no bloqueante, y es de fondo:** el texto usa «e respondemos» en
+> plural y `non se rastrexa` impersonal. **No hay una sola primera persona del
+> singular en la página.** Es lo que hace que «sen especificar se son un ou mil»
+> funcione en la prosa y no solo en la ausencia del nombre. Si alguien
+> reintroduce un singular, rompe la decisión de ADR-012 sin tocar ningún nombre.
+
+**Comprobación del verificador sobre la observación**, porque es un hecho y se
+puede medir: cero primeras personas del singular en el texto visible de las
+**cuatro** rutas (buscados `eu`, `yo`, `meu`, `mi/mis`, `fago`, `hago`,
+`respondo`, `teño`, `tengo`, `quero`, `quiero`, `escribo`, `soy`, `pido`,
+`levo`, `creo`, `mido`). Hoy la observación describe el sitio. **No la guarda
+ningún test**: ver F-SPEC-007-10.
 
 ## Cómo retomar (handoff)
 
