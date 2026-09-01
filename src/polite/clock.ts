@@ -20,3 +20,29 @@ export interface Clock {
 export const systemClock: Clock = {
   now: (): Instant => new Date().toISOString() as Instant,
 };
+
+/** Thrown when a string that should be an instant is not one. */
+export class NotAnInstantError extends Error {
+  override readonly name = 'NotAnInstantError';
+  readonly value: string;
+
+  constructor(value: string) {
+    super(`not an ISO 8601 UTC instant: ${JSON.stringify(value)}`);
+    this.value = value;
+  }
+}
+
+/**
+ * Epoch milliseconds of an instant.
+ *
+ * `Date` appears here as a transient converter and nowhere else in this
+ * module: arithmetic needs numbers, and nothing outside holds one (ADR-006).
+ * Both the rhythm of RN-11 and the 6 h life of a `robots.txt` are arithmetic
+ * over instants, so the courtesy module needs its own converter rather than
+ * reaching into the measuring instrument for one.
+ */
+export function epochMsOf(instant: string): number {
+  const epochMs = Date.parse(instant);
+  if (Number.isNaN(epochMs)) throw new NotAnInstantError(instant);
+  return epochMs;
+}

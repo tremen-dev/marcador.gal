@@ -86,9 +86,20 @@ export class RedirectNotFollowedError extends Error {
   }
 }
 
+/**
+ * Refuses, before ANY I/O, a request that would leave without identifying us.
+ *
+ * Split out of `politeRequest` so a caller can run the check at the top of its
+ * own path — before it opens a policy, before it touches the archive — and
+ * still have exactly one place where the rule is written (RN-11).
+ */
+export function assertUserAgent(url: string, userAgent: string): void {
+  if (userAgent.trim().length === 0) throw new MissingUserAgentError(url);
+}
+
 /** Builds a request that carries the declared User-Agent, or refuses to. */
 export function politeRequest(url: string, userAgent: string): HttpRequest {
-  if (userAgent.trim().length === 0) throw new MissingUserAgentError(url);
+  assertUserAgent(url, userAgent);
   return { url, headers: { 'User-Agent': userAgent } };
 }
 
