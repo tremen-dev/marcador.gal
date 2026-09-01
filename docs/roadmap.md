@@ -130,10 +130,9 @@ vía de RN-02 queda cerrada para todo lo que no sea una persona.
   se desarrolla aquí a propósito: si `confirmado` deja de ser el estado normal,
   el diseño del marcador **apaga el dominante y destaca el raro**, y eso no se
   arregla cambiando un color — cambia cuál es la fila por defecto. Lo trabaja
-  **EPIC-004**, que a fecha de hoy vive en la rama `ft/design-system`, en
-  `borrador` y **congelada**, pendiente del gate humano. **Hasta que esa épica
-  entre en `main`, esta referencia no resuelve**, y se deja escrita así en vez de
-  fingir que sí.
+  **EPIC-004**, `aprobada` y en `main` desde el 2026-09-01 — **congelada a
+  propósito**, que no es lo mismo que pendiente: existe para dar custodia a un
+  sistema de diseño hecho fuera del pipeline, no para descongelarse todavía.
 
 - **Decisión go / no-go.** Es un gate humano, no una épica: puede matar el
   proyecto, reducirlo o confirmarlo. **Ahora tiene dos momentos, no uno.** El
