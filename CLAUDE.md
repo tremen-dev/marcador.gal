@@ -39,9 +39,10 @@ que lo sea; SPEC-003 mide lo que sí se puede medir sin ella. EPIC-001 **no tien
 todavía ninguna de sus cuatro cifras**.
 
 Hay **trece ADRs**, todos **aprobados e inmutables** (ADR-001 a ADR-013). Para
-cambiar uno aprobado, escribe otro ADR que lo supersede; no lo edites. ADR-008
-y ADR-009 superseden **parcialmente** a ADR-002 y ADR-005: lee siempre el que supersede
-antes de apoyarte en el viejo. **ADR-013 fija la semántica visual del marcador**
+cambiar uno aprobado, escribe otro ADR que lo supersede; no lo edites. ADR-008 y
+ADR-009 superseden **parcialmente** a ADR-002 y ADR-005: lee siempre el que
+supersede antes de apoyarte en el viejo. **ADR-013 fija la semántica visual del
+marcador**
 —el acento de marca nunca es un color de estado, ningún estado se codifica solo
 con color, dígitos tabulares, sin escudos— y te obliga en cuanto toques
 interfaz, aunque sea una página mínima de medición.
