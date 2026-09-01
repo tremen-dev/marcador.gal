@@ -1,0 +1,12 @@
+Testing types with tsc and vue-tsc is an experimental feature.
+Breaking changes might not follow SemVer, please pin Vitest's version when using it.
+
+ RUN  v4.1.11 /Users/albertofojo/src/tremen-dev/marcador.gal
+
+
+ Test Files  70 passed (70)
+      Tests  606 passed (606)
+Type Errors  no errors
+   Start at  07:20:04
+   Duration  1.59s (transform 1.49s, setup 0ms, import 5.44s, tests 6.66s, environment 3ms, typecheck 103ms)
+

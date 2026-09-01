@@ -22,7 +22,7 @@ Actualizado: 2026-09-01
 |---|---|---|
 | SPEC-004 — sitio-publico-de-proyecto-en-marcador-gal-i18n-contenido-y-despliegue | hecho | 2026-08-31 (sdd-verificador) |
 | SPEC-005 — pagina-del-rastreador-y-alineamiento-del-user-agent-declarado | hecho | 2026-09-01 (sdd-verificador) |
-| SPEC-006 — titulo-de-documento-por-pagina | en-progreso | 2026-09-01 (sdd-implementador) |
+| SPEC-006 — titulo-de-documento-por-pagina | hecho | 2026-09-01 (sdd-verificador) |
 
 ## EPIC-MEJORA (borrador)
 
@@ -47,5 +47,4 @@ Actualizado: 2026-09-01
 
 ## Resumen
 
-- hecho: 5
-- en-progreso: 1
+- hecho: 6
