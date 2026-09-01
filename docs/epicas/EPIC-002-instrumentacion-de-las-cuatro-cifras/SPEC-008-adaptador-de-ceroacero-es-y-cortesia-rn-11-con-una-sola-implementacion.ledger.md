@@ -6,7 +6,8 @@ epica: EPIC-002
 # Ledger — SPEC-008 Adaptador de ceroacero.es y cortesia RN-11 con una sola implementacion
 
 ## Resumen
-- Fase: **en-revision** (tras la TERCERA vuelta de implementación). Las dos primeras verificaciones salieron **RED**; el 2026-09-01 Alberto Fojo arbitró dos enmiendas y esta vuelta las aplica: **CA-2 sustituido entero** (contención de capacidad, CA-2.1..CA-2.8) y **CA-14 nuevo** (el ritmo de RN-11 sobrevive al proceso, con `migrations/0002`). Ver *Tercera vuelta*, al final.
+- Fase: **en-progreso** (tras la TERCERA verificación, **RED**). Ver *Veredicto del verificador — tercera vuelta*, al final: **doce CA quedan ✅**, cinco ⚠️ y **uno ❌**. CA-14 entero pasa en verde y aguantó ocho procesos peleándose por el mismo turno; CA-7 sigue siendo cierto tras moverle el limitador debajo. **Lo que bloquea es CA-2: la octava evasión existe, entra por `ALLOWED_PACKAGES` y manda un paquete de verdad** (F-SPEC-008-V15). Quedan además abiertos **F-SPEC-008-V16** (CA-9.1 sigue sin sostenerse) y **F-SPEC-008-V19** (las 6 h firmadas no las ata ningún test).
+- Fase anterior: **en-revision** (tras la TERCERA vuelta de implementación). Las dos primeras verificaciones salieron **RED**; el 2026-09-01 Alberto Fojo arbitró dos enmiendas y esta vuelta las aplica: **CA-2 sustituido entero** (contención de capacidad, CA-2.1..CA-2.8) y **CA-14 nuevo** (el ritmo de RN-11 sobrevive al proceso, con `migrations/0002`). Ver *Tercera vuelta*, al final.
 - **Las dos suites están verdes y las dos salidas literales están en el ledger**: `npm test` 748/748 y `npm run test:db` **144/144 contra un Postgres real**. `DATABASE_URL_TEST` estaba disponible, así que **ningún criterio de CA-14 queda UNMET**. Para correrlo desde un worktree hacen falta los dos pasos de **F-SPEC-008-17**.
 - **31 mutaciones** corridas en esta vuelta; 29 mueren. Las dos que sobreviven lo hacen por diseño y están nombradas: **N4** es la pérdida que el arbitraje firmó (CA-2.8, F-SPEC-008-20) y **N6a** es un control cuyo resultado esperado es verde. Y **N1 encontró un agujero real** en el propio guardián nuevo, que se arregló antes de cerrar.
 - Rama: `ft/SPEC-008-adaptador-ceroacero` (creada sobre `88c359b`)
@@ -18,28 +19,28 @@ epica: EPIC-002
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 — comodín `*` y ancla `$` (F-SPEC-002-23) | `src/polite/robots.ts` (`patternToRegExp`, desempate por longitud con `Allow` ganando el empate) | `tests/polite/robots.test.ts` casos 1-18 | M1, M2, M3, M4, V1, V2 corridas por el verificador: las seis mueren en casos nominados de `tests/polite/robots.test.ts`. Las dos mitades del cambio de ADR-014 §2 están probadas **por separado**: comodín y ancla (casos 1-8) y desempate por longitud con el `Allow` ganando el empate (casos 9-11). | ✅ |
-| CA-2 (enmendado) — contención de capacidad, CA-2.1..CA-2.8 | **No toca `src/`.** `tests/polite/support/capability.ts` declara `SCAN_ROOTS`, `ALLOWED_PACKAGES`, `ENTRY_POINTS`, `CONTAINED_DIRS` y los detectores; `tests/mirror/support/imports.ts` ensanchado (efecto lateral, `import()` dinámico, `.tsx`) — es lo único que CA-2.5 exige tocar. Consumidores sin cambio: `src/polite/{robots,http,user-agent,rate-limit,clock,policy}.ts`, `src/mirror/`, `src/ingest/`, `src/site/crawler-page.tsx` | **CA-2.1 y CA-2.2**: `tests/polite/containment.test.ts` casos 1-13 (1 la trampa muerde · 2 `src/ingest/` con el `globalFetcher` real · 3 la CLI de captura conducida entera · 4-5 con doble, cero disparos · **6** control positivo F-SPEC-008-V6 · **7** control positivo F-SPEC-008-V7 · 8-9 contención de conjuntos · **10-11** controles de CA-2.2 · 12-13 el residuo de CA-2.8, acotado). **CA-2.3..CA-2.7**: `tests/polite/architecture.test.ts` casos 1-19 (1-2 CA-2.6 · 3-7 CA-2.3, el **5** es la evasión V7 · 8-12 CA-2.4, el **10** es la evasión V6 y el **12** el antirruido · 13-17 CA-2.5, el **16** es el huérfano · 18-19 CA-2.7, sin exenciones) | **Segunda vuelta (obsoleta, CA-2 fue sustituido el 2026-09-01).** Las tres evasiones de la primera (V4, V5, V6) **mueren**, y sus controles no son decorativos: vaciar `NETWORK_MODULE`, `ROBOTS_WORD` o `UA_PARTS` pone rojo el caso 7 (W25, W26, W27). **Pero el guardián se sigue rodeando, ahora por tres caminos nuevos que el verificador escribió y ejecutó con la suite entera en verde**: (V6') `const { fetch: send } = globalThis` con la clave de cabecera armada por `['User','Agent'].join('-')` — 705/705 en verde y `lint exit=0` con una segunda puerta de salida viva en `src/ingest/`; (V7') `await import('node:' + 'https')`, que se cuela entre `NETWORK_MODULE` y `COMPUTED_IMPORT`; (V8') un **segundo parser de `robots.txt` funcional dentro de `src/site/robots-txt.ts`**, uno de los dos ficheros exentos — 705/705 en verde. Y dos huecos en los propios controles: el caso 8 vigila la **lista** de exenciones pero no el **mecanismo** —cambiarla por un patrón `startsWith('site/')` deja 435/435 en verde (W29)— y `COMPUTED_IMPORT` no tiene control positivo: apagarlo no pone rojo nada (W30). Ver **F-SPEC-008-V6..V10**. | ⚠️ |
-| CA-3 — el traslado no cambia comportamiento | traslado sin fachada; `src/mirror/` conserva `capturer.ts`, `ports.ts`, `thresholds.ts` con rutas nuevas | `tests/mirror/**` (48 ficheros, 347 casos con `tests/site` y `tests/docs`). **Cambios en suites cerradas: CINCO ficheros, no uno** (recuento corregido, F-SPEC-008-V2). Solo uno es una aserción reescrita de verdad; los otros cuatro son literales que nombran una ruta que se movió, autorizados por ADR-014 §1 y semánticamente iguales: 1) `tests/mirror/user-agent.test.ts` — el caso 15 **se sustituyó** por dos casos nuevos (15 y 16) y es la única enmienda de fondo (F-SPEC-008-1); 2) `tests/mirror/capture/no-parse.test.ts`, caso final — `expect(reachable).toContain('src/mirror/thresholds.ts')` → `'src/polite/rate-limit.ts'`; **no es una ruta de `import`, es la aserción**, y cambia porque `MIN_REQUEST_INTERVAL_MS` salió de `thresholds.ts` y el `Capturer` ya no alcanza ese módulo (sigue diciendo lo mismo: «el capturador alcanza el limitador»); 3) `tests/site/crawler-page.test.ts`, caso 2 — el literal esperado pasa de `'mirror/user-agent.ts'` a `'polite/user-agent.ts'`; 4) `tests/mirror/capture/robots.test.ts`, caso 8 — el directorio escaneado; 5) `tests/mirror/capture/redirects.test.ts`, caso 4 — ídem | `npx vitest run tests/mirror tests/site tests/docs` → 48 ficheros / 347 casos en verde, reproducido por el verificador. Ningún caso borrado (ocurrencias de `test(` en esas rutas: 340 en `main`, 341 en HEAD). La enmienda del caso 15 está **aceptada por el gate humano** —ADR-014 §1 la vuelve falsa por decisión firmada— y el guardián nuevo muerde: V13 (copia literal de la cadena en `src/site/`) y V14 (cambiar la versión declarada) mueren en 2 y 4 casos. **El recuento del ledger es incorrecto**: hay cuatro ficheros más de suites cerradas con cambios que no son rutas de `import`. Ver **F-SPEC-008-V2**. | ⚠️ |
-| CA-4 — archivar antes de parsear (RN-10) | `src/ingest/adapter.ts` (`capture` vía `captureThenParse`, lanza sin envolver) | `tests/ingest/adapter.test.ts` casos 1-5 | M5, M7, M8, M13, V3b, V3c y V9 mueren en `adapter` 1-5. El `put` precede al lector, el `raw_ref` devuelto es el que llevan todas las `Observation`, y un `put` fallido no deja resultado parcial ni error envuelto. | ✅ |
-| CA-5 — robots / UA / sin redirección (RN-11) | `src/ingest/adapter.ts` (`assertUserAgent` primero, luego el limitador, luego `PolicyGate` y `politeFetch`) | `tests/ingest/adapter.test.ts` casos 5-9. El **caso 8 se reescribió en la segunda vuelta**: pedía dos veces para asertar dos cosas, y desde que `capture()` respeta el limitador la segunda llamada es un `skipped` y no un rechazo. Ahora captura **una vez** y asienta las dos aserciones sobre el mismo error. Es de esta spec, no de una cerrada | M5, M6 y V10 mueren en `adapter` 5-9. Los tres escenarios están: política prohibitiva (cero peticiones al objetivo, motivo con la ruta y RN-11), user-agent vacío (`MissingUserAgentError` antes de abrir política, tocar el archivo o mirar el `robots.txt` — el doble del `PolicyGate` registra que no le preguntaron) y 3xx (`RedirectNotFollowedError`, `Location` en el motivo, nada archivado bajo la competición). | ✅ |
-| CA-6 — `robots.txt` obtenido, archivado y caducado | `src/polite/policy.ts` (`RobotsGate`, `ROBOTS_MAX_AGE_MS`, `ROBOTS_COMPETITION_ID`) | `tests/ingest/robots-policy.test.ts` casos 1-9 | M7, M8, V3b y V3c mueren en `robots-policy` 1-9. La clave `ceroacero/robots/2026-09-06/…z-<12hex>.txt` está asertada literalmente; las 6 h se comprueban por arriba y por abajo; se falla cerrado en las tres formas (nunca obtenida, caducada, petición fallida). Salvedad menor: V3 —parsear antes de archivar **sin** usar el resultado antes del `put`— sobrevive. Ver **F-SPEC-008-V3**. | ✅ |
-| CA-7 — 1 pet./min por competición dentro | `src/polite/rate-limit.ts` (`MIN_REQUEST_INTERVAL_MS`, `turnLimitMs`, puerto `RateLimit`, `MemoryRateLimit`, `rateLimitSkipReason`) + `src/ingest/adapter.ts`: **el turno se toma y se sella en UN paso** dentro de `capture()`, que es la única entrada pública al camino de red; `tick()` lo toma él mismo y entra por `#captureGranted`, para que un turno suprimido **siga sin producir registro** y para no gastar dos turnos por petición | `tests/ingest/adapter.test.ts` casos 10-16, sin una aserción cambiada en la tercera vuelta (el **14** es la sonda del verificador vuelta test: diez `capture()` con el reloj parado; el **15** que el limitador es por par y no un cerrojo global; el **16** que un pase no gasta dos turnos) | **F-SPEC-008-V4 CERRADO.** Sonda propia del verificador (fichero temporal, borrado), siete escenarios y todos verdes: doce `capture()` con el reloj parado sobre el mismo par → **1 petición**; dos competiciones intercaladas → 1 cada una; `tick()` seguido de `capture()` en el mismo instante → 1 por par; `tick()` a t y a t+60 s → 2 por par, luego la doble consulta **no gasta dos turnos**; 59 999 ms suprime y 60 000 ms deja pasar; ocho `capture()` concurrentes con respuesta diferida → 1, luego el sello va antes del `await`. Mutaciones propias: W12 (`tick()` pierde su `isDue`) muere en `adapter` 11 y 13 —la segunda consulta no es código muerto— y W14 (`assertUserAgent` movido después del gate) muere en `adapter` 6, luego el orden del §CA-5.2 sigue protegido. **Salvedad que no es de este CA pero hereda la spec del cron**: el limitador es un campo de instancia; una instancia nueva por invocación —la forma real de Vercel Cron, ADR-004 «no hay proceso vivo»— envía 10 peticiones en el mismo minuto (F-SPEC-008-V13). | ✅ |
-| CA-8 — extracción de ceroacero, fixtures sintéticos | `src/ingest/ceroacero.ts` (`CEROACERO_SHAPE`, `tableExtractor`) | `tests/ingest/ceroacero.test.ts` casos 1-10 · fixtures `tests/fixtures/ceroacero.ts` | M13 y M14 mueren en `ceroacero` 1-10: las cinco ramas, el marcador, la hora y las tres formas de fila ilegible están cubiertas, y el segundo señuelo del fixture hace que ensanchar el `rowSelector` sea rojo. `tests/fixtures/ceroacero.ts` es sintético y escrito a mano; **ningún HTML real de terceros versionado** en la rama (comprobado sobre `git ls-files` y sobre el diff completo contra `main`). Salvedad viva: **F-SPEC-008-2** —solo la rama `scheduled` está calibrada contra el archivo—. V11 sobrevive pero es **equivalente**: `scheduled` implica `kickoff !== null` por construcción de `statusFromResult`. | ⚠️ |
-| CA-9 — forma de la `Observation` (RN-01, ADR-006) | `src/ingest/observations.ts` (`readRows`) + `src/ingest/sources.ts` (`RN01_WEIGHTS`) | `tests/ingest/observations.test.ts` casos 1-7 · `tests/ingest/registry.test.ts` casos 4-6 | Segunda vuelta, mutaciones propias: W9 (`observed_at` pierde la `Z`) mata 20 casos, W13 (`confidence` fijado dentro del adaptador) mata `registry` 4 y 5, W17 (la `Observation` sale sin congelar) mata `observations` 6. **Salvedad nueva en CA-9.1**: el caso 1 —«valida contra `ObservationSchema` antes de salir del adaptador»— vuelve a validar **en el test** (`expect(() => ObservationSchema.parse(observations[0])).not.toThrow()`), así que no distingue «el adaptador validó» de «el dato era válido». Sustituir el `ObservationSchema.parse` del adaptador por un `Object.freeze` con cast deja **435/435 en verde** (W18). Ver **F-SPEC-008-V11**. | ⚠️ |
-| CA-10 — replay determinista | `src/ingest/observations.ts` (`observationId`, digest de `raw_ref` + `source_ref`) | `tests/ingest/observations.test.ts` casos 8-10 | M11 muere en `observations` 10. Determinismo, independencia del orden de las filas y `id` distintos para dos capturas del mismo partido, los tres comprobados; el `id` es un digest de `raw_ref` + `source_ref`. | ✅ |
-| CA-11 — una fuente es configuración | `src/ingest/sources.ts` (`sourceRegistry`, `SourceEntry`, `DEFAULT_SOURCES`) | `tests/ingest/registry.test.ts` casos 1-7 | M10 muere en `registry` 4-5. La fuente de juguete —`futgal`, peso 1.0, forma de página propia— queda capturable y legible sin tocar ninguna firma ni ningún módulo salvo el registro, y el peso viaja del registro al `confidence`. | ✅ |
-| CA-12 — no publica nada (RN-08, arquitectura) | `src/ingest/` entero: ninguna referencia a `Decision` | `tests/ingest/no-decision.test.ts` casos 1-3 (el 2 es el control positivo) | M16 muere en `no-decision` 1. El control positivo del caso 2 existe y se comprobó que muerde; el caso 3 recorre el camino real y comprueba que del adaptador solo salen `observations` y `unresolved`. | ✅ |
-| CA-13 — la identidad no se adivina (RN-09) | `src/ingest/ports.ts` (`MatchResolver`, definido y no implementado) + `readRows` | `tests/ingest/observations.test.ts` casos 11-15 | M12 muere en `observations` 11-14. No hay ninguna rama que fabrique un `MatchId`, lo normalice por parecido o lo tome del texto de la fuente; la fila no resuelta vuelve íntegra en su lista aparte. | ✅ |
-| **CA-14.1** — un solo paso, no dos | `src/polite/rate-limit.ts` (`interface RateLimit`, una operación: `takeTurn`) + `src/ingest/adapter.ts` (`rateLimit: RateLimit` **obligatorio**, sin `?` y sin `??`; ya no construye ninguno) | `tests/polite/rate-limit.test.ts` casos 1-4 (el 2 exige que `isDue`/`stamp` no exista en ningún sitio de `src/`; el 4 que el puerto sea obligatorio) | — | 🚧 |
-| **CA-14.2** — instancia nueva por tick | `src/db/rate-limit.ts` (`PostgresRateLimit`) + `migrations/0002_request_rhythm.sql` | `tests/db/rate-limit.test.ts` casos 3 y 4, sobre `tests/ingest/support/cold-start.ts` (diez `SourceAdapter` construidos por separado, cada uno con su puerto recién creado, compartiendo solo el almacén durable) | — | 🚧 |
-| **CA-14.3** — control positivo, el que nombra el defecto | la implementación en memoria, sin cambios | `tests/ingest/adapter.test.ts` casos 17 y 18: la misma batería contra `MemoryRateLimit` da **diez** peticiones y el caso lo afirma como esperado (F-SPEC-008-V13); el 18 es el contraste con el puerto compartido | — | 🚧 |
-| **CA-14.4** — dos que llegan a la vez, uno solo sale | `src/db/rate-limit.ts`, `insert … on conflict … where … returning …` | `tests/db/rate-limit.test.ts` casos 5 y 6 (dos y diez concesiones concurrentes sobre el mismo par y el mismo instante) | — | 🚧 |
-| **CA-14.5** — una batería, dos implementaciones | `MemoryRateLimit` y `PostgresRateLimit` | `tests/polite/rate-limit-contract.ts` (7 casos, escrita UNA vez, invocada y no recolectada, como `tests/raw/contract.ts`): corre en `tests/polite/rate-limit.test.ts` y en `tests/db/rate-limit.test.ts`. El caso 5 es la cláusula de no acumular que `/robot` publica | — | 🚧 |
-| **CA-14.6** — el número vive donde vivía | `MIN_REQUEST_INTERVAL_MS` y `turnLimitMs` en `src/polite/rate-limit.ts`; `src/db/rate-limit.ts` recibe el instante límite y su SQL no lleva ni intervalo ni cifra | caso 6 de la batería de contrato (corre con 10 000 ms contra las dos) + `tests/db/rate-limit.test.ts` caso 7 (la sentencia no contiene ningún dígito ni la palabra `interval`) + `tests/polite/rate-limit.test.ts` caso 7 | — | 🚧 |
-| **CA-14.7** — se falla cerrado | `src/ingest/adapter.ts`: `capture()` propaga sin envolver; `tick()` registra `failed` con el motivo y no pide nada | `tests/ingest/adapter.test.ts` casos 19 y 20 | — | 🚧 |
-| **CA-14.8** — el instrumento se queda como está | `src/mirror/capture/capturer.ts` (`rateLimit?` con default en memoria, y el motivo escrito) + `src/mirror/cli/capturar.ts` (lo construye explícitamente) | `tests/polite/rate-limit.test.ts` casos 5-8 (la CLI construye la de memoria; **ningún módulo bajo `src/ingest/` la nombra**) | — | 🚧 |
-| **CA-14.9** — lo que NO promete | sin código: es una frontera | `tests/ingest/adapter.test.ts` caso 12 (un turno concedido cuya petición falla **se ha gastado**) + `tests/polite/rate-limit.test.ts` casos 5-6 (`src/mirror/` fuera) | — | 🚧 |
+| CA-1 — comodín `*` y ancla `$` (F-SPEC-002-23) | `src/polite/robots.ts` (`patternToRegExp`, desempate por longitud con `Allow` ganando el empate) | `tests/polite/robots.test.ts` casos 1-18 | M1, M2, M3, M4, V1, V2 corridas por el verificador: las seis mueren en casos nominados de `tests/polite/robots.test.ts`. Las dos mitades del cambio de ADR-014 §2 están probadas **por separado**: comodín y ancla (casos 1-8) y desempate por longitud con el `Allow` ganando el empate (casos 9-11). **Tercera vuelta.** Repetidas M1-M4 y V1-V2: mueren. Mutaciones propias nuevas: desempate a igual longitud ganado por `Disallow` → `robots` 10, 11; `>`→`>=` en la longitud → 11; `$` deja de anclar → 6; un patrón sin comodín deja de casar por prefijo → 11 casos en 5 ficheros; origen desconocido permitido → 15 + `mirror/capture/robots` 3; `pathOf` sin query → 6, 18; el grupo `*` gana al específico → 17 + `user-agent` 12, 14. **Salvedad nueva: `escapeRegExp` reducido a la identidad deja 478/478 en verde** (F-SPEC-008-V20). El código es correcto; falta la red. | ⚠️ |
+| CA-2 (enmendado) — contención de capacidad, CA-2.1..CA-2.8 | **No toca `src/`.** `tests/polite/support/capability.ts` declara `SCAN_ROOTS`, `ALLOWED_PACKAGES`, `ENTRY_POINTS`, `CONTAINED_DIRS` y los detectores; `tests/mirror/support/imports.ts` ensanchado (efecto lateral, `import()` dinámico, `.tsx`) — es lo único que CA-2.5 exige tocar. Consumidores sin cambio: `src/polite/{robots,http,user-agent,rate-limit,clock,policy}.ts`, `src/mirror/`, `src/ingest/`, `src/site/crawler-page.tsx` | **CA-2.1 y CA-2.2**: `tests/polite/containment.test.ts` casos 1-13 (1 la trampa muerde · 2 `src/ingest/` con el `globalFetcher` real · 3 la CLI de captura conducida entera · 4-5 con doble, cero disparos · **6** control positivo F-SPEC-008-V6 · **7** control positivo F-SPEC-008-V7 · 8-9 contención de conjuntos · **10-11** controles de CA-2.2 · 12-13 el residuo de CA-2.8, acotado). **CA-2.3..CA-2.7**: `tests/polite/architecture.test.ts` casos 1-19 (1-2 CA-2.6 · 3-7 CA-2.3, el **5** es la evasión V7 · 8-12 CA-2.4, el **10** es la evasión V6 y el **12** el antirruido · 13-17 CA-2.5, el **16** es el huérfano · 18-19 CA-2.7, sin exenciones) | **Segunda vuelta (obsoleta, CA-2 fue sustituido el 2026-09-01).** Las tres evasiones de la primera (V4, V5, V6) **mueren**, y sus controles no son decorativos: vaciar `NETWORK_MODULE`, `ROBOTS_WORD` o `UA_PARTS` pone rojo el caso 7 (W25, W26, W27). **Pero el guardián se sigue rodeando, ahora por tres caminos nuevos que el verificador escribió y ejecutó con la suite entera en verde**: (V6') `const { fetch: send } = globalThis` con la clave de cabecera armada por `['User','Agent'].join('-')` — 705/705 en verde y `lint exit=0` con una segunda puerta de salida viva en `src/ingest/`; (V7') `await import('node:' + 'https')`, que se cuela entre `NETWORK_MODULE` y `COMPUTED_IMPORT`; (V8') un **segundo parser de `robots.txt` funcional dentro de `src/site/robots-txt.ts`**, uno de los dos ficheros exentos — 705/705 en verde. Y dos huecos en los propios controles: el caso 8 vigila la **lista** de exenciones pero no el **mecanismo** —cambiarla por un patrón `startsWith('site/')` deja 435/435 en verde (W29)— y `COMPUTED_IMPORT` no tiene control positivo: apagarlo no pone rojo nada (W30). Ver **F-SPEC-008-V6..V10**. **Tercera vuelta — ❌ BLOQUEANTE.** El mecanismo nuevo es mucho mejor y cierra las siete evasiones anteriores: lo comprobé ejecutando. **Pero la octava existe, entra por la puerta principal y manda un paquete de verdad.** `cheerio` está en `ALLOWED_PACKAGES` y **es un cliente HTTP** (`fromURL`), que es lo que la obligación 2 de CA-2.3 prohíbe con esas palabras. `src/ingest/preflight.ts` con `fromURL`, enganchada a `adapter.ts` para no ser huérfana: `npm test` **748/748**, `lint exit=0`, y contra un servidor local **1 paquete fuera, sin UA, sin `robots.txt` y sin turno**. **No es el residuo firmado de CA-2.8**: puesta EN EL CAMINO CONDUCIDO, `containment` da **13/13** y la trampa registra **0 disparos** — `undici` va por debajo de `vi.mock`. Variante huérfana en `src/db/`: **478/478** (66 de 86 ficheros de `src/` quedan fuera de `CONTAINED_DIRS`). Además: **el orden de instalación de la trampa no tiene control propio** —instalarla tarde deja 13/13 (F-SPEC-008-V17)— y **CA-2.2 es contención de conjuntos, no emparejamiento por petición** (F-SPEC-008-V18). Verificado, en cambio: la lista es cerrada, un especificador no literal es rojo, y cada entrada nueva trae motivo. Ver **F-SPEC-008-V15**. | ❌ |
+| CA-3 — el traslado no cambia comportamiento | traslado sin fachada; `src/mirror/` conserva `capturer.ts`, `ports.ts`, `thresholds.ts` con rutas nuevas | `tests/mirror/**` (48 ficheros, 347 casos con `tests/site` y `tests/docs`). **Cambios en suites cerradas: CINCO ficheros, no uno** (recuento corregido, F-SPEC-008-V2). Solo uno es una aserción reescrita de verdad; los otros cuatro son literales que nombran una ruta que se movió, autorizados por ADR-014 §1 y semánticamente iguales: 1) `tests/mirror/user-agent.test.ts` — el caso 15 **se sustituyó** por dos casos nuevos (15 y 16) y es la única enmienda de fondo (F-SPEC-008-1); 2) `tests/mirror/capture/no-parse.test.ts`, caso final — `expect(reachable).toContain('src/mirror/thresholds.ts')` → `'src/polite/rate-limit.ts'`; **no es una ruta de `import`, es la aserción**, y cambia porque `MIN_REQUEST_INTERVAL_MS` salió de `thresholds.ts` y el `Capturer` ya no alcanza ese módulo (sigue diciendo lo mismo: «el capturador alcanza el limitador»); 3) `tests/site/crawler-page.test.ts`, caso 2 — el literal esperado pasa de `'mirror/user-agent.ts'` a `'polite/user-agent.ts'`; 4) `tests/mirror/capture/robots.test.ts`, caso 8 — el directorio escaneado; 5) `tests/mirror/capture/redirects.test.ts`, caso 4 — ídem | `npx vitest run tests/mirror tests/site tests/docs` → 48 ficheros / 347 casos en verde, reproducido por el verificador. Ningún caso borrado (ocurrencias de `test(` en esas rutas: 340 en `main`, 341 en HEAD). La enmienda del caso 15 está **aceptada por el gate humano** —ADR-014 §1 la vuelve falsa por decisión firmada— y el guardián nuevo muerde: V13 (copia literal de la cadena en `src/site/`) y V14 (cambiar la versión declarada) mueren en 2 y 4 casos. **El recuento del ledger es incorrecto**: hay cuatro ficheros más de suites cerradas con cambios que no son rutas de `import`. Ver **F-SPEC-008-V2**. **Tercera vuelta.** Recuento fichero a fichero contra `main`: **44 ficheros en cada referencia** y una sola línea de diferencia, `user-agent.test.ts` 15→16, que **sube**. Ningún caso borrado, tampoco en las suites de SPEC-001 (única diferencia: el fichero nuevo `tests/db/rate-limit.test.ts:7`). `npx vitest run tests/mirror tests/site tests/docs` verde. **Esta vuelta no tocó ninguna aserción de suites cerradas**: el diff son `tests/mirror/support/imports.ts` —el ensanche que CA-2.5 manda hacer— y `tests/db/migrate.test.ts` (F-SPEC-008-16, enmienda registrada en el ledger de SPEC-001 con la forma de ADR-015, y con un sustituto que no puede pasar en verde descubriendo nada). Sigue ⚠️ por F-SPEC-008-1, **arbitrada y no revisitada**. | ⚠️ |
+| CA-4 — archivar antes de parsear (RN-10) | `src/ingest/adapter.ts` (`capture` vía `captureThenParse`, lanza sin envolver) | `tests/ingest/adapter.test.ts` casos 1-5 | M5, M7, M8, M13, V3b, V3c y V9 mueren en `adapter` 1-5. El `put` precede al lector, el `raw_ref` devuelto es el que llevan todas las `Observation`, y un `put` fallido no deja resultado parcial ni error envuelto. **Tercera vuelta.** Mutaciones propias: `extract` antes del `put` → `adapter` 1, 3; modo degradado tragándose el `put` fallido → 3, 4; `raw_ref` devuelto ≠ archivado → 6 casos en 3 ficheros. **Precisión sobre F-SPEC-008-V12**: la variante estructural sobre `src/raw/capture.ts` —llamar al parser sin esperar el `put`— **sí muere**, en `tests/raw/capture.test.ts` 1-3; las vueltas anteriores no lo veían porque su comando no incluía `tests/raw/`, y `npm test` sí lo corre. | ✅ |
+| CA-5 — robots / UA / sin redirección (RN-11) | `src/ingest/adapter.ts` (`assertUserAgent` primero, luego el limitador, luego `PolicyGate` y `politeFetch`) | `tests/ingest/adapter.test.ts` casos 5-9. El **caso 8 se reescribió en la segunda vuelta**: pedía dos veces para asertar dos cosas, y desde que `capture()` respeta el limitador la segunda llamada es un `skipped` y no un rechazo. Ahora captura **una vez** y asienta las dos aserciones sobre el mismo error. Es de esta spec, no de una cerrada | M5, M6 y V10 mueren en `adapter` 5-9. Los tres escenarios están: política prohibitiva (cero peticiones al objetivo, motivo con la ruta y RN-11), user-agent vacío (`MissingUserAgentError` antes de abrir política, tocar el archivo o mirar el `robots.txt` — el doble del `PolicyGate` registra que no le preguntaron) y 3xx (`RedirectNotFollowedError`, `Location` en el motivo, nada archivado bajo la competición). **Tercera vuelta.** Mutaciones propias: **UA distinta pero no vacía** (`marcador/1.0`) → 5 casos en 4 ficheros; `trim()` fuera de `assertUserAgent` → `adapter` 6 + `mirror/user-agent` 7; 3xx aceptado como respuesta → 8 + `redirects` 1, 2; `redirect: 'follow'` → `redirects` 1, 2, 4; `assertUserAgent` después del ritmo → 6; UA sin contacto → 9 casos. Los tres escenarios están y muerden. | ✅ |
+| CA-6 — `robots.txt` obtenido, archivado y caducado | `src/polite/policy.ts` (`RobotsGate`, `ROBOTS_MAX_AGE_MS`, `ROBOTS_COMPETITION_ID`) | `tests/ingest/robots-policy.test.ts` casos 1-9 | M7, M8, V3b y V3c mueren en `robots-policy` 1-9. La clave `ceroacero/robots/2026-09-06/…z-<12hex>.txt` está asertada literalmente; las 6 h se comprueban por arriba y por abajo; se falla cerrado en las tres formas (nunca obtenida, caducada, petición fallida). Salvedad menor: V3 —parsear antes de archivar **sin** usar el resultado antes del `put`— sobrevive. Ver **F-SPEC-008-V3**. **Tercera vuelta — baja a ⚠️.** Muerden: fallo abierto sin política → `robots-policy` 7, 9 + `adapter` 5; intento fallido no sellado → 8, 9; `>=`→`>` en la caducidad → 5, 9; orden robots/página invertido → 6 casos, incluido `containment` 9. **Pero dos cosas no se sostienen.** (1) **Las 6 h que el gate humano firmó no las ata ningún test**: cambiarlas a **12 h deja 478/478 en verde**, porque los casos avanzan el reloj en múltiplos de la propia constante; bajarlas a 60 s sí mata 4, 5 y 8 (F-SPEC-008-V19). (2) **F-SPEC-008-V3 sigue vivo**: sacar `parseRobots` del callback de `captureThenParse` deja 478/478, y la spec dice «lo **archiva antes de parsearlo**». | ⚠️ |
+| CA-7 — 1 pet./min por competición dentro | `src/polite/rate-limit.ts` (`MIN_REQUEST_INTERVAL_MS`, `turnLimitMs`, puerto `RateLimit`, `MemoryRateLimit`, `rateLimitSkipReason`) + `src/ingest/adapter.ts`: **el turno se toma y se sella en UN paso** dentro de `capture()`, que es la única entrada pública al camino de red; `tick()` lo toma él mismo y entra por `#captureGranted`, para que un turno suprimido **siga sin producir registro** y para no gastar dos turnos por petición | `tests/ingest/adapter.test.ts` casos 10-16, sin una aserción cambiada en la tercera vuelta (el **14** es la sonda del verificador vuelta test: diez `capture()` con el reloj parado; el **15** que el limitador es por par y no un cerrojo global; el **16** que un pase no gasta dos turnos) | **F-SPEC-008-V4 CERRADO.** Sonda propia del verificador (fichero temporal, borrado), siete escenarios y todos verdes: doce `capture()` con el reloj parado sobre el mismo par → **1 petición**; dos competiciones intercaladas → 1 cada una; `tick()` seguido de `capture()` en el mismo instante → 1 por par; `tick()` a t y a t+60 s → 2 por par, luego la doble consulta **no gasta dos turnos**; 59 999 ms suprime y 60 000 ms deja pasar; ocho `capture()` concurrentes con respuesta diferida → 1, luego el sello va antes del `await`. Mutaciones propias: W12 (`tick()` pierde su `isDue`) muere en `adapter` 11 y 13 —la segunda consulta no es código muerto— y W14 (`assertUserAgent` movido después del gate) muere en `adapter` 6, luego el orden del §CA-5.2 sigue protegido. **Salvedad que no es de este CA pero hereda la spec del cron**: el limitador es un campo de instancia; una instancia nueva por invocación —la forma real de Vercel Cron, ADR-004 «no hay proceso vivo»— envía 10 peticiones en el mismo minuto (F-SPEC-008-V13). **Tercera vuelta — CA-7 NO se rompió al moverle el limitador debajo, y va comprobado con sonda propia escrita sin mirar los casos 10-16.** Cuatro escenarios, los cuatro verdes: 15 `tick()` cada 20 s durante 5 min sobre dos competiciones → **≤ 5 por par** y **ningún registro `failed`**; **12 `capture()` con el reloj parado → 1 petición** y 11 `skipped`; **8 `capture()` concurrentes** tras avanzar 60 s → **2 en total**, luego el sello va antes del `await`; dos competiciones a la vez → 2, luego es **por par** y no un cerrojo global. Mutaciones propias: `capture()` sin limitador → 14, 15, 18, 19; llave global → 16 casos; sello después del `await` → 14, 15, 18, 19; turno negado que produce registro → 11, 13. | ✅ |
+| CA-8 — extracción de ceroacero, fixtures sintéticos | `src/ingest/ceroacero.ts` (`CEROACERO_SHAPE`, `tableExtractor`) | `tests/ingest/ceroacero.test.ts` casos 1-10 · fixtures `tests/fixtures/ceroacero.ts` | M13 y M14 mueren en `ceroacero` 1-10: las cinco ramas, el marcador, la hora y las tres formas de fila ilegible están cubiertas, y el segundo señuelo del fixture hace que ensanchar el `rowSelector` sea rojo. `tests/fixtures/ceroacero.ts` es sintético y escrito a mano; **ningún HTML real de terceros versionado** en la rama (comprobado sobre `git ls-files` y sobre el diff completo contra `main`). Salvedad viva: **F-SPEC-008-2** —solo la rama `scheduled` está calibrada contra el archivo—. V11 sobrevive pero es **equivalente**: `scheduled` implica `kickoff !== null` por construcción de `statusFromResult`. **Tercera vuelta.** Muerden: orden local/visitante invertido → `ceroacero` 3; `live` leído como `finished` → 4; fila ilegible saltada en silencio → 9b; inventar 0-0 quitando el `throw` → 9b; `rowSelector: 'tr'` → 7 casos; `:` como separador de marcador → 4, 5, 6. **Ningún HTML real de terceros versionado**, comprobado sobre `git ls-files` y sobre el diff completo contra `main`. Sigue ⚠️ por F-SPEC-008-2, **arbitrada y no revisitada**, y gana un hermano menor: el `kickoff` puede emitirse en las cinco ramas sin que nada se ponga rojo (F-SPEC-008-V21). | ⚠️ |
+| CA-9 — forma de la `Observation` (RN-01, ADR-006) | `src/ingest/observations.ts` (`readRows`) + `src/ingest/sources.ts` (`RN01_WEIGHTS`) | `tests/ingest/observations.test.ts` casos 1-7 · `tests/ingest/registry.test.ts` casos 4-6 | Segunda vuelta, mutaciones propias: W9 (`observed_at` pierde la `Z`) mata 20 casos, W13 (`confidence` fijado dentro del adaptador) mata `registry` 4 y 5, W17 (la `Observation` sale sin congelar) mata `observations` 6. **Salvedad nueva en CA-9.1**: el caso 1 —«valida contra `ObservationSchema` antes de salir del adaptador»— vuelve a validar **en el test** (`expect(() => ObservationSchema.parse(observations[0])).not.toThrow()`), así que no distingue «el adaptador validó» de «el dato era válido». Sustituir el `ObservationSchema.parse` del adaptador por un `Object.freeze` con cast deja **435/435 en verde** (W18). Ver **F-SPEC-008-V11**. **Tercera vuelta — CA-9.1 sigue SIN sostenerse, y ahora con el daño medido.** CA-9.2..CA-9.5 muerden: `confidence` desde constante local, tanto en `observations.ts` como en `adapter.read()` → `observations` 3 + `registry` 4, 5; `observed_at` sin `Z` → 20 casos; `raw_ref` fijo → 5 + `adapter` 2; `Observation` descongelada → 6. **CA-9.1 no.** Sustituir el `ObservationSchema.parse` de `readRows` por un `Object.freeze` con cast deja **478/478**, y **la variante que además emite `confidence: 42` en las ramas `postponed`/`suspended` también** — sale del adaptador una `Observation` que viola RN-01 y el `min(0).max(1)` del esquema, y nada se pone rojo. El caso 1 valida **en el test** y solo mira `observations[0]`. Es **F-SPEC-008-V11 sin arreglar**, ahora **F-SPEC-008-V16**. | ⚠️ |
+| CA-10 — replay determinista | `src/ingest/observations.ts` (`observationId`, digest de `raw_ref` + `source_ref`) | `tests/ingest/observations.test.ts` casos 8-10 | M11 muere en `observations` 10. Determinismo, independencia del orden de las filas y `id` distintos para dos capturas del mismo partido, los tres comprobados; el `id` es un digest de `raw_ref` + `source_ref`. **Tercera vuelta.** Mutaciones propias: `id` con `process.hrtime.bigint()` → `observations` 8, 9; `id` sin `rawRef` → 10; `id` sin `source_ref` → 9. Anotación honesta: un `id` derivado de `Date.now()` sobrevive por granularidad de milisegundo —las dos lecturas caen en el mismo ms—, así que el determinismo se prueba con dos ejecuciones inmediatas y no con reloj inyectado. No es agujero del CA. | ✅ |
+| CA-11 — una fuente es configuración | `src/ingest/sources.ts` (`sourceRegistry`, `SourceEntry`, `DEFAULT_SOURCES`) | `tests/ingest/registry.test.ts` casos 1-7 | M10 muere en `registry` 4-5. La fuente de juguete —`futgal`, peso 1.0, forma de página propia— queda capturable y legible sin tocar ninguna firma ni ningún módulo salvo el registro, y el peso viaja del registro al `confidence`. **Tercera vuelta.** Mutaciones propias: `entry()` con fallback silencioso → `registry` 7; `targets()` ignorando la entrada nueva → 2 + `containment` 2, 9; adaptador que ignora `entry.extract` → 3, 4. La fuente de juguete queda capturable y legible sin tocar ninguna firma. | ✅ |
+| CA-12 — no publica nada (RN-08, arquitectura) | `src/ingest/` entero: ninguna referencia a `Decision` | `tests/ingest/no-decision.test.ts` casos 1-3 (el 2 es el control positivo) | M16 muere en `no-decision` 1. El control positivo del caso 2 existe y se comprobó que muerde; el caso 3 recorre el camino real y comprueba que del adaptador solo salen `observations` y `unresolved`. **Tercera vuelta.** `import type { DecisionStore }` en `src/ingest/` → `no-decision` 1; una llamada `port.decisions('x')` → 1. El control positivo del caso 2 muerde. | ✅ |
+| CA-13 — la identidad no se adivina (RN-09) | `src/ingest/ports.ts` (`MatchResolver`, definido y no implementado) + `readRows` | `tests/ingest/observations.test.ts` casos 11-15 | M12 muere en `observations` 11-14. No hay ninguna rama que fabrique un `MatchId`, lo normalice por parecido o lo tome del texto de la fuente; la fila no resuelta vuelve íntegra en su lista aparte. **Tercera vuelta.** Mutaciones propias: fila no resuelta con `match_id` vacío → `observations` 11-14; `MatchId` fabricado del `source_ref` → 11, 12, 14; no resueltas descartadas → 13, 14; no resueltas mutiladas → 13. Ninguna rama adivina identidad. | ✅ |
+| **CA-14.1** — un solo paso, no dos | `src/polite/rate-limit.ts` (`interface RateLimit`, una operación: `takeTurn`) + `src/ingest/adapter.ts` (`rateLimit: RateLimit` **obligatorio**, sin `?` y sin `??`; ya no construye ninguno) | `tests/polite/rate-limit.test.ts` casos 1-4 (el 2 exige que `isDue`/`stamp` no exista en ningún sitio de `src/`; el 4 que el puerto sea obligatorio) | Verificado sobre el árbol: `interface RateLimit` tiene **una sola operación**, `takeTurn`, y **no queda ni un `isDue` ni un `stamp` en todo `src/`** (`grep -rn` → ninguno). El puerto es obligatorio: sin `?` y sin `??`, y el adaptador ya no construye ninguno. | ✅ |
+| **CA-14.2** — instancia nueva por tick | `src/db/rate-limit.ts` (`PostgresRateLimit`) + `migrations/0002_request_rhythm.sql` | `tests/db/rate-limit.test.ts` casos 3 y 4, sobre `tests/ingest/support/cold-start.ts` (diez `SourceAdapter` construidos por separado, cada uno con su puerto recién creado, compartiendo solo el almacén durable) | `npm run test:db` **144/144 contra un Postgres real**: 10 adaptadores construidos por separado → **1 petición**; con el reloj adelantado 60 s entre construcciones → **10**. Mutación propia V-A (`capture()` traga el fallo del puerto y falla ABIERTO) → ROJO `adapter` 19. **Ningún criterio UNMET**: `DATABASE_URL_TEST` estaba disponible. | ✅ |
+| **CA-14.3** — control positivo, el que nombra el defecto | la implementación en memoria, sin cambios | `tests/ingest/adapter.test.ts` casos 17 y 18: la misma batería contra `MemoryRateLimit` da **diez** peticiones y el caso lo afirma como esperado (F-SPEC-008-V13); el 18 es el contraste con el puerto compartido | El control positivo existe y afirma **diez** como resultado esperado, que es la reproducción exacta de F-SPEC-008-V13. Sin él, CA-14.2 podría pasar por un adaptador que no pide nunca. | ✅ |
+| **CA-14.4** — dos que llegan a la vez, uno solo sale | `src/db/rate-limit.ts`, `insert … on conflict … where … returning …` | `tests/db/rate-limit.test.ts` casos 5 y 6 (dos y diez concesiones concurrentes sobre el mismo par y el mismo instante) | **Atacado por los cuatro sitios que el encargo nombra, y aguanta.** Sondas propias contra el Postgres real: **40 concesiones concurrentes desde CUATRO pools independientes** → **1 concedido**; y **OCHO PROCESOS del sistema operativo** `spawn`eados a la vez, cada uno con su propio pool, sobre el mismo par y el mismo instante → `PROCESOS: 8 GRANTED: 1 DENIED: 7`. Es literalmente la invocación manual, el reintento del cron y el despliegue solapado de ADR-004, y **es lo único que ni un doble en memoria ni un pool compartido pueden simular**. | ✅ |
+| **CA-14.5** — una batería, dos implementaciones | `MemoryRateLimit` y `PostgresRateLimit` | `tests/polite/rate-limit-contract.ts` (7 casos, escrita UNA vez, invocada y no recolectada, como `tests/raw/contract.ts`): corre en `tests/polite/rate-limit.test.ts` y en `tests/db/rate-limit.test.ts`. El caso 5 es la cláusula de no acumular que `/robot` publica | La batería está escrita una vez y corre contra las dos implementaciones. Mutación propia **V-H** (el `do update` sella el instante anterior, no el actual: **los turnos se acumulan**) → ROJO en el **caso 5**, que es la cláusula que `/robot` publica en galego y en castellano. | ✅ |
+| **CA-14.6** — el número vive donde vivía | `MIN_REQUEST_INTERVAL_MS` y `turnLimitMs` en `src/polite/rate-limit.ts`; `src/db/rate-limit.ts` recibe el instante límite y su SQL no lleva ni intervalo ni cifra | caso 6 de la batería de contrato (corre con 10 000 ms contra las dos) + `tests/db/rate-limit.test.ts` caso 7 (la sentencia no contiene ningún dígito ni la palabra `interval`) + `tests/polite/rate-limit.test.ts` caso 7 | Sonda propia del borde: `+59 999 ms` → `false`, `+60 000 ms` → `true`. El SQL no lleva ni cifra ni la palabra `interval`; el intervalo llega ya calculado. Salvedad menor y **casi equivalente**, que se dice y no se cobra: redondear `instantOf` a segundos deja las dos suites en verde (daño máximo sub-segundo sobre un límite de un minuto), porque los bordes se prueban con `T0` en segundo exacto. | ✅ |
+| **CA-14.7** — se falla cerrado | `src/ingest/adapter.ts`: `capture()` propaga sin envolver; `tick()` registra `failed` con el motivo y no pide nada | `tests/ingest/adapter.test.ts` casos 19 y 20 | Se falla cerrado, comprobado rompiendo: **V-A** —`capture()` traga el fallo del puerto y concede— muere en `adapter` 19. Sonda propia del **reloj hacia atrás**: una instancia desincronizada cinco minutos **deniega las dos veces**. | ✅ |
+| **CA-14.8** — el instrumento se queda como está | `src/mirror/capture/capturer.ts` (`rateLimit?` con default en memoria, y el motivo escrito) + `src/mirror/cli/capturar.ts` (lo construye explícitamente) | `tests/polite/rate-limit.test.ts` casos 5-8 (la CLI construye la de memoria; **ningún módulo bajo `src/ingest/` la nombra**) | `MemoryRateLimit` aparece en su definición (`src/polite/rate-limit.ts`) y en `src/mirror/` —`capture/capturer.ts` y `cli/capturar.ts`—, y **en ningún módulo de `src/ingest/`**. La asimetría está nombrada como finding (F-SPEC-008-18) y rutada a EPIC-MEJORA, no tolerada en silencio. | ✅ |
+| **CA-14.9** — lo que NO promete | sin código: es una frontera | `tests/ingest/adapter.test.ts` caso 12 (un turno concedido cuya petición falla **se ha gastado**) + `tests/polite/rate-limit.test.ts` casos 5-6 (`src/mirror/` fuera) | Sonda propia: tras un turno **denegado**, el sello sigue en `T0` y a `T0+60 000` vuelve a conceder — **los turnos no se acumulan y un turno gastado no se devuelve**. Es lo que el criterio dice que NO promete, y lo cumple. | ✅ |
 
 ## Qué se construyó, y dónde
 
@@ -2231,3 +2232,525 @@ ningún ADR aprobado. No revisita CA-2.1, CA-2.2 ni CA-2.4..CA-2.8, ni la pérdi
 firmada de CA-2.8 (**N4 sigue sobreviviendo y tiene que seguir sobreviviendo**,
 F-SPEC-008-20). Y no contesta la pregunta legal (**F-SPEC-008-7**), que sigue
 sin pedir y sigue siendo precondición de correr la primera jornada.
+
+
+## Veredicto del verificador — tercera vuelta: RED (2026-09-01, `sdd-verificador`)
+
+**RED, y esta vez el expediente no se repite: no es «la misma evasión otra vez».**
+El mecanismo nuevo de CA-2 es incomparablemente mejor que el que sustituye —las
+**siete** evasiones de las dos vueltas anteriores mueren, y lo comprobé
+ejecutando, no leyendo— y **CA-14 aguantó todo lo que le eché**, incluidos ocho
+procesos del sistema operativo peleándose por el mismo turno. **CA-7 sigue siendo
+cierto** tras habérsele movido el limitador debajo: lo verifiqué con una sonda
+propia escrita desde cero.
+
+Lo que bloquea es **una sola cosa, nueva, y medida mandando un paquete**: la
+octava evasión sale por una entrada de `ALLOWED_PACKAGES` que **es un cliente
+HTTP**, y eso es exactamente lo que la obligación 2 de CA-2.3 prohíbe con esas
+palabras. No es el crecimiento de la lista —que el arbitraje del 2026-09-01 sacó
+del gate humano y que yo no relitigo—: es su **contenido**, que sí sigue siendo
+criterio.
+
+Y hay dos criterios más que no llegan a ✅: **CA-9.1 no está sostenida** —el
+finding F-SPEC-008-V11, declarado en la segunda vuelta y **no arreglado en
+ésta**, ahora medido con daño real— y **CA-6.1 no ata el número que el gate
+humano firmó**.
+
+**Lo primero de todo, porque es lo irreversible: no hay HTML real de terceros
+versionado.** `git ls-files '*.html'` lista veinticinco ficheros y **ninguno es
+de un tercero**: quince son páginas propias de `_qa/` (SPEC-004..006) y diez el
+sistema de diseño de `docs/diseno/`. El diff completo contra `main` no añade un
+solo `.html`, `.htm` ni fichero binario. `tests/fixtures/ceroacero.ts` sigue
+siendo sintético. **ADR-009 §3 se respeta.**
+
+**Y no quedó ningún fichero de mutación olvidado en `src/`**: los 87 ficheros del
+árbol son los que deben ser, y el diff contra `main` sobre `src/` y `migrations/`
+son exactamente las siete altas, los tres renombrados y las cinco
+modificaciones que el ledger declara. Ningún `back-door.ts`, `side-door.ts`,
+`late-door.ts`, `second-*.ts` ni `_verif-*`.
+
+**Pero sí quedó otra cosa olvidada, y no en `src/`: ver F-SPEC-008-V22.**
+
+### Gates — las TRES salidas, corridas por el verificador en esta rama
+
+`DATABASE_URL_TEST` estaba disponible, así que **ningún criterio de CA-14 queda
+UNMET**. Para llegar hasta ahí hicieron falta más pasos que los dos de
+F-SPEC-008-17; están en F-SPEC-008-V22 y en F-SPEC-008-V23.
+
+`npm run lint` — **verde**. Salida literal:
+
+```
+> marcador@0.0.1 lint
+> oxlint --type-aware
+
+exit=0
+```
+
+Y **comprobado rompiendo**, porque un linter que no mira nada también sale con 0.
+Salida literal, con el fichero sonda ya borrado:
+
+```
+> marcador@0.0.1 lint
+> oxlint --type-aware
+
+src/ingest/_verif-lint-probe.ts:2:3: error eslint(no-debugger): `debugger` statement is not allowed help: Remove the debugger statement
+exit=1
+```
+
+`npm test` — **verde**. Salida literal:
+
+```
+> marcador@0.0.1 test
+> vitest run
+
+ RUN  v4.1.11 /Users/albertofojo/src/tremen-dev/marcador.gal/.claude/worktrees/agent-a9e222e301d01b00d
+
+ Test Files  81 passed (81)
+      Tests  748 passed (748)
+Type Errors  no errors
+   Start at  16:58:48
+   Duration  1.97s (transform 2.02s, setup 0ms, import 7.44s, tests 7.94s, environment 4ms, typecheck 271ms)
+```
+
+`npm run test:db` — **verde, contra un Postgres real**. Salida literal:
+
+```
+> marcador@0.0.1 test:db
+> node --env-file-if-exists=.env.local ./node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts tests/db
+
+ RUN  v4.1.11 /Users/albertofojo/src/tremen-dev/marcador.gal/.claude/worktrees/agent-a9e222e301d01b00d
+
+ Test Files  8 passed (8)
+      Tests  144 passed (144)
+   Start at  16:41:03
+   Duration  48.03s (transform 83ms, setup 0ms, import 280ms, tests 47.13s, environment 0ms)
+```
+
+**El `ENOTFOUND` de Neon apareció, y F-SPEC-008-21 tenía razón: no es UNMET, es
+DNS.** Dos ejecuciones seguidas cayeron enteras con `getaddrinfo ENOTFOUND`
+mientras `nslookup` sí resolvía. Lo destapé y queda medido para quien venga:
+`dns.resolve4` **funcionaba** y `dns.lookup` **no**, que es el resolutor del
+sistema y no la red —
+
+```
+neon: ENOTFOUND        (dns.lookup, getaddrinfo)
+example: 172.66.147.243 (dns.lookup, otro host: sí resuelve)
+resolve4: [ '3.126.61.111', '63.182.37.92', '63.180.213.20' ]
+```
+
+— y **un `dscacheutil -q host -a name <endpoint>` lo desatasca**: la ejecución
+siguiente fue la de 144/144 de arriba. Va aquí y no en un finding nuevo porque
+F-SPEC-008-21 ya lo había escrito; lo que añado es el diagnóstico exacto y el
+comando que lo arregla, para que la cuarta verificación no gaste una hora.
+
+### Las suites de SPEC-002 a SPEC-007 siguen enteras, contadas fichero a fichero
+
+`git grep -c 'test(' <ref> -- tests/mirror tests/site tests/docs` sobre `main` y
+sobre `HEAD` da **44 ficheros en cada una**, y el `diff` de los dos recuentos
+tiene **una sola línea**:
+
+```
+31c31
+< tests/mirror/user-agent.test.ts:15
+---
+> tests/mirror/user-agent.test.ts:16
+```
+
+Es la enmienda ya aceptada de F-SPEC-008-1, y **sube**. Ni un fichero perdió un
+caso y ninguno fue borrado. Repetí el recuento sobre las suites de SPEC-001
+—`tests/db tests/raw tests/model tests/types tests/migrations`— y la única
+diferencia es un fichero **nuevo**, `tests/db/rate-limit.test.ts:7`. **Nada se
+ha borrado en ninguna spec cerrada.**
+
+`npx vitest run tests/polite tests/ingest tests/mirror tests/site tests/docs`
+→ **478/478**, sin errores de tipos.
+
+### La octava evasión: la escribí, la ejecuté, y manda un paquete
+
+Las siete anteriores eran, como el propio arbitraje escribió, **código muerto**:
+ninguna mandó jamás un byte. **Ésta sí.** Y no ataca por donde atacaban las
+otras: no rodea un detector, **entra por la puerta principal**.
+
+`src/ingest/preflight.ts`, once líneas:
+
+```ts
+import { fromURL } from 'cheerio';
+
+export async function preflight(url: string): Promise<number> {
+  const $ = await fromURL(url);
+  return $('tr').length;
+}
+```
+
+Enganchada a `src/ingest/adapter.ts` con un método público, para que **no sea
+huérfana** (CA-2.5). Resultado, medido:
+
+- **`npm test` → 748/748 en verde.**
+- **`npm run lint` → `exit=0`.**
+- Y **manda un paquete de verdad**. Contra un servidor local propio —nunca
+  contra un tercero, RN-11— la salida literal de la sonda:
+
+```
+FILAS LEIDAS POR LA PUERTA DE ATRAS: 2
+PETICIONES QUE LLEGARON AL SERVIDOR: 1
+PRIMERA: {"url":"/edicion/lo-que-sea/1","ua":null}
+robots.txt PEDIDO: false
+```
+
+**Sin `User-Agent`** (ADR-011 incumplida), **sin pedir `robots.txt`** (RN-11
+incumplida), **sin gastar turno** (RN-11 y CA-14 incumplidas). Una petición a un
+tercero, fuera de la única puerta, con las tres suites verdes.
+
+**Por qué se cuela por los seis mecanismos a la vez:**
+
+| Mecanismo | Por qué no la ve |
+|---|---|
+| **CA-2.3** | El especificador es `'cheerio'`: literal estático y **presente en `ALLOWED_PACKAGES`**. Pasa por ser correcto, no por rodear nada |
+| **CA-2.4** | No hay `globalThis`, ni `fetch` desnudo, ni `eval`, ni `Function`, ni `require`. `fromURL` es un identificador importado |
+| **CA-2.5** | Está importada desde `adapter.ts`, que es `ENTRY_POINTS`. No es huérfana |
+| **CA-2.6** | Cae bajo `src/`, dentro de las raíces. El escaneo la ve entera y no le encuentra nada |
+| **CA-2.1** | **Ni ejecutándola.** Ver abajo: es lo grave |
+| **CA-2.2** | No hay disparo que contener |
+
+**Y lo que convierte esto en bloqueante y no en el residuo firmado de CA-2.8:**
+CA-2.8 firma como residuo el «código alcanzable desde `ENTRY_POINTS` cuya rama
+de red no la ejecuta ningún test». **Ésta no es ese caso.** La puse **en el
+camino que CA-2.1 conduce** —dentro del bucle de `tick()`, que es lo que ejecuta
+el caso 2 de `containment.test.ts`— y:
+
+```
+Test Files  1 passed (1)
+      Tests  13 passed (13)
+```
+
+**Los trece casos de `containment.test.ts` pasan con la segunda puerta
+disparándose en el camino conducido.** No es cobertura: es que **la trampa no
+alcanza**. Lo medí aislado, instalando las mismas siete trampas de
+`containment.test.ts` y mandando la petición a un servidor local:
+
+```
+PAQUETES QUE LLEGARON AL SERVIDOR: 1 ["/edicion/evasion/1"]
+TRAMPAS DISPARADAS: 0 []
+FILAS LEIDAS: 1
+```
+
+**Un paquete fuera, cero trampas.** La causa es estructural y no es culpa del
+implementador: `cheerio.fromURL` va por `undici`, que vive en `node_modules`,
+que **vitest externaliza**, así que sus `node:net`/`node:tls` internos **no pasan
+por el registro de módulos que `vi.mock` sustituye**. Lo que CA-2.1 y ADR-016
+§3.1 llaman «la superficie de salida de la plataforma» es, en el mecanismo real,
+*la superficie de salida vista por el grafo que vite transforma* — y una
+dependencia externalizada abre la suya por debajo.
+
+**Segunda vía, más barata todavía.** El mismo fichero, **huérfano** y en
+`src/db/` en vez de `src/ingest/`, sin engancharlo a nada:
+
+```
+Tests  478 passed (478)
+```
+
+`CONTAINED_DIRS` son tres directorios, y **66 de los 86 `.ts`/`.tsx` de `src/`
+quedan fuera de ellos** —`src/db/`, `src/model/`, `src/raw/`, `src/i18n/`,
+`src/app/`, `src/mirror/`—. Ahí un huérfano con esta puerta no lo ve **ni
+CA-2.5, ni CA-2.1, ni CA-2.3, ni CA-2.4**.
+
+### Las otras dos evasiones que intenté, y lo que enseñaron
+
+**La trampa instalada tarde no pone rojo nada.** Moví la asignación de
+`globalThis.fetch` **después** de los `await import()` de `src/` —sin tocar nada
+más— y `containment.test.ts` dio **13/13 en verde**. El orden es lo que CA-2.1
+declara *load-bearing* («instalarla después la dejaría pasar») y **ningún caso lo
+vigila por sí solo**: la mutación N4/N6b del implementador muerde porque
+**además** hace que un módulo capture la referencia, no por el orden. Es
+F-SPEC-008-V17.
+
+**CA-2.2 deja salir una petición cuyo permiso lo concedió otro código, y ésa era
+la pregunta.** Hice que `#captureGranted` pidiera **dos veces la misma URL** sin
+volver a consultar la política y sin gastar un segundo turno: `containment.test.ts`
+**13/13 en verde**. `ungated()` es **contención de conjuntos por URL**, así que
+la segunda petición está «permitida» porque *otra* lo estaba. La última frase del
+CA —«el test se pone rojo si sale una petición cuyo permiso lo concedió otro
+código»— **no la entrega su mecanismo**. Lo que sí la mató fue **otro CA**: once
+casos de CA-5, CA-6, CA-7 y CA-11. Es F-SPEC-008-V18.
+
+### CA-14: intenté romperlo por los cuatro sitios que pide el encargo, y aguanta
+
+Es lo mejor de esta vuelta y va dicho antes que los findings.
+
+| Ataque | Resultado |
+|---|---|
+| **40 concesiones concurrentes desde CUATRO pools independientes**, mismo par, mismo instante | **1 concedido** |
+| **OCHO PROCESOS del sistema operativo**, cada uno con su propio pool, `spawn`eados a la vez sobre el mismo par y el mismo instante | **`PROCESOS: 8 GRANTED: 1 DENIED: 7`** |
+| **Borde exacto del minuto** | `+59 999 ms` → `false`; `+60 000 ms` → `true` |
+| **Reloj hacia atrás** (instancia desincronizada) | deniega las dos veces: **falla cerrado** |
+| **Un turno denegado, ¿reescribe el sello?** | No: el sello sigue en `T0` y a `T0+60 000` concede. **Los turnos no se acumulan** |
+
+El de los ocho procesos es literalmente lo que ADR-004 hace real —invocación
+manual, reintento del cron, despliegue solapado— y **es el único que ni un doble
+en memoria ni un pool compartido pueden simular**. Los casos 5 y 6 del ledger lo
+prueban con un `sql` compartido; **esto lo prueba con procesos distintos**, y
+sale bien.
+
+Mutaciones propias sobre CA-14, todas mueren:
+
+| # | Mutación del verificador | Resultado |
+|---|---|---|
+| V-A | `capture()` traga el fallo del puerto y **falla ABIERTO** | ROJO: `adapter` 19 (CA-14.7) |
+| V-H | el `do update` sella el instante **anterior**, no el actual (el sello nunca avanza) | ROJO: contrato **5** contra Postgres — la cláusula que `/robot` publica |
+| V-J | `instantOf` redondea los instantes **a segundos** | **VERDE — sobrevive**, y la declaro **casi equivalente**: el daño máximo es sub-segundo sobre un límite de un minuto. Se dice, no se cobra. Los bordes se prueban con `T0` en segundo exacto, así que la precisión de milisegundos del sello no está vigilada |
+
+**CA-14.1 y CA-14.8, comprobadas sobre el árbol:** la interfaz `RateLimit` tiene
+**una sola operación**, `takeTurn`; **no queda ni un `isDue` ni un `stamp` en
+todo `src/`**; y `MemoryRateLimit` solo aparece en su definición (`src/polite/`)
+y en `src/mirror/` —`capturer.ts` y `cli/capturar.ts`—, **en ningún módulo de
+`src/ingest/`**.
+
+### CA-7 no se rompió: sonda propia, escrita sin mirar los casos 10-16
+
+El encargo lo pedía expresamente porque la implementación le movió el limitador
+debajo. Cuatro escenarios míos, **los cuatro verdes**:
+
+- 15 `tick()` cada 20 s durante 5 minutos, dos competiciones → **≤ 5 por par**, y
+  **ningún registro `failed`**: los ticks suprimidos siguen sin producir registro.
+- **12 `capture()` con el reloj parado** → **1 petición**, 11 `skipped`.
+- **8 `capture()` concurrentes** tras avanzar 60 s → **2 peticiones en total**: el
+  sello va **antes** del `await`.
+- Dos competiciones a la vez → **2 peticiones**: el limitador es **por par**, no
+  un cerrojo global.
+
+**CA-7 sigue verificado y sigue siendo cierto.** La enmienda §6 acertó: CA-14 no
+lo contradice, lo extiende.
+
+### Lo ya arbitrado, comprobado como registro y no relitigado
+
+1. **CA-3 ⚠️** — correcto y bien registrado. La enmienda del guardián de SPEC-005
+   está en el ledger de SPEC-005 (`## Enmienda — 2026-09-01: ADR-014 §1 invalida
+   el guardián de CA-10`). Y **esta vuelta no tocó una sola aserción** de
+   `tests/mirror/`, `tests/site/` ni `tests/docs/`: verificado por el recuento de
+   arriba y por el diff.
+2. **CA-8 ⚠️** — correcto y bien registrado (F-SPEC-008-2).
+3. **La pérdida de CA-2.8 está bien dicha y el ledger NO la disfraza.** Está en el
+   cuerpo del CA (CA-2.8), en el arbitraje §1 como firma suelta, y en
+   F-SPEC-008-20 **medida** («N4 sigue sobreviviendo y tiene que seguir
+   sobreviviendo»). No la toco: **es un precio pagado, no un hallazgo.**
+4. **`ALLOWED_PACKAGES`: la longitud no es finding, y no la declaro.** Comprobé lo
+   que sí es criterio: existe como identificador exportado de
+   `tests/polite/support/capability.ts` ✅; es **cerrada en cada momento** ✅; un
+   especificador no literal es **rojo por construcción**, también dentro de
+   `src/polite/` ✅ (caso 5); cada entrada que no se explica sola —`node:module`,
+   `vitest/config`— **llega con su motivo escrito junto a la lista** ✅. **La quinta
+   condición, «que ninguna entrada sea una puerta de salida», NO se cumple**, y es
+   F-SPEC-008-V15.
+5. **La enmienda de SPEC-001 CA-13 está registrada donde debe**, en el ledger de
+   SPEC-001 (`## Enmienda — 2026-09-01: migrations/0002 invalida la aserción de
+   CA-13`), con la forma de ADR-015. Y el sustituto **no puede pasar en verde
+   descubriendo nada**: exige lista no vacía y que contenga `0001` **y** `0002`.
+   Verificado leyendo el diff.
+
+### Findings del verificador — tercera vuelta
+
+- **F-SPEC-008-V15 — ❌ BLOQUEANTE, CA-2.3 (obligación 2) y CA-2.1: hay un cliente
+  HTTP dentro de `ALLOWED_PACKAGES`, y por él sale un paquete.**
+  `cheerio` **es** una puerta de salida: desde la 1.0 exporta `fromURL`, que
+  resuelve la URL, abre la conexión y devuelve el documento. `node -e` sobre el
+  árbol lo confirma —`exports: contains decodeStream fromURL load loadBuffer
+  merge stringStream`—. CA-2.3 exige, con esas palabras, **«que ninguna entrada
+  sea una puerta de salida —un módulo de red de la plataforma o un cliente
+  HTTP—»**, y el arbitraje del 2026-09-01 §3 lo dejó explícitamente **dentro** de
+  lo que sigue siendo criterio y exige firma. El caso 4 lo vigila con una **lista
+  negra de trece nombres** (`node:http`, `undici`, `axios`, `got`, `node-fetch`,
+  `superagent`…) que no incluye `cheerio` porque nadie sabía que cheerio lo era —
+  y una lista negra es exactamente la enfermedad que la enmienda de CA-2 vino a
+  curar, sobreviviendo en el único sitio donde no se miró.
+  **No es el residuo firmado de CA-2.8**: la evasión, puesta en el camino que
+  CA-2.1 conduce, deja `containment.test.ts` en **13/13** y manda **1 paquete con
+  0 trampas disparadas**. Y una variante huérfana en `src/db/` deja **478/478**.
+  Destino: **`sdd-implementador` para la mitad barata; `sdd-arquitecto` para la
+  otra** — ver *Lo que necesita decisión humana* §1 y §2.
+
+- **F-SPEC-008-V16 — ❌ CA-9.1: el criterio sigue sin sostenerse, y ahora está
+  medido el daño. Es F-SPEC-008-V11, declarado en la segunda vuelta y NO
+  arreglado en ésta.**
+  CA-9.1 dice «valida contra `ObservationSchema` **antes de salir del
+  adaptador**». El caso 1 hace
+  `expect(() => ObservationSchema.parse(observations[0])).not.toThrow()`: **valida
+  en el test**, no comprueba que el código validara, y además solo mira
+  `observations[0]`. Sustituir el `ObservationSchema.parse` de `readRows` por un
+  `Object.freeze` con cast deja **478/478 en verde**. Y lo nuevo, que sube la
+  gravedad: **la variante que además emite `confidence: 42` en las ramas
+  `postponed`/`suspended` también queda en 478/478** — sale del adaptador una
+  `Observation` que viola RN-01 y el `z.number().min(0).max(1)` del esquema, y
+  nada se pone rojo. Lo único que muerde hoy es el caso 6, que prueba **RN-13**
+  (sale congelada), no ADR-001.
+  La tercera vuelta lo declaró «intacto, sigue rutado donde estaba» (§7), pero su
+  destino era **`sdd-implementador`, en esta misma spec**. Sigue ahí.
+  Destino: **`sdd-implementador`**. Es un caso de test; no toca `src/`.
+
+- **F-SPEC-008-V17 — ⚠️ CA-2.7: el orden de instalación de la trampa no tiene
+  control positivo propio.** Mover la asignación de `globalThis.fetch` **después**
+  de los `await import()` de `src/`, sin tocar nada más, deja `containment.test.ts`
+  en **13/13**. CA-2.7 exige que apagar cualquier mecanismo de CA-2.1..CA-2.6 ponga
+  rojo un caso nombrado, y el orden **es** el mecanismo de CA-2.1 —el CA lo dice:
+  «instalarla después la dejaría pasar»—. N6b muerde porque **además** mete un
+  módulo que captura la referencia; el orden por sí solo no lo vigila nadie, y el
+  día que un formateador o una limpieza mueva esa línea, CA-2.1 se degrada en
+  silencio. Destino: **`sdd-implementador`**; un caso que lea el propio fichero y
+  exija que la asignación preceda al primer `await import('@/`.
+
+- **F-SPEC-008-V18 — ⚠️ CA-2.2: contención de conjuntos no es emparejamiento por
+  petición.** Dos peticiones a la misma URL, la segunda sin consultar la política
+  y sin gastar turno, dejan `containment.test.ts` en **13/13**: `ungated()`
+  compara **conjuntos de URL**, así que una petición cuyo permiso concedió *otra*
+  cabe dentro. El CA lo describe bien en su cuerpo («está **contenido** en») y de
+  más en su última frase («el test se pone rojo si sale una petición cuyo permiso
+  lo concedió otro código»), que es lo que **no** entrega. Hoy el agujero lo tapan
+  CA-5, CA-6, CA-7 y CA-11 —once casos rojos—, así que **no bloquea**; se anota
+  porque CA-2.2 se presentó como «más fuerte que lo que había» y en este eje no lo
+  es. Destino: **EPIC-MEJORA**, o `sdd-arquitecto` si quiere emparejar consulta y
+  salida.
+
+- **F-SPEC-008-V19 — ⚠️ CA-6.1: las 6 h que el gate humano firmó no las sujeta
+  ningún test.** Cambiar `ROBOTS_MAX_AGE_MS` de 6 h a **12 h** deja **478/478 en
+  verde**: los casos avanzan el reloj **en múltiplos de la propia constante**, así
+  que prueban «hay una caducidad y es consistente», no «son seis horas». Control:
+  bajarlo a 60 s **sí** mata los casos 4, 5 y 8, luego el mecanismo existe y solo
+  falta anclarlo. Importa porque las 6 h son una de las decisiones que las *Notas
+  para el gate humano* §3 subieron a firma, y una firma humana sobre un número que
+  ningún test sujeta es una firma sobre nada. Destino: **`sdd-implementador`**; un
+  caso que compare la constante con `6 * 60 * 60 * 1000`.
+
+- **F-SPEC-008-V20 — ⚠️ CA-1: `escapeRegExp` no está sujeto por ningún caso.**
+  Reducirlo a la identidad deja **478/478 en verde**, y el comentario del módulo
+  afirma justo lo que nadie prueba («a pattern like `/a.b` cannot match `/axb`»).
+  El código de hoy **es correcto**; lo que falta es la red. Consecuencias si
+  alguien lo toca: `Disallow: /*?` —idioma corriente— cambia de significado, y un
+  `robots.txt` de un tercero con un `[` sin cerrar **haría lanzar a `new RegExp`
+  dentro de `parseRobots`**, es decir, un tercero podría tumbar el parseo de su
+  propia política. Destino: **EPIC-MEJORA**.
+
+- **F-SPEC-008-V21 — ⚠️ CA-8: el `kickoff` puede emitirse en las cinco ramas.**
+  Cambiar `kickoff: status === 'scheduled' ? kickoff : null` por `kickoff` deja
+  **478/478 en verde**, porque ninguna celda no-`scheduled` del fixture contiene
+  algo que case con `kickoffPattern`. Una fila real `«Aplazado — 20:00»`
+  produciría un `kickoff` en una rama que la spec no contempla. Es hermano de
+  F-SPEC-008-2 y se recalibra con él, en `CEROACERO_SHAPE`. Destino: **la primera
+  jornada real de EPIC-002**.
+
+- **F-SPEC-008-V22 — ⚠️ Un `node_modules` está VERSIONADO en la rama, y el ledger
+  afirma lo contrario.** `git ls-files` lo lista; `git cat-file -p HEAD:node_modules`
+  devuelve `/Users/albertofojo/src/tremen-dev/marcador.gal/node_modules`, en modo
+  `120000` (symlink), añadido en el commit **`22fb1c9`** —el de CA-14—. Es **una
+  ruta absoluta de la máquina de una persona, dentro del repositorio**. Se coló
+  porque `.gitignore` dice `node_modules/` **con barra**, que casa directorios y
+  **no un symlink con ese nombre**.
+  Lo que hay que corregir además del fichero: **F-SPEC-008-17 dice que el
+  worktree se resolvió «sin tocar el repositorio… ambos ignorados por git;
+  `git status` quedó limpio», y eso es falso.** El symlink no estaba ignorado y
+  quedó commiteado. Efectos medidos: en un checkout que aún no ha instalado
+  dependencias el symlink cuelga y `npm test` muere con `sh: vitest: command not
+  found` —me pasó a mí, y es cómo lo encontré—; y en cualquier checkout que sí las
+  instale, `git status` queda **permanentemente sucio** con ` D node_modules`, que
+  es como está ahora mismo el mío y por lo que mi commit toca **solo el ledger y
+  la spec**. `npm ci` en un clon limpio sí lo repara solo, así que no es
+  irreversible ni bloquea por sí mismo.
+  Arreglo: `git rm --cached node_modules` y `node_modules` (sin barra) en
+  `.gitignore`. Destino: **`sdd-implementador`**, en esta misma spec, más la
+  corrección de F-SPEC-008-17.
+
+- **F-SPEC-008-V23 — ⚠️ El worktree no tenía dependencias en ninguna parte, y los
+  dos pasos de F-SPEC-008-17 no bastan.** El symlink de F-SPEC-008-V22 apuntaba a
+  un `node_modules` **que ya no existe en el checkout principal**, así que el
+  primero de los dos pasos era inservible. Hizo falta borrarlo y correr `npm ci`
+  dentro del worktree (140 paquetes, gitignorado, `git status` sin cambios por
+  ello). Se dice para que la cuarta verificación no lo descubra otra vez.
+  Destino: **EPIC-MEJORA**, junto a F-SPEC-008-17.
+
+### Salvedades previas, revisadas una a una
+
+- **F-SPEC-008-V11** (CA-9.1 no muerde): **SIGUE ABIERTO y peor de lo que decía**.
+  Ver F-SPEC-008-V16.
+- **F-SPEC-008-V3** (RN-10 del `robots.txt` sostenido por la estructura):
+  **confirmado, sigue vivo**. Sacar `parseRobots` del callback de
+  `captureThenParse` deja 478/478. Sigue rutado a **EPIC-MEJORA**; la spec dice
+  «lo **archiva antes de parsearlo**» y esa mitad sigue sin caso.
+- **F-SPEC-008-V12** (lo mismo para la página): intacto, sigue en EPIC-MEJORA. Y
+  **una precisión sobre él**: la mutación equivalente sobre `src/raw/capture.ts`
+  —llamar al parser sin esperar el `put`— **sí muere**, en `tests/raw/capture.test.ts`
+  casos 1-3. No lo veían las vueltas anteriores porque su comando de mutación no
+  incluía `tests/raw/`. `npm test` sí lo corre.
+- **F-SPEC-008-15** (la treceava entrada): **CERRADO**, y correctamente, por el
+  arbitraje. No se declara nada.
+- **F-SPEC-008-16** (la enmienda de SPEC-001 CA-13): **ratificada**, bien
+  registrada en el ledger de SPEC-001 y con un sustituto que no puede pasar en
+  verde descubriendo nada.
+- **F-SPEC-008-18** (la asimetría de `src/mirror/`): **ratificada**, EPIC-MEJORA.
+- **F-SPEC-008-19** (`PostgresRateLimit` sin sitio de construcción): **ratificada**
+  y no es rojo, pero se anota lo que implica: **la pieza central de CA-14 queda
+  fuera del alcance de CA-2.1 y de CA-2.5**, porque `src/db/` no está en
+  `CONTAINED_DIRS`. Es el mismo hueco por el que entra la variante huérfana de
+  F-SPEC-008-V15. Destino: **la spec del cron**, sin cambio.
+- **F-SPEC-008-20** (la pérdida firmada): **ratificada y no revisitada.** N4 debe
+  seguir sobreviviendo.
+- **F-SPEC-008-21** (el `ENOTFOUND` de Neon): **confirmada, y diagnosticada**. Ver
+  *Gates*.
+- **F-SPEC-008-1**, **F-SPEC-008-2**, **F-SPEC-008-3**, **F-SPEC-008-4**,
+  **F-SPEC-008-5**, **F-SPEC-008-6**, **F-SPEC-008-8**, **F-SPEC-008-V5**,
+  **F-SPEC-008-V13**: ratificadas o cerradas; ninguna bloquea.
+- **F-SPEC-008-7** (el dictamen legal): **sigue sin pedir**, y el verificador
+  vuelve a confirmar por tercera vez el hecho que lo hace tolerable hoy: en esta
+  rama **nada se ha corrido contra `ceroacero.es`**. Todo corre contra dobles,
+  trampas y fixtures sintéticos, y la única petición real que salió en toda esta
+  verificación fue **a `127.0.0.1`**, a propósito.
+
+### Lo que necesita decisión humana
+
+**Y esto es lo importante del veredicto, porque una parte de F-SPEC-008-V15 ya no
+es implementación.**
+
+1. **La mitad que SÍ es implementación, y es barata.** El cierre de CA-2.3 puede
+   dejar de ser «qué paquetes» para ser **«qué se importa de cada paquete»**: una
+   lista declarada de los identificadores permitidos por entrada —de `cheerio`,
+   `load` y `loadBuffer`; de `next`, lo que se use— con todo lo demás rojo. Eso
+   **es la forma de ADR-016** —enumerar lo permitido y exigir que el resto sea
+   vacío— aplicada un nivel más abajo, cierra `fromURL` sin volver a la detección
+   textual, y **no toca `src/`**. Junto con V16, V17, V19 y V22, es lo que un
+   implementador puede cerrar sin preguntar a nadie.
+
+2. **La mitad que NO lo es, y por eso lo subo.** Aunque se cierre `cheerio`, queda
+   en pie el hecho medido: **la trampa de CA-2.1 no ve salir un paquete que sale**.
+   `vi.mock` sustituye módulos en el grafo que vite transforma, y **toda
+   dependencia de `node_modules` queda externalizada y por debajo**. Es decir:
+   *«se sustituyen por trampas todas las salidas de red de la plataforma»* es
+   **falso tal como el mecanismo lo implementa**, y lo será para la próxima
+   dependencia con capacidad de red que entre, la cierre o no la cierre una lista.
+   **Hay salida técnica y la comprobé viable**: mutar los **objetos reales** de
+   `node:net`/`node:tls` en vez de sustituir el módulo —`undici` los lee por
+   propiedad en el momento de llamar, así que sí lo vería—. Pero **eso cambia el
+   mecanismo que CA-2.1 describe y que Alberto firmó**, y toca la premisa de
+   **ADR-016 §3.1** («cerrada por algo que no fijamos nosotros: la superficie de
+   salida de la plataforma»), que hoy es más estrecha de lo que su texto promete.
+   **No lo decido yo.** Es `sdd-arquitecto` sobre CA-2.1 y sobre ADR-016, y es una
+   decisión pequeña con una consecuencia grande.
+
+3. **Lo que NO propongo, y lo digo para que nadie lo intente:** volver a añadir
+   nombres a una lista negra. `cheerio` entró por ahí y el siguiente entrará
+   igual. La enmienda del 2026-09-01 tenía razón y sigue teniéndola; lo que este
+   veredicto muestra es que **quedó una lista negra viva en el caso 4**, dentro
+   del criterio que vino a sustituirlas.
+
+4. **CA-14 no necesita nada.** Es la pieza mejor construida de la spec, la ataqué
+   por los cuatro sitios que el encargo nombra y no cedió. **La decisión de
+   Alberto de meterlo aquí, contra la recomendación de `sdd-arquitecto`, se
+   sostiene mirando el resultado**: `/robot` promete algo que producción ya puede
+   cumplir.
+
+5. **La pregunta legal (F-SPEC-008-7) sigue abierta** y es del humano: el dictamen
+   de `sdd-legal-datos` sobre `ceroacero.es` en régimen de ingesta, **antes de
+   correr la primera jornada**, no antes de escribir el código.
+
+6. Las 6 h de ADR-014 §3.2 y la licencia de `competition_id: 'robots'` **no las
+   reabro**: están firmadas y las verifiqué tal como están escritas. Lo único que
+   añado sobre las primeras es que **ningún test las sujeta** (F-SPEC-008-V19).
+
+**La spec vuelve a `en-progreso`** firmada por `sdd-verificador`, para que el hook
+`require-spec` no deniegue la escritura al siguiente implementador.
