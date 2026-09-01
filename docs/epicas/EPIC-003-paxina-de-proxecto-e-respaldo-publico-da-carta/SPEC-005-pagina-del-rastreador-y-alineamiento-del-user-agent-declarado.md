@@ -2,11 +2,14 @@
 id: SPEC-005
 tipo: spec
 epica: EPIC-003
-estado: aprobada
+estado: hecho
 aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-08-31, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-31, por: Alberto Fojo}
+  - {estado: en-progreso, fecha: 2026-09-01, por: sdd-verificador}
+  - {estado: en-revision, fecha: 2026-09-01, por: sdd-verificador}
+  - {estado: hecho, fecha: 2026-09-01, por: sdd-verificador}
 ---
 # SPEC-005 — Página del rastreador y alineamiento del user-agent declarado
 

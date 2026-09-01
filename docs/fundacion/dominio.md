@@ -104,6 +104,7 @@ partir de no haber mirado a futgal (SPEC-003, *Problema* y CA-3).
 
 | Término | Definición | Notas |
 |---|---|---|
+| **ventana de observación** | Periodo acotado durante el que se ejecuta la captura de una sesión de medición. Es la unidad de tiempo de la operación del spike, no del calendario de competición. | Literal en galego: **xanela de observación**, va a i18n (D-2). Es el hecho desde el que cuenta la retención de ADR-009: 30 días desde el **fin de la ventana** (el `fetched_at` de la última captura), una prórroga escrita y motivada, techo duro de 90. |
 | **jornada** | Round de una competición. Unidad de medida de la operación del spike. | En código: `round`. En docs y UI: *jornada*. |
 | **Preferente Futgal** | Categoría galega. Grupo 1 en el spike. | Nombre canónico RFGF. No es "Preferente Gallega". |
 | **Terceira RFEF grupo 1** | Cuarta categoría nacional, grupo galego, organizado por la RFGF. | Representa "lo nacional" en el spike. |
