@@ -139,11 +139,24 @@ describe('CA-7 — D-1: inspiración, no sucesión', () => {
     expect(hits).toEqual([]);
   });
 
-  test('6. «quen está detrás» nombra a tremen.dev y a Alberto Fojo, sin apoyarse en nada anterior', () => {
+  /**
+   * MODULADO POR SPEC-007 CA-1 (ADR-012 §1, aprobado el 2026-09-01). Este caso
+   * exigía además `Alberto Fojo`. Sigue exigiendo `tremen.dev` —el paraguas se
+   * nombra, y sin él la página quedaría sin responsable— y pasa a exigir lo
+   * contrario sobre la persona: que no salga. La lista negra de D-1 (caso 5)
+   * NO se toca; lo que se modula es la comprobación de identidad que viajaba
+   * de prestado dentro de CA-7 de SPEC-004.
+   *
+   * La barrera ancha —los tres espacios de nombres y el HTML de las cuatro
+   * rutas— vive en `tests/site/identity.test.ts`; aquí queda solo lo que este
+   * caso decía de `about`.
+   */
+  test('6. «quen está detrás» nombra a tremen.dev y a ninguna persona', () => {
     for (const locale of SITE_LOCALES) {
       const about = siteBundle(locale).about;
       expect(about).toContain('tremen.dev');
-      expect(about).toContain('Alberto Fojo');
+      expect(deaccent(about)).not.toContain('alberto');
+      expect(deaccent(about)).not.toContain('fojo');
     }
   });
 });

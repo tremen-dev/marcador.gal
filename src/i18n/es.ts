@@ -23,9 +23,10 @@ export const es = {
 
     aboutHeading: 'Quién está detrás',
     about:
-      'marcador.gal es un proyecto de tremen.dev, llevado por Alberto Fojo. ' +
-      'No hay empresa ni equipo detrás: una sola persona trabajando por cuenta propia. ' +
-      'La dirección de contacto es {mailbox}.',
+      'marcador.gal es un proyecto de tremen.dev. ' +
+      'La dirección de contacto es {mailbox}. ' +
+      'Escribe ahí para cualquier cosa que tenga que ver con este sitio o con el ' +
+      'rastreador, y respondemos.',
 
     measuringHeading: 'Qué se va a medir',
     measuring:
