@@ -34,12 +34,12 @@ tipo: roadmap
   moverse hasta el 2026-09-08, así que ésta era ya la única épica con trabajo
   posible. Pasa el criterio de corte por la vía más directa que hay: es **la
   épica que produce las cuatro cifras del go/no-go**. Su primera spec ya existe
-  —**SPEC-008**, adaptador de `ceroacero.es` y cortesía RN-11, en `borrador`,
-  con **ADR-014** al lado, también en `borrador`— y ambas **esperan firma
-  humana**. El desglose propuesto por `sdd-arquitecto` es de **nueve specs**
-  (008 a 016), con el bot del corresponsal y el panel del operador **antes** que
-  el snapshot y las cifras: es lo que este mismo apartado llama «lo que sube de
-  rango», ya convertido en orden.
+  y ya está firmada: **SPEC-008** —adaptador de `ceroacero.es` y cortesía RN-11
+  con una sola implementación—, `aprobada` el 2026-09-01 junto con **ADR-014**,
+  y en implementación. El desglose propuesto por `sdd-arquitecto` es de **nueve
+  specs** (008 a 016), con el bot del corresponsal y el panel del operador
+  **antes** que el snapshot y las cifras: es lo que este mismo apartado llama
+  «lo que sube de rango», ya convertido en orden.
 
   **Descongelada en su mayor parte el 2026-09-01, porque su premisa caducó.**
   Decía «no empieza hasta que EPIC-001 dicte su veredicto, **porque el motor se
