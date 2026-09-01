@@ -31,14 +31,12 @@ export const es = {
 
     measuringHeading: 'Qué se va a medir',
     measuring:
-      'El proyecto está preparado para medir cuatro cosas sobre las fuentes públicas de ' +
-      'resultados: la latencia con la que aparece cada marcador, la cobertura de los ' +
-      'partidos, los conflictos entre fuentes y los minutos de operación manual que hacen ' +
-      'falta. Las competiciones del estudio son Terceira RFEF G1 y Preferente Futgal G1. ' +
+      'El objeto del estudio son las opciones de obtener los resultados del fútbol ' +
+      'gallego: qué vías hay para leerlos y cuánto trabajo llevan. ' +
       'La medición todavía no ha empezado y no hay ninguna cifra. ' +
-      'La fuente oficial de las dos competiciones no se rastrea, porque su fichero ' +
-      'robots.txt no lo permite y respetarlo es una norma del proyecto: esa es una de las ' +
-      'razones por las que el estudio está parado.',
+      'La fuente oficial de las competiciones que se quieren medir no se rastrea, ' +
+      'porque su fichero robots.txt no lo permite y respetarlo es una norma del ' +
+      'proyecto: esa es una de las razones por las que el estudio está parado.',
 
     purposeHeading: 'Para qué',
     purpose:

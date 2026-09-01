@@ -150,15 +150,46 @@ describe('CA-8 — lo que la página de proyecto tiene que decir', () => {
     }
   });
 
-  test('11. qué se está midiendo: las cuatro cifras y las dos competiciones', () => {
-    for (const locale of LOCALES) {
-      const measuring = text(locale, 'measuring').toLowerCase();
-      const wanted = ['latencia', 'cobertura', 'operación manual'];
+  /**
+   * MODULADO POR SPEC-007 CA-4 (ADR-012, aprobado el 2026-09-01). Este caso
+   * exigía las cuatro métricas y las dos competiciones por su nombre
+   * canónico. Alberto Fojo pidió el 2026-09-01 lo contrario: «tampouco quero
+   * que sexa tan específico co que se vai medir; con dicir que se medirán as
+   * opcións de obter resultados do fútbol galego abonda». La cláusula deja de
+   * exigir la enumeración y pasa a PROHIBIRLA.
+   *
+   * La lista negra se aplica al espacio `site` y al HTML de las dos rutas de
+   * proyecto, NUNCA al sitio entero: `/robot` sirve la cadena literal del
+   * user-agent, que contiene `medicion de latencia` (SPEC-005 CA-2), y una
+   * barrera global la pondría en rojo.
+   */
+  test('11. qué se mide, dicho en general: ni una competición ni una métrica', () => {
+    const NO_COMPETITIONS = [
+      'terceira rfef',
+      'tercera rfef',
+      'preferente futgal',
+      'futgal',
+      'rfef',
+      'g1',
+    ];
+    const NO_METRICS = ['latencia', 'cobertura', 'conflitos', 'conflictos', 'operacion manual'];
+    const FORBIDDEN = [...NO_COMPETITIONS, ...NO_METRICS];
 
-      expect(wanted.filter((term) => !measuring.includes(term))).toEqual([]);
-      expect(measuring).toMatch(/conflictos|conflitos/);
-      expect(HTML[locale]).toContain('Terceira RFEF G1');
-      expect(HTML[locale]).toContain('Preferente Futgal G1');
+    const deaccent = (value: string): string =>
+      value.normalize('NFD').replaceAll(/\p{Diacritic}/gu, '').toLowerCase();
+
+    for (const locale of LOCALES) {
+      // El espacio `site` entero, no solo `measuring`: si la enumeración se
+      // mudase a `noProduct` la página seguiría diciendo lo mismo.
+      const bundle = deaccent(Object.values(ROUTES[locale].bundle).join(' \n '));
+      expect(FORBIDDEN.filter((term) => bundle.includes(term))).toEqual([]);
+      expect(FORBIDDEN.filter((term) => deaccent(HTML[locale]).includes(term))).toEqual([]);
+
+      // Y lo que sí dice: el objeto del estudio, en general.
+      const measuring = deaccent(text(locale, 'measuring'));
+      expect(measuring).toMatch(/opcions|opciones/);
+      expect(measuring).toMatch(/resultados do futbol galego|resultados del futbol gallego/);
+      expect(missingFrom(HTML[locale], text(locale, 'measuring'), locale)).toEqual([]);
     }
   });
 
