@@ -30,6 +30,17 @@ viviendo en un artefacto publicado y en un worktree sin commit. Sin esta épica,
 dentro de tres meses nadie sabrá que la tabla de clasificación falta ni por qué
 las pantallas enfatizan al revés.
 
+**Colisión conocida, anotada el 2026-09-01 al descongelarse EPIC-002.** Esta
+épica guarda todo el diseño de interfaz y está congelada; EPIC-002 lista entre lo
+que **no** depende de la RFGF una «página mínima por polling» y un «panel de
+correcciones». Es decir: **se va a construir interfaz mientras su diseño está
+congelado.** No es un fallo de ninguna de las dos, y no se resuelve descongelando
+ésta por simpatía. Se resuelve reconociendo qué necesita cada cosa: una página
+mínima de medición y un panel de operador no necesitan identidad visual, pero sí
+necesitan las dos entradas que esta épica tiene en el inventario —qué estado es el
+normal, y cómo se opera desde el móvil—. Si alguna spec de EPIC-002 las toca,
+**el disparador de esas entradas es esa spec**, no el go/no-go.
+
 **Por qué congelada y no en curso.** El criterio de corte tiene una prueba:
 *«no cambiaría ni una línea con el informe en la mano»*. Las pantallas la
 suspenden, y no por prudencia genérica sino por un hecho ya registrado en el
@@ -133,11 +144,11 @@ disparador es un hallazgo olvidado con mejor conciencia.
 
 | # | Entrada | Qué la despierta |
 |---|---|---|
-| 1 | **`provisional` es el estado normal, no la excepción.** El sistema pinta el marcador provisional en gris y con etiqueta, tratándolo como caso raro, y la mayoría de filas de los mockups salen `confirmado` con traza «2 fontes independentes ≥ 0.7 · RN-02». El roadmap ya registra que esa vía está cerrada por aritmética. Si se sostiene, el sistema apaga el estado dominante y destaca el raro. | **El 2026-09-08.** La carta a la RFGF se envió el 2026-09-01 y ese día se da por no contestada, lo que le pone fecha al veredicto de EPIC-001 por primera vez. **Es la entrada que más caro sale ignorar**, porque no se arregla cambiando un color: cambia cuál es la fila por defecto. |
+| 1 | **`provisional` es el estado normal, no la excepción.** El sistema pinta el marcador provisional en gris y con etiqueta, tratándolo como caso raro, y la mayoría de filas de los mockups salen `confirmado` con traza «2 fontes independentes ≥ 0.7 · RN-02». El roadmap ya registra que esa vía está cerrada por aritmética. Si se sostiene, el sistema apaga el estado dominante y destaca el raro. | **Ya. Adelantado el 2026-09-01**, al descongelarse EPIC-002: su «snapshot y página mínima por polling» no depende de la RFGF y es la primera pantalla que va a existir. El 2026-09-08 sigue siendo la fecha del veredicto de EPIC-001, pero **ya no es el primer disparador**: la pregunta se contesta cuando alguien escriba esa página, no cuando conteste la federación. **Es la entrada que más caro sale ignorar**, porque no se arregla cambiando un color: cambia cuál es la fila por defecto. |
 | 2 | **Falta la tabla de clasificación.** Se cayó del sistema al sustituir el panel de detalle por traza + historial de decisiones. Es justamente el componente de tabla densa que motivó el encargo. | Se descongele la épica, o antes si alguna spec necesita el componente. |
 | 3 | **Faltan estados de foco y navegación por teclado.** Se midieron contrastes; no se dibujó ningún anillo de foco. Un marcador denso sin foco visible es inusable con teclado. | Se descongele. Bloquea cualquier spec de interfaz. |
 | 4 | **Faltan estados de carga y de dato viejo.** El snapshot llega por polling (ADR-003) y la promesa es «legible con mala cobertura»: no hay esqueleto de carga ni aspecto de pantalla cuyos datos tienen dos minutos. | Se descongele, o la primera spec de `src/api/`. |
-| 5 | **El panel del operador no tiene ningún diseño.** `src/admin/` es donde viven RN-04 y RN-06 —bajar un marcador, aplazar un partido— desde el móvil, y es donde un error de diseño cuesta un marcador mal publicado. | La cifra de operación manual de EPIC-002. Si son muchos minutos por jornada, este panel deja de ser accesorio y pasa a ser el producto. |
+| 5 | **El panel del operador no tiene ningún diseño.** `src/admin/` es donde viven RN-04 y RN-06 —bajar un marcador, aplazar un partido— desde el móvil, y es donde un error de diseño cuesta un marcador mal publicado. | **Ya, y con colisión.** El disparador escrito era «la cifra de operación manual de EPIC-002», y el 2026-09-01 esa premisa se quedó corta: EPIC-002 se descongeló y lista el **panel de correcciones** entre lo que **no** depende de la RFGF, así que el panel se va a **construir** antes de que exista esa cifra. Y sube de rango por el mismo motivo: sin segunda fuente automática, el panel es la única ruta a un marcador *confirmado*. Deja de ser accesorio. |
 | 6 | **Sin decidir: ¿tema claro?** Y la relación es la **inversa** de lo que se creyó al abrir esta épica: `src/app/globals.css` no «soporta claro», **sirve claro por defecto** (`--paper:#fbfbf9`, `--ink:#14181c`) y solo pasa a oscuro bajo `prefers-color-scheme: dark`. El sistema de diseño del marcador es oscuro-only. Es decir: el sitio público y el marcador no son variante y base, son dos bases opuestas. Hoy no chocan porque no comparten una línea de CSS. Corregido por `/sdd-arquitecto` al escribir ADR-013. | La primera spec que aplique tokens al sitio, que es cuando el conflicto se vuelve real. |
 
 **Pendiente de comprobación, no de diseño:** no se verificó que los controles de
