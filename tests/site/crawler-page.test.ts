@@ -296,11 +296,56 @@ describe('CA-13 — la página del rastreador no cita a ningún tercero', () => 
     }
   });
 
-  test('19. la prohibición es de ESTAS rutas, no del sitio: /proxecto sigue nombrando las competiciones', () => {
-    // Si la lista se acotara mal, SPEC-004 CA-8.2 y esta spec chocarían. Los
-    // nombres canónicos de las competiciones que se miden siguen donde estaban.
-    expect(gl.site.measuring).toContain('Preferente Futgal G1');
-    expect(es.site.measuring).toContain('Preferente Futgal G1');
+  /**
+   * Cadena SINTÉTICA de control, escrita a mano aquí y servida a nadie: no es
+   * HTML de terceros (ADR-009) ni sale de ninguna captura. Existe solo para
+   * que la lista de arriba tenga sobre qué morder.
+   */
+  const CONTROL_QUE_NOMBRA_TERCEROS =
+    'control sintético: FutGal.es, ceroacero.es, BeSoccer, resultados-futbol.com e a RFGF';
+
+  /**
+   * Los términos que TIENEN que morder sobre esa cadena, escritos aquí a mano
+   * y no leídos de `THIRD_PARTIES`. Comparar la lista consigo misma pasaría
+   * también con la lista vacía —`[].filter(…)` es `[]`—, que es exactamente lo
+   * que este control existe para impedir. Si mañana se añade un tercero a la
+   * lista de arriba, hay que añadirlo también a la cadena de control y a esta:
+   * ese trabajo es el precio de que la lista no pueda vaciarse en silencio.
+   */
+  const MUERDEN = ['besoccer', 'ceroacero', 'futgal', 'resultados-futbol', 'rfgf'];
+
+  test('19. la prohibición muerde, y muerde EXACTAMENTE sobre estas dos rutas', () => {
+    // Sustituye (SPEC-007 CA-4, F-SPEC-007-1) al caso que guardaba esta misma
+    // frontera afirmando que `/proxecto` seguía nombrando las competiciones.
+    // Ese canario ya no existe: SPEC-007 CA-4 prohíbe nombrarlas ahí. El
+    // propósito sí sigue, y ha EMPEORADO — antes, ensanchar la lista al bundle
+    // entero se delataba solo, porque `site.measuring` contenía `Futgal` y el
+    // caso 18 se ponía rojo; ahora pasaría en silencio, y CA-13 se convertiría
+    // en una prohibición de sitio entero que solo mordería el día —quizá
+    // dentro de años, en una página que no existe— en que alguien necesite
+    // nombrar una fuente legítimamente. Así que se guarda el ALCANCE en vez
+    // del contenido, con dos aserciones que no dependen de lo que diga
+    // `/proxecto`. Forma: caso 1 de `no-hardcoded-literals.test.ts`.
+
+    // (a) Control positivo: la lista no puede quedarse vacía —ni perder un
+    // término— sin que nadie se entere. Los cinco muerden, con el mismo
+    // predicado que usa el caso 18, sobre una cadena que no es de nadie.
+    const control = deaccent(CONTROL_QUE_NOMBRA_TERCEROS);
+
+    expect(THIRD_PARTIES.filter((term) => control.includes(term)).sort()).toEqual(MUERDEN);
+
+    // (b) Alcance: lo que el caso 18 escanea es el HTML de `/robot` y
+    // `/es/robot`, y de ninguna otra ruta ni de ningún bundle. Se re-renderiza
+    // desde los módulos de ruta SIN pasar por `ROUTES` ni por `render`, que es
+    // lo que hace que repuntar el mapa, añadirle una entrada o concatenarle
+    // cualquier otra cosa a la entrada del escaneo se vea desde aquí.
+    expect(Object.keys(HTML).sort()).toEqual([...LOCALES].sort());
+    expect(HTML.gl).toBe(
+      renderToStaticMarkup(createElement(GlLayout, null, createElement(GlCrawlerPage))),
+    );
+    expect(HTML.es).toBe(
+      renderToStaticMarkup(createElement(EsLayout, null, createElement(EsCrawlerPage))),
+    );
   });
 });
 

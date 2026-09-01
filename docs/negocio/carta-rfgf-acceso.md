@@ -66,7 +66,8 @@ páxinas públicas. Identifícome en cada petición con
 `marcador.gal/0.0.1 (+https://marcador.gal/robot; medicion de latencia)`. Esa
 ligazón leva a unha páxina que explica como rastrexo, con que límites e que fago
 co que leo, e que leva o enderezo de contacto no primeiro bloque: escríbanme a
-ola@tremen.dev e respondo. E se prefiren que non o faga, dígano e non o fago: é
+ola@tremen.dev e respondo. En https://marcador.gal/proxecto está quen hai detrás
+disto e que se vai medir; non hai produto nin lista de espera, só iso. E se prefiren que non o faga, dígano e non o fago: é
 máis doado preguntar antes.
 
 Se máis adiante ten sentido falar de algo maior —un feed, un acordo de datos,

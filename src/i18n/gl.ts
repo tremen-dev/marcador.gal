@@ -45,20 +45,20 @@ export const gl = {
 
     aboutHeading: 'Quen está detrás',
     about:
-      'marcador.gal é un proxecto de tremen.dev, levado por Alberto Fojo. ' +
-      'Non hai empresa nin equipo detrás: unha soa persoa traballando por conta propia. ' +
-      'O enderezo de contacto é {mailbox}.',
+      'marcador.gal é un proxecto de tremen.dev. ' +
+      'O enderezo de contacto é {mailbox}. ' +
+      'Escribe aí para calquera cousa que teña que ver con este sitio ou co ' +
+      'rastrexador, e respondemos.',
+    umbrellaLink: 'tremen.dev — o paraugas deste proxecto',
 
     measuringHeading: 'Que se vai medir',
     measuring:
-      'O proxecto está preparado para medir catro cousas sobre as fontes públicas de ' +
-      'resultados: a latencia con que aparece cada marcador, a cobertura dos partidos, ' +
-      'os conflitos entre fontes e os minutos de operación manual que fan falta. ' +
-      'As competicións do estudo son Terceira RFEF G1 e Preferente Futgal G1. ' +
+      'O obxecto do estudo son as opcións de obter os resultados do fútbol galego: ' +
+      'que vías hai para lelos e canto traballo levan. ' +
       'A medición aínda non comezou e non hai ningunha cifra. ' +
-      'A fonte oficial das dúas competicións non se rastrexa, porque o seu ficheiro ' +
-      'robots.txt non o permite e respectalo é unha norma do proxecto: esa é unha das ' +
-      'razóns polas que o estudo está parado.',
+      'A fonte oficial das competicións que se queren medir non se rastrexa, porque ' +
+      'o seu ficheiro robots.txt non o permite e respectalo é unha norma do proxecto: ' +
+      'esa é unha das razóns polas que o estudo está parado.',
 
     purposeHeading: 'Para que',
     purpose:

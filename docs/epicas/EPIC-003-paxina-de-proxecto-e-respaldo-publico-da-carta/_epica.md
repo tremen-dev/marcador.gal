@@ -241,6 +241,33 @@ bajo SPEC-005 y no anotando el ledger de SPEC-002 ni reabriéndola.
   2026-08-31 que declarar el plazo es correcto y cierto como compromiso, con
   riesgo global bajo. Viene de F-SPEC-005-V2 (segundo riesgo), registrado el
   2026-09-01.
+- **«Non republicamos os datos de ninguén» tampoco sobrevive a producción, y no
+  es solo esa frase: es el párrafo.** Lo planteó Alberto Fojo el 2026-09-01. El
+  texto de `/robot` dice «Non republicamos os datos de ninguén. **Isto é unha
+  medición, e o resultado é un informe interno. Non hai marcador público**…»: las
+  dos frases siguientes no son adorno, son **la justificación**, y la tercera
+  describe justamente lo que el proyecto existe para construir. El día que haya
+  marcador público, las tres son falsas a la vez. Y falla por dos sitios: en
+  lenguaje llano —se mostrarían datos obtenidos de otro— y en el sentido del
+  **derecho *sui generis*** (`retos.md`), porque publicar sistemáticamente lo
+  extraído es reutilización. El proyecto ya lo tenía escrito: **ADR-002 §76-78**
+  —«las ToS de ceroacero restringen el scraping; en producción hay que
+  sustituirla o licenciarla»—. **La defensa real es RN-08**: lo que se publica es
+  una `Decision` propia, no el dato ajeno. Pero ese argumento vale lo que valga
+  la pluralidad de fuentes, y EPIC-001 descubrió que **hoy hay una sola fuente
+  automática capturable**: con una sola, una `Decision` es el dato de ceroacero
+  con pasos intermedios. El argumento no es falso, está **vacío hoy**, y se
+  llenará con corresponsales, autorización de la RFGF o una fuente licenciada.
+- **Y el patrón, que importa más que las dos frases sueltas: `/robot` está
+  escrito en presente de un proyecto que no tiene producción.** Son ya **dos**
+  afirmaciones con fecha de caducidad —la retención y esta—, las dos con la misma
+  forma: se vuelven falsas solas, sin que nadie las edite y sin que ningún test
+  se entere. Parchear frase por frase cuando alguien se da cuenta es peor que
+  asumirlo. **Disparador: antes de que exista producción, `/robot` se
+  re-dictamina entero** —`/sdd-legal-datos` y `/sdd-lingua`— como precondición,
+  no como tarea. La pregunta *sui generis* con ToS de por medio está marcada
+  además como **revisión profesional**: no es para hoy, es para antes de publicar
+  el primer marcador.
 - **Coste de oportunidad.** Es la primera vez que el proyecto construye algo que
   no es medición. Es poco trabajo, pero EPIC-001 sigue bloqueada y EPIC-002 sin
   empezar: esta épica no puede convertirse en el sitio cómodo donde refugiarse

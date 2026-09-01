@@ -25,6 +25,7 @@ import { gl } from '@/i18n/gl';
 import type { SiteLocale } from '@/i18n/site-bundle';
 import { MAILBOX } from '@/site/contact';
 import { CRAWLER_PATH, PROJECT_PATH } from '@/site/routes';
+import { UMBRELLA_URL } from '@/site/umbrella';
 
 const ROUTES = {
   gl: { layout: GlLayout, page: GlProjectPage, bundle: gl.site },
@@ -149,15 +150,46 @@ describe('CA-8 — lo que la página de proyecto tiene que decir', () => {
     }
   });
 
-  test('11. qué se está midiendo: las cuatro cifras y las dos competiciones', () => {
-    for (const locale of LOCALES) {
-      const measuring = text(locale, 'measuring').toLowerCase();
-      const wanted = ['latencia', 'cobertura', 'operación manual'];
+  /**
+   * MODULADO POR SPEC-007 CA-4 (ADR-012, aprobado el 2026-09-01). Este caso
+   * exigía las cuatro métricas y las dos competiciones por su nombre
+   * canónico. Alberto Fojo pidió el 2026-09-01 lo contrario: «tampouco quero
+   * que sexa tan específico co que se vai medir; con dicir que se medirán as
+   * opcións de obter resultados do fútbol galego abonda». La cláusula deja de
+   * exigir la enumeración y pasa a PROHIBIRLA.
+   *
+   * La lista negra se aplica al espacio `site` y al HTML de las dos rutas de
+   * proyecto, NUNCA al sitio entero: `/robot` sirve la cadena literal del
+   * user-agent, que contiene `medicion de latencia` (SPEC-005 CA-2), y una
+   * barrera global la pondría en rojo.
+   */
+  test('11. qué se mide, dicho en general: ni una competición ni una métrica', () => {
+    const NO_COMPETITIONS = [
+      'terceira rfef',
+      'tercera rfef',
+      'preferente futgal',
+      'futgal',
+      'rfef',
+      'g1',
+    ];
+    const NO_METRICS = ['latencia', 'cobertura', 'conflitos', 'conflictos', 'operacion manual'];
+    const FORBIDDEN = [...NO_COMPETITIONS, ...NO_METRICS];
 
-      expect(wanted.filter((term) => !measuring.includes(term))).toEqual([]);
-      expect(measuring).toMatch(/conflictos|conflitos/);
-      expect(HTML[locale]).toContain('Terceira RFEF G1');
-      expect(HTML[locale]).toContain('Preferente Futgal G1');
+    const deaccent = (value: string): string =>
+      value.normalize('NFD').replaceAll(/\p{Diacritic}/gu, '').toLowerCase();
+
+    for (const locale of LOCALES) {
+      // El espacio `site` entero, no solo `measuring`: si la enumeración se
+      // mudase a `noProduct` la página seguiría diciendo lo mismo.
+      const bundle = deaccent(Object.values(ROUTES[locale].bundle).join(' \n '));
+      expect(FORBIDDEN.filter((term) => bundle.includes(term))).toEqual([]);
+      expect(FORBIDDEN.filter((term) => deaccent(HTML[locale]).includes(term))).toEqual([]);
+
+      // Y lo que sí dice: el objeto del estudio, en general.
+      const measuring = deaccent(text(locale, 'measuring'));
+      expect(measuring).toMatch(/opcions|opciones/);
+      expect(measuring).toMatch(/resultados do futbol galego|resultados del futbol gallego/);
+      expect(missingFrom(HTML[locale], text(locale, 'measuring'), locale)).toEqual([]);
     }
   });
 
@@ -194,9 +226,29 @@ describe('CA-9 / CA-10 — mala cobertura, sin terceros y sin rastro', () => {
     }
   });
 
-  test('16. el HTML no hace ninguna petición a un tercero: no lleva una sola URL absoluta', () => {
+  /**
+   * MODULADO POR SPEC-007 CA-2.4 (ADR-012 §2, aprobado el 2026-09-01). Este
+   * caso prohibía TODA URL absoluta, que es más estricto que el CA que dice
+   * implementar: CA-10 habla de que el HTML no haga «ninguna petición a un
+   * tercero», y un `<a href>` no pide nada — la descarga la decide el
+   * visitante al hacer clic, y hasta entonces no sale un byte.
+   *
+   * La barrera SE ESTRECHA, no se levanta: se sigue prohibiendo toda URL
+   * absoluta en un atributo que descargue por sí solo, y se admite
+   * exactamente una en un `href` de `<a>`, la del paraguas. Forma y
+   * precedente: los casos finales de `crawler-page.test.ts`.
+   */
+  test('16. la única URL absoluta del HTML es la del paraguas, y va en un href de <a>', () => {
     for (const locale of LOCALES) {
-      expect(HTML[locale]).not.toMatch(/https?:\/\//);
+      // Nada que el navegador descargue solo.
+      expect(HTML[locale]).not.toMatch(/\b(?:src|srcset)\s*=\s*["']?https?:/i);
+      expect(HTML[locale]).not.toMatch(/<link[^>]+href=["']?https?:/i);
+      expect(HTML[locale]).not.toMatch(/url\(\s*['"]?(?:https?:)?\/\//i);
+
+      // Y una sola URL absoluta en todo el documento: la del paraguas.
+      const absolute = [...HTML[locale].matchAll(/https?:\/\/[^\s"'<)]+/g)].map((m) => m[0]);
+      expect(absolute).toEqual([UMBRELLA_URL]);
+      expect(HTML[locale]).toContain(`<a href="${UMBRELLA_URL}"`);
     }
   });
 

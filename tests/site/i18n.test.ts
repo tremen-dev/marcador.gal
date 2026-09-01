@@ -44,6 +44,18 @@ const NOT_MEASURING_YET = [
   'fuentes medidas',
   'unha das duas competicions',
   'una de las dos competiciones',
+  // AMPLIADO POR SPEC-007 CA-5. Al dejar de nombrar las competiciones, el
+  // referente pasa a ser «las competiciones que se quieren medir», y la
+  // recaída de F-SPEC-004-8 puede volver por una puerta nueva: restringir el
+  // hecho a UN subconjunto. `ceroacero.es` sirve HOY las dos
+  // (`hallazgos/fontes-capturables.md:34-35`, 50 nombres de equipo en cada
+  // una); lo que no es capturable es la FUENTE OFICIAL de ambas
+  // (`fontes-capturables.md:66`, `dominio.md:57`, ADR-008 §1). La barrera se
+  // amplía, no se relaja.
+  'dunha das competicions',
+  'de una de las competiciones',
+  'dunha competicion',
+  'de una competicion',
 ];
 
 /**
@@ -53,13 +65,19 @@ const NOT_MEASURING_YET = [
  * capturable: su `robots.txt` prohíbe el rastreo (ADR-008 §1)»).
  *
  * Se fijan los tramos que cargan el hecho, no la frase entera: la redacción
- * puede mejorarse, pero no puede dejar de decir «fuente oficial», «las dos
- * competiciones» y `robots.txt`. Sin ningún tercero nombrado, que es otra
+ * puede mejorarse, pero no puede dejar de decir «fuente oficial», el
+ * referente completo y `robots.txt`. Sin ningún tercero nombrado, que es otra
  * exigencia del finding.
+ *
+ * MODULADO POR SPEC-007 CA-5. `das duas competicions` / `de las dos
+ * competiciones` deja de ser exigible porque las competiciones ya no se
+ * nombran (CA-4), y lo que se exige pasa a ser un referente que abarque TODO
+ * el objeto del estudio, no un subconjunto. `a fonte oficial` y `robots.txt`
+ * se conservan intactos: son el hecho, y costaron tres vueltas.
  */
 const OFFICIAL_SOURCE_NOT_CRAWLED: Record<SiteLocale, readonly string[]> = {
-  gl: ['a fonte oficial', 'das duas competicions', 'robots.txt'],
-  es: ['la fuente oficial', 'de las dos competiciones', 'robots.txt'],
+  gl: ['a fonte oficial', 'das competicions que se queren medir', 'robots.txt'],
+  es: ['la fuente oficial', 'de las competiciones que se quieren medir', 'robots.txt'],
 };
 
 /** CA-7: la lista negra atrapa el descuido; el verificador lee y atrapa la insinuación. */
@@ -139,11 +157,24 @@ describe('CA-7 — D-1: inspiración, no sucesión', () => {
     expect(hits).toEqual([]);
   });
 
-  test('6. «quen está detrás» nombra a tremen.dev y a Alberto Fojo, sin apoyarse en nada anterior', () => {
+  /**
+   * MODULADO POR SPEC-007 CA-1 (ADR-012 §1, aprobado el 2026-09-01). Este caso
+   * exigía además `Alberto Fojo`. Sigue exigiendo `tremen.dev` —el paraguas se
+   * nombra, y sin él la página quedaría sin responsable— y pasa a exigir lo
+   * contrario sobre la persona: que no salga. La lista negra de D-1 (caso 5)
+   * NO se toca; lo que se modula es la comprobación de identidad que viajaba
+   * de prestado dentro de CA-7 de SPEC-004.
+   *
+   * La barrera ancha —los tres espacios de nombres y el HTML de las cuatro
+   * rutas— vive en `tests/site/identity.test.ts`; aquí queda solo lo que este
+   * caso decía de `about`.
+   */
+  test('6. «quen está detrás» nombra a tremen.dev y a ninguna persona', () => {
     for (const locale of SITE_LOCALES) {
       const about = siteBundle(locale).about;
       expect(about).toContain('tremen.dev');
-      expect(about).toContain('Alberto Fojo');
+      expect(deaccent(about)).not.toContain('alberto');
+      expect(deaccent(about)).not.toContain('fojo');
     }
   });
 });

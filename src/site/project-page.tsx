@@ -16,6 +16,7 @@ import { otherLocale, siteBundle } from '@/i18n/site';
 import type { SiteLocale } from '@/i18n/site-bundle';
 import { withMailbox } from '@/site/mailbox-link';
 import { CRAWLER_PATH, PROJECT_PATH } from '@/site/routes';
+import { UMBRELLA_URL } from '@/site/umbrella';
 
 export function ProjectPage({ locale }: { locale: SiteLocale }) {
   const t = siteBundle(locale);
@@ -28,6 +29,9 @@ export function ProjectPage({ locale }: { locale: SiteLocale }) {
       <section>
         <h2>{t.aboutHeading}</h2>
         <p>{withMailbox(t.about)}</p>
+        <p>
+          <a href={UMBRELLA_URL}>{t.umbrellaLink}</a>
+        </p>
       </section>
 
       <section>
