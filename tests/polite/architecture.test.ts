@@ -27,20 +27,23 @@
  * La mitad en EJECUCIÓN —CA-2.1 y CA-2.2— vive en `containment.test.ts`, que
  * instala las trampas antes de importar nada de `src/`.
  */
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { describe, expect, test } from 'vitest';
-import { reachableModules } from '../mirror/support/imports';
+import { readModule, reachableModules } from '../mirror/support/imports';
 import { stripComments } from '../support/source-tree';
 import {
   ALLOWED_PACKAGES,
   CONTAINED_DIRS,
   COURTESY_DIR,
   ENTRY_POINTS,
+  SCAN_EXCLUSIONS,
   SCAN_ROOTS,
   capabilityOffences,
   importOffences,
   packageEntry,
   scanRepository,
+  scannedSources,
   syntheticFile,
   underScanRoots,
   versionedSources,
@@ -80,11 +83,217 @@ describe('CA-2.6 — el escaneo cubre todo el código, no solo `src/`', () => {
       'src/polite/user-agent.ts',
     ]);
   });
+
+  test('2b. las exclusiones del escaneo son SUYAS, van declaradas y llevan motivo', () => {
+    // Hasta la cuarta vuelta esta lista no existía, porque las exclusiones eran
+    // las de `.gitignore` — un fichero escrito para otra cosa. Hoy hay una, y
+    // es la que se justifica sola. El día que haga falta una segunda, su
+    // motivo se escribe aquí; si el motivo es «ahí hay ficheros que molestan»,
+    // la frontera está mal trazada.
+    expect(SCAN_EXCLUSIONS.map((exclusion) => exclusion.path)).toEqual(['node_modules/']);
+    for (const exclusion of SCAN_EXCLUSIONS) {
+      expect(exclusion.motive, `${exclusion.path} sin motivo`).toBeTruthy();
+    }
+  });
+
+  test('2c. la lista de lo que se LEE no la decide `git`: es la más ancha de las dos', () => {
+    // Dos listas distintas y a propósito. `git` sigue siendo autoridad de lo
+    // que está versionado (caso 1); de lo que se AUDITA, no.
+    const scanned = new Set(scannedSources());
+    const versionedUnderRoots = versionedSources().filter(underScanRoots);
+
+    expect(versionedUnderRoots.length).toBeGreaterThan(40);
+    expect(versionedUnderRoots.filter((path) => !scanned.has(path))).toEqual([]);
+  });
+
+  test('2d. control positivo (F-SPEC-008-V28): un fichero que `.gitignore` esconde SE LEE Y SE JUZGA', async () => {
+    // Reproducción exacta. `.gitignore:17` esconde todo lo que cuelga de un
+    // directorio `robots/` —regla legítima, protege los `robots.txt` de
+    // terceros que ADR-009 §3 mantiene fuera del repositorio, y NO SE TOCA—.
+    // Con la lista de ficheros heredada de `git ls-files --exclude-standard`,
+    // un `src/ingest/robots/side.ts` con un `cheerio.fromURL` sin restricción
+    // dejaba `tests/polite` en 76/76: no aparecía en `git status`, no se leía,
+    // y no se juzgaba.
+    const directory = 'src/ingest/robots';
+    // Nombre propio de este caso, y NO el `side.ts` de la medición: un caso que
+    // borra un fichero que no ha escrito borraría la mutación del verificador
+    // —comprobado: pasaba— y se pondría verde por el motivo equivocado.
+    const path = `${directory}/hidden-control.ts`;
+    const hidden = [
+      "import { fromURL } from 'cheerio';",
+      'export const ask = async (url: string) => await fromURL(url);',
+    ].join('\n');
+
+    // El directorio no existe hoy, y si algún día existiera no se borra: solo
+    // se retira el fichero que este caso escribe, y solo si lo escribió él.
+    expect(existsSync(path), `${path} ya existe: este caso no lo pisa`).toBe(false);
+    const directoryExisted = existsSync(directory);
+    mkdirSync(directory, { recursive: true });
+    try {
+      writeFileSync(path, `${hidden}\n`, 'utf8');
+
+      // La mitad que hace de esto la reproducción y no una comprobación
+      // cualquiera: `git` NO lo ve, y el escaneo SÍ.
+      expect(versionedSources()).not.toContain(path);
+      expect(scannedSources()).toContain(path);
+
+      const scanned = await scanRepository();
+      const file = scanned.find((entry) => entry.path === path);
+      expect(file, 'el escaneo no leyó el fichero escondido').toBeDefined();
+      expect(await importOffences(file!)).toEqual([
+        'src/ingest/robots/hidden-control.ts: cheerio does not declare `fromURL` in its surface',
+      ]);
+    } finally {
+      rmSync(path, { force: true });
+      if (!directoryExisted) rmSync(directory, { force: true, recursive: true });
+    }
+
+    expect(existsSync(path)).toBe(false);
+  });
 });
 
 describe('CA-2.3 — no se concede un paquete, se concede una superficie', () => {
   test('3. ningún fichero del escaneo cruza un nombre fuera de su superficie', async () => {
     expect(await offendersOf(SCANNED)).toEqual([]);
+  });
+
+  test('3b. NADA SE PIERDE EN SILENCIO, y lo dice el compilador y no nosotros', () => {
+    // La obligación 2 del lector, sobre el árbol REAL. Para cada fichero del
+    // escaneo, lo que el lector enumeró cubre la lista de módulos que el propio
+    // compilador registra para ese fichero — como multiconjunto, para que «se
+    // ve el primero y se pierde el segundo» también sea rojo (F-SPEC-008-V27,
+    // caso B de la medición).
+    const lost: string[] = [];
+
+    for (const file of SCANNED) {
+      const enumerated = new Map<string, number>();
+      for (const specifier of file.specifiers) {
+        if (specifier.text === null) continue;
+        enumerated.set(specifier.text, (enumerated.get(specifier.text) ?? 0) + 1);
+      }
+      const counted = new Map<string, number>();
+      for (const named of file.reading.compilerModules) {
+        const seen = (counted.get(named) ?? 0) + 1;
+        counted.set(named, seen);
+        if ((enumerated.get(named) ?? 0) < seen) lost.push(`${file.path}: ${named}`);
+      }
+    }
+
+    expect(lost).toEqual([]);
+    // Y que la comprobación mida algo: el compilador nombra módulos de verdad.
+    expect(SCANNED.flatMap((file) => [...file.reading.compilerModules]).length).toBeGreaterThan(100);
+  });
+
+  test('3c. un fichero que el compilador NO PUEDE PARSEAR es rojo, nombrándose', async () => {
+    // Hoy una cláusula que el lector no ve NO EXISTE, decía el veredicto de la
+    // cuarta vuelta, «que es lo contrario» de fallar cerrado. Aquí lo contrario
+    // de lo contrario: lo que no se puede leer es rojo.
+    const broken = syntheticFile(
+      'src/ingest/broken.ts',
+      ['export const half = (((;;;', "import { load } from 'cheerio';"].join('\n'),
+    );
+
+    expect(broken.reading.unparseable).toBe(true);
+    expect(await importOffences(broken)).toEqual([
+      'src/ingest/broken.ts: the compiler cannot parse this file',
+    ]);
+    expect(capabilityOffences(broken)).toEqual([
+      'src/ingest/broken.ts: the compiler cannot parse this file',
+    ]);
+  });
+
+  test('3d. un nodo que nombra un módulo en una forma NO CLASIFICADA es rojo', async () => {
+    // `import x = require('…')` nombra un módulo por una tercera vía que este
+    // lector no clasifica. No hace falta que nadie la haya previsto: el
+    // compilador la registra, el lector no la enumeró, y la comparación del
+    // caso 3b es lo que la caza. Ésa es la diferencia entre fallar cerrado y
+    // callar.
+    const equals = syntheticFile(
+      'src/ingest/import-equals.ts',
+      ["import undici = require('undici');", 'export const ask = undici;'].join('\n'),
+    );
+
+    expect(equals.reading.compilerModules).toContain('undici');
+    expect(equals.reading.specifiers).toEqual([]);
+    expect(await importOffences(equals)).toEqual([
+      'src/ingest/import-equals.ts: the compiler names undici and the reader did not enumerate it',
+    ]);
+  });
+
+  test('3e. LA POSICIÓN EN LA LÍNEA no cambia el veredicto (F-SPEC-008-V27)', async () => {
+    // La novena evasión, en sus tres escrituras. Con el lector de expresiones
+    // regulares la primera era ROJA y las otras dos VERDES —`lint exit=0`,
+    // `npm test` 762/762, `tests/polite` 76/76— con `node:child_process`, que
+    // no es entrada de la lista, mandando una petición de verdad sin
+    // User-Agent, sin `robots.txt` y sin turno. DOCE CARACTERES SEPARABAN
+    // VERDE DE ROJO.
+    const body = [
+      'export function preflight(url: string): string {',
+      "  return execFileSync('curl', ['-s', url], { encoding: 'utf8' });",
+      '}',
+    ];
+    const writings: readonly (readonly [string, string])[] = [
+      ['al principio de la línea', "import { execFileSync } from 'node:child_process';"],
+      [
+        'detrás de otra sentencia',
+        "const noop = 0; import { execFileSync } from 'node:child_process'; export const n = noop;",
+      ],
+      [
+        'como segundo `import` de la línea',
+        "import { load } from 'cheerio'; import { execFileSync } from 'node:child_process'; export const l = load;",
+      ],
+    ];
+
+    for (const [label, head] of writings) {
+      const file = syntheticFile(`src/db/preflight9.ts`, [head, ...body].join('\n'));
+
+      expect(await importOffences(file), `${label}`).toContain(
+        'src/db/preflight9.ts: node:child_process is not a declared package entry',
+      );
+    }
+  });
+
+  test('3f. y los controles sintéticos NO ESCRIBEN EN DISCO', () => {
+    // Sonda H de la enmienda: `fs` virtual y `openFiles`. Un control que
+    // falla no puede dejar una mutación detrás, y el escaneo del caso 3 no
+    // puede verse contaminado por lo que juzgan los controles.
+    const file = syntheticFile('src/ingest/never-written.ts', "export const nothing = 0;\n");
+
+    // Las rutas de este caso son solo de controles sintéticos: ninguna es un
+    // sitio donde un verificador vaya a poner una mutación, para que romper
+    // otra cosa no ponga rojo a éste por el lado equivocado.
+    expect(file.reading.unparseable).toBe(false);
+    for (const path of [
+      'src/ingest/never-written.ts',
+      'src/ingest/inverted.ts',
+      'src/ingest/computed.ts',
+      'src/ingest/escape.ts',
+      'src/polite/late-door.ts',
+    ]) {
+      expect(existsSync(path), `${path}`).toBe(false);
+    }
+  });
+
+  test('3g. UN SOLO LECTOR: los tres consumidores de CA-2 preguntan al mismo', () => {
+    // Obligación 1 de CA-2.3. Un caso que necesite saber qué importa un
+    // fichero y se escriba su propio patrón es el mecanismo volviendo por la
+    // puerta de atrás: le pasó al control del orden de CA-2.1, que anclaba su
+    // expresión regular igual que el lector viejo (F-SPEC-008-V27, segunda
+    // mitad). Comprobado CON EL PROPIO LECTOR, que es la única forma coherente.
+    const consumers = [
+      'tests/polite/support/capability.ts',
+      'tests/polite/architecture.test.ts',
+      'tests/polite/containment.test.ts',
+    ];
+
+    for (const consumer of consumers) {
+      const reading = readModule(consumer);
+      expect(reading.unparseable, `${consumer}`).toBe(false);
+      const names = reading.specifiers
+        .filter((specifier) => specifier.text?.endsWith('mirror/support/imports') === true)
+        .flatMap((specifier) => specifier.bindings.map((binding) => binding.name));
+      expect(names, `${consumer} no usa el lector`).toContain('readModule');
+    }
   });
 
   test('4. la lista es cerrada EN SUS DOS EJES, y no esconde una lista negra', () => {
@@ -111,10 +320,25 @@ describe('CA-2.3 — no se concede un paquete, se concede una superficie', () =>
     expect(packageEntry('next')?.surface).toEqual([]);
     expect(packageEntry('react')?.surface).toEqual([]);
 
-    // Y las dos entradas que no se explican solas llegan con su motivo escrito
+    // Y las entradas que no se explican solas llegan con su motivo escrito
     // junto a la lista (obligación 3).
     expect(packageEntry('node:module')?.motive).toBeTruthy();
     expect(packageEntry('vitest/config')?.motive).toBeTruthy();
+
+    // El lector se paga con una entrada, como cualquier otra cosa. El
+    // especificador se juzga TAL COMO ESTÁ ESCRITO, así que las entradas son
+    // los dos subcaminos que el lector escribe —en `typescript@7` el API
+    // clásico no existe: la raíz exporta solo `version` y `versionMajorMinor`—
+    // y las dos caen entre `react` y `vitest/config`.
+    const reader = specifiers.filter((specifier) => specifier.startsWith('typescript/'));
+    expect(reader).toEqual(['typescript/unstable/ast', 'typescript/unstable/sync']);
+    expect(specifiers.indexOf('react')).toBeLessThan(specifiers.indexOf(reader[0]!));
+    expect(specifiers.indexOf(reader[1]!)).toBeLessThan(specifiers.indexOf('vitest/config'));
+    for (const specifier of reader) expect(packageEntry(specifier)?.motive).toBeTruthy();
+    // Y su superficie es la que el lector toma y ni un nombre más: ninguno de
+    // esos nombres le pide bytes a un tercero, que es lo único que habría
+    // exigido una firma humana.
+    expect(packageEntry('typescript/unstable/sync')?.surface).toEqual(['API']);
   });
 
   test('4b. `fromURL` es rojo SIN QUE NADIE LO NOMBRE, y `load` no', async () => {
@@ -304,10 +528,15 @@ describe('CA-2.4 — la capacidad global no se toma prestada fuera de `src/polit
   test('9. y dentro de `src/polite/` aparece EXACTAMENTE una vez, en la puerta', () => {
     // Que el detector mida algo: `globalThis` existe en el árbol, y está donde
     // ADR-014 §4 dice que tiene que estar.
-    expect(POLITE.flatMap(capabilityOffences)).toEqual([
-      'src/polite/http.ts: globalThis',
-      'src/polite/http.ts: bare `fetch`',
-    ]);
+    //
+    // La lista es de UNO desde que esto se lee del árbol, y la que se va era un
+    // FALSO POSITIVO del patrón de texto: lo que casaba con «bare `fetch`» en
+    // `src/polite/http.ts` es la línea 32, `fetch(request: HttpRequest)`, que es
+    // el MIEMBRO DE UNA INTERFAZ y no una capacidad tomada prestada. Las tres
+    // apariciones reales de `fetch` en ese fichero son un miembro declarado, un
+    // `fetcher.fetch(…)` y el `globalThis.fetch(…)` de la puerta: ninguna es un
+    // identificador global desnudo, que es lo que CA-2.4 prohíbe.
+    expect(POLITE.flatMap(capabilityOffences)).toEqual(['src/polite/http.ts: globalThis']);
   });
 
   test('10. control positivo: la cuarta evasión, la más natural de todas', () => {
@@ -354,6 +583,25 @@ describe('CA-2.4 — la capacidad global no se toma prestada fuera de `src/polit
     }
   });
 
+  test('11b. un identificador escrito con escapes Unicode es EL MISMO identificador', () => {
+    // CA-2.3 dejó esto escrito como residuo —«un identificador escrito con
+    // escapes Unicode es el mismo para el compilador y no para un patrón»— y
+    // decía que cerrarlo sería barato el día que el árbol estuviera ahí. El
+    // árbol está ahí, y esto es ese día. Con el detector de texto,
+    // `globalThis` no casaba con /\bglobalThis\b/ y salía verde.
+    const escaped = syntheticFile(
+      'src/ingest/escaped.ts',
+      [
+        'export async function ask(url: string): Promise<number> {',
+        "  const send = globalThi\\u0073.fetch;",
+        '  return (await send(url)).status;',
+        '}',
+      ].join('\n'),
+    );
+
+    expect(capabilityOffences(escaped)).toEqual(['src/ingest/escaped.ts: globalThis']);
+  });
+
   test('12. y NO se caza la prosa ni el nombre de un módulo: el detector no es ruido', () => {
     // Sin esto el criterio se vuelve inservible y alguien lo afloja. Un
     // comentario que cita `globalThis.fetch` y un `import … from '@/polite/http'`
@@ -375,7 +623,11 @@ const reachable = await reachableModules(ENTRY_POINTS);
 
 describe('CA-2.5 — nada huérfano en los tres destinos que el CA nombra', () => {
   test('13. todo `.ts`/`.tsx` de `src/ingest/`, `src/polite/` y `src/site/` se alcanza', () => {
-    const contained = versionedSources().filter((path) =>
+    // La lista sale del escaneo y no de `git`, por lo mismo que CA-2.6: un
+    // fichero que `.gitignore` esconda bajo uno de los tres destinos es código
+    // que corre, y hasta la cuarta vuelta no era huérfano porque no existía
+    // para este caso (F-SPEC-008-V28).
+    const contained = scannedSources().filter((path) =>
       CONTAINED_DIRS.some((dir) => path.startsWith(dir)),
     );
 
@@ -425,7 +677,10 @@ describe('CA-2.5 — nada huérfano en los tres destinos que el CA nombra', () =
   test('17. `ENTRY_POINTS` no envejece: nombra todas las rutas de `src/app/`', () => {
     // Una ruta nueva sin declarar es código que Next ejecuta y que CA-2.1 no
     // conduciría nunca. Que aparezca aquí es lo que lo impide.
-    const routes = versionedSources().filter((path) => path.startsWith('src/app/'));
+    // Las rutas salen del escaneo —una ruta nueva sin commitear también la
+    // ejecuta Next—; que cada punto de entrada esté versionado se lo sigue
+    // preguntando a `git`, que es de lo que es autoridad.
+    const routes = scannedSources().filter((path) => path.startsWith('src/app/'));
 
     expect(routes.length).toBeGreaterThan(0);
     for (const route of routes) expect(ENTRY_POINTS).toContain(route);

@@ -40,7 +40,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import * as cheerio from 'cheerio';
 import { afterAll, describe, expect, test, vi } from 'vitest';
-import { reachableModules } from '../mirror/support/imports';
+import { readModule, reachableModules } from '../mirror/support/imports';
 import { ENTRY_POINTS } from './support/capability';
 // `import type` se borra por completo (`verbatimModuleSyntax`), así que NO es
 // un `import` de `src/` en ejecución y no adelanta nada a las trampas.
@@ -713,6 +713,25 @@ describe('CA-2.1 — la trampa se mide, no se supone', () => {
 
     // Y no hay ningún `import` estático de `src/` que se adelante a las dos:
     // los `import type` se borran enteros y no cuentan.
-    expect(source).not.toMatch(/^import\s+(?!type\b)[^;]*from\s+'@\//m);
+    //
+    // ESTO SE LO PREGUNTA AL LECTOR, NO A UN PATRÓN PROPIO. Hasta la cuarta
+    // vuelta esta aserción era
+    // `expect(source).not.toMatch(/^import\s+(?!type\b)[^;]*from\s+'@\//m)`,
+    // anclada a principio de línea igual que el lector viejo: un `import` de
+    // `@/…` escrito a mitad de línea se adelantaba a las trampas SIN PONER
+    // ROJO EL CASO QUE EXISTE PARA VERLO (F-SPEC-008-V27, segunda mitad).
+    // CA-2.3 obliga a que haya UN SOLO LECTOR y a que lo use también este caso;
+    // uno que se escribe su propio patrón es el mecanismo volviendo por la
+    // puerta de atrás.
+    const reading = readModule('tests/polite/containment.test.ts');
+    expect(reading.unparseable).toBe(false);
+    const early = reading.specifiers.filter(
+      (specifier) =>
+        !specifier.typeOnly &&
+        specifier.kind !== 'dynamic' &&
+        specifier.text?.startsWith('@/') === true,
+    );
+
+    expect(early).toEqual([]);
   });
 });

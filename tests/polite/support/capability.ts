@@ -1,5 +1,5 @@
 /**
- * CA-2 — the three declared lists, and the detectors built on them (ADR-016).
+ * CA-2 — the declared lists, and the detectors built on them (ADR-016).
  *
  * The criterion stopped looking for what is forbidden. It ENUMERATES WHAT IS
  * ALLOWED and demands the rest be empty. That matters because the previous
@@ -20,18 +20,32 @@
  * this one a way out?»— and that question was answered with a blacklist of
  * thirteen names that did not have `cheerio` on it. Conceding a surface makes
  * the question disappear (F-SPEC-008-V15).
+ *
+ * WHAT CHANGED ON THE FIFTH ROUND IS NOT THE GRAIN: IT IS WHO READS.
+ * The specifiers, the clauses and the bare identifiers all come out of
+ * `readModule` — the compiler's own tree (`tests/mirror/support/imports.ts`) —
+ * because a reader of regular expressions decided wrong three times about
+ * questions a parser answers on its own (F-SPEC-008-V27). And the LIST OF
+ * FILES stopped being `git`'s: `git ls-files --exclude-standard` inherits
+ * `.gitignore`, whose line 17 hides everything under any `robots/` directory
+ * for a reason that is legitimate and untouchable — third-party `robots.txt`
+ * files stay out of the repository (ADR-009 §3) — and a
+ * `src/ingest/robots/side.ts` with an
+ * unrestricted `cheerio.fromURL` left `tests/polite` at 76/76
+ * (F-SPEC-008-V28). NO RULE THAT EXISTS FOR SOMETHING ELSE DECIDES WHAT CODE
+ * GETS AUDITED.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import {
-  moduleSpecifiers,
+  readModule,
+  registerSyntheticSource,
   resolveModule,
-  withoutImportStatements,
 } from '../../mirror/support/imports';
 import { stripComments } from '../../support/source-tree';
-import type { ModuleSpecifier } from '../../mirror/support/imports';
+import type { ModuleReading, ModuleSpecifier } from '../../mirror/support/imports';
 
 /**
  * CA-2.6 — WHERE THE SCAN LOOKS.
@@ -47,6 +61,34 @@ export const SCAN_ROOTS: readonly string[] = [
   'next.config.ts',
   'vitest.config.ts',
   'vitest.integration.config.ts',
+];
+
+export interface ScanExclusion {
+  /** A path prefix, relative to the repository root. A directory ends in `/`. */
+  readonly path: string;
+  /** Why it is not audited. Same obligation as a package entry's motive. */
+  readonly motive: string;
+}
+
+/**
+ * CA-2.6 — WHAT THE SCAN DOES NOT READ, AND WHY. THE SCAN'S OWN LIST.
+ *
+ * Until the fifth round this list did not exist, because the file list came
+ * from `git ls-files --exclude-standard` and the exclusions were `.gitignore`'s
+ * — a file written to keep third-party data out of the repository, not to
+ * decide what code is audited. It hid everything under any `robots/`
+ * directory, and a file under one went unread (F-SPEC-008-V28).
+ *
+ * Today there is exactly one entry, and it is the one that justifies itself.
+ * The day a root needs a second one, its motive has to be written here; if the
+ * motive is «there are files in there that get in the way», the frontier is
+ * drawn wrong.
+ */
+export const SCAN_EXCLUSIONS: readonly ScanExclusion[] = [
+  {
+    path: 'node_modules/',
+    motive: 'Installed dependencies. Not our code, and CA-2.3 judges the specifier as written, not what it resolves to.',
+  },
 ];
 
 /**
@@ -107,6 +149,38 @@ export const ALLOWED_PACKAGES: readonly PackageEntry[] = [
   { specifier: 'node:url', surface: ['fileURLToPath', 'pathToFileURL'] },
   { specifier: 'postgres', surface: ['default'] },
   { specifier: 'react', surface: [] },
+  // The reader of CA-2.3 pays for itself with an entry, like anything else.
+  // `typescript` is already a declared dependency — it is what compiles this —
+  // and from the amendment of 2026-09-01 it is also what READS the frontier.
+  // The specifier is judged AS WRITTEN (CA-2.3, «what it resolves to is the
+  // business of package-lock.json»), so the entries are the two subpaths the
+  // reader actually writes; both sort between `react` and `vitest/config`.
+  // It is the first entry whose only importer lives in `tests/`, which is
+  // outside the roots of CA-2.6: it is declared all the same, because a list
+  // of dependencies missing the guardian's own would lie about what this
+  // repository uses. NO NAME IN EITHER SURFACE ASKS A THIRD PARTY FOR BYTES,
+  // which is the only thing that would have needed a signature.
+  {
+    specifier: 'typescript/unstable/ast',
+    surface: [
+      'SyntaxKind',
+      'isCallExpression',
+      'isElementAccessExpression',
+      'isExportDeclaration',
+      'isIdentifier',
+      'isImportDeclaration',
+      'isPropertyAccessExpression',
+      'isStringLiteral',
+    ],
+    motive:
+      'The syntax tree CA-2.3 reads from. In typescript@7 the classic API does not exist: the root package exports only `version` and `versionMajorMinor`, and the tree lives under `unstable/ast`. Only the kind table and the predicates the reader uses — none of them opens anything.',
+  },
+  {
+    specifier: 'typescript/unstable/sync',
+    surface: ['API'],
+    motive:
+      'Opens the real project (`updateSnapshot({ openProjects })`) so the reader judges the same program the compiler compiles. It talks to the compiler binary over stdio pipes and NOT over a socket, which is why it does not disturb the trap of CA-2.1 (measured, sonda J).',
+  },
   {
     specifier: 'vitest/config',
     surface: ['defineConfig'],
@@ -169,18 +243,72 @@ export interface ScannedFile {
   /** Path relative to the repository root, with forward slashes. */
   readonly path: string;
   readonly text: string;
-  /** The file with comments removed: prose about a pattern is not a use of it. */
+  /** The file with comments removed. Kept for the criteria that quote prose. */
   readonly code: string;
+  /** What the compiler's tree says about this file. THE ONE READER. */
+  readonly reading: ModuleReading;
   readonly specifiers: readonly ModuleSpecifier[];
 }
 
+function excluded(path: string): boolean {
+  return SCAN_EXCLUSIONS.some((exclusion) =>
+    exclusion.path.endsWith('/') ? path.startsWith(exclusion.path) : path === exclusion.path,
+  );
+}
+
 /**
- * Every `.ts`/`.tsx` of the working tree outside `tests/`. `git` is the
- * authority, and `--others --exclude-standard` is load-bearing: a file that is
- * NOT YET COMMITTED is still code that runs, and it is exactly the shape the
- * verifier's seven evasions took. Listing only `--cached` would have let a new
- * `src/ingest/side-door.ts` pass in green until somebody committed it —
- * measured, not supposed.
+ * CA-2.6 — EVERY `.ts`/`.tsx` UNDER THE DECLARED ROOTS, FROM THE FILE TREE.
+ *
+ * Not from `git`. `git ls-files --exclude-standard` inherits `.gitignore`, and
+ * a rule written to protect third-party data — everything under any `robots/`
+ * directory, ADR-009 §3 — ended up deciding which code gets audited:
+ * `src/ingest/robots/side.ts` with an
+ * unrestricted `cheerio.fromURL` left `tests/polite` at 76/76, measured
+ * (F-SPEC-008-V28). The exclusions here are the scan's OWN, declared above
+ * with their motive.
+ *
+ * The price is the right one and it is said out loud: a junk file with a `.ts`
+ * extension under a root IS RED. Stopping being red is deleting it or
+ * declaring an exclusion with its motive.
+ */
+export function scannedSources(): readonly string[] {
+  const files: string[] = [];
+
+  function walk(directory: string): void {
+    let entries;
+    try {
+      entries = readdirSync(join(ROOT, directory), { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const path = directory === '' ? entry.name : `${directory}/${entry.name}`;
+      if (entry.isDirectory()) {
+        if (!excluded(`${path}/`)) walk(path);
+        continue;
+      }
+      if (!entry.isFile()) continue;
+      if (excluded(path)) continue;
+      if (path.endsWith('.ts') || path.endsWith('.tsx')) files.push(path);
+    }
+  }
+
+  for (const root of SCAN_ROOTS) {
+    if (root.endsWith('/')) walk(root.slice(0, -1));
+    else if (!excluded(root) && existsSync(join(ROOT, root))) files.push(root);
+  }
+
+  return files.sort();
+}
+
+/**
+ * Every `.ts`/`.tsx` `git` knows about outside `tests/`.
+ *
+ * `git` KEEPS WHAT IT IS THE AUTHORITY ON: what is versioned. That is what the
+ * coverage case needs — «every versioned file outside `tests/` falls under a
+ * declared root» — and nothing else. WHAT GETS READ is `scannedSources()`, and
+ * the two lists are different on purpose: under the roots, the read list has
+ * to be the wider of the two.
  */
 export function versionedSources(): readonly string[] {
   return execFileSync(
@@ -198,22 +326,29 @@ export function underScanRoots(path: string): boolean {
   return SCAN_ROOTS.some((root) => (root.endsWith('/') ? path.startsWith(root) : path === root));
 }
 
-/** Everything the scan covers, read once. */
+/** Everything the scan covers, read once, through the one reader. */
 export async function scanRepository(): Promise<readonly ScannedFile[]> {
   const files: ScannedFile[] = [];
 
-  for (const path of versionedSources()) {
-    if (!underScanRoots(path)) continue;
+  for (const path of scannedSources()) {
     const text = await readFile(path, 'utf8');
-    files.push({ path, text, code: stripComments(text), specifiers: moduleSpecifiers(text) });
+    const reading = readModule(path);
+    files.push({ path, text, code: stripComments(text), reading, specifiers: reading.specifiers });
   }
 
   return files;
 }
 
-/** Builds a file out of synthetic text, for the positive controls. */
+/**
+ * Builds a file out of synthetic text, for the positive controls.
+ *
+ * Nothing is written to disk: the text is declared to the compiler through the
+ * reader's overlay (sonda H), so a failing control leaves no mutation behind.
+ */
 export function syntheticFile(path: string, text: string): ScannedFile {
-  return { path, text, code: stripComments(text), specifiers: moduleSpecifiers(text) };
+  registerSyntheticSource(path, text);
+  const reading = readModule(path);
+  return { path, text, code: stripComments(text), reading, specifiers: reading.specifiers };
 }
 
 /**
@@ -239,19 +374,14 @@ export async function resolvesInsideRepository(
   return existsSync(base);
 }
 
-/** A regular expression source that matches `identifier` and nothing longer. */
-function identifierPattern(local: string, tail: string): RegExp {
-  return new RegExp(`(?<![.\\w$])${local.replaceAll(/[$]/g, '\\$&')}${tail}`, 'g');
-}
-
 /**
  * CA-2.3, the namespace half — `import * as ns` obliges every `ns.x` to be
  * declared.
  *
  * A namespace is the whole export object handed over in one binding, so
  * without this the surface would be a formality: `import * as cheerio` and
- * then `cheerio.fromURL(url)` is the same capability by another spelling. Three
- * things are offences here and each is a different way of escaping the
+ * then `cheerio.fromURL(url)` is the same capability by another spelling.
+ * Three things are offences, and each is a different way of escaping the
  * enumeration:
  *
  *   1. a member that is not declared — the point of the criterion;
@@ -259,24 +389,33 @@ function identifierPattern(local: string, tail: string): RegExp {
  *      read, and is the same shape as a non-literal specifier (F-SPEC-008-V7);
  *   3. the namespace ESCAPING AS A VALUE — passed, returned, re-exported —
  *      because from there every member is reachable off-file.
+ *
+ * All three come off the tree: the reader already knows which identifiers are
+ * references and which are the names of declarations, which is the difference
+ * between a use of `cheerio` and the `cheerio` of its own import.
  */
 function namespaceOffences(file: ScannedFile, local: string, entry: PackageEntry): string[] {
-  const code = withoutImportStatements(file.code);
   const offences: string[] = [];
 
-  if (identifierPattern(local, '\\s*\\[').test(code)) {
-    offences.push(`${file.path}: computed access on the namespace \`${local}\` of ${entry.specifier}`);
-  }
-
-  for (const match of code.matchAll(identifierPattern(local, '\\s*\\.\\s*([A-Za-z_$][\\w$]*)'))) {
-    const member = match[1]!;
-    if (!entry.surface.includes(member)) {
-      offences.push(`${file.path}: ${entry.specifier} does not declare \`${member}\` in its surface`);
+  for (const read of file.reading.namespaceReads) {
+    if (read.local !== local) continue;
+    if (read.kind === 'computed') {
+      offences.push(
+        `${file.path}: computed access on the namespace \`${local}\` of ${entry.specifier}`,
+      );
+      continue;
     }
-  }
-
-  if (identifierPattern(local, '(?![\\w$])(?!\\s*[.[])').test(code)) {
-    offences.push(`${file.path}: the namespace \`${local}\` of ${entry.specifier} escapes as a value`);
+    if (read.kind === 'value') {
+      offences.push(
+        `${file.path}: the namespace \`${local}\` of ${entry.specifier} escapes as a value`,
+      );
+      continue;
+    }
+    if (read.member !== null && !entry.surface.includes(read.member)) {
+      offences.push(
+        `${file.path}: ${entry.specifier} does not declare \`${read.member}\` in its surface`,
+      );
+    }
   }
 
   return offences;
@@ -288,7 +427,18 @@ function namespaceOffences(file: ScannedFile, local: string, entry: PackageEntry
  * FRONTIER IS IN THE SURFACE THE ENTRY DECLARES. What is not there is red, and
  * nobody needs to know it exists.
  *
- * Red by construction, inside `src/polite/` included:
+ * FIRST, TWO THINGS THAT ARE RED BEFORE ANY LIST IS CONSULTED, and they are
+ * what makes «fail closed» a case instead of a claim (CA-2.3, obligation 2):
+ *
+ *   - a file the compiler cannot parse, or cannot see at all;
+ *   - a module THE COMPILER NAMES that this reader did not enumerate. That is
+ *     the one that would have caught the ninth evasion: an `import` written
+ *     after another statement on the same line was invisible to the old reader
+ *     AND REPORTED NOTHING (F-SPEC-008-V27). It is checked as a multiset, so
+ *     «two imports on one line, sees the first and loses the second» is red
+ *     too.
+ *
+ * Then, red by construction, inside `src/polite/` included:
  *
  *   - a specifier that IS NOT A STATIC LITERAL — `import(MOD)`,
  *     `import('node:' + 'https')` — because an import nobody can read closes
@@ -309,6 +459,26 @@ export async function importOffences(
   allowed: readonly PackageEntry[] = ALLOWED_PACKAGES,
 ): Promise<readonly string[]> {
   const offences: string[] = [];
+
+  if (file.reading.unparseable) {
+    return [`${file.path}: the compiler cannot parse this file`];
+  }
+
+  const enumerated = new Map<string, number>();
+  for (const specifier of file.specifiers) {
+    if (specifier.text === null) continue;
+    enumerated.set(specifier.text, (enumerated.get(specifier.text) ?? 0) + 1);
+  }
+  const counted = new Map<string, number>();
+  for (const named of file.reading.compilerModules) {
+    const seen = (counted.get(named) ?? 0) + 1;
+    counted.set(named, seen);
+    if ((enumerated.get(named) ?? 0) < seen) {
+      offences.push(
+        `${file.path}: the compiler names ${named} and the reader did not enumerate it`,
+      );
+    }
+  }
 
   for (const specifier of file.specifiers) {
     if (specifier.text === null) {
@@ -368,35 +538,33 @@ export async function importOffences(
  *
  * `require` is here too: it is CommonJS's import, and it is not a literal the
  * import scan can see.
+ *
+ * IT IS READ OFF THE SAME TREE, from the fifth round on. The text pattern this
+ * replaces could not tell a bare `fetch` from an interface member called
+ * `fetch` (it flagged one in `src/polite/http.ts` that is a declaration, not a
+ * use), it needed comments stripped first because half of this repository's
+ * prose quotes the very lines it hunted, and A NAME WRITTEN WITH UNICODE
+ * ESCAPES —`globalThis`— WAS THE SAME IDENTIFIER FOR THE COMPILER AND A
+ * DIFFERENT ONE FOR THE PATTERN. The tree has none of those three problems.
  */
-const CAPABILITY_PATTERNS: readonly (readonly [string, RegExp])[] = [
-  ['globalThis', /\bglobalThis\b/],
-  ['bare `fetch`', /(?<![.\w$'"`])fetch\s*\(/],
-  ['XMLHttpRequest', /(?<![.\w$])XMLHttpRequest\b/],
-  ['WebSocket', /(?<![.\w$])WebSocket\b/],
-  ['EventSource', /(?<![.\w$])EventSource\b/],
-  ['navigator', /(?<![.\w$])navigator\b/],
-  ['eval', /(?<![.\w$])eval\s*\(/],
-  ['new Function', /\bnew\s+Function\s*\(/],
-  ['require', /(?<![.\w$])require\s*\(/],
+const CAPABILITY_NAMES: readonly (readonly [string, string])[] = [
+  ['globalThis', 'globalThis'],
+  ['fetch', 'bare `fetch`'],
+  ['XMLHttpRequest', 'XMLHttpRequest'],
+  ['WebSocket', 'WebSocket'],
+  ['EventSource', 'EventSource'],
+  ['navigator', 'navigator'],
+  ['eval', 'eval'],
+  // The constructor is the capability however it is spelled, so a bare
+  // reference counts and not only `new Function(…)`.
+  ['Function', 'new Function'],
+  ['require', 'require'],
 ];
 
-/**
- * A module specifier names a module; it neither builds nor calls anything.
- * Without removing it, `from '@/polite/http'` would read as prose about a
- * capability. The specifiers themselves are CA-2.3's business.
- *
- * `require(…)` is NOT removed here: unlike `import`, it is a call, it is not a
- * specifier CA-2.3 can see, and it is one of the four ways of CA-2.4.
- */
-function withoutModuleSpecifiers(code: string): string {
-  return code.replaceAll(/(?:\bfrom|\bimport)\s*\(?\s*(['"])[^'"]*\1/g, '');
-}
-
 export function capabilityOffences(file: ScannedFile): readonly string[] {
-  const code = withoutModuleSpecifiers(file.code);
+  if (file.reading.unparseable) return [`${file.path}: the compiler cannot parse this file`];
 
-  return CAPABILITY_PATTERNS.filter(([, pattern]) => pattern.test(code)).map(
-    ([name]) => `${file.path}: ${name}`,
+  return CAPABILITY_NAMES.filter(([name]) => file.reading.bareIdentifiers.has(name)).map(
+    ([, label]) => `${file.path}: ${label}`,
   );
 }
