@@ -1,9 +1,11 @@
 ---
 id: ADR-015
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-01, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-01, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # ADR-015: Qué pasa cuando una decisión posterior invalida un CA de una spec cerrada
 
