@@ -27,25 +27,37 @@ Roles de dominio consultivos: `/sdd-competicion`, `/sdd-legal-datos`,
 
 ## Estado actual
 
-Fase: **spike de ingesta** (`EPIC-001`), paralelo con **sitio público de proyecto** (`EPIC-003`).
-- EPIC-001: Objetivo: medir latencia, cobertura, conflictos y minutos de operación manual con Terceira RFEF G1 + Preferente Futgal G1. Código: `src/model/`, `src/raw/`, `src/db/` (SPEC-001), `src/mirror/` (SPEC-002 y SPEC-003), `migrations/0001` aplicada. Las tres specs están hechas y verificadas GREEN. `src/ingest/`, `src/decide/` y `src/api/` siguen sin existir.
-- EPIC-003: **Todas cuatro specs `hecho`** (SPEC-004, 005, 006, 007 verificadas GREEN, 2026-08-31 a 2026-09-01). Sitio público en `marcador.gal`: galego por defecto, castellano en `/es`; `/proxecto` y `/robot` en ambas lenguas con paridad de contenido. Componentes en `src/site/`, bundles i18n en `src/i18n/`, rutas en `src/app/(gl)/` y `src/app/(es)/`. `robots.txt` generado dinámicamente. El sitio no nombra a ninguna persona y se presenta bajo el paraguas de tremen.dev (ADR-012). User-agent declarado: `marcador.gal/0.0.1 (+https://marcador.gal/robot; medicion de latencia)` (ADR-011).
+Fase: **EPIC-002 — instrumentación de las cuatro cifras**. `EPIC-001` sigue
+bloqueada hasta su veredicto y `EPIC-003` ya está **cerrada**.
+- EPIC-002: Objetivo: las cuatro cifras (latencia, cobertura, conflictos, minutos de operación manual) que salieron de EPIC-001 el 2026-08-31. Primera spec, **SPEC-008** (adaptador de `ceroacero.es` y cortesía RN-11 con una sola implementación), `aprobada` (2026-09-01) y en implementación, junto con **ADR-014**. `src/ingest/` y `src/polite/` **todavía no existen**.
+- EPIC-001: Objetivo: responder, **antes de construir el motor**, la pregunta de la que depende su diseño —¿hay fuentes automáticas usables, y son independientes entre sí?—, la precondición no medida de **RN-02**. Es medición, no producto: el entregable es un **veredicto con evidencia citada** (espejo, independiente o inconcluso) y el instrumento reutilizable que lo produce. Código que deja: `src/model/`, `src/raw/`, `src/db/` (SPEC-001), `src/mirror/` (SPEC-002 y SPEC-003), `migrations/0001` aplicada. Las tres specs están hechas y verificadas GREEN. **Veredicto: 2026-09-08.**
+- EPIC-003: **`hecho`** (2026-09-01, firmada por Alberto Fojo) — primera épica del proyecto en llegar ahí. Sus cuatro specs (SPEC-004, 005, 006, 007) verificadas GREEN, 2026-08-31 a 2026-09-01. Sitio público en `marcador.gal`: galego por defecto, castellano en `/es`; `/proxecto` y `/robot` en ambas lenguas con paridad de contenido. Componentes en `src/site/`, bundles i18n en `src/i18n/`, rutas en `src/app/(gl)/` y `src/app/(es)/`. `robots.txt` generado dinámicamente. El sitio no nombra a ninguna persona y se presenta bajo el paraguas de tremen.dev (ADR-012). User-agent declarado: `marcador.gal/0.0.1 (+https://marcador.gal/robot; medicion de latencia)` (ADR-011).
 - EPIC-004: **aprobada y CONGELADA de nacimiento** (2026-09-01). Guarda el sistema de diseño del marcador (`docs/diseno/`) y no se descongela hasta el go/no-go. Si vas a tocar interfaz, léela antes: su inventario tiene dos entradas que ya disparan —qué cualificador es el estado normal, y que el panel del operador no tiene ningún diseño.
+- EPIC-MEJORA: **aprobada** (2026-09-01). Bucket de deuda técnica sin plazo ni gate, once findings inventariados con su disparador escrito: destino de lo que una spec decide no arreglar.
+
+**Esa pregunta ya tiene respuesta, y no la dio el test de espejo sino la aritmética: no hay dos fuentes automáticas capturables, solo `ceroacero.es` (peso 0.7).** La segunda vía de RN-02 —dos fuentes independientes de peso ≥ 0.7 que coinciden— queda **cerrada**, así que **nada llega a *confirmado* sin una persona**: el bot del corresponsal y el panel del operador son la única ruta a un marcador confirmado.
 
 **La ventana de observación no se ha corrido, y hoy no se puede correr entera.**
 `futgal.es` prohíbe el rastreo en su `robots.txt` y RN-11 obliga a respetarlo, así
 que la fuente oficial **no es capturable** (ADR-008). SPEC-002 queda a la espera de
-que lo sea; SPEC-003 mide lo que sí se puede medir sin ella. EPIC-001 **no tiene
-todavía ninguna de sus cuatro cifras**.
+que lo sea; SPEC-003 mide lo que sí se puede medir sin ella. EPIC-002 **no tiene
+todavía ninguna de las cuatro cifras**.
 
-Hay **trece ADRs**, todos **aprobados e inmutables** (ADR-001 a ADR-013). Para
+Hay **catorce ADRs**, todos **aprobados e inmutables** (ADR-001 a ADR-014). Para
 cambiar uno aprobado, escribe otro ADR que lo supersede; no lo edites. ADR-008 y
 ADR-009 superseden **parcialmente** a ADR-002 y ADR-005: lee siempre el que
 supersede antes de apoyarte en el viejo. **ADR-013 fija la semántica visual del
-marcador**
-—el acento de marca nunca es un color de estado, ningún estado se codifica solo
-con color, dígitos tabulares, sin escudos— y te obliga en cuanto toques
-interfaz, aunque sea una página mínima de medición.
+marcador** —el acento de marca nunca es un color de estado, ningún estado se
+codifica solo con color, dígitos tabulares, sin escudos— y te obliga en cuanto
+toques interfaz, aunque sea una página mínima de medición. **ADR-014 fija que la
+cortesía de RN-11 tiene un solo dueño**: sale de `src/mirror/` a `src/polite/`
+(`robots.ts`, `http.ts`, `user-agent.ts`, `rate-limit.ts`), sin fachada de
+compatibilidad. Prohíbe, con test de arquitectura, un segundo parser de
+`robots.txt`, construir el `User-Agent` fuera de `src/polite/http.ts`, o pedir a
+un tercero sin pasar por `politeFetch`; y su `robots.txt` se archiva en el raw
+store antes de parsearse (RN-10, sin excepción por tipo de respuesta), con
+vigencia de 6 h y **fallo cerrado**. Lo trae **SPEC-008** (EPIC-002); hasta que
+esté `hecho`, `src/mirror/` sigue siendo el único domicilio del código.
 
 ## Reglas duras
 
@@ -145,7 +157,7 @@ docs/roadmap.md          secuencia de épicas
 docs/fundacion/          contexto, visión, dominio, reglas, retos
 docs/epicas/             épicas y sus specs
 docs/adr/                ADRs
-docs/procedimientos/     runbooks operativos (la ventana de observación)
+docs/procedimientos/     runbooks operativos (la ventana de observación) y calendario-de-compromisos.md (fechas con plazo; casi ninguna la vigila un test)
 docs/negocio/            monetización y marca
 docs/diseno/             sistema de diseño del marcador: fuentes, tokens y lienzo (EPIC-004)
 ```
