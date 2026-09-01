@@ -1,8 +1,10 @@
 # Contexto maestro — marcador.gal
 
 > Documento vivo: TODO lo que un agente (o una persona) necesita para situarse.
-> Se actualiza al cambiar el rumbo; la historia fina vive en ADRs y specs.
-> Última actualización: 2026-08-31 (contrato de dominio verificado).
+> Se actualiza al cambiar el rumbo; el estado fino spec a spec vive en
+> `docs/tablero.md` (generado, no editar), la intención y secuencia en
+> `docs/roadmap.md`, y la historia fina en ADRs y specs.
+> Última actualización: 2026-09-01 (EPIC-003 cerrada, primera épica en `hecho`).
 
 ## Qué es y en qué punto está
 
@@ -11,79 +13,108 @@ femenino) y de las divisiones nacionales, en directo, en una sola pantalla y en
 galego. Relevo con nombre e imagen propios de la desaparecida marcadorgalego.gal
 — **inspiración, no sucesión** (D-1).
 
-**Punto actual: cero líneas de código.** El repositorio contiene documentación
-fundacional, tres ADRs en borrador y el esqueleto de `pyproject.toml`. No existe
-`src/`. El trabajo inmediato es **EPIC-001 — Spike de ingesta**: una semana de
-medición sobre Terceira RFEF G1 + Preferente Futgal G1 para responder con números
-si el proyecto es viable. Ver `docs/roadmap.md`.
+**Punto actual: siete specs `hecho` y verificadas GREEN, trece ADRs `aprobada`
+e inmutables.** Hay código en `src/model/`, `src/raw/` y `src/db/` con
+`migrations/0001` aplicada (SPEC-001); en `src/mirror/`, con sus dos fases
+`capture/` y `analysis/` que no se importan entre sí (SPEC-002, SPEC-003); y en
+`src/app/`, `src/site/` e `src/i18n/`, el sitio público de `marcador.gal`
+(SPEC-004 a SPEC-007). **Siguen sin existir** `src/ingest/`, `src/decide/`,
+`src/api/` y `src/admin/`: el motor de decisiones (RN-01..RN-07) todavía no se
+ha escrito.
 
-El nombre y dominio **marcador.gal** están decididos y contratados (2026-08-31, Dinahosting; expira 2027-08-31).
+Tres épicas en juego, cada una en un punto distinto:
 
-## Stack y arquitectura (as-built, 2026-08-31)
+- **EPIC-001 — Spike de ingesta**, `aprobada` y **bloqueada de hecho**: sus tres
+  specs están hechas y, aun así, no tiene ninguna de las cuatro cifras que
+  prometía — `futgal.es` prohíbe el rastreo (ADR-008, RN-11) y solo queda una
+  fuente automática capturable. Veredicto el **2026-09-08**, diga lo que diga la
+  RFGF.
+- **EPIC-002 — Instrumentación de las cuatro cifras**, `aprobada`, descongelada
+  el 2026-09-01: **es donde está el trabajo ahora**. Su primera spec, SPEC-008
+  (adaptador de `ceroacero.es` y cortesía RN-11), y ADR-014 (dueño único de esa
+  cortesía) están en `borrador`, esperando firma humana.
+- **EPIC-003 — Páxina de proxecto e respaldo público da carta**, **`hecho`**
+  desde hoy, la **primera épica del proyecto que llega ahí**: entregó el sitio
+  público que respalda la carta a la RFGF.
 
-SPEC-004 está `hecho` (verificada GREEN). Sitio público en `marcador.gal` con soporte i18n galego/castellano.
+**EPIC-004** (sistema de diseño del marcador, `docs/diseno/`) está `aprobada` y
+**congelada a propósito** hasta el go/no-go. **EPIC-MEJORA**, `aprobada` hoy, es
+el bucket de deuda técnica del proyecto, con once *findings* inventariados.
 
-**Infraestructura y despliegue:**
-- Node 22 · TypeScript · Next.js (App Router) · cheerio · zod · grammY · Postgres · vitest (ADR-001).
-- Desplegado en **Vercel Pro** (ADR-004). Sin scheduler en proceso (Vercel Cron a 1/min), sin disco persistente, sin `LISTEN/NOTIFY`.
-- Raw store como puerto: Vercel Blob en producción, disco en local y tests (ADR-005).
-- Tiempo real: snapshot cacheable + SSE con `Last-Event-ID` (ADR-003). **Su implementación queda fuera de EPIC-001**: la página del spike lee el snapshot por polling.
+El nombre y dominio **marcador.gal** están decididos y contratados (2026-08-31,
+Dinahosting; expira 2027-08-31).
 
-**Fuentes y medición (propuesto, no verificado):**
-- Cuatro fuentes en el spike: futgal.es (oficial, no capturable hoy: ADR-008), ceroacero y resultados-futbol.com (contraste), bot de Telegram (corresponsal) (ADR-002).
-- Test de espejo el día 2 para saber si son independientes antes de construir el motor.
+## Stack y arquitectura (as-built, 2026-09-01)
 
-**Sitio público (EPIC-003, SPEC-004):**
-- Rutas en galego/castellano (`src/app/(gl)/`, `src/app/(es)/`): `/proxecto` y `/robot` (respaldo de la carta a la RFGF).
-- Componentes reutilizables en `src/site/`; bundles i18n galego/castellano en `src/i18n/` con paridad de claves (D-2, CA-4).
-- Sin JavaScript en el cliente, sin fuentes remotas, sin analítica, cero cookies (CA-9, CA-10). Legible con mala cobertura.
-- Mecanismo de i18n escrito a mano: Next.js App Router con route groups por idioma (ADR-010 — despliegue compartido con el futuro producto).
-- Dominio `marcador.gal` registrado en Dinahosting, expira 2027-08-31; DNS sin apuntar a Vercel todavía (CA-1, acción humana).
-- `robots.txt` propio (generado dinámicamente, SPEC-004 CA-11); se respeta el de terceros (RN-11).
+- Node 22 · TypeScript · Next.js (App Router) · cheerio · zod · grammY ·
+  Postgres · vitest (ADR-001). Desplegado en **Vercel Pro** (ADR-004): sin
+  scheduler en proceso (Vercel Cron a 1/min), sin disco persistente, sin
+  `LISTEN/NOTIFY`.
+- Raw store como puerto: Vercel Blob en producción, disco en local y tests
+  (ADR-005). Retención de 30 días desde el fin de ventana, prórroga escrita,
+  techo duro 90 (ADR-009).
+- Tiempo real: snapshot cacheable + SSE (ADR-003), fuera del alcance de
+  EPIC-001.
 
-**Motor de decisiones (propuesto):**
-Estructura de código prevista: `src/ingest/` adaptadores + cron · `src/decide/` modelo canónico (zod) + motor · `src/api/` snapshot · `src/admin/` panel móvil de correcciones y alertas.
+**Fuentes: de las tres candidatas del spike, solo una es capturable hoy.**
+`futgal.es` (oficial, peso 1.0) prohíbe el rastreo en su `robots.txt` y RN-11
+obliga a respetarlo (ADR-008 §1); `besoccer.es` (0.7) sirve armazones vacíos,
+con el dato tras un `Disallow`. Solo `ceroacero.es` (0.7) queda. **Consecuencia
+por aritmética, no por hipótesis:** la segunda vía de RN-02 —dos fuentes
+independientes de peso ≥ 0.7— está cerrada, no hay dos. Con una sola fuente
+automática, nada llega a *confirmado* sin una persona: el bot del corresponsal
+y el panel del operador (`src/admin/`, aún sin escribir) son la única ruta a un
+marcador confirmado.
 
-El corazón del diseño vive en `docs/fundacion/reglas.md` (RN-01..RN-13) y `docs/fundacion/dominio.md` (Observation / Decision). **SPEC-005** (identidad pública del rastreador: forma estable del user-agent, `hecho` 2026-09-01) ejecuta ADR-011 sustituyendo la cadena del user-agent en `src/mirror/user-agent.ts` — quitando identificadores internos (SPEC-002, RN-11) que rotaban con cada spec — por una identidad estable: `marcador.gal/0.0.1 (+https://marcador.gal/robot; medicion de latencia)`. Crea las rutas `/robot` y `/es/robot` donde esa cadena apunta y se publican las seis afirmaciones comprobables de RN-11: (1) la cadena literal del user-agent, (2) el tope de una petición por minuto y competición, (3) se respeta `robots.txt` siempre, (4) no se republica el dato de terceros, (5) qué se hace con lo leído y cuánto se guarda (30 días del fin de ventana, prórroga escrita, techo 90 — ADR-009), (6) cómo pedir que paremos sin alegar nada. Va después de SPEC-004 porque ejecuta su despliegue compartido (ADR-010) y ambas rutas viven en el mismo sitio (`src/app/(gl)/`, `src/app/(es)/`).
+Estructura prevista para el motor, todavía sin escribir: `src/ingest/`
+(adaptadores + cron) · `src/decide/` (RN-01..RN-07) · `src/api/` (snapshot) ·
+`src/admin/` (panel móvil). El corazón del diseño vive en
+`docs/fundacion/reglas.md` (RN-01..RN-13) y `docs/fundacion/dominio.md`.
 
 ## Decisiones clave hasta hoy
 
-- `FOUNDATION.md` — D-1 a D-7, locked.
-- [ADR-001](../adr/ADR-001-stack.md) — Stack del spike · **aprobada**
-- [ADR-002](../adr/ADR-002-fuentes-spike.md) — Fuentes del spike · **aprobada**
-- [ADR-003](../adr/ADR-003-sse.md) — SSE en lugar de WebSocket · **aprobada**
-- [ADR-004](../adr/ADR-004-plataforma.md) — Plataforma: Vercel Pro · **aprobada**
-- [ADR-005](../adr/ADR-005-raw-store.md) — Raw store: puerto Blob + disco · **aprobada**
-
-Los tres primeros se escribieron **antes** de adoptar tremen-sdd y se reabrieron a
-propósito al migrar (2026-08-29). ADR-001 se reescribió por completo —de Python a
-Node— al entrar Vercel en la ecuación. **Los cinco quedaron firmados por Alberto
-Fojo el 2026-08-29** y son ya inmutables: cambiarlos exige un ADR que los
-supersede.
+`FOUNDATION.md` fija D-1 a D-8, locked. Los **trece ADRs** (`docs/adr/`,
+listado completo en `docs/tablero.md`) están **aprobados e inmutables**; dos
+reabren parcialmente a otros dos ya aprobados, sin editarlos:
+[ADR-008](../adr/ADR-008-fuentes-capturables-del-spike-tras-el-dictamen-legal.md)
+retira `futgal.es` del conjunto capturable y reabre a
+[ADR-002](../adr/ADR-002-fuentes-spike.md); ADR-009 fija la retención del raw
+store y reabre a ADR-005.
+[ADR-011](../adr/ADR-011-identidad-publica-del-rastreador-forma-estable-del-user-agent.md)
+y [ADR-012](../adr/ADR-012-identidad-publica-del-sitio-sin-nombre-con-paraguas-y-con-buzon-delante.md)
+fijan la identidad pública del rastreador y del sitio, sin nombrar a nadie, bajo
+el paraguas de tremen.dev.
+[ADR-013](../adr/ADR-013-semantica-visual-del-marcador-el-acento-de-marca-nunca-es-un-color-de-estado.md)
+fija la semántica visual del marcador —el acento de marca nunca es un color de
+estado, ningún estado se codifica solo con color, dígitos tabulares, sin
+escudos— y obliga en cuanto se toque interfaz. **ADR-014**, sobre el dueño único
+de la cortesía RN-11, está en `borrador` junto a SPEC-008, esperando firma
+humana.
 
 ## Riesgos y preguntas abiertas
 
-Detalle completo en `retos.md`. Los que condicionan el trabajo inmediato:
+Detalle completo en `retos.md`. Lo que condiciona el trabajo inmediato:
 
-- **¿Son ceroacero y resultados-futbol.com independientes de futgal, o espejos?**
-  Si todas son espejos, RN-02 no es aplicable y casi todo se publica provisional.
-  Es la pregunta técnica más importante de EPIC-001, y por eso se responde el
-  **día 2** con el test de espejo, no en el informe final (ADR-002).
-- **¿Expone algo usable el backend de la app de la RFGF?** Si no, futgal.es es la
-  única fuente oficial y la latencia será la que sea.
-- **¿Cuántos minutos de operación manual cuesta una jornada?** Es la cifra que
-  dice si el proyecto escala sin una comunidad de corresponsales. Medirla
-  honestamente es responsabilidad del autor, que en el spike es el corresponsal.
+- **¿Contesta la RFGF antes del 2026-09-08?** La carta se envió el 2026-09-01 a
+  `info@futgal.es` pidiendo dos líneas en su `robots.txt`, no un acuerdo de
+  datos. Sin respuesta ese día, se da por no contestada y no se insiste — ni por
+  teléfono ni por otra vía. Diga lo que diga, EPIC-001 se cierra ese día.
+- **¿Hay una tercera candidata?** `lapreferente.com` sirve HTML real con el
+  nombre canónico de la competición, pero no se le ha visto directo; se
+  comprueba con partidos en juego, ventana el domingo 2026-09-06.
 - **Legal:** los resultados son hechos sin copyright, pero la extracción
-  sistemática de bases de datos está protegida en la UE (derecho *sui generis*) y
-  las ToS de los agregadores prohíben scraping. **El riesgo está en cómo se
-  obtiene el dato, no en el dato.** Escudos de clubes: marcas registradas, hace
-  falta política de uso.
-- **Coste de plataforma:** Vercel Pro son ~216 €/año antes del primer euro de
-  patrocinio, y es ~4× un VPS equivalente para esta carga (ADR-004). La decisión
-  se reevalúa con las métricas de EPIC-001 en la mano; Cloudflare Workers quedó
-  sin evaluar a fondo y es candidata.
-- **Sostenibilidad:** el proyecto debe pagarse (D-7). Ver
-  `docs/negocio/monetizacion.md`. La ayuda PR858A no es realista antes de enero
-  de 2028 y exige empresa constituida.
-- **Marca y presencia digital aún por asegurar:** Dominio contratado (2026-08-31, Dinahosting), pero quedan pendientes los handles en redes sociales y la comprobación en OEPM de que no hay registro previo de la marca. Esta última es previa a invertir en identidad visual.
+  sistemática de bases de datos está protegida en la UE (derecho *sui generis*)
+  y las ToS de los agregadores prohíben scraping. El riesgo está en cómo se
+  obtiene el dato, no en el dato. Escudos de clubes: marcas registradas.
+- **Coste y sostenibilidad:** Vercel Pro son ~216 €/año antes del primer euro
+  de patrocinio, ~4× un VPS equivalente (ADR-004); se reevalúa con las cuatro
+  cifras de EPIC-002. El proyecto debe pagarse (D-7): ver
+  `docs/negocio/monetizacion.md`.
+- **Marca:** la comprobación en OEPM está contestada a medias — «marcador»
+  ocupado, «marcador.gal» libre, revisión profesional pendiente. Mientras siga
+  pendiente, no se produce ningún activo de marca; la denominación es siempre
+  **marcador.gal**, nunca «marcador» a secas.
+
+Las fechas con plazo de todo lo anterior —incluida la purga del raw store del
+2026-09-30 (ADR-009)— se reúnen en un índice único:
+`docs/procedimientos/calendario-de-compromisos.md`.
