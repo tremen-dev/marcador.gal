@@ -66,6 +66,20 @@ pronunciado. Mientras no lo haga, **no se manda ninguno**.
 abierto desde el 2026-08-29. Quedan **los handles** y la comprobación en OEPM.
 Nada de esto depende de EPIC-001.
 
+**La comprobación en OEPM, contestada a medias el 2026-09-01, y con
+consecuencia:** Alberto Fojo comprobó que **«marcador» está ocupado como marca y
+«marcador.gal» está libre**. No cierra el riesgo —una búsqueda por denominación
+no es una comprobación de antecedentes registrales: faltan clases de Niza, marcas
+de la UE en EUIPO y denominativas parecidas, y el buscador gratuito de la OEPM ni
+siquiera filtra por clase, así que sigue pendiente una revisión profesional— pero
+sí lo **reubica**, y de una forma que ya obliga: la marca es **marcador.gal**, con
+el dominio dentro, y **nunca «marcador» a secas**. Eso deja de ser preferencia de
+estilo y pasa a ser restricción: cualquier sitio donde el producto se acorte
+—etiqueta de icono de app, handle, nombre corto— cae sobre una denominación
+ocupada. Mientras la revisión profesional siga pendiente **no se produce ningún
+activo de marca**; el logotipo tipográfico, que ya lleva el `.gal` dentro, puede
+seguir usándose como texto.
+
 **Bloqueante nuevo, y el más caro:** `futgal.es` **prohíbe el rastreo** en su
 `robots.txt` y RN-11 obliga a respetarlo (ADR-008 §1). La fuente **oficial** no
 es capturable. Conserva su peso 1.0 y su condición de oficial: lo que se retira
@@ -95,10 +109,37 @@ vía de RN-02 queda cerrada para todo lo que no sea una persona.
   disponible como camino y es la única forma limpia de recuperar la fuente
   oficial.
 
+- **EPIC-004 — Identidade visual e interface do marcador. CONGELADA de
+  nacimiento (2026-09-01).** Sube desde *Más adelante*, donde estaba como idea
+  sin compromiso, y **no levanta el criterio de corte**: no empieza hasta el
+  go/no-go. Lo que cambia no es la prioridad, es que ahora hay **un sitio**.
+  Nace porque se encargó un sistema de diseño fuera del pipeline —seis
+  artboards, dado por bueno como v1.0 el 2026-09-01— y ese trabajo, con sus seis
+  huecos y una contradicción, estaba viviendo en un artefacto publicado y un
+  worktree sin commit. Es la misma patología que hizo nacer a EPIC-MEJORA ese
+  mismo día: trabajo real rutado a un buzón inexistente.
+
+  **Lo que sí se movió, porque pasa el corte:** las reglas semánticas del
+  marcador —el acento de marca nunca es color de estado, ningún estado se
+  codifica solo con color, sin escudos, números tabulares— están en **ADR-013**,
+  en `borrador`. Se derivan de D-8 y de RN-01..RN-13, que están locked, y no
+  cambiarían con el informe en la mano.
+
+  **Y algo que la épica hereda como deuda, no como diseño:** el sistema pinta
+  `provisional` en gris y como excepción, y la mayoría de sus pantallas salen
+  `confirmado`. Este roadmap ya dice que con una sola fuente automática **nada se
+  publica confirmado sin una persona**. Si eso se sostiene, el diseño apaga el
+  estado dominante y destaca el raro, y eso no se arregla cambiando un color:
+  cambia cuál es la fila por defecto. Es la primera entrada de su inventario, y
+  su disparador ya tiene fecha: el **2026-09-08**.
+
 ## Más adelante (idea, sin compromiso)
 
-- Interfaz definitiva e identidad visual (logo a 48 px, marca de agua en la
-  captura compartida por WhatsApp, números tabulares).
+- ~~Interfaz definitiva e identidad visual~~ → **subió a *Después* el
+  2026-09-01 como EPIC-004**, congelada. No subió por prioridad: subió porque el
+  trabajo ya existía y necesitaba custodia. El logo a 48 px, la marca de agua en
+  la captura compartida por WhatsApp y los números tabulares siguen siendo sus
+  criterios, y siguen sin tocarse antes del informe.
 - **Landing con lista de espera. Objetivo declarado: 500 inscritos antes del
   producto.** Se queda aquí, y ahora con una razón más que el criterio de corte:
   hoy su mockup sería inventado y su formulario contradiría la carta a la RFGF.
