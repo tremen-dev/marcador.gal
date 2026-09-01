@@ -2,17 +2,23 @@
  * Castellano literals. Castellano is the option, not the default (D-2), and it
  * lives under its own URL prefix `/es` rather than in client state.
  *
- * This bundle carries the site namespace (SPEC-004) and the crawler namespace
- * of `/es/robot` (SPEC-005). `qualifiers` stays in `gl.ts` and belongs to the
- * spec that builds the scoreboard interface; pulling it in here would make
- * SPEC-004 answer for translations it has no page to show.
+ * This bundle carries the site namespace (SPEC-004), the crawler namespace of
+ * `/es/robot` (SPEC-005) and the document titles of the two castellano routes
+ * (SPEC-006). `qualifiers` stays in `gl.ts` and belongs to the spec that builds
+ * the scoreboard interface; pulling it in here would make SPEC-004 answer for
+ * translations it has no page to show.
  */
 import type { CrawlerBundle } from './crawler-bundle';
 import type { SiteBundle } from './site-bundle';
+import type { TitlesBundle } from './titles-bundle';
 
 export const es = {
+  titles: {
+    project: 'El proyecto — marcador.gal',
+    crawler: 'El rastreador — marcador.gal',
+  } satisfies TitlesBundle,
+
   site: {
-    documentTitle: 'El proyecto — marcador.gal',
     heading: 'marcador.gal',
 
     aboutHeading: 'Quién está detrás',
