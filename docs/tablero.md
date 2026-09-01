@@ -48,8 +48,8 @@ Actualizado: 2026-09-01
 | ADR-007 | aprobada | linter-oxlint-en-lugar-de-eslint | 2026-08-30 (Alberto Fojo) |
 | ADR-008 | aprobada | fuentes-capturables-del-spike-tras-el-dictamen-legal | 2026-08-31 (Alberto Fojo) |
 | ADR-009 | aprobada | retencion-del-raw-store-plazo-de-conservacion-y-purga | 2026-08-31 (Alberto Fojo) |
-| ADR-010 | borrador | un-solo-despliegue-para-el-sitio-de-proyecto-y-el-futuro-producto | 2026-08-31 (sdd-arquitecto) |
-| ADR-011 | borrador | identidad-publica-del-rastreador-forma-estable-del-user-agent | 2026-08-31 (sdd-arquitecto) |
+| ADR-010 | aprobada | un-solo-despliegue-para-el-sitio-de-proyecto-y-el-futuro-producto | 2026-09-01 (Alberto Fojo) |
+| ADR-011 | aprobada | identidad-publica-del-rastreador-forma-estable-del-user-agent | 2026-09-01 (Alberto Fojo) |
 | ADR-012 | aprobada | identidad-publica-del-sitio-sin-nombre-con-paraguas-y-con-buzon-delante | 2026-09-01 (Alberto Fojo) |
 | ADR-013 | aprobada | semantica-visual-del-marcador-el-acento-de-marca-nunca-es-un-color-de-estado | 2026-09-01 (Alberto Fojo) |
 
