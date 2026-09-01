@@ -74,7 +74,7 @@ describe('CA-10 — the third migration', () => {
     `;
     for (const index of indexes) {
       const found = rows.find((row) => row.indexname === index);
-      expect(found, index).toBeDefined();
+      expect(found?.indexname).toBe(index);
       expect(found?.indexdef).toMatch(/UNIQUE/);
     }
   });
