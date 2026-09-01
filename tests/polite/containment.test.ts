@@ -33,6 +33,8 @@
  * infraestructura, están declarados en CA-2.3, y RN-11 habla de la fuente, no
  * del almacén. Aquí no se toca ninguno de los dos.
  */
+import { spawn } from 'node:child_process';
+import { createSocket } from 'node:dgram';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { Socket } from 'node:net';
@@ -733,5 +735,96 @@ describe('CA-2.1 — la trampa se mide, no se supone', () => {
     );
 
     expect(early).toEqual([]);
+  });
+});
+
+/**
+ * SPEC-009 CA-4 — LO QUE ESTA FRONTERA NO PROMETE, Y CADA RESIDUO ES
+ * ALCANZABLE CON UN EJEMPLO (ADR-016 §6).
+ *
+ * Un residuo que nadie puede escribir no es un residuo: es una excusa. Los
+ * cuatro que el criterio declara se demuestran aquí escribiéndolos — salvo el
+ * tercero, el del cierre estático (`z` de `zod`), que es estático y vive en
+ * `evasions.test.ts` («CA-4.3»). Ninguno de estos ejemplos manda un byte a un
+ * tercero: todo destino es `127.0.0.1` (RN-11).
+ */
+describe('SPEC-009 CA-4 — el residuo declarado, alcanzable con un ejemplo cada uno', () => {
+  test('CA-4.1 — la contención en ejecución solo ve LO QUE SE EJECUTA', () => {
+    // Una rama de red que ningún caso ejerce no dispara nada. El ejemplo es
+    // mínimo a propósito: una función que contiene la capacidad real y que
+    // nadie llama. Es cuestión de COBERTURA, este proyecto no la mide, y el
+    // sitio de ese residuo el día que exista es EPIC-MEJORA (ADR-016
+    // §Consecuencias negativas 2).
+    reset();
+    const dormant = (): Promise<Response> => REAL_FETCH('https://www.ceroacero.es/nunca/');
+
+    expect(typeof dormant).toBe('function');
+    expect(trips).toEqual([]);
+    expect(polite.calls).toEqual([]);
+  });
+
+  test('CA-4.2a — la trampa solo ve lo que sale por un SOCKET: UDP no pasa por ahí', async () => {
+    // `node:dgram` manda bytes sin tocar `net.Socket.prototype.connect`. El
+    // paquete va al puerto discard de la propia máquina y no le llega a nadie,
+    // pero SALE DEL PROCESO con la trampa puesta y sin un solo disparo. Su
+    // único cierre es el estático (`node:dgram` no es entrada de
+    // `ALLOWED_PACKAGES`), y esta spec existe porque ese cierre falló dos
+    // veces: por eso el residuo va declarado y no prometido cerrado.
+    reset();
+    const socket = createSocket('udp4');
+
+    try {
+      await new Promise<void>((resolvePromise, rejectPromise) => {
+        socket.send(Buffer.from('residue'), 9, '127.0.0.1', (error) => {
+          if (error === null) resolvePromise();
+          else rejectPromise(error);
+        });
+      });
+    } finally {
+      socket.close();
+    }
+
+    expect(trips).toEqual([]);
+  });
+
+  test('CA-4.2b y CA-4.4 — un SUBPROCESO no hereda la trampa: vive en el proceso del test', async () => {
+    // Las dos mitades del mismo ejemplo. Un subproceso pide por su cuenta y la
+    // trampa registra CERO disparos mientras el servidor local RECIBE la
+    // petición: (2) un subproceso no pasa por el socket de este proceso, y
+    // (4) la trampa demuestra qué puede salir DESDE ESTE PROCESO DE TEST, no
+    // qué hace la plataforma en producción (ADR-004: en Vercel no hay trampa).
+    // El destino es el servidor local propio, nunca un tercero (RN-11).
+    reset();
+    const server = await localServer();
+
+    try {
+      const script = [
+        `fetch('${server.origin}/subprocess-residue')`,
+        '.then((res) => res.text())',
+        '.then(() => process.exit(0), () => process.exit(1));',
+      ].join('');
+      // `spawn` y no `execFileSync`: una espera síncrona bloquearía el event
+      // loop del padre, que es quien tiene que SERVIR la petición del hijo.
+      await new Promise<void>((resolvePromise, rejectPromise) => {
+        const child = spawn(process.execPath, ['-e', script], { stdio: 'ignore' });
+        child.on('exit', (code) => {
+          if (code === 0) resolvePromise();
+          else rejectPromise(new Error(`el subproceso salió con ${String(code)}`));
+        });
+        child.on('error', rejectPromise);
+      });
+
+      expect(server.received).toHaveLength(1);
+      expect(server.received[0]?.path).toBe('/subprocess-residue');
+      expect(trips).toEqual([]);
+      expect(polite.calls).toEqual([]);
+    } finally {
+      await server.close();
+    }
+
+    // Y el otro lado de CA-4.4, que el caso 12 deja fijado: la plataforma
+    // conserva su `fetch` y su `connect` reales — la trampa es DEL TEST.
+    expect(typeof REAL_FETCH).toBe('function');
+    expect(typeof REAL_CONNECT).toBe('function');
   });
 });
