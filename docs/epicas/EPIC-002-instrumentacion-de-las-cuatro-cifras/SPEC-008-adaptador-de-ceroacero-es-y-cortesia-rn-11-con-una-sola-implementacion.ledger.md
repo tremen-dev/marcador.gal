@@ -3843,3 +3843,380 @@ cada una. **Coinciden con lo que el ledger declara.**
 
 **La spec vuelve a `en-progreso`** firmada por `sdd-verificador`, para que el hook
 `require-spec` no deniegue la escritura al siguiente implementador.
+
+## Enmienda — 2026-09-01: el cierre estático lo lee el compilador, y la lista de ficheros deja de heredarse de `.gitignore`
+
+**Estado: DECIDIDA por Alberto Fojo el 2026-09-01** —«CA-2.3 pasa a exigir un
+parser de verdad: que especificadores y cláusulas salgan del API del compilador
+de TypeScript»— y **aplicada al cuerpo de la spec en esta tanda**. La **decisión
+de mecanismo es suya**; **el texto literal es de `sdd-arquitecto` y él no lo ha
+visto**, igual que en las dos enmiendas anteriores. La spec **no cambia de
+estado**: sigue `en-progreso`, y `sdd-arquitecto` no aprueba sus propios
+artefactos. **No se toca `src/`, `tests/` ni `migrations/`**, ni ningún ADR
+aprobado, ni el estado de ADR-015 y ADR-016, que siguen en `borrador`.
+
+Se usa la forma de **ADR-015 §2 y §3** por analogía —su caso literal es el de una
+spec `hecho` y ésta está `en-progreso`—, y se cubren sus cinco puntos
+obligatorios: §1 (qué exigían los CA y por qué el mecanismo era razonable), §2
+(qué los invalida, medido las dos veces), §3 y §4 (comprobado antes de escribirlo,
+y con qué se sustituyen), §5 (qué se gana y qué se pierde) y §6 (si el veredicto
+sigue en pie y qué la despierta).
+
+Son **dos huecos independientes** y van juntos porque los dos son lo mismo un
+paso más atrás: **una frontera que se demuestra leyendo código no puede leerlo
+con algo que no es el compilador, ni auditar una lista de ficheros que otro
+decidió por otro motivo.** El grano de la concesión —superficie y no paquete,
+literalidad, motivo escrito— **no se toca, y sale reforzado**.
+
+### 1. Qué exigían los dos CA, y por qué eran razonables
+
+**CA-2.3** exigía —y sigue exigiendo— que todo especificador sea una ruta interna
+o una entrada literal declarada, y que **cada nombre que cruza la frontera esté
+en la superficie que esa entrada declara**. Eso es correcto, está medido como
+correcto por la cuarta verificación —la octava evasión muere en las dos mitades,
+la variante huérfana de `src/db/` muere, la lista negra está borrada de verdad, y
+las cuatro formas clásicas de escapar la enumeración mueren todas— y **no se
+enmienda**. Lo que el criterio no decía es **con qué se lee**, y ahí se apoyaba,
+sin decirlo, en tres expresiones regulares.
+
+**Nada del texto anterior se borra: esta enmienda AÑADE.** Cambian dos cosas de
+identidad y se conservan aquí:
+
+> **CA-2.3 — Cierre de imports: no se concede un paquete, se concede una
+> superficie.**
+
+—el encabezado, que ahora nombra también al lector— y el párrafo del residuo,
+que era éste y ahora es una lista de cinco:
+
+> **Lo que este cierre NO promete** (ADR-016 §6). Cierra **un nivel**: el que
+> cruza la frontera del módulo. Un nombre concedido que sea a su vez un objeto
+> con capacidad dentro —`z`, de `zod`, es el caso vivo— **no queda cerrado por
+> dentro**, y cerrarlo un nivel más sería peaje sin daño medido que lo
+> justifique. Y un nombre concedido que **sí** sea una puerta de salida no lo
+> caza este criterio: lo caza **CA-2.1 si se ejecuta**, y si no se ejecuta, lo
+> único que queda es el diff y la firma.
+
+*(El texto que este CA sustituyó en su reescritura anterior —el que Alberto sí
+firmó, el de la treceava entrada— sigue conservado íntegro en «Enmienda —
+2026-09-01: CA-2 cierra por la superficie que se importa, y la trampa baja al
+socket» §1. Éste que se amplía hoy **no lo firmó nadie**: lo escribió
+`sdd-arquitecto` esa misma tarde, y la nota 11 del gate lo dice.)*
+
+**Texto sustituido de CA-2.6**, conservado íntegro:
+
+> **CA-2.6 — El escaneo cubre todo el código del repositorio, no solo `src/`.**
+> Las raíces del escaneo van declaradas, y un caso exige que **todo `.ts`/`.tsx`
+> versionado fuera de `tests/` caiga bajo una de ellas**.
+> No es hipotético: **`next.config.ts` es código ejecutable que hoy queda entero
+> fuera del escaneo**, y `src/site/redirects.ts` solo es alcanzable desde ahí.
+> ADR-014 §4 dice «en un script»; hoy no hay `scripts/`, pero sí hay
+> configuración ejecutable en la raíz.
+
+Era razonable y su parte vieja sigue entera: el defecto no está en qué raíces se
+declaran, sino en que **la lista de ficheros que se leen bajo esas raíces se le
+preguntaba a `git`**.
+
+### 2. Qué los invalida, y está medido las dos veces
+
+**F-SPEC-008-V27 — el lector no ve un `import` que no empieza la línea, y no
+falla cerrado: calla.** Los tres patrones de `moduleSpecifiers`
+(`tests/mirror/support/imports.ts`) están anclados con `(?:^|\n)\s*`. El
+verificador midió, con los patrones literales:
+
+```
+A mid-line after another statement => from: [] side: [] dyn: []
+B two imports on one line          => from: ["cheerio"] side: [] dyn: []
+C tab indented (control)           => from: ["cheerio"] side: [] dyn: []
+D node:net mid-line                => from: [] side: [] dyn: []
+```
+
+Y con la evasión puesta en un fichero real —`src/db/preflight9.ts`, bajo
+`SCAN_ROOTS` y fuera de `CONTAINED_DIRS`—:
+
+| Variante | Diferencia | `npm run lint` | `npm test` | `tests/polite` |
+|---|---|---|---|---|
+| **Evasión** | `import` tras `const noop = 0;` en la misma línea | **exit=0** | **762/762** | **76/76** |
+| **Control** | el mismo `import`, al principio de la línea | — | — | **ROJO**: `node:child_process is not a declared package entry` |
+
+**Doce caracteres separan verde de rojo**, y `node:child_process` **no es entrada
+de `ALLOWED_PACKAGES`**: no es una discusión de superficie, el paquete entero
+está fuera de la lista y entra igual. Manda una petición de verdad, medida contra
+un servidor local propio: *una petición, sin User-Agent, sin `robots.txt` antes*.
+
+**Y no cae en ningún residuo firmado.** CA-2.1 escribió el suyo con estas
+palabras: *«UDP, un subproceso que pida por su cuenta (`node:child_process`) o un
+binario nativo no pasan por ahí. **Su único cierre es el estático**»*. El residuo
+estaba bien declarado; lo que no estaba era el cierre en el que se apoyaba. La
+novena evasión vive en la distancia entre lo que CA-2.3 promete —«**cada**
+especificador de módulo»— y lo que su lector alcanza a leer.
+
+**Y es la tercera vez que el mismo lector decide mal donde un parser contestaría
+solo**: la primera fue `FROM_PATTERN` comiéndose media sentencia con `[\s\S]*?`
+ante `cheerio['from' + 'URL']` —arreglada en la cuarta vuelta con `[^;'"]*?`—; la
+segunda es el anclaje; la tercera es que la lista de ficheros dependa de
+`.gitignore`. El diagnóstico del verificador es el que manda esta enmienda, y va
+citado entero porque es exacto:
+
+> *«El grano de la concesión es correcto y no hay que tocarlo: el defecto no está
+> en qué se concede, sino en que quien lee el diff **no lee lo mismo que el
+> compilador**. Anclar el patrón a `;` en vez de a `\n` taparía este caso
+> concreto y dejaría abierto el siguiente.»*
+
+**F-SPEC-008-V28 — el escaneo le pregunta a `git`, y `git` esconde `**/robots/*`.**
+`versionedSources()` usa `git ls-files --cached --others --exclude-standard`, y
+`--exclude-standard` aplica `.gitignore`, cuya línea 17 dice `**/robots/*` —una
+regla legítima, puesta para que los `robots.txt` de terceros no entren en el
+repositorio (ADR-009 §3)—. Medido: un `src/ingest/robots/side.ts` con
+`import { fromURL } from 'cheerio'` **al principio de la línea** deja
+`tests/polite` en **76/76**, no aparece en `git status`, y `git check-ignore -v`
+confirma la regla. Es más estrecho que V27 —un fichero así no se puede commitear
+sin `git add -f`— pero derriba exactamente la propiedad que el comentario de
+`versionedSources()` declara: *«un fichero que todavía no está commiteado es
+código que corre»*.
+
+**La regla de `.gitignore` no se toca**, y va dicho aquí para que nadie lo
+intente: protege algo que ADR-009 §3 hace **irreversible** si se incumple, porque
+git no se purga, se reescribe. Lo que se arregla es el escaneo.
+
+### 3. Comprobado por `sdd-arquitecto` antes de escribirlo, y no dado por bueno
+
+La decisión dice «el API del compilador de TypeScript» y da por hecho que existe
+y que sirve. **No se dio por hecho: se midió**, con sondas propias fuera del
+repositorio (scratchpad, nada versionado, **ninguna petición a un tercero**),
+sobre el `typescript@7.0.2` que el proyecto ya tiene instalado y sobre Node 26.
+Hay una sorpresa y conviene que no la descubra el implementador:
+
+| # | Sonda | Resultado |
+|---|---|---|
+| A | `require('typescript')` y `ts.createSourceFile` | **No existe.** En la 7.x el paquete raíz exporta **solo** `version` y `versionMajorMinor`: el API clásico **no está** |
+| B | Los subcaminos publicados | `typescript/unstable/sync`, `typescript/unstable/ast` (+ `/is`, `/factory`, `/utils`, `/scanner`, `/visitor`, `/clone`), `typescript/unstable/fs`, `typescript/unstable/proto` |
+| C | Abrir el proyecto real (`updateSnapshot({ openProjects: [<tsconfig>] })`) | **180 ficheros raíz, 1054 en el programa.** Un `DocumentIdentifier` es **una cadena**, no un `{ fileName }` — el error que devuelve si se equivoca no lo dice |
+| D | `program.getSourceFile(<ruta>)` | Devuelve un **árbol de verdad**: `statements`, `importClause`, `namedBindings`, `moduleSpecifier` |
+| E | `node.forEachChild(...)` | Existe **como método del nodo**, no como función suelta: `forEachChild` **no** está exportado por `unstable/ast` |
+| F | Recorrido completo de los 77 `.ts`/`.tsx` de `src/` | **23 055 nodos, 259 `import`/`export`, 3 `import()` dinámicos**, en **12 ms**. Arranque incluido, **80 ms** en total |
+| G | `sourceFile.imports` | El compilador publica **su propia lista** de literales de módulo del fichero. Es lo que hace comprobable «no se perdió ninguno en silencio» |
+| H | Texto sintético que no existe en disco | **Se parsea**, con un `fs` virtual (`readFile`/`fileExists` de overlay) y `openFiles`: cae en el proyecto inferido y el árbol sale igual. **Los controles positivos de CA-2.3 siguen siendo posibles sin escribir ficheros** |
+| I | La novena evasión, por el árbol | `const noop = 0; import { execFileSync } from 'node:child_process';` → **se ve**, y `sf.imports` la lista. `import('node:' + 'https')` → se ve y sale **no literal**, que es rojo |
+| J | Cómo habla el API con el compilador | **`spawn` de un binario propio (`tsgo`) y tuberías de `stdio`** (`readSync`/`writeSync` sobre los fd), **no un socket**. En Windows, una *named pipe* abierta con `fs.openSync` |
+
+**La sonda J es la que evita un accidente.** La trampa de CA-2.1 está puesta sobre
+`net.Socket.prototype.connect` y es global al proceso (F-SPEC-008-V26): si el
+lector hablara por socket, el guardián de CA-2.3 dispararía la trampa de CA-2.1 y
+la atribución se ensuciaría. **No lo hace**: son tuberías de `stdio`. Lo que sí
+hace es **lanzar un subproceso**, y eso se dice entero: el lector de la frontera
+usa `node:child_process` a través del compilador. Vive en `tests/`, que está fuera
+de las raíces de CA-2.6 —igual que ya lo usa `versionedSources()` para llamar a
+`git`—, así que no contradice nada; pero es exactamente el tipo de cosa que este
+expediente ha aprendido a escribir en vez de callar.
+
+**Y la sonda A es la que ahorra la quinta vuelta.** Quien implemente esto y
+escriba `import ts from 'typescript'; ts.createSourceFile(...)` va a encontrarse
+un `undefined`, no un error de compilación.
+
+### 4. Con qué se sustituyen
+
+El texto literal de **CA-2.3** y **CA-2.6** está aplicado en el cuerpo de
+`SPEC-008…md`, y no se copia aquí para que no haya dos versiones que puedan
+divergir. Lo que cambia:
+
+- **CA-2.3** gana un bloque —*«los especificadores y las cláusulas salen del árbol
+  sintáctico que produce el compilador de TypeScript»*— con **tres obligaciones
+  sobre el lector**: (1) **un solo lector**, que usan CA-2.3, CA-2.5 **y el
+  control del orden de instalación de CA-2.1**, para que ningún caso se escriba
+  su propio patrón; (2) **nada se pierde en silencio**, y se comprueba **contra
+  el compilador**: la enumeración del lector cubre la lista de módulos que el
+  propio compilador registra para el fichero, y un fichero que no se puede
+  parsear o un nodo que nombra un módulo en una forma que el lector no sabe
+  clasificar son **rojo, nombrando el fichero**; (3) **la posición en la línea no
+  cambia el veredicto**, con el control positivo de las tres escrituras. Gana
+  también la entrada `typescript` en la lista, con su motivo, y **dos residuos
+  nuevos escritos dentro del CA** (§5).
+- **CA-2.6** gana de dónde sale la lista de ficheros: **del árbol de ficheros bajo
+  las raíces declaradas**, con exclusiones **propias, declaradas en el mismo
+  fichero y con motivo** —hoy solo `node_modules/`—, y **no de una herramienta que
+  excluye por otros motivos**. `git` conserva lo que es suyo: decir qué está
+  versionado, para el caso de cobertura. Y un **control positivo** que es la
+  reproducción de V28: un fichero bajo una raíz, dentro de un directorio que
+  `.gitignore` esconde, **se lee y se juzga**.
+
+**Esto se cumple sin tocar `src/`**, y se comprobó antes de escribirlo: el
+recorrido por el árbol de los 77 ficheros de `src/` da los mismos 259
+`import`/`export` y los mismos 3 dinámicos que el árbol tiene hoy, y de `cheerio`
+se sigue alcanzando solo `load`. **La única entrada nueva de la lista es
+`typescript`**, y ninguno de sus nombres le pide bytes a un tercero, que es lo
+único que habría exigido una firma.
+
+### 5. Qué se gana y qué se pierde. Sin suavizar
+
+**Se gana:**
+
+1. **El lector deja de ser una lista de formas de escribir un `import`.** Es
+   exactamente la doctrina de ADR-016 §3.1 aplicada al lector y no solo a la
+   lista: la enumeración pasa a estar cerrada por algo que existe fuera del test
+   —la gramática del lenguaje, tal como la implementa el compilador que ya
+   compila esto—. Tres defectos del mismo tipo mueren a la vez, y el cuarto no
+   tiene por dónde entrar.
+2. **«Falla cerrado» deja de ser una afirmación y pasa a ser un caso.** Contra el
+   propio compilador, además: no somos nosotros quienes decidimos si se perdió
+   algo.
+3. **La lista de ficheros deja de depender de una regla escrita para otra cosa.**
+   `.gitignore` seguirá creciendo por motivos suyos —y `**/robots/*` seguirá ahí,
+   porque ADR-009 §3 lo exige— sin que eso abra un agujero en una regla dura.
+4. **El control del orden de CA-2.1 deja de tener el defecto que vino a vigilar.**
+
+**Se pierde, o cuesta:**
+
+1. **El guardián de una regla dura pasa a depender de un API marcado
+   `unstable`.** En `typescript@7` el API clásico **no existe** y el nuevo se
+   publica bajo `typescript/unstable/*`. Una subida de la dependencia puede
+   romper el test. **Rompe ruidosamente** —un `undefined` o un error de
+   importación, no un silencio—, que es la diferencia con lo que se está
+   arreglando, pero es trabajo que llegará sin avisar y sin CI que lo vea antes.
+2. **El cierre estático pasa a costar un subproceso.** El lector lanza el binario
+   del compilador. Son 80 ms medidos y no cambia ningún gate, pero el guardián de
+   la frontera es ahora una máquina más grande que una expresión regular, y una
+   máquina más grande se rompe por más sitios.
+3. **Los controles positivos sintéticos se complican.** Ya no basta con pasar una
+   cadena: hace falta un sistema de ficheros virtual (medido, sonda H). Es más
+   ceremonia por caso.
+4. **CA-2.4 se sigue leyendo como texto**, y eso queda escrito dentro de CA-2.3:
+   un identificador con escapes Unicode es el mismo identificador para el
+   compilador y no para un patrón. **No se cierra aquí porque nadie lo ha medido
+   roto**, y este expediente enseña que el ensanche va detrás de la medida. Lo
+   estrecha CA-2.1 cuando el código se ejecuta.
+5. **Dos residuos más, escritos dentro del CA:** la superficie que una entrada
+   declara es lo que nosotros escribimos, no lo que el paquete exporta —declarar
+   un nombre que no existe es inofensivo, pero este criterio no lo ve—; y el
+   especificador se juzga tal como está escrito, no por lo que resuelve en
+   `node_modules`.
+6. **La lista de ficheros del escaneo pasa a ser más ancha que la de `git`**, y
+   eso es lo que se quiere; pero significa que un fichero basura con extensión
+   `.ts` bajo una raíz **es rojo**. Es el precio correcto: dejar de serlo es
+   borrarlo o declarar una exclusión con su motivo.
+
+### 6. Si el veredicto sigue en pie, y qué despierta esto
+
+**No hay veredicto que sostener:** SPEC-008 está `en-progreso` y su última
+verificación es **RED**, y RED **solo por CA-2**. Esta enmienda no rescata un
+GREEN: cambia el mecanismo contra el que la quinta verificación va a juzgar.
+**Los trece CA ✅ y los cuatro ⚠️ no se tocan y su evidencia sigue valiendo** —
+CA-14 con sus 144/144 contra Postgres real el primero, y CA-9.1 y CA-6.1, que se
+cerraron en la cuarta vuelta.
+
+**Qué la despierta** (ADR-015 §3.5):
+
+- **El día que `typescript` mueva o retire el API que el lector usa.** Es el
+  riesgo aceptado del §5.1, y se manifiesta como un test roto, no como un
+  silencio. Ese día se mueve el lector, no el criterio: el CA nombra **el árbol
+  del compilador**, no una función.
+- **El día que aparezca una evasión que el árbol vea y el criterio no juzgue.**
+  Sería un defecto del cierre, no del lector, y es el sitio donde volvería a
+  aplicarse ADR-016 §6.
+- **El día que alguien necesite cerrar CA-2.4 con el mismo árbol.** Es barato
+  porque el árbol ya está ahí, y el residuo está escrito esperando.
+- **El día que una raíz del escaneo necesite una exclusión que no sea
+  `node_modules/`.** Ese día hay que escribir su motivo, y si el motivo es «es
+  que ahí hay ficheros que molestan», la frontera está mal trazada.
+
+### 7. Dictamen sobre el caso 17 de `containment.test.ts`, pedido aparte
+
+**Es trabajo de implementación. CA-2.1 no se toca.**
+
+La última aserción del caso 17 —`expect(source).not.toMatch(/^import\s+(?!type\b)[^;]*from\s+'@\//m)`—
+tiene el mismo anclaje y el mismo defecto, pero **CA-2.1 ya exige la propiedad
+correcta**: *«un caso propio tiene que ponerse rojo si la instalación se mueve
+después del primer `import` de `src/`»*. Eso es cierto hoy y lo seguirá siendo; lo
+que falla es **cómo el caso averigua qué importa su propio fichero**, y eso es
+exactamente «qué especificadores tiene este fichero», que es la pregunta que
+CA-2.3 acaba de poner en manos del compilador.
+
+Para que no se pueda esquivar sin tocar CA-2.1, la obligación va escrita **dentro
+de CA-2.3**, como la primera de las tres del lector: *«un solo lector, y lo usan
+CA-2.3, CA-2.5 y el control del orden de instalación de CA-2.1»*. Un caso que se
+escriba su propio patrón es el mecanismo volviendo por la puerta de atrás, y ahí
+sí hay un CA que lo dice.
+
+Destino: **`sdd-implementador`**, en esta misma spec.
+
+### 8. ADR-016: se comprobó si esto lo desmiente, y se le hacen dos correcciones
+
+**No lo desmiente, y la parte central vuelve a salir reforzada.** §3.1 exige que
+una lista esté cerrada «por algo que existe fuera del test»; el defecto medido es
+que **el lector que la aplica no lo estaba**. La lista era buena y la leía una
+máquina que no leía lo mismo que el compilador. Como el ADR sigue en `borrador`,
+se corrige ahí en vez de quedar solo aquí. **No se aprueba: lo firma una
+persona.**
+
+1. **§4 gana la lección de V28.** La lista de ficheros que un escaneo audita **no
+   se hereda de reglas que existen para otra cosa** —`.gitignore` es el caso
+   medido—: se deriva de las raíces declaradas, y sus exclusiones son propias,
+   declaradas y con motivo. Una regla puesta para proteger un dato de terceros
+   acabó decidiendo qué código se audita, y ninguna de las dos cosas se enteró.
+2. **§5 gana su gemelo estático.** Hasta hoy el ADR decía cómo poner una trampa
+   sobre una capacidad, y nada sobre cómo **leer** el código cuando la
+   demostración es estática. Ahora lo dice: **se lee con el mismo parser que el
+   compilador**, la enumeración se cruza con la del propio compilador, y lo que
+   el lector no sabe clasificar es rojo. Con las tres medidas delante —el patrón
+   que se comía media sentencia, el anclaje, y la lista de ficheros—, porque el
+   ADR ya llevaba escrito que una lista de *formas de escribir* no tiene última
+   entrada y no se había dado cuenta de que **su lector también era una**.
+
+### 9. La lista cerrada de lo que le queda al implementador
+
+Para que la quinta vuelta no se gaste adivinando. **Nada de esto pide preguntar a
+nadie**, y **nada toca `src/` ni `migrations/`**.
+
+1. **CA-2.3 — el lector.** `moduleSpecifiers` y `reachableModules`
+   (`tests/mirror/support/imports.ts`) dejan de leer con expresiones regulares y
+   pasan a leer del árbol del compilador. Sonda A: en `typescript@7` **no existe**
+   `ts.createSourceFile`; el camino medido es `typescript/unstable/sync`
+   (`API`, `updateSnapshot`, `program.getSourceFile`) más `typescript/unstable/ast`
+   (`SyntaxKind`, los predicados `is*`, y `forEachChild` **como método del
+   nodo**). Un `DocumentIdentifier` es una **cadena**.
+2. **CA-2.3 — «nada se pierde en silencio», como caso.** La enumeración del lector
+   cubre `sourceFile.imports`; si falta uno, el fichero es rojo. Un fichero que no
+   parsea es rojo. Un nodo que nombra un módulo en una forma no clasificada es
+   rojo.
+3. **CA-2.3 — el control de la posición en la línea.** Las tres escrituras del
+   mismo `import` —al principio, tras otra sentencia, y como segundo de la
+   línea— dan **el mismo rojo**. Es la reproducción de F-SPEC-008-V27.
+4. **CA-2.3 — los controles sintéticos siguen sin escribir en disco.** Sonda H:
+   `fs` virtual (`readFile`/`fileExists`) y `openFiles`. `syntheticFile` no tiene
+   por qué cambiar de forma.
+5. **`typescript` entra en `ALLOWED_PACKAGES`** con su superficie —lo que el
+   lector toma y ni un nombre más— y **su motivo escrito**. La lista está
+   ordenada y el caso 4 lo comprueba: `typescript` va entre `react` y
+   `vitest/config`.
+6. **CA-2.1 — el caso 17 usa el lector**, no su propio patrón (§7). CA-2.1 no
+   cambia de texto.
+7. **CA-2.6 — la lista de ficheros.** Sale del árbol de ficheros bajo las raíces
+   declaradas, no de `git ls-files --exclude-standard`. Exclusiones propias,
+   declaradas junto a `SCAN_ROOTS`, con motivo; hoy `node_modules/`. **No se toca
+   `.gitignore`.**
+8. **CA-2.6 — el control positivo de V28.** Un fichero bajo una raíz dentro de un
+   directorio que `.gitignore` esconde —`src/ingest/robots/side.ts` es la forma
+   medida— **se lee y se juzga**. Y el caso de cobertura puede seguir
+   preguntándole a `git` qué está versionado.
+9. **Las mutaciones que lo prueban**, y son las que un verificador va a repetir:
+   la novena evasión en sus tres escrituras → rojo las tres; un fichero bajo
+   `src/**/robots/` con un `cheerio.fromURL` → rojo; mover la instalación de la
+   trampa → rojo en el caso 17, también si el `import` de `src/` se escribe a
+   mitad de línea; reponer `preflight.ts` con `fromURL` → rojo en CA-2.3 **y** en
+   CA-2.1; la variante huérfana en `src/db/` → rojo en CA-2.3.
+
+**Lo que sigue sin ser de esta spec, y no hay que arreglar aquí:**
+F-SPEC-008-V18, V20, V21, V24, V26, V3, V5 y V12 — todos siguen rutados donde
+estaban. **N4 tiene que seguir sobreviviendo**: es la pérdida firmada de CA-2.8
+(F-SPEC-008-20). Y **no vuelve ninguna lista negra**.
+
+### 10. Lo que esta enmienda NO toca
+
+No reabre **ADR-014** ni ningún ADR aprobado. No cambia el estado de SPEC-008 ni
+su frontmatter, ni el de ADR-015 y ADR-016, que siguen en `borrador`. No toca
+`src/`, `tests/`, `migrations/`, `.gitignore`, `docs/roadmap.md`, `CLAUDE.md` ni
+ninguna otra épica. **No toca el grano de la concesión de CA-2.3** —superficie y
+no paquete, literalidad, motivo escrito—, ni CA-2.1, CA-2.2, CA-2.4, CA-2.5,
+CA-2.7 y CA-2.8, ni la pérdida firmada de CA-2.8, ni los seis puntos ya
+arbitrados. Y **no contesta la pregunta legal** (**F-SPEC-008-7**): el dictamen de
+`sdd-legal-datos` sobre `ceroacero.es` en régimen de ingesta sigue sin pedir, y
+sigue siendo precondición de correr la primera jornada, no de escribir el código.

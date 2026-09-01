@@ -295,6 +295,16 @@ un equipo sin alias confirmado por una persona*.
   > anteriores y las mediciones están en «Enmienda — 2026-09-01: CA-2 cierra por
   > la superficie que se importa, y la trampa baja al socket». **CA-2.2 y
   > CA-2.4..CA-2.8 no se tocan.***
+  >
+  > *Y tras la **cuarta** verificación, **CA-2.3 se reescribió por tercera vez y
+  > CA-2.6 se amplió**: el grano de la concesión estaba bien y el lector no —un
+  > `import` que no empezaba la línea no se veía **y no fallaba cerrado**—, y la
+  > lista de ficheros del escaneo heredaba las exclusiones de `.gitignore`. Los
+  > textos anteriores y las mediciones están en «Enmienda — 2026-09-01: el cierre
+  > estático lo lee el compilador, y la lista de ficheros deja de heredarse de
+  > `.gitignore`» (F-SPEC-008-V27 y F-SPEC-008-V28). **CA-2.1, CA-2.2, CA-2.4,
+  > CA-2.5, CA-2.7 y CA-2.8 no se tocan**, y el grano de la concesión —superficie
+  > y no paquete, literalidad, motivo escrito— tampoco.*
 
   *El criterio deja de buscar lo prohibido: **enumera lo permitido y exige que el
   resto sea vacío**. Las tres listas que lo sostienen no son listas de formas de
@@ -383,18 +393,29 @@ un equipo sin alias confirmado por una persona*.
   El test se pone rojo si sale una petición cuyo permiso lo concedió otro código.
 
   **CA-2.3 — Cierre de imports: no se concede un paquete, se concede una
-  superficie.**
+  superficie; y quien lee el código es el compilador.**
 
-  > *Reescrito el 2026-09-01, por segunda vez en el mismo día. El texto anterior
-  > —el que salió del arbitraje «la treceava entrada de `ALLOWED_PACKAGES`»— se
-  > conserva íntegro en el ledger, junto con el motivo: «Enmienda — 2026-09-01:
-  > CA-2 cierra por la superficie que se importa, y la trampa baja al socket» §1.
-  > **Aquel texto concedía el paquete entero**, y por ahí entró la octava
-  > evasión: `cheerio` está en la lista y **es un cliente HTTP** —desde la 1.0
-  > exporta `fromURL`—, así que once líneas en `src/ingest/preflight.ts` mandaron
-  > una petición real **sin User-Agent, sin `robots.txt` y sin turno**, con la
-  > suite en 748/748 (F-SPEC-008-V15). No rodeó ningún detector: entró por la
-  > puerta principal.*
+  > *Reescrito el 2026-09-01, por tercera vez en el mismo día. Los dos textos
+  > anteriores se conservan íntegros en el ledger con su motivo: el del arbitraje
+  > «la treceava entrada de `ALLOWED_PACKAGES`», en «Enmienda — 2026-09-01: CA-2
+  > cierra por la superficie que se importa, y la trampa baja al socket» §1; y el
+  > que éste sustituye, en «Enmienda — 2026-09-01: el cierre estático lo lee el
+  > compilador, y la lista de ficheros deja de heredarse de `.gitignore`» §1.*
+  >
+  > *La primera reescritura pasó de conceder **paquetes** a conceder
+  > **superficies**, porque `cheerio` estaba en la lista y **es un cliente HTTP**
+  > —desde la 1.0 exporta `fromURL`—: once líneas en `src/ingest/preflight.ts`
+  > mandaron una petición real **sin User-Agent, sin `robots.txt` y sin turno**,
+  > con la suite en 748/748 (F-SPEC-008-V15). **Ese grano no se toca aquí y sale
+  > reforzado.** Lo que cambia en esta tercera es **con qué se lee**: el texto
+  > anterior se apoyaba en un lector de expresiones regulares que anclaba sus
+  > patrones a principio de sentencia, y por ahí entró la novena evasión —`const
+  > noop = 0; import { execFileSync } from 'node:child_process';` en
+  > `src/db/preflight9.ts`, `lint exit=0` y **762/762 en verde**, con
+  > `node:child_process` **entero fuera de la lista** y una petición de verdad
+  > saliendo sin User-Agent, sin `robots.txt` y sin turno—. **Doce caracteres
+  > separaban verde de rojo**, y el lector no falló cerrado: **calló**
+  > (F-SPEC-008-V27).*
 
   Dado todo `.ts`/`.tsx` bajo las raíces declaradas en CA-2.6,
   entonces cada especificador de módulo —estático, de efecto lateral o
@@ -406,6 +427,35 @@ un equipo sin alias confirmado por una persona*.
   `default`, y **cada miembro que se lee de un espacio de nombres**
   (`import * as ns` obliga a que todo `ns.x` esté declarado). **Lo que no está,
   es rojo, y no hace falta que nadie sepa que existe.**
+
+  **Y los especificadores y las cláusulas salen del árbol sintáctico que produce
+  el compilador de TypeScript —el mismo que compila este proyecto—, no de un
+  patrón de texto.** Es lo único que cambia respecto al texto anterior, y es lo
+  que hace cierto el «cada» de arriba: **quien lee el diff tiene que leer lo
+  mismo que el compilador**. Tres obligaciones sobre el lector, y las tres son
+  comprobables:
+
+  1. **Un solo lector, y lo usa todo el criterio.** No hay una segunda manera de
+     averiguar qué importa un fichero. Lo usan el cierre de CA-2.3, el recorrido
+     del grafo de CA-2.5 y **el control del orden de instalación de CA-2.1**, que
+     hoy lee su propio fichero con una expresión regular anclada igual y hereda
+     el mismo defecto (F-SPEC-008-V27, segunda mitad). Un caso que necesite saber
+     qué importa un fichero y se escriba su propio patrón es el mecanismo
+     volviendo por la puerta de atrás.
+  2. **Nada se pierde en silencio, y esto se comprueba contra el compilador y no
+     contra nosotros.** Para cada fichero, la enumeración del lector **cubre la
+     lista de módulos que el propio compilador registra para ese fichero**: si el
+     compilador nombra un módulo que el lector no enumeró, el fichero es
+     **rojo**. Y son rojo, nombrando el fichero: un fichero que el compilador no
+     puede parsear, y un nodo que nombra un módulo en una forma que el lector no
+     sabe clasificar. **«Falla cerrado» deja de ser una afirmación y pasa a ser
+     un caso**: el mecanismo anterior lo prometía y la medición lo desmintió.
+  3. **La posición en la línea no cambia el veredicto.** Control positivo propio,
+     escrito como la reproducción de F-SPEC-008-V27: el mismo `import` de un
+     paquete que no es entrada de la lista es **rojo** escrito al principio de la
+     línea, escrito detrás de otra sentencia en la misma línea, y como segundo
+     `import` de una línea que ya tiene otro. Si algún día los tres no dan lo
+     mismo, el lector volvió a ser un lector de texto.
 
   Siguen siendo **rojo por construcción**, también dentro de `src/polite/`:
   - un **especificador que no sea un literal estático** —`import(MOD)`,
@@ -458,15 +508,45 @@ un equipo sin alias confirmado por una persona*.
   trabajo es pedirle bytes a un tercero**. Eso último es todo lo que queda de la
   obligación vieja, y es lo único que sigue pidiendo una firma.
 
-  **Lo que este cierre NO promete** (ADR-016 §6). Cierra **un nivel**: el que
-  cruza la frontera del módulo. Un nombre concedido que sea a su vez un objeto
-  con capacidad dentro —`z`, de `zod`, es el caso vivo— **no queda cerrado por
-  dentro**, y cerrarlo un nivel más sería peaje sin daño medido que lo
-  justifique. Y un nombre concedido que **sí** sea una puerta de salida no lo
-  caza este criterio: lo caza **CA-2.1 si se ejecuta**, y si no se ejecuta, lo
-  único que queda es el diff y la firma.
+  **El lector se paga con una entrada de la lista, y va dicho aquí porque es la
+  primera de su especie.** `typescript` es ya una dependencia declarada del
+  proyecto —es lo que compila esto— y a partir de este criterio es también la
+  herramienta con la que se lee: entra en la lista **con su motivo escrito**,
+  como cualquier otra, y con la superficie que el lector toma y ni un nombre
+  más. Es la primera entrada cuyo único importador vive en `tests/`, que está
+  fuera de las raíces de CA-2.6; se declara igual, porque una lista de
+  dependencias en la que no está la del propio guardián miente sobre lo que este
+  repositorio usa. **Ningún nombre de esa superficie le pide bytes a un
+  tercero**, que es lo único que habría exigido una firma.
 
-  *Fotografía del día en que se escribió —orienta, no manda—*: trece entradas y
+  **Lo que este cierre NO promete** (ADR-016 §6). Son cinco cosas, y las tres
+  primeras no cambian:
+  - Cierra **un nivel**: el que cruza la frontera del módulo. Un nombre concedido
+    que sea a su vez un objeto con capacidad dentro —`z`, de `zod`, es el caso
+    vivo— **no queda cerrado por dentro**, y cerrarlo un nivel más sería peaje
+    sin daño medido que lo justifique.
+  - Un nombre concedido que **sí** sea una puerta de salida no lo caza este
+    criterio: lo caza **CA-2.1 si se ejecuta**, y si no se ejecuta, lo único que
+    queda es el diff y la firma.
+  - **Es sintaxis, no semántica.** El árbol dice qué nombres cruzan la frontera;
+    no dice qué hacen. Y la superficie que una entrada declara es **lo que
+    nosotros escribimos**, no lo que el paquete instalado exporta: declarar un
+    nombre que no existe es inofensivo, pero este criterio no lo detecta.
+  - **Juzga el especificador tal como está escrito, no lo que resuelve.** Un
+    literal `'cheerio'` se juzga contra la entrada `cheerio` diga lo que diga el
+    árbol de `node_modules`. Cerrar eso es asunto del `package-lock.json` y de
+    quien instala, no de un test de arquitectura.
+  - **El compilador solo lee lo que este criterio le da a leer, que son los
+    `import`.** Las otras tres maneras de alcanzar una capacidad las cierra
+    CA-2.4, **y ésas se siguen leyendo como texto**: un identificador escrito con
+    escapes Unicode —`globalThi\u0073`— es el mismo identificador para el
+    compilador y no para un patrón. Queda escrito aquí, y no como *follow-up*,
+    porque es el mismo defecto un criterio más allá; lo estrecha CA-2.1 cuando el
+    código se ejecuta, y cerrarlo del todo es barato **el día que alguien lo
+    necesite**, porque el árbol ya está ahí.
+
+  *Fotografía del día en que se escribió —orienta, no manda—*: catorce entradas
+  —trece, más `typescript`, que entra con este texto— y
   su superficie tal como el árbol la alcanza hoy — `node:crypto` (`createHash`),
   `node:fs` (`existsSync`), `node:fs/promises`
   (`mkdir`, `readFile`, `readdir`, `writeFile`), `node:module` (`registerHooks`),
@@ -474,8 +554,10 @@ un equipo sin alias confirmado por una persona*.
   (`fileURLToPath`, `pathToFileURL`), `@vercel/blob` (`get`, `list`, `put`),
   **`cheerio` (`load`, y nada más: `fromURL` queda fuera y ésa es la evasión
   cerrada)**, `next` (vacía), `postgres` (`default`), `react` (vacía),
-  `vitest/config` (`defineConfig`) y `zod` (`z`). Dos entradas llevan su motivo
-  escrito porque no se explican solas: **`node:module`**, porque
+  **`typescript`** (lo que el lector toma del API del compilador y nada más),
+  `vitest/config` (`defineConfig`) y `zod` (`z`). Tres entradas llevan su motivo
+  escrito porque no se explican solas: **`typescript`**, porque es el lector de
+  CA-2.3 y porque su único importador vive en `tests/`; **`node:module`**, porque
   `src/mirror/cli/node-resolve.ts` registra un hook de resolución para poder
   ejecutar las CLI en TypeScript —es la única capacidad de resolución de módulos
   fuera de `src/polite/`, y va nombrada, no tolerada en silencio—; y
@@ -517,13 +599,52 @@ un equipo sin alias confirmado por una persona*.
   `src/mirror/cli/*-cli.ts` usan uno—. Mientras no los vea, el cierre no es un
   cierre. El ensanche es parte de este CA y no toca `src/`.
 
-  **CA-2.6 — El escaneo cubre todo el código del repositorio, no solo `src/`.**
+  **CA-2.6 — El escaneo cubre todo el código del repositorio, no solo `src/`, y
+  su lista de ficheros no la decide `git`.**
+
+  > *Ampliado el 2026-09-01. Lo anterior no se afloja: se le añade de dónde sale
+  > la lista de ficheros. Motivo y medición en el ledger: «Enmienda —
+  > 2026-09-01: el cierre estático lo lee el compilador, y la lista de ficheros
+  > deja de heredarse de `.gitignore`» §1 y §2 (F-SPEC-008-V28).*
+
   Las raíces del escaneo van declaradas, y un caso exige que **todo `.ts`/`.tsx`
   versionado fuera de `tests/` caiga bajo una de ellas**.
   No es hipotético: **`next.config.ts` es código ejecutable que hoy queda entero
   fuera del escaneo**, y `src/site/redirects.ts` solo es alcanzable desde ahí.
   ADR-014 §4 dice «en un script»; hoy no hay `scripts/`, pero sí hay
   configuración ejecutable en la raíz.
+
+  Y además, porque una frontera que audita ficheros la decide su lista de
+  ficheros:
+
+  1. **La lista de lo que se lee sale del árbol de ficheros bajo las raíces
+     declaradas, no de una herramienta que excluye por otros motivos.** Hoy sale
+     de `git ls-files --exclude-standard`, así que **hereda `.gitignore`**, y
+     `.gitignore:17` esconde `**/robots/*` —por una razón legítima y que no se
+     toca: los `robots.txt` de terceros que ADR-009 §3 mantiene fuera del
+     repositorio—. Medido: un `src/ingest/robots/side.ts` con un
+     `cheerio.fromURL` sin restricción deja `tests/polite` en **76/76**
+     (F-SPEC-008-V28). Ninguna regla que exista para otra cosa puede decidir qué
+     código se audita.
+  2. **Las exclusiones del escaneo son suyas, van declaradas en el mismo fichero
+     que las raíces y cada una lleva su motivo**, como las entradas de CA-2.3.
+     Hoy la única que se justifica sola es `node_modules/`, que no es código
+     nuestro.
+  3. **Control positivo, y es la reproducción exacta de F-SPEC-008-V28**: un
+     fichero bajo una raíz del escaneo, dentro de un directorio que `.gitignore`
+     esconde, **se lee y se juzga** como cualquier otro. El caso se pone rojo el
+     día que la lista vuelva a derivarse de las exclusiones de git.
+  4. **Lo que `git` sigue decidiendo, porque es de lo que es autoridad**: qué
+     está versionado. El caso de cobertura —«todo `.ts`/`.tsx` versionado fuera
+     de `tests/` cae bajo una raíz»— puede seguir preguntándoselo. Lo que no
+     puede es decidir **qué se lee**: la cobertura y la lectura son dos listas
+     distintas, y la segunda tiene que ser la más ancha de las dos bajo las
+     raíces.
+
+  **Lo que esta parte NO promete** (ADR-016 §6): un fichero fuera de todas las
+  raíces sigue sin leerse, y eso es deliberado —`tests/` es el caso vivo—; lo que
+  el criterio garantiza es que **quedar fuera sea una decisión declarada en las
+  raíces**, no un efecto colateral de otra regla.
 
   **CA-2.7 — Cada mecanismo lleva su control positivo, y las evasiones vivas se
   escriben como controles.**
@@ -866,7 +987,9 @@ Aparcado a propósito, no por descuido. Cada línea tiene dueño futuro.
 > ese día y no se reabren. Los puntos **9 y 10** los añade la aplicación de las
 > dos enmiendas que Alberto Fojo arbitró. Los puntos **11 y 12** los añade la
 > tercera enmienda —la reescritura de CA-2.1 y CA-2.3 tras la tercera
-> verificación—, y son lo último que hay que mirar.
+> verificación—. Los puntos **13 y 14** los añade la cuarta —el lector de CA-2.3
+> pasa a ser el compilador y la lista de ficheros deja de salir de `git`—, y son
+> lo último que hay que mirar.
 
 Lo que hay que mirar con lupa antes de firmar. Los siete puntos son decisiones,
 no detalles, y cuatro de ellos son preguntas abiertas de verdad.
@@ -971,3 +1094,23 @@ no detalles, y cuatro de ellos son preguntas abiertas de verdad.
     no pasan por un socket de `node:net`**, así que la contención en ejecución no
     los ve y su único cierre es el estático de CA-2.3 y CA-2.4. Está escrito
     dentro del propio CA-2.1, como ADR-016 §6 obliga, y no como follow-up.
+
+13. **El cierre estático pasa a costar una dependencia de compilador, y eso es
+    una decisión con precio.** Hasta hoy CA-2.3 se sostenía en expresiones
+    regulares —baratas, sin dependencias, y **rotas tres veces por el mismo
+    motivo**: se comían media sentencia, anclaban a principio de línea, y ahora
+    la lista de ficheros—. A partir de aquí el guardián de una regla dura
+    depende del API del compilador de TypeScript, que en la 7.x está publicado
+    como **`unstable`**. Lo que eso significa, dicho antes de firmar: **una
+    subida de `typescript` puede romper el test**, y romperlo es lo bueno —falla
+    ruidosamente, no en silencio—, pero es trabajo que aparecerá sin avisar. La
+    alternativa era seguir tapando patrones de uno en uno, que es lo que el
+    verificador desaconseja con tres medidas delante. **La decisión es de Alberto
+    Fojo, del 2026-09-01; el texto es de `sdd-arquitecto` y él no lo ha visto.**
+
+14. **Lo que este cambio deliberadamente NO arregla, para que no se lea de más.**
+    Sigue habiendo una mitad de CA-2 que se lee como texto: CA-2.4, las tres
+    maneras de alcanzar una capacidad sin `import`. Está escrito dentro de
+    CA-2.3 y no se cierra aquí porque nadie lo ha medido roto — y este expediente
+    enseña que **la medida va antes que el ensanche**, no al revés. Si el gate
+    prefiere cerrarlo ya que el árbol está ahí, el sitio de decirlo es ahora.

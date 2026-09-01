@@ -29,6 +29,16 @@ historial:
   runner transforma, así que la trampa va sobre el objeto por el que pasa la
   capacidad **en el momento de usarla**, y hay que demostrarlo midiendo. Nada más
   cambia, y **el ADR sigue sin aprobar**.
+- **Corregido por tercera vez el 2026-09-01, todavía en `borrador` y antes de
+  cualquier firma**, a raíz de la **cuarta verificación de SPEC-008** y de la
+  enmienda que la sigue («el cierre estático lo lee el compilador, y la lista de
+  ficheros deja de heredarse de `.gitignore`»). El ADR decía cómo poner una
+  trampa sobre una capacidad y **no decía nada sobre cómo se lee el código**
+  cuando la demostración es estática, así que el mismo defecto que combate —una
+  lista cerrada por nuestra imaginación— sobrevivía **en el lector**: tres
+  decisiones mal tomadas por una expresión regular donde un parser contesta solo.
+  **§4 gana de dónde sale la lista de ficheros que se auditan** y **§5 gana su
+  gemelo estático**. Nada más cambia, y **el ADR sigue sin aprobar**.
 - Specs relacionadas: **SPEC-008** (EPIC-002) — el caso que lo origina y la
   primera aplicación; **SPEC-002** y **SPEC-003** (`hecho`, EPIC-001) — de donde
   sale la prueba documental de que la convención no basta (F-SPEC-002-23); y
@@ -79,6 +89,17 @@ puerta principal**. Enseñó dos cosas, que son §3.5 y la corrección de §5: q
 lista de lo permitido puede seguir escondiendo una lista negra en su condición de
 admisión, y que sustituir un **módulo** no alcanza a una dependencia que el
 runner externaliza.
+
+**Y hubo una novena, que no entró por la lista sino por el lector** *(añadido el
+2026-09-01)*. La cuarta vuelta implementó la concesión por superficie y aguantó
+todo lo que se le tiró encima; pero el lector que la aplicaba anclaba sus
+patrones a principio de línea, así que `const noop = 0; import { execFileSync }
+from 'node:child_process';` **no se veía — y no fallaba cerrado: no reportaba
+nada**. `node:child_process` ni siquiera estaba en la lista de lo permitido: el
+paquete entero estaba fuera y entró igual, con los tres gates en verde y una
+petición de verdad saliendo. **Doce caracteres separaban verde de rojo.** Es la
+tercera decisión que el mismo lector toma mal donde un parser contesta solo, y de
+ahí sale §5 bis.
 
 **Ése es el hallazgo general, y es lo único que este ADR generaliza:** una lista
 de *formas de escribir* una llamada está cerrada por la imaginación de quien la
@@ -212,6 +233,23 @@ unos puntos de entrada declarados—, **un fichero que nadie importa es rojo**.
 Dejar de serlo exige o importarlo, y entonces le aplica el resto del criterio, o
 añadirlo a la lista de puntos de entrada, que es otra vez un diff visible.
 
+**Y la lista de ficheros que se auditan no se hereda de reglas que existen para
+otra cosa.** *(Añadido el 2026-09-01, con el caso medido delante.)* Se deriva de
+las raíces declaradas; sus exclusiones son **suyas**, van declaradas al lado de
+las raíces y **cada una lleva su motivo**, exactamente como las entradas de una
+lista de lo permitido. Preguntarle la lista a otra herramienta es cómodo y es un
+agujero con la forma de siempre: quien mantiene esa otra regla no sabe que está
+decidiendo qué código se audita.
+
+**El caso, y es literal.** El escaneo de SPEC-008 CA-2.6 pedía sus ficheros con
+`git ls-files --exclude-standard`, así que heredaba `.gitignore`; y `.gitignore`
+esconde `**/robots/*` por una razón buena y ajena —los `robots.txt` de terceros
+se quedan fuera del repositorio (ADR-009 §3)—. Resultado medido: cualquier
+`.ts` bajo un directorio `robots/`, **también dentro de `src/`**, era invisible al
+escaneo, con la suite de la frontera en verde. Las dos reglas eran correctas por
+separado. **Ninguna de las dos sabía de la otra**, que es la definición de este
+tipo de fallo.
+
 ### 5. Cuando la capacidad se puede interceptar, se contiene en ejecución
 
 Si la capacidad se puede sustituir por una trampa —un global, un módulo, un
@@ -251,6 +289,47 @@ un nombre de función, no.
 La contención en ejecución no sustituye al cierre estático: **se usan juntos**.
 El estático alcanza el código que nadie ejecuta; el de ejecución no depende de
 cómo se escriba la línea. Cada uno tapa el residuo del otro.
+
+### 5 bis. Y su gemelo estático: se lee con el parser del compilador, no con patrones
+
+*(Añadido el 2026-09-01, con tres medidas delante.)* Este ADR llevaba escrito que
+una lista de *formas de escribir* está cerrada por la imaginación de quien la
+rodea, y **no se había dado cuenta de que su lector también era una**. Un
+criterio puede enumerar lo permitido impecablemente y seguir siendo falso si la
+máquina que lo aplica **no lee lo mismo que el compilador**.
+
+**Cuando una frontera se demuestra leyendo código fuente, ese código se lee con
+el mismo parser que lo compila.** Los especificadores, las cláusulas y los
+nombres que cruzan una frontera de módulo salen de un **árbol sintáctico**, no de
+una expresión regular. De ahí tres obligaciones, y las tres son comprobables:
+
+1. **Un solo lector para todo el criterio.** Un caso que necesite saber qué
+   importa un fichero y se escriba su propio patrón reintroduce el defecto donde
+   nadie lo va a mirar — incluido, y es el caso vivo, el control que vigila otro
+   mecanismo.
+2. **Lo que el lector no sabe clasificar es rojo, y eso se comprueba contra el
+   compilador y no contra nosotros.** La enumeración del lector se cruza con la
+   que el propio compilador publica para el fichero; si falta uno, es rojo. Un
+   fichero que no parsea, rojo. **«Falla cerrado» solo se escribe cuando hay un
+   caso que lo demuestra**: es una afirmación de §6, no un adorno.
+3. **El criterio nombra el árbol, no la función.** Igual que §5 nombra la
+   propiedad del socket y no el símbolo: el API del compilador se mueve, y
+   cuando se mueva hay que mover el lector, no el criterio.
+
+**El caso, y es literal.** El lector de SPEC-008 CA-2.3 decidió mal **tres veces
+por el mismo motivo**: un patrón que se comía media sentencia ante
+`cheerio['from' + 'URL']`; el anclaje a principio de línea, que hacía invisible
+—**y en silencio**— un `import` escrito detrás de otra sentencia, con doce
+caracteres separando verde de rojo y un paquete fuera de la lista entrando igual;
+y la lista de ficheros del §4. La tentación en los tres casos es arreglar el
+patrón. **Arreglar el patrón tapa el caso y deja abierto el siguiente**, y ésa es
+exactamente la forma de fallo que este ADR existe para no repetir.
+
+**Lo que cuesta, dicho aquí:** una dependencia de compilador en `tests/` —con su
+entrada en la lista de lo permitido y su motivo—, y un lector más grande que una
+`regex`. Se paga una vez por repositorio. Y se paga **con la medida delante**: si
+el API del compilador no da lo que el criterio necesita, el criterio se escribe
+más estrecho (§6) en vez de prometer lo que su lector no alcanza.
 
 ### 6. El criterio dice, dentro del criterio, qué NO promete
 
@@ -301,6 +380,11 @@ eso es un *finding* con destino `sdd-arquitecto`, no una corrección del test.
    de `tests/`, y la primera vez se paga entero. La compensación es que se paga
    una vez por repositorio y no una vez por spec —pero la primera spec lo paga
    sola.
+   **Y desde el 2026-09-01 cuesta también una dependencia**: §5 bis obliga a leer
+   con el parser del compilador, así que el guardián de una regla dura depende de
+   un API que no controlamos y que puede moverse. Rompe **ruidosamente**, que es
+   la diferencia con lo que sustituye; pero es una dependencia más en el camino
+   crítico de una verificación, y hay que decirlo antes de firmar.
 2. **La contención en ejecución solo alcanza lo que se ejecuta.** Un fichero
    alcanzable cuya rama de red no ejerza ningún test no dispara la trampa. Lo
    estrecha el cierre estático y lo cierra la **cobertura**, que este ADR no
@@ -338,6 +422,14 @@ eso es un *finding* con destino `sdd-arquitecto`, no una corrección del test.
   el criterio prometía «ninguna» y su mecanismo no puede llegar ahí nunca. Sigue
   siendo válida como **complemento** —un patrón que caza la forma obvia es barato
   y no molesta—, nunca como la prueba de la frontera.
+- **Arreglar el patrón: anclar a `;` en vez de a `\n`, y seguir con expresiones
+  regulares.** *(Añadida el 2026-09-01.)* Rechazada con las palabras del
+  verificador, que son la regla general de este ADR aplicada al lector: *«taparía
+  este caso concreto y dejaría abierto el siguiente»*. Es una entrada más en una
+  lista de formas de escribir un `import`, y esa lista **no tiene última
+  entrada** — el expediente lleva tres decisiones mal tomadas por el mismo lector
+  y ninguna era rebuscada. Sigue siendo válida como complemento barato, nunca
+  como la prueba de la frontera.
 - **Dejarlo en revisión de código y convención escrita.** Rechazada por la prueba
   documental: F-SPEC-002-23 vivió semanas en `main` dentro de la única
   implementación de una regla dura. Y hoy no hay CI ni segundo par de ojos
