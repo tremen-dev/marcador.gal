@@ -155,11 +155,21 @@ function urlOf(input: unknown): string {
 
 const REAL_FETCH = globalThis.fetch;
 
+/**
+ * Lo que la red simulada contesta. Es una VARIABLE y no una rama dentro de la
+ * trampa a propósito: un caso que quisiera otro `robots.txt` cambiaría esto y
+ * NUNCA `globalThis.fetch`. Reasignar el global después de los `import` sería
+ * exactamente el error que este fichero existe para no cometer — un módulo que
+ * capturó la referencia en su ámbito seguiría con la anterior, y el caso
+ * mediría el orden de las asignaciones en vez de la contención.
+ */
+let robotsTxt = ROBOTS_TXT;
+
 globalThis.fetch = (async (input: unknown): Promise<Response> => {
   const url = urlOf(input);
   trap.record('globalThis.fetch', url);
   return url.endsWith('/robots.txt')
-    ? new Response(ROBOTS_TXT, { status: 200 })
+    ? new Response(robotsTxt, { status: 200 })
     : new Response(PAGE_HTML, { status: 200 });
 }) as typeof globalThis.fetch;
 
@@ -415,15 +425,7 @@ describe('CA-2.2 — ninguna petición sale sin que la política real haya dicho
 
   test('9. una URL que la política PROHÍBE no sale', async () => {
     reset();
-    const forbidding = ['User-agent: *', 'Disallow: /edicion/', ''].join('\n');
-    const previous = globalThis.fetch;
-    globalThis.fetch = (async (input: unknown): Promise<Response> => {
-      const url = urlOf(input);
-      trap.record('globalThis.fetch', url);
-      return url.endsWith('/robots.txt')
-        ? new Response(forbidding, { status: 200 })
-        : new Response(PAGE_HTML, { status: 200 });
-    }) as typeof globalThis.fetch;
+    robotsTxt = ['User-agent: *', 'Disallow: /edicion/', ''].join('\n');
 
     try {
       const { adapter, registry } = ingestAdapter(globalFetcher);
@@ -436,7 +438,7 @@ describe('CA-2.2 — ninguna petición sale sin que la política real haya dicho
       ]);
       expect(ungated(trap.trips, policy.allowed)).toEqual([]);
     } finally {
-      globalThis.fetch = previous;
+      robotsTxt = ROBOTS_TXT;
     }
   });
 
