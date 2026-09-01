@@ -43,7 +43,8 @@ que la fuente oficial **no es capturable** (ADR-008). SPEC-002 queda a la espera
 que lo sea; SPEC-003 mide lo que sí se puede medir sin ella. EPIC-002 **no tiene
 todavía ninguna de las cuatro cifras**.
 
-Hay **catorce ADRs**, todos **aprobados e inmutables** (ADR-001 a ADR-014). Para
+Hay **quince ADRs**: **ADR-001 a ADR-014 aprobados e inmutables**, y **ADR-015 en
+borrador** (espera firma humana). Para
 cambiar uno aprobado, escribe otro ADR que lo supersede; no lo edites. ADR-008 y
 ADR-009 superseden **parcialmente** a ADR-002 y ADR-005: lee siempre el que
 supersede antes de apoyarte en el viejo. **ADR-013 fija la semántica visual del
@@ -58,6 +59,14 @@ un tercero sin pasar por `politeFetch`; y su `robots.txt` se archiva en el raw
 store antes de parsearse (RN-10, sin excepción por tipo de respuesta), con
 vigencia de 6 h y **fallo cerrado**. Lo trae **SPEC-008** (EPIC-002); hasta que
 esté `hecho`, `src/mirror/` sigue siendo el único domicilio del código.
+**ADR-015 (borrador) propone qué hacer cuando una decisión posterior invalida un
+CA de una spec cerrada**: el cuerpo de la spec **no se edita nunca**, y la
+enmienda se escribe en su **ledger** bajo un encabezado `## Enmienda — <fecha>:
+…` con cinco puntos obligatorios —qué afirmaba el CA, qué lo invalida, con qué se
+sustituye y si la red es menor, si el veredicto sigue en pie, y qué lo despierta—.
+El primer caso ya está escrito: la enmienda de **SPEC-005 CA-10** por **ADR-014
+§1**, en el ledger de SPEC-005. `grep -rn "^## Enmienda —" docs/epicas/` es el
+índice.
 
 ## Reglas duras
 
