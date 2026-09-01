@@ -1,334 +1,323 @@
 /**
- * CA-2 (ADR-014 §1 y §4) — la cortesía RN-11 tiene UNA sola implementación.
+ * CA-2, the static half — CA-2.3 to CA-2.7 (ADR-014 §1 y §4; ADR-016).
  *
- * Las tres prohibiciones del ADR se comprueban con un test, no con revisión de
- * código: fuera de `src/polite/` no puede haber (a) análisis de un
- * `robots.txt`, (b) construcción de la cabecera `User-Agent`, ni (c) una
- * llamada a `globalThis.fetch` **o equivalente** dirigida a un tercero. El
- * modo de fallo de RN-11 es una petición que sale, se sirve y no vuelve, así
- * que nada se pone rojo solo.
+ * ESTE FICHERO YA NO BUSCA PALABRAS. Buscaba tres cosas prohibidas —un
+ * `robots.txt` analizado, una cabecera `User-Agent` construida, una llamada a
+ * `fetch` «o equivalente»— y en dos vueltas de verificación se rodeó siete
+ * veces. No por flojo: **una lista de formas de escribir una llamada crece con
+ * la imaginación de quien la rodea, y no tiene última entrada**
+ * (F-SPEC-008-10, y el arbitraje del 2026-09-01 lo firma).
  *
- * Cada detector lleva su CONTROL POSITIVO: se aplica sobre texto sintético que
- * simula una segunda implementación en `src/mirror/`, en `src/ingest/` y en
- * `src/site/`, y se exige que muerda en los tres. Sin ese control, un detector
- * que dejara de encontrar nada pasaría en verde para siempre.
+ * Ahora **enumera lo permitido y exige que el resto sea vacío**:
  *
- * Y LOS CONTROLES POSITIVOS NO SON UNA COLECCIÓN CERRADA. El verificador
- * demostró —ejecutando, con la suite entera en verde— tres formas de rodear
- * este guardián (F-SPEC-008-V1): una segunda puerta de salida por
- * `node:https`, un segundo parser que escribe el campo dentro de una regex, y
- * una recomposición de la cadena declarada desde las constantes exportadas.
- * Las tres viven ahora en `EVASIONS` y el caso 7 exige que mueran. Cuando
- * aparezca la cuarta, se añade ahí: un detector literal caza lo que ya se sabe
- * escribir, y por eso lo que se sabe se escribe.
+ *   CA-2.3  todo especificador de módulo es un literal de `ALLOWED_PACKAGES` o
+ *           una ruta que resuelve dentro del repositorio; uno que no sea
+ *           literal estático es rojo por construcción.
+ *   CA-2.4  fuera de `src/polite/` no se toma prestada la capacidad global.
+ *   CA-2.5  nada huérfano en `src/ingest/`, `src/polite/` y `src/site/`.
+ *   CA-2.6  el escaneo cubre todo el `.ts`/`.tsx` versionado fuera de `tests/`.
+ *   CA-2.7  cada mecanismo lleva su control positivo, y las tres evasiones
+ *           vivas están escritas como controles.
+ *
+ * NO QUEDA NINGUNA EXENCIÓN POR NOMBRE DE FICHERO. `src/site/robots-txt.ts` y
+ * `src/mirror/analysis/referenceless/report.ts` dejan de necesitarla porque el
+ * criterio deja de mirar palabras, y con la lista desaparece el agujero de
+ * F-SPEC-008-V9. Ninguno de los dos ficheros cambia (CA-3).
+ *
+ * La mitad en EJECUCIÓN —CA-2.1 y CA-2.2— vive en `containment.test.ts`, que
+ * instala las trampas antes de importar nada de `src/`.
  */
+import { readFile } from 'node:fs/promises';
 import { describe, expect, test } from 'vitest';
-import { readSourceTree, stripComments } from '../support/source-tree';
-import type { SourceFile } from '../support/source-tree';
+import { reachableModules } from '../mirror/support/imports';
+import { stripComments } from '../support/source-tree';
+import {
+  ALLOWED_PACKAGES,
+  CONTAINED_DIRS,
+  COURTESY_DIR,
+  ENTRY_POINTS,
+  SCAN_ROOTS,
+  capabilityOffences,
+  importOffences,
+  scanRepository,
+  syntheticFile,
+  underScanRoots,
+  versionedSources,
+} from './support/capability';
 
-const TREE = await readSourceTree();
-const OUTSIDE = TREE.filter((file) => !file.path.startsWith('polite/'));
+const SCANNED = await scanRepository();
+const OUTSIDE = SCANNED.filter((file) => !file.path.startsWith(COURTESY_DIR));
+const POLITE = SCANNED.filter((file) => file.path.startsWith(COURTESY_DIR));
 
-/** El módulo dueño, y la prueba de que el escaneo mide algo. */
-const POLITE = TREE.filter((file) => file.path.startsWith('polite/'));
-
-/**
- * Un `import` nombra un módulo; no analiza nada ni compone nada. Sin quitar el
- * especificador, `from '@/polite/user-agent'` cuenta como la palabra
- * `user-agent`, y el detector se convertiría en ruido.
- *
- * Se quitan SOLO para los detectores de texto (a) y (b): el detector (c) mira
- * precisamente los especificadores, porque una segunda puerta de salida
- * empieza por importar el módulo que la abre.
- */
-function withoutModuleSpecifiers(code: string): string {
-  return code.replaceAll(/(?:\bfrom|\bimport|\brequire)\s*\(?\s*(['"])[^'"]*\1/g, '');
+async function offendersOf(
+  files: readonly (typeof SCANNED)[number][],
+): Promise<readonly string[]> {
+  const all: string[] = [];
+  for (const file of files) all.push(...(await importOffences(file)));
+  return all;
 }
 
-/**
- * (a) Analizar un `robots.txt` es reconocer los nombres de sus campos, y RFC
- * 9309 los fija: no hay parser que no los escriba.
- *
- * Tres detectores, y el tercero es el que cierra el agujero de F-SPEC-008-V1:
- * mirar solo el token ENTRECOMILLADO Y EXACTO deja pasar un segundo parser que
- * los escriba dentro de una expresión regular (`/^\s*disallow\s*:/i`), que es
- * la forma más natural de escribir el segundo.
- */
-const ROBOTS_FIELD = /(['"])(?:user-agent|allow|disallow)\1/;
-const ROBOTS_SYMBOL =
-  /\b(?:function|const|class|interface|type)\s+(?:parseRobots|robotsRegistry|robotsSkipReason|allowAllRobots|RobotsPolicy)\b/;
-/** La palabra del campo, escrita como sea: cadena, regex o identificador. */
-const ROBOTS_WORD = /\b(?:disallow|user-agent)\b/i;
+describe('CA-2.6 — el escaneo cubre todo el código, no solo `src/`', () => {
+  test('1. todo `.ts`/`.tsx` versionado fuera de `tests/` cae bajo una raíz declarada', () => {
+    const uncovered = versionedSources().filter((path) => !underScanRoots(path));
 
-/**
- * Los DOS ficheros que escriben las palabras del formato sin analizar el de
- * nadie. Van nombrados uno a uno —no por patrón— para que añadir un tercero
- * sea un diff visible, y el caso 7 comprueba que la lista no envejece.
- *
- * `site/robots-txt.ts` GENERA el nuestro (SPEC-004 CA-11) y el informe de
- * SPEC-003 CITA el de futgal dentro de una frase en castellano. Ninguno de los
- * dos queda exento de `ROBOTS_FIELD` ni de `ROBOTS_SYMBOL`: la exención es solo
- * de la palabra suelta.
- */
-const ROBOTS_PROSE: readonly string[] = [
-  'mirror/analysis/referenceless/report.ts',
-  'site/robots-txt.ts',
-];
+    // `next.config.ts` es código ejecutable y hasta hoy quedaba ENTERO fuera
+    // del escaneo, con `src/site/redirects.ts` alcanzable solo desde ahí
+    // (F-SPEC-008-V14). Las dos configuraciones de vitest, igual.
+    expect(uncovered).toEqual([]);
+    expect(SCAN_ROOTS).toContain('next.config.ts');
+  });
 
-function parsesRobots(file: SourceFile): boolean {
-  if (ROBOTS_FIELD.test(file.code) || ROBOTS_SYMBOL.test(file.code)) return true;
-  if (ROBOTS_PROSE.includes(file.path)) return false;
-  return ROBOTS_WORD.test(withoutModuleSpecifiers(file.code));
-}
-
-/** (b) Construir la cabecera es escribir su nombre como clave de un objeto. */
-const UA_HEADER = /['"]user-agent['"]\s*:/i;
-/** …o componer la cadena declarada, que se hace en un solo sitio (ADR-011). */
-const UA_LITERAL = /USER_AGENT(?:_PRODUCT|_VERSION|_CONTACT|_PATTERN)?\s*=/;
-/**
- * …o recomponerla desde las piezas exportadas, sin asignar a ningún nombre
- * `USER_AGENT*` y sin copiar el literal del propósito. Es la tercera evasión
- * de F-SPEC-008-V1: las tres constantes de ADR-011 son de `src/polite/` y solo
- * ahí se leen. Quien necesite la cadena importa `USER_AGENT`, ya compuesta.
- */
-const UA_PARTS = /\bUSER_AGENT_(?:PRODUCT|VERSION|CONTACT)\b/;
-/** …o partir el nombre de la cabecera para escaparse de `UA_HEADER`. */
-const UA_SPLIT = /['"`]\s*user-?\s*['"`]\s*\+|\+\s*['"`]\s*-?\s*agent\s*['"`]/i;
-
-function buildsUserAgent(file: SourceFile): boolean {
-  const code = withoutModuleSpecifiers(file.code);
-  return (
-    UA_HEADER.test(code) || UA_LITERAL.test(code) || UA_PARTS.test(code) || UA_SPLIT.test(code)
-  );
-}
-
-/**
- * (c) Llamar al `fetch` de la plataforma. La FIRMA de un puerto
- * —`fetch(request: X): Promise<Y>;`— es una declaración, no una llamada: una
- * llamada no lleva anotación de tipo de retorno tras los paréntesis. Misma
- * forma que el caso 4 de `tests/mirror/capture/redirects.test.ts`.
- */
-function callsPlatformFetch(code: string): boolean {
-  const withoutSignatures = code.replaceAll(/^\s*fetch\s*\([^)]*\)\s*:.*$/gm, '');
-  return /globalThis\.fetch\s*\(|(?<![.\w])fetch\s*\(/.test(withoutSignatures);
-}
-
-/**
- * «…o equivalente», dice el CA, y `fetch` no es la única puerta que abre un
- * socket. Se prohíbe IMPORTAR la puerta, no llamarla: el `import` es lo que no
- * se puede escribir de veinte maneras, y por eso muerde aunque la llamada
- * venga ofuscada (F-SPEC-008-V1, evasión 1). `child_process` está en la lista
- * porque `curl` también pide a un tercero.
- */
-const NETWORK_MODULE =
-  /(?:\bfrom|\bimport|\brequire)\s*\(?\s*['"](?:node:)?(?:http|https|http2|net|tls|dgram|dns|child_process|undici|axios|got|node-fetch|superagent|phin|needle)['"]/;
-/** Las puertas que ya están en el ámbito global y no hay que importar. */
-const NETWORK_GLOBAL = /\b(?:XMLHttpRequest|WebSocket|EventSource)\b|\bsendBeacon\s*\(/;
-/** Un `import()` con especificador calculado es un `import` que no se puede leer. */
-const COMPUTED_IMPORT = /\bimport\s*\(\s*(?!['"])/;
-
-function reachesTheNetwork(file: SourceFile): boolean {
-  return (
-    callsPlatformFetch(file.code) ||
-    NETWORK_MODULE.test(file.code) ||
-    NETWORK_GLOBAL.test(file.code) ||
-    COMPUTED_IMPORT.test(file.code)
-  );
-}
-
-function offenders(files: readonly SourceFile[], detect: (file: SourceFile) => boolean): string[] {
-  return files.filter(detect).map((file) => file.path);
-}
-
-/** Texto sintético que simula una segunda implementación, por destino. */
-const SECOND_IMPLEMENTATIONS: readonly { readonly path: string; readonly text: string }[] = [
-  {
-    path: 'mirror/capture/robots.ts',
-    text: [
-      "export function parseRobots(text: string) {",
-      "  if (field === 'disallow') return false;",
-      "  return globalThis.fetch(url, { headers: { 'User-Agent': USER_AGENT } });",
-      '}',
-    ].join('\n'),
-  },
-  {
-    path: 'ingest/courtesy.ts',
-    text: [
-      "const rules = lines.filter((l) => l.field === 'allow');",
-      "await fetch(url, { headers: { 'user-agent': ua } });",
-      'export const USER_AGENT = `marcador.gal/0.0.1`;',
-    ].join('\n'),
-  },
-  {
-    path: 'site/crawler-fetch.ts',
-    text: [
-      "export interface RobotsPolicy { isAllowed(url: string): boolean }",
-      "const headers = { 'User-Agent': 'marcador.gal/0.0.1' };",
-      'const body = await fetch(target);',
-    ].join('\n'),
-  },
-];
-
-/**
- * Las TRES evasiones que el verificador demostró ejecutando (F-SPEC-008-V1):
- * cada una convivía con la suite entera en verde, y cada una rodea uno de los
- * tres detectores por su lado literal. Van aquí como control positivo, con el
- * detector que tiene que morderlas nombrado al lado, para que el día que
- * alguien afloje un detector el control caiga con él.
- */
-const EVASIONS: readonly {
-  readonly path: string;
-  readonly detector: 'robots' | 'ua' | 'red';
-  readonly text: string;
-}[] = [
-  {
-    // Evasión 1: una segunda puerta de salida que no es `fetch`, con la
-    // cabecera puesta por clave calculada. Es la tercera prohibición de
-    // ADR-014 §4 y la de fallo más silencioso.
-    path: 'ingest/back-door.ts',
-    detector: 'red',
-    text: [
-      "import { request } from 'node:https';",
-      "const key = 'User-' + 'Agent';",
-      'export function ask(url: string, ua: string): void {',
-      '  const headers: Record<string, string> = {};',
-      '  headers[key] = ua;',
-      '  request(url, { headers }).end();',
-      '}',
-    ].join('\n'),
-  },
-  {
-    // Evasión 2: un segundo parser que escribe el campo dentro de una regex,
-    // sin token entrecomillado y sin ninguno de los cinco nombres declarados.
-    path: 'ingest/second-robots.ts',
-    detector: 'robots',
-    text: [
-      'const FIELD = /^\\s*disallow\\s*:/i;',
-      'export function forbids(txt: string, path: string): boolean {',
-      '  const rules = txt.split(String.fromCharCode(10)).filter((line) => FIELD.test(line));',
-      '  return rules.some((line) => path.startsWith(line.slice(line.indexOf(":") + 1).trim()));',
-      '}',
-    ].join('\n'),
-  },
-  {
-    // Evasión 3: la cadena declarada, recompuesta fuera de `src/polite/` desde
-    // las constantes exportadas y sin el literal del propósito, que es lo que
-    // el guardián de `tests/mirror/user-agent.test.ts` sí vigila.
-    path: 'site/second-ua.ts',
-    detector: 'ua',
-    text: [
-      "import { USER_AGENT_CONTACT, USER_AGENT_PRODUCT, USER_AGENT_VERSION } from '@/polite/user-agent';",
-      "const purpose = ['medicion', 'de', 'latencia'].join(' ');",
-      'export const declared = `${USER_AGENT_PRODUCT}/${USER_AGENT_VERSION} (+${USER_AGENT_CONTACT}; ${purpose})`;',
-    ].join('\n'),
-  },
-];
-
-const DETECTORS: Record<'robots' | 'ua' | 'red', (file: SourceFile) => boolean> = {
-  robots: parsesRobots,
-  ua: buildsUserAgent,
-  red: reachesTheNetwork,
-};
-
-function asSourceFile(entry: { path: string; text: string }): SourceFile {
-  return { path: entry.path, text: entry.text, code: stripComments(entry.text) };
-}
-
-describe('CA-2 — fuera de `src/polite/` no hay cortesía RN-11', () => {
-  test('1. el escaneo mide algo: `src/polite/` existe y lleva la cortesía entera', () => {
-    // Los cuatro de ADR-014 §1, más el reloj inyectable que no podía quedarse
-    // detrás sin invertir la dependencia, y la vigencia del robots.txt de §3.
+  test('2. y el escaneo mide algo: hay ficheros, y `src/polite/` está entero', () => {
+    expect(SCANNED.length).toBeGreaterThan(40);
     expect(POLITE.map((file) => file.path)).toEqual([
-      'polite/clock.ts',
-      'polite/http.ts',
-      'polite/policy.ts',
-      'polite/rate-limit.ts',
-      'polite/robots.ts',
-      'polite/user-agent.ts',
+      'src/polite/clock.ts',
+      'src/polite/http.ts',
+      'src/polite/policy.ts',
+      'src/polite/rate-limit.ts',
+      'src/polite/robots.ts',
+      'src/polite/user-agent.ts',
     ]);
-    expect(OUTSIDE.length).toBeGreaterThan(20);
+  });
+});
+
+describe('CA-2.3 — cierre de imports: todo especificador es un literal permitido', () => {
+  test('3. ningún fichero del escaneo importa nada fuera de la lista', async () => {
+    expect(await offendersOf(SCANNED)).toEqual([]);
   });
 
-  test('2. (a) nadie más analiza un `robots.txt`', () => {
-    expect(offenders(OUTSIDE, parsesRobots)).toEqual([]);
+  test('4. y la lista no lleva ningún cliente HTTP ni ninguna puerta de salida', () => {
+    // La lista crece cuando llega una dependencia real, y eso es un diff que
+    // un revisor lee. Este caso es lo que hace que crecer con una puerta de
+    // salida NO sea silencioso.
+    const doors = [
+      'node:http',
+      'node:https',
+      'node:http2',
+      'node:net',
+      'node:tls',
+      'node:dgram',
+      'node:dns',
+      'node:child_process',
+      'undici',
+      'axios',
+      'got',
+      'node-fetch',
+      'superagent',
+    ];
+
+    for (const door of doors) expect(ALLOWED_PACKAGES).not.toContain(door);
+    // `node:module` sí está, y con su motivo escrito: el hook de resolución de
+    // las CLI. Es la única capacidad de resolución fuera de `src/polite/`.
+    expect(ALLOWED_PACKAGES).toContain('node:module');
   });
 
-  test('3. (b) nadie más construye la cabecera `User-Agent` ni compone la cadena', () => {
-    expect(offenders(OUTSIDE, buildsUserAgent)).toEqual([]);
-  });
-
-  test('4. (c) nadie más llama al `fetch` de la plataforma NI ABRE OTRA PUERTA', () => {
-    expect(offenders(OUTSIDE, reachesTheNetwork)).toEqual([]);
-    // Y dentro de `src/polite/` hay exactamente UNA puerta, que es `fetch`:
-    // ni siquiera la dueña de la cortesía tiene una segunda.
-    expect(offenders(POLITE, (f) => callsPlatformFetch(f.code))).toEqual(['polite/http.ts']);
-    expect(offenders(POLITE, reachesTheNetwork)).toEqual(['polite/http.ts']);
-  });
-
-  test('5. los tres consumidores importan de `src/polite/`, que es la puerta', () => {
-    const importsPolite = (file: SourceFile) => /from\s+['"]@\/polite\//.test(file.code);
-
-    expect(TREE.filter((f) => f.path.startsWith('mirror/')).some(importsPolite)).toBe(true);
-    expect(TREE.filter((f) => f.path.startsWith('ingest/')).some(importsPolite)).toBe(true);
-    expect(TREE.filter((f) => f.path === 'site/crawler-page.tsx').every(importsPolite)).toBe(true);
-  });
-
-  test('6. y el test FALLA si se añade una segunda implementación en cualquiera de los tres', () => {
-    // Control positivo. Sin él, un detector roto —o vaciado— pasaría en verde
-    // exactamente igual que uno que funciona, que es el fallo que este
-    // criterio existe para impedir.
-    const flagged = SECOND_IMPLEMENTATIONS.map(asSourceFile).filter(
-      (file) => parsesRobots(file) && buildsUserAgent(file) && reachesTheNetwork(file),
+  test('5. un especificador NO literal es rojo, también dentro de `src/polite/`', async () => {
+    // Control positivo, y es la evasión F-SPEC-008-V7 escrita como caso. Las
+    // dos formas: la honesta —una variable— y la que se coló entre los dos
+    // detectores viejos, `'node:' + 'https'`, que empieza por comilla.
+    const computed = syntheticFile(
+      'src/polite/late-door.ts',
+      [
+        "const MOD = 'node:https';",
+        'export async function open(url: string): Promise<void> {',
+        '  const gate = await import(MOD);',
+        "  const other = await import('node:' + 'https');",
+        '  gate.request(url).end();',
+        '  other.request(url).end();',
+        '}',
+      ].join('\n'),
     );
 
-    expect(flagged.map((file) => file.path)).toEqual([
-      'mirror/capture/robots.ts',
-      'ingest/courtesy.ts',
-      'site/crawler-fetch.ts',
+    const offences = await importOffences(computed);
+    expect(offences).toHaveLength(2);
+    for (const offence of offences) expect(offence).toContain('not a static literal');
+  });
+
+  test('6. y un paquete fuera de la lista es rojo aunque sea un literal', async () => {
+    const undici = syntheticFile(
+      'src/ingest/undici-door.ts',
+      ["import { request } from 'undici';", 'export const ask = request;'].join('\n'),
+    );
+
+    expect(await importOffences(undici)).toEqual([
+      'src/ingest/undici-door.ts: undici is not in ALLOWED_PACKAGES',
     ]);
   });
 
-  test('7. y FALLA también con las tres evasiones que rodearon al guardián (F-SPEC-008-V1)', () => {
-    // Las tres convivían con la suite entera en verde. Cada una se comprueba
-    // contra el detector que le toca, uno a uno, para que el control no pueda
-    // pasar en verde porque otro detector la cazó por accidente.
-    for (const evasion of EVASIONS) {
-      expect(
-        DETECTORS[evasion.detector](asSourceFile(evasion)),
-        `${evasion.path} tenía que caer por el detector «${evasion.detector}»`,
-      ).toBe(true);
-    }
+  test('7. y una ruta relativa que no resuelve dentro del repositorio también', async () => {
+    const dangling = syntheticFile(
+      'src/ingest/dangling.ts',
+      "export { nothing } from './does-not-exist';",
+    );
 
-    // Y ninguna la caza el guardián viejo: si esta línea se pusiera roja
-    // significaría que el caso 7 dejó de probar lo que dice probar.
-    for (const evasion of EVASIONS.map(asSourceFile)) {
-      const old =
-        ROBOTS_FIELD.test(evasion.code) ||
-        ROBOTS_SYMBOL.test(evasion.code) ||
-        UA_HEADER.test(evasion.code) ||
-        UA_LITERAL.test(evasion.code) ||
-        callsPlatformFetch(evasion.code);
-      expect(old, `${evasion.path} ya lo cazaba el guardián viejo`).toBe(false);
+    expect(await importOffences(dangling)).toEqual([
+      'src/ingest/dangling.ts: ./does-not-exist does not resolve inside the repository',
+    ]);
+  });
+});
+
+describe('CA-2.4 — la capacidad global no se toma prestada fuera de `src/polite/`', () => {
+  test('8. fuera de `src/polite/` no aparece ninguna de las cuatro vías', () => {
+    expect(OUTSIDE.flatMap(capabilityOffences)).toEqual([]);
+  });
+
+  test('9. y dentro de `src/polite/` aparece EXACTAMENTE una vez, en la puerta', () => {
+    // Que el detector mida algo: `globalThis` existe en el árbol, y está donde
+    // ADR-014 §4 dice que tiene que estar.
+    expect(POLITE.flatMap(capabilityOffences)).toEqual([
+      'src/polite/http.ts: globalThis',
+      'src/polite/http.ts: bare `fetch`',
+    ]);
+  });
+
+  test('10. control positivo: la cuarta evasión, la más natural de todas', () => {
+    // F-SPEC-008-V6, escrita literalmente como la escribió el verificador. Con
+    // el guardián viejo convivía con `npm test` en 705/705 y `lint exit=0`:
+    // la llamada es `send(`, no hay `import`, y la cadena `user-agent` no se
+    // escribe nunca entera. Aquí cae por lo único que no puede esconder — que
+    // la capacidad se saca de `globalThis`.
+    const sideDoor = syntheticFile(
+      'src/ingest/side-door.ts',
+      [
+        'const { fetch: send } = globalThis;',
+        "const KEY = ['User', 'Agent'].join('-');",
+        '',
+        'export async function ask(url: string, ua: string): Promise<number> {',
+        '  const headers: Record<string, string> = {};',
+        '  headers[KEY] = ua;',
+        '  const res = await send(url, { headers });',
+        '  return res.status;',
+        '}',
+      ].join('\n'),
+    );
+
+    expect(capabilityOffences(sideDoor)).toEqual(['src/ingest/side-door.ts: globalThis']);
+  });
+
+  test('11. y las otras tres vías del lenguaje llevan cada una su control', () => {
+    const cases: readonly (readonly [string, string, string])[] = [
+      ['bare `fetch`', 'const r = await fetch(url);', 'bare `fetch`'],
+      ['eval', "const f = eval('(' + src + ')');", 'eval'],
+      ['new Function', "const f = new Function('u', 'return u');", 'new Function'],
+      ['require', "const https = require('node:https');", 'require'],
+      ['XMLHttpRequest', 'const x = new XMLHttpRequest();', 'XMLHttpRequest'],
+      ['WebSocket', "const s = new WebSocket('wss://x');", 'WebSocket'],
+      ['EventSource', "const s = new EventSource('/x');", 'EventSource'],
+      ['navigator', 'navigator.sendBeacon(url, body);', 'navigator'],
+    ];
+
+    for (const [name, line, expected] of cases) {
+      const file = syntheticFile('src/site/probe.ts', line);
+      expect(capabilityOffences(file), `${name} no se caza`).toContain(
+        `src/site/probe.ts: ${expected}`,
+      );
     }
   });
 
-  test('8. las dos exenciones nominales de (a) siguen vivas, y son exactamente dos', () => {
-    // Una exención por patrón se convierte en un agujero en cuanto alguien
-    // crea un fichero que encaje. Éstas van por nombre, y aquí se comprueba
-    // que ninguna sobra —el fichero existe— y que ninguna se ha vuelto
-    // innecesaria —el fichero todavía escribe la palabra—.
-    expect([...ROBOTS_PROSE].sort()).toEqual([
-      'mirror/analysis/referenceless/report.ts',
-      'site/robots-txt.ts',
-    ]);
+  test('12. y NO se caza la prosa ni el nombre de un módulo: el detector no es ruido', () => {
+    // Sin esto el criterio se vuelve inservible y alguien lo afloja. Un
+    // comentario que cita `globalThis.fetch` y un `import … from '@/polite/http'`
+    // no son una capacidad tomada prestada.
+    const innocent = syntheticFile(
+      'src/site/innocent.ts',
+      [
+        '/** Nunca se llama a globalThis.fetch fuera de la puerta (ADR-014 §4). */',
+        "import { politeFetch } from '@/polite/http';",
+        "export const ask = (f: HttpFetcher) => politeFetch(f, 'https://x/', 'ua');",
+      ].join('\n'),
+    );
 
-    for (const path of ROBOTS_PROSE) {
-      const file = TREE.find((f) => f.path === path);
-      expect(file, `la exención nombra ${path}, que ya no existe`).toBeDefined();
-      expect(ROBOTS_WORD.test(withoutModuleSpecifiers(file!.code))).toBe(true);
-      // Exentas de la palabra suelta, NUNCA del parser: el token
-      // entrecomillado y los cinco nombres declarados les siguen aplicando.
-      expect(ROBOTS_FIELD.test(file!.code) || ROBOTS_SYMBOL.test(file!.code)).toBe(false);
+    expect(capabilityOffences(innocent)).toEqual([]);
+  });
+});
+
+const reachable = await reachableModules(ENTRY_POINTS);
+
+describe('CA-2.5 — nada huérfano en los tres destinos que el CA nombra', () => {
+  test('13. todo `.ts`/`.tsx` de `src/ingest/`, `src/polite/` y `src/site/` se alcanza', () => {
+    const contained = versionedSources().filter((path) =>
+      CONTAINED_DIRS.some((dir) => path.startsWith(dir)),
+    );
+
+    expect(contained.length).toBeGreaterThan(15);
+    expect(contained.filter((path) => !reachable.has(path))).toEqual([]);
+  });
+
+  test('14. y el recorrido ve las tres clases de arista, o no es un cierre', () => {
+    // Hasta hoy `reachableModules` solo leía `import … from '…'`. Sin las
+    // otras dos —y sin `.tsx`— el cierre no era un cierre: `src/site/` entero
+    // habría quedado inalcanzable y el criterio habría pasado en verde
+    // diciendo lo contrario de lo que quiere decir.
+    // El de efecto lateral: `src/app/(gl)/layout.tsx` importa `globals.css`.
+    expect(reachable).toContain('src/site/document.tsx');
+    // El dinámico: las tres `*-cli.ts` importan su `main` así.
+    expect(reachable).toContain('src/mirror/cli/capturar.ts');
+    expect(reachable).toContain('src/mirror/cli/analizar.ts');
+    expect(reachable).toContain('src/mirror/cli/analizar-sin-referencia.ts');
+    // Y `.tsx`, que la resolución vieja leía y luego descartaba.
+    expect(reachable).toContain('src/site/crawler-page.tsx');
+    // Y lo que solo cuelga de `next.config.ts` (CA-2.6).
+    expect(reachable).toContain('src/site/redirects.ts');
+  });
+
+  test('15. control positivo: un fichero nuevo en `src/ingest/` que nadie importa', async () => {
+    // Es la tercera evasión viva de CA-2.7. Se comprueba sobre el mecanismo
+    // real —el conjunto alcanzable— y no sobre un doble.
+    const orphan = 'src/ingest/nobody-imports-me.ts';
+    expect(reachable.has(orphan)).toBe(false);
+
+    // Y el mecanismo no está apagado: lo que SÍ se importa, se alcanza.
+    expect(reachable.has('src/ingest/ceroacero.ts')).toBe(true);
+  });
+
+  test('16. `ENTRY_POINTS` no envejece: nombra todas las rutas de `src/app/`', () => {
+    // Una ruta nueva sin declarar es código que Next ejecuta y que CA-2.1 no
+    // conduciría nunca. Que aparezca aquí es lo que lo impide.
+    const routes = versionedSources().filter((path) => path.startsWith('src/app/'));
+
+    expect(routes.length).toBeGreaterThan(0);
+    for (const route of routes) expect(ENTRY_POINTS).toContain(route);
+    for (const entry of ENTRY_POINTS) expect(versionedSources()).toContain(entry);
+  });
+});
+
+describe('CA-2.7 — y no queda ninguna exención por nombre de fichero', () => {
+  test('17. los dos ficheros que la tenían siguen intactos y ya no la necesitan', async () => {
+    // `src/site/robots-txt.ts` (SPEC-004) GENERA el nuestro y
+    // `src/mirror/analysis/referenceless/report.ts` (SPEC-003) CITA el de
+    // futgal en una frase en castellano. Los dos escriben las palabras del
+    // formato, ninguno manda un byte, y CA-2.8 dice que eso deja de ser una
+    // infracción. Ninguno cambia: CA-3 lo prohíbe.
+    const exempt = ['src/site/robots-txt.ts', 'src/mirror/analysis/referenceless/report.ts'];
+
+    for (const path of exempt) {
+      const file = SCANNED.find((entry) => entry.path === path);
+      expect(file, `${path} ya no existe`).toBeDefined();
+      expect(file!.code).toMatch(/\b(?:user-agent|disallow)\b/i);
+      // Y aun escribiendo la palabra, no ofenden a ningún mecanismo vivo.
+      expect(capabilityOffences(file!)).toEqual([]);
+      expect(await importOffences(file!)).toEqual([]);
+    }
+  });
+
+  test('18. ningún mecanismo de CA-2 mira el nombre de un fichero para perdonarlo', async () => {
+    // F-SPEC-008-V9: el caso que vigilaba la LISTA de exenciones no vigilaba
+    // el MECANISMO, y cambiarla por un patrón `startsWith('site/')` dejaba
+    // 435/435 en verde. Con la lista fuera no hay nada que aflojar, y esto es
+    // lo que impide que vuelva por la puerta de atrás.
+    const guard = await readFile(new URL('./support/capability.ts', import.meta.url), 'utf8');
+    const code = stripComments(guard);
+
+    expect(code).not.toMatch(/\bROBOTS_PROSE\b/);
+    expect(code).not.toMatch(/\bEXEMPT|\bexempt\b/);
+    expect(code).not.toMatch(/file\.path\s*(?:===|\.startsWith|\.includes)/);
+    expect(code).not.toMatch(/\.includes\(\s*file\.path\s*\)/);
+
+    // Y la prueba de que el mecanismo se aplica a los dos ficheros de verdad:
+    // pasan por los mismos detectores que todos los demás, sin atajo.
+    for (const path of ['src/site/robots-txt.ts', 'src/mirror/analysis/referenceless/report.ts']) {
+      expect(SCANNED.map((file) => file.path)).toContain(path);
     }
   });
 });
