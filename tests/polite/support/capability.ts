@@ -79,15 +79,25 @@ export interface ScanExclusion {
  * decide what code is audited. It hid everything under any `robots/`
  * directory, and a file under one went unread (F-SPEC-008-V28).
  *
- * Today there is exactly one entry, and it is the one that justifies itself.
- * The day a root needs a second one, its motive has to be written here; if the
- * motive is «there are files in there that get in the way», the frontier is
- * drawn wrong.
+ * THE LIST GOVERNS BOTH SIDES: what gets read (`scannedSources`) and what the
+ * coverage asks `git` for (`versionedSources`). An exclusion that silenced only
+ * one of the two would be the F-SPEC-008-V33 shape all over again.
+ *
+ * The second entry arrives with JavaScript declared (F-SPEC-008-V37), and it
+ * arrives AS AN EXCLUSION WITH ITS MOTIVE and not as a silence, which is the
+ * whole of what CA-2.6 asks: being outside has to be a declared decision. If a
+ * motive is ever «there are files in there that get in the way», the frontier
+ * is drawn wrong.
  */
 export const SCAN_EXCLUSIONS: readonly ScanExclusion[] = [
   {
     path: 'node_modules/',
     motive: 'Installed dependencies. Not our code, and CA-2.3 judges the specifier as written, not what it resolves to.',
+  },
+  {
+    path: 'docs/diseno/',
+    motive:
+      "The sources of EPIC-004's design system, and not application code: `_logic.js` is not even standalone JavaScript — it is a block `build.mjs` injects into the artboards — and nothing under `src/` imports either. It is the same frontier the quality gate already drew: `_logic.js` broke `oxlint` on 2026-09-01 and `.oxlintrc.json` has ignored `docs/diseno/` since (commit 5b632df, «Gate de calidad: oxlint ignora docs/diseno, que no es codigo»). It is written here, and not left to silence, because CA-2.6 asks that being outside be a declared decision.",
   },
 ];
 
@@ -136,6 +146,37 @@ export const SCAN_EXTENSIONS: readonly ScanExtension[] = [
     suffix: '.cts',
     motive:
       'The CommonJS twin of .mts, and it is declared BEFORE anybody writes one. A list that only grows after the measurement is a list that arrives late.',
+  },
+  // JAVASCRIPT, AND IT IS NOT A FORMALITY: THIS PROJECT COMPILES IT AND RUNS
+  // IT. The list stopped at TypeScript's family, so `.js`, `.jsx`, `.mjs` and
+  // `.cjs` were outside BY SIDE EFFECT AND NOT BY DECLARED DECISION — neither
+  // an entry nor an exclusion with a motive — which is exactly what CA-2.6
+  // guarantees does not happen. Measured: `src/app/(gl)/vprobe/route.js` with
+  // `node:child_process` is COMPILED by `next build` (`ƒ /vprobe` in the
+  // production route table), SERVED by `next start`, commits with a plain
+  // `git add`, and left `lint exit=0`, `npm test` 775/775, `tests/polite`
+  // 89/89 and `test:db` 144/144 with NEITHER LIST SEEING IT (F-SPEC-008-V37).
+  // Worse than the `.mts` of F-SPEC-008-V33 in the dimension that decided its
+  // destination: that one was an orphan, THIS ONE IS A LIVE HTTP ENDPOINT.
+  {
+    suffix: '.js',
+    motive:
+      'Next compiles and serves a route written in plain JavaScript — measured, `ƒ /vprobe` in the production route table — and Node runs it. It is code this repository ships (F-SPEC-008-V37).',
+  },
+  {
+    suffix: '.jsx',
+    motive:
+      'The same with JSX. Declared BEFORE anybody writes one, like .cts: nothing here forbids a route or a component in .jsx, and a list that waits for the measurement arrives late.',
+  },
+  {
+    suffix: '.mjs',
+    motive:
+      "JavaScript's explicit ESM module. Node runs it directly, and it is the cheap variant of the same evasion: `src/ingest/vdoor.mjs` left the same four numbers green (F-SPEC-008-V37).",
+  },
+  {
+    suffix: '.cjs',
+    motive:
+      'The CommonJS twin of .mjs. Declared for the same reason as .cts, and it matters one notch more here: CA-2.4 closes `require`, and `require` is what a .cjs writes.',
   },
 ];
 
@@ -319,8 +360,11 @@ export interface ScannedFile {
   readonly specifiers: readonly ModuleSpecifier[];
 }
 
-function excluded(path: string): boolean {
-  return SCAN_EXCLUSIONS.some((exclusion) =>
+function excluded(
+  path: string,
+  exclusions: readonly ScanExclusion[] = SCAN_EXCLUSIONS,
+): boolean {
+  return exclusions.some((exclusion) =>
     exclusion.path.endsWith('/') ? path.startsWith(exclusion.path) : path === exclusion.path,
   );
 }
@@ -346,6 +390,7 @@ function excluded(path: string): boolean {
  */
 export function scannedSources(
   extensions: readonly ScanExtension[] = SCAN_EXTENSIONS,
+  exclusions: readonly ScanExclusion[] = SCAN_EXCLUSIONS,
 ): readonly string[] {
   const files: string[] = [];
 
@@ -359,11 +404,11 @@ export function scannedSources(
     for (const entry of entries) {
       const path = directory === '' ? entry.name : `${directory}/${entry.name}`;
       if (entry.isDirectory()) {
-        if (!excluded(`${path}/`)) walk(path);
+        if (!excluded(`${path}/`, exclusions)) walk(path);
         continue;
       }
       if (!entry.isFile()) continue;
-      if (excluded(path)) continue;
+      if (excluded(path, exclusions)) continue;
       if (isCodeFile(path, extensions)) files.push(path);
     }
   }
@@ -371,7 +416,11 @@ export function scannedSources(
   for (const root of SCAN_ROOTS) {
     if (root.endsWith('/')) {
       walk(root.slice(0, -1));
-    } else if (!excluded(root) && isCodeFile(root, extensions) && existsSync(join(ROOT, root))) {
+    } else if (
+      !excluded(root, exclusions) &&
+      isCodeFile(root, extensions) &&
+      existsSync(join(ROOT, root))
+    ) {
       files.push(root);
     }
   }
@@ -392,9 +441,16 @@ export function scannedSources(
  * DERIVED from the same declaration `scannedSources()` asks, because writing it
  * by hand here is exactly how the coverage stopped missing what the reader
  * stopped reading (F-SPEC-008-V33).
+ *
+ * AND THEY ASK THE SAME EXCLUSIONS TOO, from F-SPEC-008-V37 on. With `.js` and
+ * `.mjs` declared, `git` starts listing `docs/diseno/`, which is EPIC-004's
+ * design-system source and not application code; it leaves the coverage by
+ * being A DECLARED EXCLUSION WITH ITS MOTIVE — what CA-2.6 asks — and not by a
+ * second list written here.
  */
 export function versionedSources(
   extensions: readonly ScanExtension[] = SCAN_EXTENSIONS,
+  exclusions: readonly ScanExclusion[] = SCAN_EXCLUSIONS,
 ): readonly string[] {
   return execFileSync(
     'git',
@@ -408,7 +464,9 @@ export function versionedSources(
     { encoding: 'utf8' },
   )
     .split('\n')
-    .filter((path) => path.length > 0 && !path.startsWith('tests/'))
+    .filter(
+      (path) => path.length > 0 && !path.startsWith('tests/') && !excluded(path, exclusions),
+    )
     .sort();
 }
 

@@ -28,7 +28,7 @@
  * La mitad en EJECUCIÓN —CA-2.1 y CA-2.2— vive en `containment.test.ts`, que
  * instala las trampas antes de importar nada de `src/`.
  */
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, rmdirSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { describe, expect, test } from 'vitest';
 import { readModule, reachableModules } from '../mirror/support/imports';
@@ -88,11 +88,14 @@ describe('CA-2.6 — el escaneo cubre todo el código, no solo `src/`', () => {
 
   test('2b. las exclusiones del escaneo son SUYAS, van declaradas y llevan motivo', () => {
     // Hasta la cuarta vuelta esta lista no existía, porque las exclusiones eran
-    // las de `.gitignore` — un fichero escrito para otra cosa. Hoy hay una, y
-    // es la que se justifica sola. El día que haga falta una segunda, su
-    // motivo se escribe aquí; si el motivo es «ahí hay ficheros que molestan»,
-    // la frontera está mal trazada.
-    expect(SCAN_EXCLUSIONS.map((exclusion) => exclusion.path)).toEqual(['node_modules/']);
+    // las de `.gitignore` — un fichero escrito para otra cosa. La segunda llega
+    // con `.js` declarado (F-SPEC-008-V37) y trae su motivo, como manda CA-2.6.2.
+    // Si algún día un motivo es «ahí hay ficheros que molestan», la frontera
+    // está mal trazada.
+    expect(SCAN_EXCLUSIONS.map((exclusion) => exclusion.path)).toEqual([
+      'node_modules/',
+      'docs/diseno/',
+    ]);
     for (const exclusion of SCAN_EXCLUSIONS) {
       expect(exclusion.motive, `${exclusion.path} sin motivo`).toBeTruthy();
     }
@@ -163,6 +166,10 @@ describe('CA-2.6 — el escaneo cubre todo el código, no solo `src/`', () => {
       '.tsx',
       '.mts',
       '.cts',
+      '.js',
+      '.jsx',
+      '.mjs',
+      '.cjs',
     ]);
     for (const extension of SCAN_EXTENSIONS) {
       expect(extension.motive, `${extension.suffix} sin motivo`).toBeTruthy();
@@ -261,6 +268,130 @@ describe('CA-2.6 — el escaneo cubre todo el código, no solo `src/`', () => {
     // Y sin la mutación, la cobertura deja de echarlo de menos. Se comprueba
     // por este fichero y no sobre el conjunto entero, para no ponerse rojo por
     // la mutación de otro (el caso 1 es el que juzga el conjunto).
+    expect(versionedSources().filter((entry) => !underScanRoots(entry))).not.toContain(outside);
+  });
+
+  test('2h. `docs/diseno/` es una exclusión DECLARADA, y sin ella la cobertura la echaría de menos', () => {
+    // La otra mitad de F-SPEC-008-V37, y la que destapó la mutación X5 del
+    // verificador: en cuanto `.js` y `.mjs` son código, `git` empieza a listar
+    // las fuentes del sistema de diseño de EPIC-004. No son código de la
+    // aplicación —`_logic.js` ni siquiera es un módulo autónomo: es el bloque
+    // que `build.mjs` inyecta en los artboards— y por eso mismo
+    // `.oxlintrc.json` ya las ignora desde el 2026-09-01 (commit 5b632df, «el
+    // gate de calidad ignora docs/diseno, que no es codigo»).
+    //
+    // Quedar fuera tiene que ser UNA DECISIÓN DECLARADA y no un efecto
+    // colateral — que es literalmente lo que dice CA-2.6 —, así que va como
+    // exclusión con su motivo y no como silencio.
+    const design = SCAN_EXCLUSIONS.find((exclusion) => exclusion.path === 'docs/diseno/');
+    expect(design, '`docs/diseno/` no está declarada como exclusión').toBeDefined();
+    expect(design?.motive).toBeTruthy();
+
+    // Y la exclusión SOSTIENE ALGO: sin ella, la cobertura del caso 1 se pone
+    // roja con ficheros reales que existen hoy en el repositorio.
+    const withoutDesign = SCAN_EXCLUSIONS.filter((exclusion) => exclusion.path !== 'docs/diseno/');
+    const uncovered = versionedSources(SCAN_EXTENSIONS, withoutDesign).filter(
+      (path) => !underScanRoots(path),
+    );
+
+    // Por estos dos ficheros y no sobre el conjunto entero, por lo mismo que
+    // 2g: el conjunto lo juzga el caso 1, y este caso no tiene por qué ponerse
+    // rojo por la mutación de otro.
+    expect(uncovered).toContain('docs/diseno/_logic.js');
+    expect(uncovered).toContain('docs/diseno/build.mjs');
+    expect(existsSync('docs/diseno/_logic.js')).toBe(true);
+    expect(existsSync('docs/diseno/build.mjs')).toBe(true);
+
+    // Con ella, la cobertura no los ve — y es lo único que la exclusión hace:
+    // no se lee nada de ahí porque `docs/` no cuelga de ninguna raíz.
+    expect(versionedSources()).not.toContain('docs/diseno/_logic.js');
+    expect(versionedSources()).not.toContain('docs/diseno/build.mjs');
+    expect(scannedSources().filter((path) => path.startsWith('docs/'))).toEqual([]);
+  });
+
+  test('2i. control positivo (F-SPEC-008-V37): un `.js` bajo una raíz se lee, se juzga y es ROJO', async () => {
+    // Reproducción exacta de la undécima evasión, y es PEOR que la del `.mts`
+    // en la dimensión que decidió su destino: aquélla era un huérfano, ésta es
+    // un ENDPOINT HTTP VIVO. `src/app/(gl)/vprobe/route.js` con
+    // `node:child_process` lo compila `next build` (`ƒ /vprobe` en la tabla de
+    // rutas de producción), lo sirve `next start`, deja `lint exit=0`,
+    // `npm test` 775/775, `tests/polite` 89/89 y `test:db` 144/144, y se
+    // commitea con un `git add` NORMAL. Ninguna de las dos listas lo veía,
+    // porque `SCAN_EXTENSIONS` se paró en la familia de TypeScript y `.js`,
+    // `.jsx`, `.mjs` y `.cjs` quedaban fuera POR EFECTO COLATERAL Y NO POR
+    // DECISIÓN DECLARADA — que es lo que CA-2.6 garantiza que no pasa.
+    //
+    // Nombre propio, como 2d y 2g: el verificador repite la mutación con
+    // `vprobe`/`vdoor`, y un control que pisara ese nombre borraría su mutación.
+    const directory = 'src/app/(gl)/js-control';
+    const route = `${directory}/route.js`;
+    const twin = `${directory}/route.ts`;
+    const module_ = 'src/ingest/extension-control-js.mjs';
+    const outside = 'extension-control-outside-the-roots.js';
+    const source = [
+      "import { execFileSync } from 'node:child_process';",
+      '',
+      'export function GET() {',
+      "  return new Response(execFileSync('echo', ['js-control'], { encoding: 'utf8' }));",
+      '}',
+    ].join('\n');
+
+    expect(existsSync(route), `${route} ya existe: este caso no lo pisa`).toBe(false);
+    expect(existsSync(module_), `${module_} ya existe: este caso no lo pisa`).toBe(false);
+    expect(existsSync(outside), `${outside} ya existe: este caso no lo pisa`).toBe(false);
+    const directoryExisted = existsSync(directory);
+    mkdirSync(directory, { recursive: true });
+    try {
+      writeFileSync(route, `${source}\n`, 'utf8');
+      writeFileSync(module_, `${source}\n`, 'utf8');
+
+      // LA LECTURA: el escaneo los ve, los lee y los juzga.
+      expect(scannedSources()).toContain(route);
+      expect(scannedSources()).toContain(module_);
+
+      const scanned = await scanRepository();
+      for (const path of [route, module_]) {
+        const file = scanned.find((entry) => entry.path === path);
+        expect(file, `el escaneo no leyó ${path}`).toBeDefined();
+        expect(file!.reading.unparseable, `${path} no se pudo parsear`).toBe(false);
+        expect(await importOffences(file!)).toEqual([
+          `${path}: node:child_process is not a declared package entry`,
+        ]);
+      }
+
+      // «Rojo POR EL MISMO CASO»: el gemelo renombrado a `.ts` da la misma
+      // ofensa, del mismo detector, salvo el nombre del fichero. Una letra en
+      // el nombre separaba un endpoint auditado de uno que nadie mira.
+      const routeOffences = await importOffences(
+        (await scanRepository()).find((entry) => entry.path === route)!,
+      );
+      const twinOffences = await importOffences(syntheticFile(twin, source));
+      expect(twinOffences).toEqual([`${twin}: node:child_process is not a declared package entry`]);
+      expect(routeOffences.map((offence) => offence.replace(route, ''))).toEqual(
+        twinOffences.map((offence) => offence.replace(twin, '')),
+      );
+
+      // LA COBERTURA: `git` los lista —el pathspec sale de la misma
+      // declaración—, así que el caso 1 los echaría de menos si estuvieran
+      // fuera de las raíces. Y no es hipotético: se escribe uno fuera.
+      expect(versionedSources()).toContain(route);
+      expect(versionedSources()).toContain(module_);
+      expect(underScanRoots(route)).toBe(true);
+
+      writeFileSync(outside, `${source}\n`, 'utf8');
+      expect(versionedSources().filter((entry) => !underScanRoots(entry))).toContain(outside);
+    } finally {
+      rmSync(route, { force: true });
+      rmSync(module_, { force: true });
+      rmSync(outside, { force: true });
+      // Se borra EL FICHERO, no el árbol: `rmdirSync` no recursivo se niega a
+      // llevarse por delante nada que no haya escrito este caso.
+      if (!directoryExisted && existsSync(directory)) rmdirSync(directory);
+    }
+
+    expect(existsSync(route)).toBe(false);
+    expect(existsSync(module_)).toBe(false);
+    expect(existsSync(outside)).toBe(false);
     expect(versionedSources().filter((entry) => !underScanRoots(entry))).not.toContain(outside);
   });
 });
