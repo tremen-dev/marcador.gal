@@ -26,6 +26,7 @@
     "/out/",
     "/dist/",
     "/coverage/",
-    "/raw/"
+    "/raw/",
+    "/docs/diseno/"
   ]
 }

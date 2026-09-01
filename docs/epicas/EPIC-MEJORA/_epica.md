@@ -1,9 +1,11 @@
 ---
 id: EPIC-MEJORA
 tipo: epica
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-01, por: sdd-producto}
+  - {estado: aprobada, fecha: 2026-09-01, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # EPIC-MEJORA — Mejoras y deuda técnica
 
@@ -73,7 +75,7 @@ escriba la primera spec de esta épica debería releerlo entero antes.
 specs; escribir las specs que la resuelvan cuando su disparador llegue.
 
 **Fuera (aparcado a propósito, no por descuido):**
-- **Arreglar nada hoy.** Ninguna de las cinco entradas bloquea EPIC-003 ni la
+- **Arreglar nada hoy.** Ninguna de las once entradas bloquea EPIC-003 ni la
   carta a la RFGF. Crear la épica y vaciarla el mismo día sería cambiar un
   problema de visibilidad por uno de prioridad.
 - **Los bugs**, que son de `EPIC-FIX`; **la infraestructura**, de `EPIC-INFRA`;

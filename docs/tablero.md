@@ -17,7 +17,7 @@ Actualizado: 2026-09-01
 |---|---|---|
 | SPEC-008 — adaptador-de-ceroacero-es-y-cortesia-rn-11-con-una-sola-implementacion | aprobada | 2026-09-01 (Alberto Fojo) |
 
-## EPIC-003 — paxina-de-proxecto-e-respaldo-publico-da-carta (aprobada)
+## EPIC-003 — paxina-de-proxecto-e-respaldo-publico-da-carta (hecho)
 
 | Spec | Estado | Último cambio |
 |---|---|---|
@@ -31,7 +31,7 @@ Actualizado: 2026-09-01
 | Spec | Estado | Último cambio |
 |---|---|---|
 
-## EPIC-MEJORA (borrador)
+## EPIC-MEJORA (aprobada)
 
 | Spec | Estado | Último cambio |
 |---|---|---|
