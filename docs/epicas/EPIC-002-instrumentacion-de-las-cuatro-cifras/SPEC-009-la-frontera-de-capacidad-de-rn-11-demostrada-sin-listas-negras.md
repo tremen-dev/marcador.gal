@@ -2,11 +2,13 @@
 id: SPEC-009
 tipo: spec
 epica: EPIC-002
-estado: aprobada
+estado: en-revision
 aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-09-01, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-09-01, por: Alberto Fojo}
+  - {estado: en-progreso, fecha: 2026-09-01, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-09-02, por: sdd-implementador}
 ---
 # SPEC-009 — La frontera de capacidad de RN-11, demostrada sin listas negras
 
