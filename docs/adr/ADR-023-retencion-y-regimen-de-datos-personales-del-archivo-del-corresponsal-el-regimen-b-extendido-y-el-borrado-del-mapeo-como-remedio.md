@@ -1,9 +1,11 @@
 ---
 id: ADR-023
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-02, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-03, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # ADR-023: Retención y régimen de datos personales del archivo del corresponsal — el régimen B extendido, y el borrado del mapeo como remedio del derecho de supresión
 

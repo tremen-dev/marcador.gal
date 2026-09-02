@@ -1,9 +1,11 @@
 ---
 id: ADR-022
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-02, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-03, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # ADR-022: El bot del corresponsal es un webhook sin conversación viva — identidad seudónima declarada, update redactado, y un LLM que propone dentro de una lista cerrada
 
