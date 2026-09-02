@@ -2,10 +2,11 @@
 id: SPEC-014
 tipo: spec
 epica: EPIC-MEJORA
-estado: borrador
-aprobada-por:
+estado: aprobada
+aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-09-02, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-02, por: Alberto Fojo}
 ---
 # SPEC-014 — La carrera entre la suite que escribe en el árbol y la que lo lee
 
