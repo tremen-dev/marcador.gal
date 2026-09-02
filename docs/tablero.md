@@ -1,7 +1,7 @@
 <!-- GENERADO por tremen-sdd (scripts/tablero.mjs). NO EDITAR A MANO. -->
 # Tablero
 
-Actualizado: 2026-09-01
+Actualizado: 2026-09-02
 
 ## EPIC-001 — spike-ingesta (aprobada)
 
@@ -16,7 +16,7 @@ Actualizado: 2026-09-01
 | Spec | Estado | Último cambio |
 |---|---|---|
 | SPEC-008 — adaptador-de-ceroacero-es-y-cortesia-rn-11-con-una-sola-implementacion | hecho | 2026-09-01 (sdd-verificador) |
-| SPEC-009 — la-frontera-de-capacidad-de-rn-11-demostrada-sin-listas-negras | borrador | 2026-09-01 (sdd-arquitecto) |
+| SPEC-009 — la-frontera-de-capacidad-de-rn-11-demostrada-sin-listas-negras | hecho | 2026-09-02 (sdd-verificador) |
 
 ## EPIC-003 — paxina-de-proxecto-e-respaldo-publico-da-carta (hecho)
 
@@ -60,5 +60,4 @@ Actualizado: 2026-09-01
 
 ## Resumen
 
-- hecho: 8
-- borrador: 1
+- hecho: 9
