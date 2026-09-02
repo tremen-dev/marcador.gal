@@ -4,7 +4,7 @@
 > Se actualiza al cambiar el rumbo; el estado fino spec a spec vive en
 > `docs/tablero.md` (generado, no editar), la intención y secuencia en
 > `docs/roadmap.md`, y la historia fina en ADRs y specs.
-> Última actualización: 2026-09-02 (SPEC-010 entregada, diecisiete ADRs, calendario declarado).
+> Última actualización: 2026-09-02 (SPEC-011 entregada, dieciocho ADRs, catálogo de alias y resolver).
 
 ## Qué es y en qué punto está
 
@@ -29,7 +29,7 @@ Tres épicas en juego, cada una en un punto distinto:
   prometía — `futgal.es` prohíbe el rastreo (ADR-008, RN-11) y solo queda una
   fuente automática capturable. Veredicto el **2026-09-08**, diga lo que diga la
   RFGF.
-- **EPIC-002 — Instrumentación de las cuatro cifras**, `aprobada`, descongelada el 2026-09-01: **es donde está el trabajo ahora**. SPEC-008 y ADR-014 están `hecho` (2026-09-01), SPEC-009 está `aprobada` (2026-09-02, en implementación en otro checkout), SPEC-010 está `hecho` (2026-09-02).
+- **EPIC-002 — Instrumentación de las cuatro cifras**, `aprobada`, descongelada el 2026-09-01: **es donde está el trabajo ahora**. SPEC-008 y ADR-014 están `hecho` (2026-09-01), SPEC-009 está `aprobada` (2026-09-02, en implementación en otro checkout), SPEC-010 está `hecho` (2026-09-02), SPEC-011 está `hecho` (2026-09-02, junto con ADR-018).
 - **EPIC-003 — Páxina de proxecto e respaldo público da carta**, **`hecho`**
   desde hoy, la **primera épica del proyecto que llega ahí**: entregó el sitio
   público que respalda la carta a la RFGF.
@@ -70,7 +70,7 @@ Estructura prevista para el motor, todavía sin escribir: `src/ingest/`
 
 ## Decisiones clave hasta hoy
 
-`FOUNDATION.md` fija D-1 a D-8, locked. Los **diecisiete ADRs** (`docs/adr/`,
+`FOUNDATION.md` fija D-1 a D-8, locked. Los **dieciocho ADRs** (`docs/adr/`,
 listado completo en `docs/tablero.md`) están **aprobados e inmutables**; dos
 reabren parcialmente a otros dos ya aprobados, sin editarlos:
 [ADR-008](../adr/ADR-008-fuentes-capturables-del-spike-tras-el-dictamen-legal.md)
