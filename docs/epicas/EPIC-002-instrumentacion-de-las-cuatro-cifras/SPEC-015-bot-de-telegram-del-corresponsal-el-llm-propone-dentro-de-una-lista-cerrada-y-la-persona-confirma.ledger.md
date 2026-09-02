@@ -13,6 +13,47 @@ epica: EPIC-002
 - Trae **ADR-022** y **ADR-023**, los dos en `borrador`. La spec se apoya en
   ellos; si el gate cambia uno, cambia la spec.
 
+## Respuestas del gate — 2026-09-03, Alberto Fojo
+
+Las tres preguntas bloqueantes de las notas §6 de la spec. **Dos cerradas, una
+aplazada con matiz.** Se anotan aquí con fecha y autor porque el ledger es donde
+un verificador irá a buscar por qué el artefacto dice lo que dice.
+
+**Y el alcance de estas respuestas, dicho antes que nada:** son firmas sobre el
+**contenido** de decisiones concretas, **no** la aprobación formal de la spec ni
+de los dos ADR. **Los tres frontmatter siguen en `borrador`** y ahí se quedan
+hasta que el gate lo diga.
+
+| # | Pregunta | Respuesta del 2026-09-03 | Dónde aterrizó |
+|---|---|---|---|
+| 1 | Plazo de retención del archivo del corresponsal | **FIRMADA: sí, régimen B extendido** — 30 días desde el fin de la jornada, una prórroga escrita y motivada, techo duro de 90 | ADR-023 §2, **sin cambios**: se firma tal como estaba escrito |
+| 2 | Proveedor de LLM y su DPA | **NO decidido, aplazado a la implementación a propósito** | ADR-023 **§3 bis** (nuevo) y §6.4 (reforzado); SPEC-015 CA-5 (precondición) y notas §6.2 |
+| 3 | ¿`live` es *En xogo* o *Directo*? | **DECIDIDO: «En xogo» siempre**, una sola forma en todo el producto. Descarta expresamente la distinción estado/filtro que recomendaba `sdd-lingua` | `docs/fundacion/dominio.md`; SPEC-015 notas §3 y *Fuera de alcance*; EPIC-MEJORA (inventario) |
+
+**Sobre la 2, y por qué generó texto nuevo en vez de una línea.** La respuesta
+literal fue: *«no estoy seguro, y el principal motivo es el precio. si puedo usar
+mi suscripción, sin duda anthropic, si tengo que ir por api, tengo que analizarlo
+bien, lo veremos cuando toque la implementación»*. El aplazamiento es legítimo y
+la spec ya estaba escrita sin fijar proveedor, así que **el aplazamiento no
+cambia nada**. Lo que sí había que corregir es la **premisa**: una suscripción de
+consumo no habilita llamadas programáticas desde un servidor desplegado, así que
+la disyuntiva «suscripción contra API» no existe —para este bot solo hay API— y
+el precio, medido, es de céntimos por jornada. Quedó escrito en **ADR-023 §3
+bis** y no en una nota de coste **por una razón que no es de domicilio sino de
+consecuencia**: quien crea que va por suscripción creerá también que no hay nada
+que contratar, y de ahí se salta el art. 28. La premisa falsa tenía una
+consecuencia jurídica, así que vive en el ADR que gobierna el encargo del
+tratamiento.
+
+**Sobre la 3, lo que abrió.** Decidir una sola forma desalinea las **siete**
+apariciones de *Directo* en `docs/diseno/` (medidas, no heredadas del dictamen,
+que decía cinco). **EPIC-004 está congelada y no se
+toca**: entrada de inventario en EPIC-MEJORA con disparador escrito —el día que
+se construya la interfaz del marcador—. Destino EPIC-MEJORA y no EPIC-004 por su
+forma: es un hallazgo con disparador, que es exactamente lo que ese bucket
+inventaría, y anotarlo en una épica congelada sería descongelarla para escribir
+una fila.
+
 ## Dictámenes de dominio — anotados, con la regla dura cumplida
 
 `sdd-lingua` y `sdd-legal-datos` dictaminaron sobre SPEC-015 el **2026-09-02**.
@@ -129,6 +170,17 @@ Abiertas ya al escribir la spec, para que nadie las descubra a mitad:
   legítimo, la copia fechada del DPA, el «no procede» de la EIPD, y la fecha de
   purga escrita antes de la primera jornada. **Ninguna la puede escribir un rol
   `sdd-*`.** **Bloquean encender el bot, no aprobar la spec.**
+- **F-SPEC-015-9 — El literal *Directo* de `docs/diseno/` queda desalineado.**
+  El gate decidió el 2026-09-03 que `live` es **En xogo** siempre; el sistema de
+  diseño usa *Directo* como etiqueta de filtro en cinco ficheros y **EPIC-004
+  está congelada**, así que no se tocan. **Destino: EPIC-MEJORA** (ya
+  inventariado); **disparador: el día que se construya la interfaz del
+  marcador.**
+- **F-SPEC-015-10 — CA-5 tiene una precondición que ningún otro criterio tiene.**
+  Sin proveedor de LLM elegido y sin DPA guardado y fechado, **no se implementa**
+  (ADR-023 §6.4). Los otros catorce avanzan. **No es deuda: es orden de trabajo**,
+  y está escrito para que el implementador no se bloquee entero por un criterio.
+  **Disparador: antes de la primera línea de `src/bot/llm.ts`.**
 - **F-SPEC-015-6 — `docs/legal/` no existe todavía.** Lo crea la primera de las
   seis precondiciones que se escriba.
 - **F-SPEC-015-7 — La carrera de F-SPEC-013-10 sigue viva** y esta spec añade
@@ -172,9 +224,11 @@ Estado real al 2026-09-02: **spec y ADRs escritos, cero código**. Nada bajo
 Lo que hay en la rama: la spec, este ledger, `dictamenes-SPEC-015.md`, ADR-022,
 ADR-023 y las cinco filas de estados en `docs/fundacion/dominio.md`.
 
-**Lo primero que tiene que pasar es un gate humano**, y trae tres preguntas que
-bloquean la implementación (notas §6 de la spec): el plazo de 30 días de ADR-023,
-el proveedor de LLM con su DPA comprobado, y si `live` es *En xogo* o *Directo*.
+**Las tres preguntas bloqueantes están contestadas** (2026-09-03, Alberto Fojo,
+tabla arriba): el plazo de 30 días firmado, `live` decidido como *En xogo*
+siempre, y el proveedor de LLM aplazado a propósito con su precondición escrita.
+**Lo único que falta para empezar es la firma sobre la spec y los dos ADR**, que
+siguen en `borrador`.
 
 Si el gate firma, el orden de implementación que la spec sugiere es el del §2 de
 su *Diseño*, que es el orden en que ocurren las cosas: primero las tres fronteras

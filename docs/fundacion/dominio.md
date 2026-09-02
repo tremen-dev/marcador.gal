@@ -52,15 +52,22 @@ sitio del sistema real donde un estado se le enseña a una persona**. Sin
 registrarlos aquí, el marcador y el bot acabarían diciendo cosas distintas del
 mismo estado, que es exactamente lo que este glosario existe para evitar.
 
-**`live` se dice de dos maneras, y la distinción es parte del registro.** *En
-xogo* es el **estado** —describe el partido— y es el literal obligatorio en
-cualquier sitio donde se muestre `MatchStatus`. *Directo* se admite **solo como
-etiqueta de filtro de una lista** —describe una vista, no un partido—, que es el
-uso que `docs/diseno/` (EPIC-004, congelada) ya le da en sus componentes. Fuera
-de esa posición, `live` es *En xogo*. Dictaminado por `sdd-lingua` el 2026-09-02
+**`live` se dice de una sola manera: *En xogo*.** En cualquier posición
+—estado, etiqueta, filtro, cabecera, aviso— y en cualquier superficie del
+producto, `live` es **En xogo**. **Decidido por Alberto Fojo el 2026-09-03** en el
+gate de SPEC-015, descartando expresamente la distinción estado/filtro que
+`sdd-lingua` había recomendado el 2026-09-02
 (`docs/epicas/EPIC-002-instrumentacion-de-las-cuatro-cifras/dictamenes-SPEC-015.md`,
-§4.2); la elección la firma una persona en el gate de SPEC-015, porque EPIC-004
-está congelada.
+§4.2). El motivo de la decisión es el que este glosario existe para defender: un
+mismo estado se dice siempre igual, y dos formas registradas son dos formas que
+alguien elegirá mal.
+
+**Consecuencia pendiente, con disparador escrito y sin tocar nada hoy:**
+`docs/diseno/` usa *Directo* como etiqueta de filtro en **siete** ficheros
+—medido el 2026-09-03; algunos los genera su propio `build.mjs`— y **EPIC-004
+está congelada**, así que no se editan. Queda inventariado en
+EPIC-MEJORA con su disparador: **el día que se construya la interfaz del
+marcador**.
 
 Nota de norma, del mismo dictamen: **`aprazar`/`Aprazado`**, no *adiar*
 (portugués). Y *rematar* tiene dos sentidos en fútbol —terminar y disparar a

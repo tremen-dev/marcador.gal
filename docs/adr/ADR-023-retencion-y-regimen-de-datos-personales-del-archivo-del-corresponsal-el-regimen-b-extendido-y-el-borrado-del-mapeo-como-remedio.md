@@ -156,6 +156,49 @@ participantes del DPF y que su DPA firmado incluya los módulos correspondientes
 - **Si hay opción de retención cero y el proyecto es elegible, se contrata.** Si
   no, el plazo del proveedor queda escrito.
 
+### §3 bis. Dos supuestos sobre el proveedor que hay que dejar escritos, porque el primero es falso y el segundo no decide nada
+
+Esto vive **aquí y no en una nota de coste** por un motivo concreto: quien crea
+que el bot puede ir «por suscripción» creerá también que no hay nada que
+contratar, y de ahí se salta el art. 28 sin darse cuenta. La corrección del
+supuesto es, en su consecuencia, jurídica.
+
+**a) Una suscripción de consumo no habilita este bot.** Un plan de suscripción
+—Claude Pro, Claude Max o equivalente— cubre la aplicación de escritorio y web y
+la herramienta de línea de órdenes; **no habilita llamadas programáticas desde un
+servidor desplegado**. Un webhook corriendo en Vercel va **por API, con clave
+propia y facturación por token**, y esa relación es distinta de la suscripción y
+no se deriva de ella. **No existe la vía «gratis porque ya pago la
+suscripción»**, y la disyuntiva «suscripción contra API» no es una disyuntiva:
+para este bot solo hay API.
+
+Y lo que importa para este ADR: los términos de un plan de consumo **no son un
+contrato de encargado del tratamiento**. El DPA del §3 hace falta igual, y hace
+falta **antes** del primer mensaje.
+
+**b) El precio, medido en vez de temido, no debería decidir esto.** Precios
+vigentes al **2026-09-03**, por millón de tokens (entrada / salida): Claude Haiku
+4.5 **1 / 5** · Claude Sonnet 5 **2 / 10** · Claude Opus 5 **5 / 25**. El trabajo
+de este bot es un prompt corto —el texto del corresponsal más un puñado de
+candidatos— y una respuesta JSON de pocas líneas, unas decenas de veces por
+jornada. Una jornada sale por **céntimos**, y las **dos jornadas** que EPIC-002
+necesita **no llegan a dos euros ni con el modelo más caro**. Los precios cambian:
+**se vuelven a mirar en el momento de implementar**, no se copian de aquí.
+
+**Conclusión que este ADR fija:** lo caro de elegir proveedor **no es el precio,
+es el contrato de encargado y las cláusulas de transferencia internacional**. Y
+ahí la asimetría es real y hay que decirla: Anthropic **ya está estudiado** por el
+dictamen de `sdd-legal-datos` del 2026-09-02 —términos comerciales, DPA,
+retención, y el análisis de las cláusulas frente a la decisión de adecuación—;
+cualquier otro proveedor **habría que estudiarlo desde cero**, y ese estudio es
+trabajo de un rol consultivo, no del implementador. El coste de cambiar de
+proveedor no está en el código: está en volver a hacer el §3 entero.
+
+**Este ADR no elige proveedor.** La elección se aplaza deliberadamente al momento
+de la implementación (SPEC-015, notas §6.2), y lo que no se aplaza es la
+precondición: sin proveedor elegido y sin DPA guardado y fechado, el criterio del
+LLM no se implementa (§6.4).
+
 ### §4. El dominio seudonimizado, y el borrado del mapeo como remedio de la supresión
 
 ADR-022 §2 separa las dos mitades. Este ADR dice para qué sirve esa separación,
@@ -258,7 +301,15 @@ de encender el bot**, no criterios de aceptación:
    30.5 para menos de 250 empleados **no aplica**: el tratamiento no es ocasional,
    es cada jornada. Una página en `docs/legal/`.
 3. **La ponderación de interés legítimo (LIA)** de §4, en `docs/legal/`.
-4. **La copia fechada del DPA** del proveedor de LLM, en `docs/legal/`.
+4. **La elección de proveedor de LLM y la copia fechada de su DPA**, en
+   `docs/legal/`. **Es la única de las seis que además bloquea código**: sin
+   proveedor elegido y sin DPA guardado y fechado, **SPEC-015 CA-5 no se
+   implementa** — no se escribe el cliente contra un proveedor sin contrato de
+   encargado, aunque el código fuese idéntico. **El resto de la spec avanza sin
+   ella**: las catorce restantes no dependen del proveedor, y el bot llega a
+   tener tarjeta y confirmación con un doble del modelo en su sitio.
+   **Disparador: antes de escribir la primera línea de `src/bot/llm.ts`.** Y la
+   comprobación no es de trámite (§3 bis, §7).
 5. **Un «no procede» corto y fechado sobre la evaluación de impacto (art. 35)**,
    en `docs/legal/`. Lectura del rol legal: no procede —ni gran escala, ni
    observación sistemática, ni art. 9 por diseño—, pero la combinación texto

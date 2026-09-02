@@ -408,6 +408,19 @@ sostiene el plazo de ADR-023.
 
 - **CA-5 — El LLM propone, su entrada no puede transportar identidad, y su salida
   se valida (RN-09, D-4, ADR-022 §6, ADR-016).**
+
+  > **Precondición del criterio, y solo de éste: no se implementa hasta que haya
+  > proveedor elegido y su DPA guardado y fechado en `docs/legal/`** (ADR-023
+  > §6.4). No se escribe un cliente contra un proveedor sin contrato de
+  > encargado del tratamiento, aunque el código fuese idéntico. **Los otros
+  > catorce criterios avanzan sin esto**: ninguno depende del proveedor, y el bot
+  > llega a tener candidatos, tarjeta, confirmación y `Observation` con un doble
+  > del modelo en su sitio. **Disparador: antes de la primera línea de
+  > `src/bot/llm.ts`.** Y el supuesto que hay que no volver a plantear está
+  > corregido en ADR-023 §3 bis: **no hay vía por suscripción; este bot va por
+  > API**, y lo caro de la elección no es el precio sino el DPA y las cláusulas
+  > de transferencia.
+
   Dada la firma `buildPrompt(input: { text: string; candidates: readonly
   MatchCandidate[] }): string`,
   entonces:
@@ -770,9 +783,12 @@ Aparcado a propósito, no por descuido. Cada cosa con su destino y su disparador
   **disparador: el primer artefacto que enseñe un cualificador a una persona en
   castellano.** Y con él va la pregunta de si los cuatro cualificadores se
   traducen o se quedan en galego como vocabulario de marca (nota §4).
-- **La incoherencia *En xogo* / *Directo* de `docs/diseno/`.** EPIC-004 está
-  **congelada**. Esta spec fija el literal del **estado** y no toca la etiqueta de
-  **filtro**. **Destino: gate humano** (nota §3).
+- **La etiqueta *Directo* de `docs/diseno/`.** El gate decidió el 2026-09-03 que
+  `live` es **En xogo** siempre, en una sola forma y en todo el producto
+  (`dominio.md`), así que las **siete** apariciones de *Directo* como etiqueta de
+  filtro en el sistema de diseño quedan desalineadas (medido el 2026-09-03). **EPIC-004 está congelada y
+  esta spec no toca `docs/diseno/`.** **Destino: EPIC-MEJORA**, inventariado con
+  su disparador: **el día que se construya la interfaz del marcador.**
 - **Que el LLM proponga alias de equipo** —la vía `proposed` de RN-09 que ADR-018
   dejó apuntada al bot—. Aquí el modelo **elige entre candidatos con nombre
   canónico**; proponer alias es otra cosa. **Destino: spec futura**;
@@ -814,20 +830,20 @@ Telegram y con el rechazo antes de archivar nada (CA-1). Si prefieres pagar la
 latencia y no tener URL pública, es un cambio de ADR-022 §1 y de CA-1, no una
 reescritura.
 
-**§3. Dos cosas que hay que escribir en `dominio.md` antes de implementar, y una
-de ellas es tuya.** El glosario define los cinco estados **solo como
-identificadores en inglés**: no hay literal galego registrado, y **el bot es el
-primer sitio del sistema real donde una persona los ve**. La propuesta, que sale
-del dictamen de `sdd-lingua` §4.2 y coincide con lo que `docs/diseno/` ya usa:
-*Programado · En xogo · Rematado · Aprazado · Suspendido* (y *Programado · En
-juego · Finalizado · Aplazado · Suspendido* en castellano). Cuatro de las cinco no
-tienen discusión. **La quinta sí**, y es la que firmas: `docs/diseno/` usa **dos**
-formas para `live` —*En xogo* como estado y *Directo* como etiqueta de filtro—.
-Recomendación del rol lingüístico, que esta spec adopta: **«En xogo» para el
-estado** (describe el partido), **«Directo» solo como etiqueta de filtro**
-(describe una vista), **con la distinción registrada explícitamente**. Si no
-quieres registrar la distinción, hay que elegir **una** y usar esa en los dos
-sitios. **EPIC-004 está congelada, así que esto lo firma una persona.**
+**§3. Los cinco estados ya están en `dominio.md`, y `live` está decidido.** El
+glosario definía los cinco estados **solo como identificadores en inglés**, y el
+bot es el primer sitio del sistema real donde una persona los ve. Ya están
+registrados: *Programado · En xogo · Rematado · Aprazado · Suspendido* (y
+*Programado · En juego · Finalizado · Aplazado · Suspendido* en castellano).
+
+**`live` es *En xogo*, siempre y en una sola forma. Decidido por Alberto Fojo el
+2026-09-03**, descartando expresamente la distinción estado/filtro que
+recomendaba `sdd-lingua`. `dominio.md` registra **una** forma, no dos.
+
+Lo que eso deja abierto y no se toca: `docs/diseno/` usa *Directo* como etiqueta
+de filtro en **siete** ficheros y **EPIC-004 está congelada**. Está inventariado en
+EPIC-MEJORA con disparador escrito —el día que se construya la interfaz del
+marcador—, no callado. **Ya no bloquea CA-12.5.**
 
 **§4. Lo que este bot destapa y no arregla: el castellano no tiene
 cualificadores.** `src/i18n/es.ts` no lleva `qualifiers` y su propia cabecera dice
@@ -850,21 +866,34 @@ tú, el responsable tiene que ser identificable por nombre o entidad**, y el cam
 es una enmienda de ADR-015 en el ledger de SPEC-007. **Requiere revisión
 profesional.**
 
-**§6. Las tres preguntas abiertas que bloquean la implementación**, por orden:
+**§6. Las tres preguntas bloqueantes, contestadas el 2026-09-03 por Alberto
+Fojo. Dos cerradas, una aplazada a propósito.**
 
-1. **¿Firmas el plazo de 30 días de ADR-023 §2 para texto libre de una persona?**
-   Es la misma reserva que ADR-009 escribió sobre su propio plazo: nadie aquí
-   puede afinar el correcto, así que se elige groseramente conservador. Sin este
-   plazo, la spec se aprueba con un agujero conocido y la primera jornada no se
-   puede declarar (la fecha de purga se escribe **antes**).
-2. **¿Anthropic o otro proveedor, y está su DPA firmado y guardado?** El criterio
-   CA-5 se puede implementar con cualquiera, pero **la comprobación del DPA y de
-   las cláusulas contractuales tipo hay que hacerla contra el texto firmado, no
-   contra una fuente secundaria**, y la copia fechada va en `docs/legal/`. El
-   dictamen legal recomienda apoyarse en las cláusulas y **no** en la decisión de
-   adecuación, porque su recurso de casación está pendiente ante el TJUE.
-3. **¿`live` es *En xogo* o *Directo*?** Nota §3. Es una línea de `dominio.md` y
-   bloquea CA-12.5.
+1. **Plazo de retención — FIRMADO.** Régimen B extendido: **30 días desde el fin
+   de la jornada, una prórroga escrita y motivada, techo duro de 90**. ADR-023 §2
+   se queda como está. **Ojo con el alcance de esta firma:** es sobre el
+   **contenido** del plazo, **no** la aprobación formal de ADR-023 ni de esta
+   spec — los tres frontmatter siguen en `borrador`.
+2. **Proveedor de LLM — NO decidido, y aplazado a la implementación a
+   propósito.** La spec sigue sin fijar proveedor ni modelo, que es como ya
+   estaba. Lo que sí quedó escrito, porque era un supuesto falso a punto de
+   convertirse en decisión, está en **ADR-023 §3 bis**: **una suscripción no
+   habilita llamadas programáticas desde un servidor desplegado** —cubre
+   escritorio, web y línea de órdenes, no un webhook en Vercel—, así que **no hay
+   vía «gratis por suscripción»** y este bot va por API con clave propia. Y el
+   precio, medido: con unas decenas de mensajes por jornada, **las dos jornadas
+   de EPIC-002 no llegan a dos euros ni con el modelo más caro**. **Lo caro no es
+   el precio: es el DPA y las cláusulas de transferencia**, y ahí Anthropic ya
+   está estudiado por el dictamen legal mientras que cualquier otro proveedor
+   habría que estudiarlo desde cero. **Consecuencia operativa: CA-5 no se
+   implementa hasta que haya proveedor elegido y DPA guardado y fechado; los
+   otros catorce criterios avanzan sin eso** (ADR-023 §6.4).
+3. **`live` — DECIDIDO: *En xogo*, siempre.** Una sola forma en todo el producto.
+   `dominio.md` ya lo registra así. Ver nota §3. **Ya no bloquea nada.**
+
+**Lo que queda bloqueando, por tanto: nada de estas tres.** Lo único que impide
+que la implementación empiece hoy es tu firma sobre la spec y los dos ADR, que
+siguen en `borrador`.
 
 **§7. Las que pueden esperar al gate siguiente**, y por qué no bloquean:
 
