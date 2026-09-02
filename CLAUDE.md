@@ -137,10 +137,10 @@ src/model/    modelo canónico en zod + tipos derivados (SPEC-001)
 src/raw/      puerto RawStore: store.ts, disk.ts, blob.ts, capture.ts (SPEC-001)
 src/db/       cliente postgres.js, runner de migraciones, puertos, rate-limit.ts (SPEC-001, SPEC-008);
               calendar.ts, observations.ts, decisions.ts, matches.ts, arrays.ts (SPEC-010);
-              aliases.ts (SPEC-011)
-migrations/   SQL numerado, aplicado en orden (ADR-006); 0001, 0002, 0003 y 0004 aplicadas
+              aliases.ts (SPEC-011); ingest-attempts.ts (SPEC-012)
+migrations/   SQL numerado, aplicado en orden (ADR-006); 0001, 0002, 0003, 0004 y 0005 aplicadas
 src/polite/   cortesía RN-11 con un solo dueño (ADR-014, SPEC-008): robots.ts,
-              http.ts, user-agent.ts, rate-limit.ts, policy.ts, clock.ts.
+              http.ts, user-agent.ts, rate-limit.ts, policy.ts, policy-durable.ts, clock.ts.
               src/mirror/ ya no es su domicilio
 src/mirror/   test de espejo (SPEC-002, SPEC-003): dos fases que no se importan
               capture/  fase A: pide, respeta robots y archiva sin parsear (RN-10, RN-11)
@@ -149,9 +149,9 @@ src/mirror/   test de espejo (SPEC-002, SPEC-003): dos fases que no se importan
               cli/      capturar · analizar · analizar-sin-referencia
 src/alias/    catálogo de alias declarado (SPEC-011): catalog.ts, ports.ts, resolver.ts,
               cli.ts, command.ts
-src/ingest/   adaptador de ceroacero.es (SPEC-008): adapter.ts, ceroacero.ts,
-              observations.ts, ports.ts, sources.ts. Cron de planificación,
-              todavía sin escribir
+src/ingest/   adaptador de ceroacero.es (SPEC-008), cron de ingesta (SPEC-012):
+              adapter.ts, ceroacero.ts, observations.ts, ports.ts, sources.ts,
+              windows.ts, tick.ts, measurement.ts, attempts.ts, cron.ts
 src/calendar/ calendario declarado a mano (SPEC-010): schedule.ts, time.ts, ids.ts,
               declared.ts, ports.ts, cli.ts, command.ts
 src/decide/   motor de decisiones (RN-01..RN-07)
@@ -160,6 +160,7 @@ src/admin/    panel mínimo de correcciones y alertas (móvil)
 src/app/      Next.js App Router (ADR-001, ADR-004)
   (gl)/       rutas en galego: /proxecto, /robot (SPEC-004, SPEC-005, EPIC-003)
   (es)/       rutas en castellano: /es/proxecto, /es/robot (SPEC-004, SPEC-005)
+  api/cron/   cron de ingesta `/api/cron/ingest` (SPEC-012)
   robots.txt/ ruta dinámica que genera robots.txt (SPEC-004 CA-11)
   globals.css estilos globales, sin dependencias externas (SPEC-004 CA-9)
 src/site/     componentes y utilidades compartidas por el sitio público (EPIC-003)
@@ -177,7 +178,8 @@ docs/roadmap.md          secuencia de épicas
 docs/fundacion/          contexto, visión, dominio, reglas, retos
 docs/epicas/             épicas y sus specs
 docs/adr/                ADRs
-docs/procedimientos/     runbooks operativos (la ventana de observación) y calendario-de-compromisos.md (fechas con plazo; casi ninguna la vigila un test)
+docs/procedimientos/     runbooks operativos: ventana de observación, carga del calendario, carga de
+              alias, jornada de medición; calendario-de-compromisos.md (fechas con plazo)
 docs/negocio/            monetización y marca
 docs/diseno/             sistema de diseño del marcador: fuentes, tokens y lienzo (EPIC-004)
 ```

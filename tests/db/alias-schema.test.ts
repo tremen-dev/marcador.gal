@@ -39,19 +39,30 @@ function declared(kind: RegExp): string[] {
 
 describe('CA-8 — the fourth migration', () => {
   test('is on disk, fourth, and named after what it brings', async () => {
+    // `toHaveLength(4)` until SPEC-012 added `migrations/0005`: an assertion
+    // that ENUMERATES the migrations is made false by a decision and not by a
+    // defect — the F-SPEC-008-1 shape, resolved here exactly as
+    // `migrate.test.ts` resolved it. What CA-8 fixes is intact and asserted:
+    // the migration EXISTS and it is FOURTH.
     const files = (await readMigrations()).map((migration) => migration.file);
-    expect(files).toHaveLength(4);
+    expect(files.length).toBeGreaterThanOrEqual(4);
     expect(files[3]).toBe(MIGRATION);
   });
 
   test('a first run applies 0001..0004 in that order; a second applies nothing', async () => {
-    expect(await migrate(sql)).toEqual(['0001', '0002', '0003', '0004']);
+    // Same amendment as above: the first four versions are still 0001..0004
+    // in that order, every pending migration applies on the first run, none
+    // on the second, and the ledger holds one row per version.
+    const versions = (await readMigrations()).map((migration) => migration.version);
+    expect(versions.slice(0, 4)).toEqual(['0001', '0002', '0003', '0004']);
+
+    expect(await migrate(sql)).toEqual(versions);
     expect(await migrate(sql)).toEqual([]);
 
     const applied = await sql<{ version: string }[]>`
       select version from schema_migrations order by version
     `;
-    expect(applied.map((row) => row.version)).toEqual(['0001', '0002', '0003', '0004']);
+    expect(applied.map((row) => row.version)).toEqual(versions);
   });
 
   test('1. the table the migration declares exists', async () => {
