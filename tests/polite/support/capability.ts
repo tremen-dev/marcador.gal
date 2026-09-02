@@ -893,7 +893,7 @@ export const ALLOWED_GLOBALS: readonly GlobalEntry[] = [
   {
     identifier: 'Date',
     asValue: true,
-    surface: ['parse'],
+    surface: ['UTC', 'parse'],
     motive:
       'Instants CROSS the system as ISO 8601 UTC strings, never as `Date` (ADR-006); parsing and formatting at the edge is what `Date.parse` and a locally-scoped `new Date` are for (`src/polite/clock.ts`, `src/mirror/instants.ts`).',
   },
@@ -902,6 +902,13 @@ export const ALLOWED_GLOBALS: readonly GlobalEntry[] = [
     asValue: true,
     surface: [],
     motive: 'Throwing and subclassing errors. Every `throw new Error(…)` of `src/` is this entry.',
+  },
+  {
+    identifier: 'Intl',
+    asValue: false,
+    surface: ['DateTimeFormat'],
+    motive:
+      "Timezone arithmetic for the declared calendar without a dependency (ADR-017 §5): `src/calendar/time.ts` derives an offset from `Intl.DateTimeFormat` parts. Type positions (`Intl.DateTimeFormatPartTypes`) are erased by the compiler and never judged.",
   },
   {
     identifier: 'JSON',
@@ -919,14 +926,16 @@ export const ALLOWED_GLOBALS: readonly GlobalEntry[] = [
   {
     identifier: 'Math',
     asValue: false,
-    surface: ['ceil'],
-    motive: 'Arithmetic on windows and turns (`src/mirror/window.ts`). No randomness is taken.',
+    surface: ['ceil', 'floor'],
+    motive:
+      'Arithmetic on windows and turns (`src/mirror/window.ts`) and truncation to the minute (`src/calendar/time.ts`). No randomness is taken.',
   },
   {
     identifier: 'Number',
     asValue: true,
-    surface: ['isFinite', 'isNaN'],
-    motive: 'Parsing counted things — scores, ports, tick numbers — and validating them.',
+    surface: ['isFinite', 'isNaN', 'isSafeInteger'],
+    motive:
+      'Parsing counted things — scores, ports, tick numbers — and validating them, integers before they enter a SQL array included (`src/db/arrays.ts`).',
   },
   {
     identifier: 'Object',
@@ -972,6 +981,13 @@ export const ALLOWED_GLOBALS: readonly GlobalEntry[] = [
     motive: 'Decoding stored raw bytes back into text for analysis (RN-10: bytes first).',
   },
   {
+    identifier: 'TypeError',
+    asValue: true,
+    surface: [],
+    motive:
+      'Thrown by `src/db/arrays.ts` when a non-integer would corrupt an int array before it reaches SQL.',
+  },
+  {
     identifier: 'URL',
     asValue: true,
     surface: [],
@@ -993,7 +1009,7 @@ export const ALLOWED_GLOBALS: readonly GlobalEntry[] = [
   {
     identifier: 'process',
     asValue: false,
-    surface: ['argv', 'env', 'stdout'],
+    surface: ['argv', 'env', 'exitCode', 'stderr', 'stdout'],
     motive:
       'The host process, at the NARROWEST surface that runs the CLIs: arguments in, environment read, progress out. `getBuiltinModule` is deliberately NOT here — it hands back any internal module with no import (F-SPEC-008-V34) — and it stays out by not being written, not by being named.',
   },
