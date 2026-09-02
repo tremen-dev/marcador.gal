@@ -58,8 +58,47 @@ export const TEST_EXCLUSIONS: readonly string[] = [
   'tests/raw/blob.contract.test.ts',
 ];
 
-/** The capability the partition is drawn around (CA-3). */
-export const FILE_SYSTEM_MODULES: readonly string[] = ['node:fs', 'node:fs/promises'];
+/**
+ * The capability the partition is drawn around (CA-3), NAMED AS NODE NAMES IT.
+ *
+ * IT USED TO BE A LIST OF TWO LITERALS — `node:fs` and `node:fs/promises` — and
+ * that is F-SPEC-014-8: Node accepts FOUR spellings for the same two modules,
+ * because the `node:` prefix is optional, and `import { readFileSync } from
+ * 'fs'` walked into the parallel group with the guardian at 23/23 and
+ * `oxlint --type-aware` at exit 0. Nothing in this repository forbids the bare
+ * spelling: the rule that would (`unicorn/prefer-node-protocol`) is of category
+ * *style* and `.oxlintrc.json` enables only `correctness`, and `tests/` is
+ * outside `SCAN_ROOTS`, so ADR-014 §4 never looks at a test file either.
+ *
+ * So the membership is a RULE over Node's builtin namespace — the optional
+ * prefix, and the `fs` builtin with everything under it — and NOT an
+ * enumeration of spellings written by hand. What closes it is Node's own
+ * builtin table: `tests/config/partition.test.ts` case 10 sweeps
+ * `builtinModules` whole, in both spellings, and demands that this predicate
+ * accept exactly the `fs` family and reject every other builtin (ADR-016 §3.1).
+ *
+ * WHY THE TABLE IS READ THERE AND NOT HERE: this file is inside `SCAN_ROOTS`
+ * and the surface ADR-014 §4 concedes for `node:module` is `registerHooks`,
+ * nothing else — measured, `builtinModules` and `isBuiltin` both come back as
+ * offences of CA-2.3. Widening that surface means editing
+ * `tests/polite/support/capability.ts`, a file of a spec in `hecho`, which
+ * CA-4.2 and ADR-015 forbid. The guardian lives outside the roots and can.
+ */
+export const FILE_SYSTEM_BUILTIN = 'fs';
+
+/**
+ * Whether a specifier names Node's file-system builtin, however it is spelled.
+ *
+ * Our own modules are not builtins however they are named, so `@/fs` and `./fs`
+ * are out before the question is asked; a package called `fs-extra` is out
+ * because the family is `fs` and what hangs below `fs/`, not what starts with
+ * those two letters.
+ */
+export function isFileSystemModule(specifier: string): boolean {
+  if (specifier.startsWith('.') || specifier.startsWith('@/')) return false;
+  const bare = specifier.startsWith('node:') ? specifier.slice(5) : specifier;
+  return bare === FILE_SYSTEM_BUILTIN || bare.startsWith(`${FILE_SYSTEM_BUILTIN}/`);
+}
 
 export const PARALLEL_GROUP = 'parallel';
 export const SERIALIZED_GROUP = 'serialized';
@@ -171,11 +210,12 @@ async function readNode(file: string): Promise<Node> {
       nonLiteral = true;
       continue;
     }
-    if (FILE_SYSTEM_MODULES.includes(text)) {
-      fileSystem = text;
+    if (!text.startsWith('.') && !text.startsWith('@/')) {
+      // Not one of ours: either the capability the partition is drawn around,
+      // or a package, which CA-3.5 declares as residue.
+      if (isFileSystemModule(text)) fileSystem = text;
       continue;
     }
-    if (!text.startsWith('.') && !text.startsWith('@/')) continue; // a package, not our source
 
     let resolved = await resolveModule(text, file);
     if (resolved === null) {

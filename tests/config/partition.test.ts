@@ -24,18 +24,49 @@
  * what decides, so it is the config that must be judged. Reading it as text
  * would be judging its spelling.
  */
+import { builtinModules, isBuiltin } from 'node:module';
 import { describe, expect, it } from 'vitest';
 import config, {
   TEST_INCLUDE,
   TEST_EXCLUSIONS,
-  FILE_SYSTEM_MODULES,
+  FILE_SYSTEM_BUILTIN,
   PARALLEL_GROUP,
   SERIALIZED_GROUP,
+  isFileSystemModule,
   partitionOffences,
   partitionTestFiles,
   testUniverse,
 } from '../../vitest.config.ts';
 import { registerSyntheticSource } from '../mirror/support/imports.ts';
+
+/**
+ * EVERY SPELLING NODE ACCEPTS FOR A BUILTIN, FROM NODE'S OWN TABLE.
+ *
+ * `builtinModules` lists the modules this runtime carries; the ones that may
+ * only be written with the prefix (`node:test`, `node:sea`) appear in it
+ * already prefixed. Both spellings of each are offered to `isBuiltin`, which is
+ * Node's own answer to «does this specifier name a builtin», and only what it
+ * accepts survives. Nothing here is a list of names: the closure of CA-3 lives
+ * in `node:module`, which exists outside this test and outside this repository
+ * (ADR-016 §3.1).
+ *
+ * It lives HERE and not in `vitest.config.ts` because `vitest.config.ts` is
+ * inside `SCAN_ROOTS` and the surface ADR-014 §4 concedes for `node:module` is
+ * `registerHooks` and nothing else. Widening it would be editing a file of a
+ * closed spec (CA-4.2, ADR-015). `tests/` is outside the roots by a declared
+ * exclusion, so the guardian pays for the enumeration and the configuration
+ * carries only the rule the guardian proves equal to it.
+ */
+const BUILTIN_SPELLINGS: readonly string[] = [
+  ...new Set(
+    builtinModules.flatMap((name) => {
+      const bare = name.startsWith('node:') ? name.slice(5) : name;
+      return [bare, `node:${bare}`];
+    }),
+  ),
+]
+  .filter((spelling) => isBuiltin(spelling))
+  .sort();
 
 type Project = {
   readonly extends?: unknown;
@@ -161,7 +192,7 @@ describe('CA-3 — la pertenencia la decide el grafo de imports', () => {
     const partition = await partitionTestFiles();
     for (const [entry, chain] of partition.witness) {
       expect(chain[0]).toBe(entry);
-      expect(FILE_SYSTEM_MODULES).toContain(chain.at(-1));
+      expect(isFileSystemModule(chain.at(-1)!)).toBe(true);
     }
   });
 
@@ -233,6 +264,48 @@ describe('CA-3 — la pertenencia la decide el grafo de imports', () => {
     const blind = partition.nonLiteralReach.filter((file) => partition.parallel.includes(file));
     expect(blind).toEqual([]);
     expect(partition.nonLiteral).toEqual(['tests/polite/containment.test.ts']);
+  });
+
+  it('10. F-SPEC-014-8 — la capacidad se cierra contra la tabla de builtins de Node, no contra dos grafías', () => {
+    // WHAT WENT WRONG THE FIRST TIME: the criterion was a list of two literals,
+    // `node:fs` and `node:fs/promises`. Node accepts FOUR spellings for the
+    // same two modules — the prefix is optional — and `import { readFileSync }
+    // from 'fs'` walked into the parallel group with the guardian at 23/23 and
+    // `oxlint --type-aware` at exit 0, because the rule that would force the
+    // prefix (`unicorn/prefer-node-protocol`) is of category *style* and
+    // `.oxlintrc.json` enables only `correctness`.
+    //
+    // THE SWEEP IS OVER EVERY BUILTIN THIS RUNTIME HAS, in both spellings, and
+    // it demands the rest be empty (ADR-016 §3.1): the day Node adds a module
+    // to the `fs` family it appears here without anybody editing a list, and
+    // the day the rule widens by accident a hundred-odd builtins go red.
+    const family = builtinModules.filter(
+      (name) => name === FILE_SYSTEM_BUILTIN || name.startsWith(`${FILE_SYSTEM_BUILTIN}/`),
+    );
+    const expected = family
+      .flatMap((name) => [name, `node:${name}`])
+      .filter((spelling) => isBuiltin(spelling))
+      .sort();
+
+    // Not a formality: if `builtinModules` ever came back empty this case would
+    // pass with both sides empty, and the sweep would prove nothing.
+    expect(BUILTIN_SPELLINGS.length).toBeGreaterThan(50);
+    expect(expected).toEqual(['fs', 'fs/promises', 'node:fs', 'node:fs/promises']);
+
+    expect(BUILTIN_SPELLINGS.filter((spelling) => isFileSystemModule(spelling))).toEqual(expected);
+  });
+
+  it('11. y lo que no es un builtin del sistema de ficheros no entra por parecerse', () => {
+    // The negative half of case 10, over the shapes that are NOT builtins and
+    // therefore never reach `BUILTIN_SPELLINGS`: a package whose name begins
+    // with the same three letters, and our own modules.
+    for (const specifier of ['fs-extra', 'fsevents', './fs', '@/fs', '@/raw/disk.ts', 'node:fsx']) {
+      expect([specifier, isFileSystemModule(specifier)]).toEqual([specifier, false]);
+    }
+    // And the four that do, one by one, so a red names the spelling it lost.
+    for (const specifier of ['fs', 'node:fs', 'fs/promises', 'node:fs/promises']) {
+      expect([specifier, isFileSystemModule(specifier)]).toEqual([specifier, true]);
+    }
   });
 });
 
