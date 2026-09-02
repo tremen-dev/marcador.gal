@@ -131,3 +131,113 @@ cron, verificada por sus 4 casos de handler y la lectura del diff.
 ## Enmienda — 2026-09-02: F-SPEC-012-1 cerrado
 
 **F-SPEC-012-1 — Los dos términos de `dominio.md` ya están añadidos** (commit `692b2d4`, sdd-arquitecto). Terminología canónica registrada: **ventana de partido** (intervalo `[kickoff − PRE, kickoff + POST)` de elegibilidad) y **jornada de medición declarada** (intervalo declarado de ingesta, lista cerrada y versionada).
+
+## Enmienda — 2026-09-02: SPEC-013 cambia la LETRA de CA-7 — la ruta delega en el ciclo del motor
+
+**Esto es una enmienda, no una reapertura.** SPEC-012 sigue en `hecho`, su
+veredicto sigue siendo GREEN y no se ha tocado una línea del cuerpo de la spec.
+La forma es la de ADR-015 §2 y §3, y quien la registra es quien invalida
+(ADR-015 §5): **ADR-021 §4 la anunció en su propia decisión**, nombrando el CA,
+y SPEC-013 CA-12.3 la exige por escrito antes de dar el criterio por cerrado.
+
+1. **Qué afirmaba CA-7 y por qué era razonable.** CA-7 exige que
+   `src/app/api/cron/ingest/route.ts` autentique con `CRON_SECRET`, falle
+   cerrado sin él, no contenga lógica y **«delegue entera en la función del
+   tick de `src/ingest/`»**. Cuando se escribió, el tick ERA todo el trabajo de
+   la invocación: SPEC-012 termina en `ObservationStore.append` y su CA-4.4
+   afirma, como resultado esperado, que `decisions` sigue vacía. Con el motor
+   sin existir, «la función del tick de `src/ingest/`» y «todo el trabajo de la
+   invocación» eran la misma frase.
+
+2. **Qué lo invalida.** **ADR-021 §4** (aprobado por Alberto Fojo el
+   2026-09-02) y **SPEC-013 CA-12**: el motor de decisiones corre **dentro del
+   mismo tick, después de la ingesta y en la misma invocación**, y el ciclo
+   completo vive en `src/decide/cycle.ts`, que llama a `runIngestTick`. El
+   motivo que decide es la **latencia** —la cifra de EPIC-002 exige < 120 s y
+   un segundo cron regalaría hasta 60 s de un presupuesto que la ingesta ya
+   gasta a medias—, y el motivo que fija la DIRECCIÓN es RN-08: SPEC-008 CA-12
+   prohíbe que `src/ingest/` mencione `DecisionStore`, así que es el motor
+   quien llama a la ingesta y nunca al revés.
+
+3. **Con qué se sustituye, y si la red que queda es menor.** La ruta pasa a
+   inyectar `productionCycle` (`@/decide/cycle`) en lugar de
+   `productionCronTick` (`@/ingest/cron`). Es **una línea** —más la línea del
+   `import`— y **nada más** del fichero cambia. La sustancia de CA-7 queda
+   entera y sigue mecanizada por el mismo guardián: los **cuatro casos** de
+   `tests/ingest/cron.test.ts` pasan **sin tocar una aserción**, porque
+   `cronIngestHandler` sigue recibiendo la función por inyección y sigue sin
+   invocarla cuando la autenticación falla. `src/ingest/cron.ts` **no se toca**:
+   conserva `CRON_INGEST_PATH`, `cronIngestHandler` y `productionCronTick`.
+   **La red NO es menor, y se dice sin suavizar dónde sí cambia algo:**
+   `productionCronTick` deja de tener llamante en producción — sigue exportado,
+   sigue probado por los casos que lo cubrían y ya no describe lo que el cron
+   hace. Quien lea `src/ingest/cron.ts` buscando «qué corre cada minuto» tiene
+   que ir a `src/decide/cycle.ts`. Esa desorientación es el precio, y esta
+   enmienda es el sitio donde queda escrita.
+
+4. **El veredicto sigue en pie.** El GREEN de SPEC-012 (2026-09-02) juzgó la
+   autenticación, el fallo cerrado, la ausencia de lógica en la ruta y el
+   `vercel.json` con **un** cron a `* * * * *`; nada de eso ha cambiado.
+   **CA-8 sigue intacto y comprobado por su propio test sin tocarlo**
+   (`tests/ingest/vercel-cron.test.ts`, dos casos). Lo único que cambia es
+   **qué función** se le inyecta al handler.
+
+5. **Qué lo despierta.** El día que el ciclo deje de caber en una invocación de
+   Vercel —con veinte competiciones, no con dos— la respuesta escrita en
+   ADR-021 §Consecuencias es **partir el cron**, no adelgazar el motor; y ese
+   día `vercel.json` declararía dos crones y CA-8 dejaría de ser cierto de
+   verdad, lo que exigiría su propia enmienda. También lo despierta cualquier
+   cambio que devuelva lógica a `route.ts`: la sustancia de CA-7 es que la ruta
+   no decide nada, y eso no lo enmienda esta nota.
+
+Registrado por `sdd-implementador` de SPEC-013 (ADR-015 §5).
+
+## Enmienda — 2026-09-02: `migrations/0006` invalida la aserción enumerante de CA-6
+
+**Esto es una enmienda, no una reapertura.** SPEC-012 sigue en `hecho` y su
+veredicto sigue siendo GREEN. Es la **quinta** vez que una migración nueva
+rompe una aserción que enumera las migraciones (F-SPEC-008-16 sobre SPEC-001
+CA-13; SPEC-008 CA-14 sobre la misma; SPEC-010 CA-10; SPEC-011 CA-8), y la
+enmienda de SPEC-011 la dejó anticipada palabra por palabra: «heredará esta
+misma enmienda el día de `0006`». Es F-SPEC-012-3 llegando a su vencimiento.
+
+1. **Qué afirmaba CA-6 y por qué era razonable.** CA-6 exige que
+   `migrations/0005` se aplique en orden tras `0001..0004`, sin rollback, y que
+   una segunda ejecución no aplique nada. Su guardián,
+   `tests/db/ingest-attempts.test.ts`, lo mecanizaba **enumerando**:
+   `expect(await migrate(sql)).toEqual(['0001','0002','0003','0004','0005'])`.
+   El 2026-09-02 `0005` era la última migración y la lista literal era la
+   aserción más fuerte escribible.
+
+2. **Qué lo invalida.** `migrations/0006_alerts.sql`, que **SPEC-013 CA-11**
+   (aprobada por Alberto Fojo el 2026-09-02) ordena crear, con ADR-021 §5: la
+   tabla `alerts`, append-only, que es la materia prima de la tercera cifra de
+   EPIC-002. Desde que existe una sexta migración, una aserción que enumera
+   cinco no puede ser cierta, y reapuntarla a seis la dejaría falsa otra vez el
+   día de `0007`.
+
+3. **Con qué se sustituye, y si la red que queda es menor.** El caso 1 pasa a
+   derivarse del descubridor (`readMigrations`), conservando entera la
+   sustancia de CA-6: `migrate` aplica **exactamente lo que hay en disco**, en
+   orden lexicográfico (comprobado), las **cinco** versiones que CA-6 conocía
+   siguen estando (comprobadas una a una), la lista tiene al menos cinco
+   entradas —así que no puede pasar descubriendo nada— y la segunda ejecución
+   sigue devolviendo `[]` (caso 2, intacto). La red **ES menor** en el mismo
+   punto que en las cuatro enmiendas anteriores y se dice sin suavizar: el caso
+   ya no falla si aparece una migración posterior que CA-6 no conocía. Desde
+   hoy esa información la da `tests/db/decide-cycle.test.ts` (SPEC-013 CA-11.1),
+   que enumera las seis y heredará esta misma enmienda el día de `0007`. Ningún
+   otro caso del fichero cambia; el recuento del fichero no cambia.
+
+4. **El veredicto sigue en pie.** El GREEN de SPEC-012 juzgó la migración
+   `0005` y el registro durable de intentos contra la base real; nada de eso ha
+   cambiado. Lo único que cambia es cómo el guardián nombra «todas las
+   migraciones».
+
+5. **Qué lo despierta.** El mismo despertador que las cuatro anteriores: si
+   `readMigrations` dejara de ser la autoridad sobre qué hay en disco, la
+   aserción derivada quedaría ciega y habría que volver a una lista cerrada con
+   dueño declarado.
+
+Registrado por `sdd-implementador` de SPEC-013 (quien invalida, registra,
+ADR-015 §5).
