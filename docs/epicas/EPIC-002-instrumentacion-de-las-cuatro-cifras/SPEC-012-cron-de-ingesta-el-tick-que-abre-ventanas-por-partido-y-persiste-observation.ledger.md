@@ -15,7 +15,7 @@ epica: EPIC-002
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 | | | | ❌ |
+| CA-1 | `src/ingest/windows.ts` | `tests/ingest/windows.test.ts` (9 casos: bordes de ventana, jornada `[from,to)`, lista vacía, POST en su único sitio, cadena `Z`) | | 🚧 |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
