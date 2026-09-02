@@ -6,8 +6,8 @@ epica: EPIC-002
 # Ledger — SPEC-012 Cron de ingesta: el tick que abre ventanas por partido y persiste Observation
 
 ## Resumen
-- Fase: <!-- refleja el estado de la spec; la fuente de verdad es el frontmatter de la spec -->
-- Rama: `ft/SPEC-012-cron-de-ingesta-el-tick-que-abre-ventanas-por-partido-y-persiste-observation`
+- Fase: en-revision (implementación completa, pendiente de verificación)
+- Rama: `ft/SPEC-012-cron-de-ingesta`
 
 ## Matriz de criterios de aceptación
 <!-- Escritores: sdd-implementador rellena Implementado y Test; sdd-verificador rellena Verif. y Estado. Nunca al revés. -->
@@ -30,7 +30,7 @@ epica: EPIC-002
 
 - `npm run lint` → `oxlint --type-aware` → **exit 0**, sin avisos.
 - `npm test` → `Test Files  100 passed (100) · Tests  919 passed (919) · Type Errors  no errors` (exit 0).
-- `npm run test:db` → <!-- pendiente: se rellena con la salida literal al cerrar -->
+- `npm run test:db` → `Test Files  21 passed (21) · Tests  259 passed (259) · Duration 145.81s` (exit 0) — la suite `tests/db/` previa entera más las dos altas de esta spec, contra la Neon test branch real.
 - Recuento contra `main` (mismo patrón que SPEC-009 CA-7): ningún fichero de suite cerrada pierde casos — `tests/polite/architecture.test.ts` 50→50, `tests/polite/containment.test.ts` 21→21, resto sin tocar. Altas: `tests/ingest/{windows,cron,vercel-cron,tick-fails-closed}.test.ts`, `tests/polite/policy-durable.test.ts`, `tests/db/{ingest-attempts,ingest-tick}.test.ts`.
 - Diffs con motivo en el guardián (SPEC-008 CA-2.3, previstos por CA-10): `ENTRY_POINTS` gana `src/app/api/cron/ingest/route.ts`; el caso 2 de `architecture.test.ts` (enumeración de `src/polite/`) gana `policy-durable.ts`; el caso 13 de `containment.test.ts` añade la ruta a `DRIVEN` — los tres con su motivo escrito en el propio fichero. Ningún paquete ni global nuevo: `Response.json` se evitó usando `new Response` (la superficie concedida).
 
@@ -49,3 +49,11 @@ epica: EPIC-002
 
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
+
+**Estado (2026-09-02, sdd-implementador):** los diez CA implementados con TDD, gates en verde, todo commiteado en `ft/SPEC-012-cron-de-ingesta` (sin push: lo hace el orquestador tras el GREEN).
+
+- **Código nuevo:** `src/ingest/windows.ts` (elegibilidad pura, PRE/POST), `src/ingest/measurement.ts` (jornadas declaradas — VACÍA — y `ACTIVE_SEASON`), `src/ingest/attempts.ts` (puerto del registro), `src/ingest/tick.ts` (`runIngestTick` + `composeTickPorts`), `src/ingest/cron.ts` (`CRON_INGEST_PATH`, `cronIngestHandler`, `productionCronTick`), `src/polite/policy-durable.ts` (`DurablePolicyGate`), `src/db/ingest-attempts.ts`, `migrations/0005_ingest_attempts.sql`, `src/app/api/cron/ingest/route.ts`, `vercel.json`.
+- **Ficheros `hecho` de SPEC-008/010/011: intactos** (ADR-011 §6). Los tres únicos tests previos tocados son diffs con motivo: `capability.ts` (ENTRY_POINTS +1), `architecture.test.ts` caso 2 (+`policy-durable.ts` en la enumeración de polite), `containment.test.ts` caso 13 (DRIVEN +ruta), y la enmienda F-SPEC-008-1-style de `alias-schema.test.ts` (F-SPEC-012-3).
+- **Para verificar:** conducir el tick con composición nueva por tick (los tests de `tests/db/ingest-tick.test.ts` son exactamente esa conducción); los controles positivos de CA-3.5 están en el caso 12 de ese fichero y en `policy-durable.test.ts`; CA-3.6 (ningún parser nuevo) se comprueba en el diff — `policy-durable.ts` importa `parseRobots` y no parsea nada por su cuenta.
+- **Pendiente de otros roles:** F-SPEC-012-1 (términos de `dominio.md`, bloqueados por el hook de documentos de verdad — texto propuesto en el informe del implementador), decisión del gate sobre F-SPEC-012-3 (letra de CA-6) y F-SPEC-012-2 (borde `t + PRE` de la consulta). El runbook de jornada de medición es del documentalista tras el GREEN.
+- **Despliegue (fuera de esta spec):** `CRON_SECRET` tiene que existir en el entorno de Vercel o el cron responderá 401 a todo (fallo cerrado deliberado, CA-7); `DATABASE_URL` y `BLOB_READ_WRITE_TOKEN` los leen `productionCronTick`/`BlobRawStore`.

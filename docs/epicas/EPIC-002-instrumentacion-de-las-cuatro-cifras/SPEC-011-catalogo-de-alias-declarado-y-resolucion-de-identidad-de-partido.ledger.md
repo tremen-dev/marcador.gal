@@ -281,3 +281,54 @@ Ninguno. No se abre ningún F-SPEC-011-V*.
 
 Transición registrada: `en-revision` → `hecho` (por sdd-verificador,
 2026-09-02).
+
+## Enmienda — 2026-09-02: `migrations/0005` invalida la aserción enumerante de CA-8
+
+**Esto es una enmienda, no una reapertura.** SPEC-011 sigue en `hecho`, su
+veredicto sigue siendo GREEN y no se ha tocado una línea del cuerpo de la
+spec. La forma es la de ADR-015 §2 y §3, y el caso es el que la enmienda de
+SPEC-010 del mismo día dejó anticipado palabra por palabra: «heredará esta
+misma enmienda el día de `0005`». Es la cuarta vez que una migración nueva
+rompe una aserción que enumera las migraciones (F-SPEC-008-16 sobre SPEC-001
+CA-13; SPEC-008 CA-14 sobre la misma; SPEC-010 CA-10 ayer).
+
+1. **Qué afirmaba CA-8 y por qué era razonable.** CA-8 exige que
+   `migrations/0004` se aplique en orden tras `0001..0003`, sin rollback, y
+   que una segunda ejecución no aplique nada. Su guardián,
+   `tests/db/alias-schema.test.ts`, lo mecanizaba **enumerando**:
+   `expect(files).toHaveLength(4)` y
+   `expect(await migrate(sql)).toEqual(['0001','0002','0003','0004'])`. El
+   2026-09-02 por la mañana `0004` era la última migración y la lista literal
+   era la aserción más fuerte escribible.
+
+2. **Qué lo invalida.** `migrations/0005_ingest_attempts.sql`, que **SPEC-012
+   CA-6** (aprobada por Alberto Fojo el 2026-09-02) ordena crear, con
+   ADR-019 §5. Desde que existe una quinta migración, una aserción que
+   enumera cuatro no puede ser cierta, y reapuntarla a cinco la dejaría falsa
+   otra vez el día de `0006`.
+
+3. **Con qué se sustituye, y si la red que queda es menor.** Las dos
+   aserciones pasan a derivarse del descubridor (`readMigrations`),
+   conservando entera la sustancia de CA-8: `0004` sigue siendo el CUARTO
+   fichero en disco (`files[3]`), las cuatro primeras versiones siguen siendo
+   `['0001','0002','0003','0004']` en ese orden, `migrate` aplica exactamente
+   lo que hay en disco y la segunda ejecución devuelve `[]`. La red ES menor
+   en el mismo punto que en SPEC-010 y se dice sin suavizar: el caso ya no
+   falla si aparece una migración posterior que CA-8 no conocía — desde hoy
+   esa información la da `tests/db/ingest-attempts.test.ts` (SPEC-012 CA-6),
+   que enumera las cinco y heredará esta misma enmienda el día de `0006`.
+   Ningún otro caso del fichero cambia; el recuento de casos del fichero no
+   cambia (8/8).
+
+4. **El veredicto sigue en pie.** El GREEN de SPEC-011 (2026-09-02) juzgó la
+   migración `0004` y la carga del catálogo contra la base real; nada de eso
+   ha cambiado. Lo único que cambia es cómo el guardián nombra «todas las
+   migraciones».
+
+5. **Qué lo despierta.** El mismo despertador que la enmienda de SPEC-010: si
+   `readMigrations` dejara de ser la autoridad sobre qué hay en disco, la
+   aserción derivada quedaría ciega y habría que volver a una lista cerrada
+   con dueño declarado.
+
+Registrado por `sdd-implementador` de SPEC-012 (quien invalida, registra,
+ADR-015 §5).
