@@ -22,6 +22,8 @@
 | `raw store` | Copia con timestamp de cada respuesta cruda de una fuente, guardada **antes** de parsearla. | Permite reprocesar cuando un parser falla y reproducir una jornada entera en tests (RN-10). |
 | `RawStore` | El puerto que implementa el raw store. Dos implementaciones: Vercel Blob en producción, disco en local y tests (ADR-005). | Una sola batería de tests de contrato corre contra las dos. |
 | `raw_ref` | Referencia de una `Observation` a la respuesta cruda que la originó. **Obligatoria siempre**, sin excepción por fuente. | Incluye las correcciones hechas a mano desde el panel: son la observación con más poder del sistema (RN-04, RN-06). Decisión de SPEC-001. |
+| **motor de decisiones** | La pieza que convierte `Observation` en `Decision` aplicando RN-01..RN-07, y **la única puerta por la que se publica** (RN-08, D-3). Es una **función pura**: recibe la `Decision` vigente, la última observación de cada fuente, el instante y su configuración, y devuelve qué escribir; no tiene estado durable propio —su memoria son los dos logs append-only, `observations` y `decisions`— ni reloj, ni red, ni base de datos. Su domicilio es `src/decide/`. | Añadido el 2026-09-02 (SPEC-013, ADR-021). Se dispara de **dos** maneras y las dos atraviesan la misma cadena de reglas: cuando llega una `Observation`, y cuando **no llega nada y el reloj avanzó** —que es el caso de `kickoff + 110 min` (RN-06), de los 15 min de RN-07 y de una discrepancia que persiste (RN-05)—. Corre dentro del mismo tick de ingesta, después de ella (ADR-019, ADR-021 §4). **No es dueño del modelo canónico**: ése vive en `src/model/` y lo importa también el frontend. Emite `Decision` solo cuando cambia la tupla publicada —estado, marcador, `provisional`, y si la regla es RN-07—, nunca una por tick, y por eso replayar el log de observaciones produce el mismo log de decisiones (D-6). |
+| **alerta** | Lo que el motor produce cuando **no puede publicar** o cuando lo publicado deja de ser fiable: un hecho histórico, con partido, instante, regla (`RN-05` conflicto o `RN-07` silencio), motivo y las observaciones implicadas. Vive append-only en `alerts` y **no es una `Decision`**: no publica nada, no baja ningún marcador y no cambia ningún estado. | Añadido el 2026-09-02 (SPEC-013, ADR-021 §5). Se escribe **al entrar** en la condición, no mientras dura: un conflicto de media hora es **una** fila, no treinta. **No es modelo canónico** —registra un acto del motor, como `ingest_attempts` registra un acto del tick—, y no tiene acuse, ni estado «vista», ni destinatario: la bandeja es del panel, que todavía no existe. Es además **la materia prima de la tercera cifra de EPIC-002** («% de partidos con desacuerdo entre fuentes en algún momento»), que se cuenta sobre esta tabla y no se reconstruye adivinando desde `observations`. |
 
 ### Representación del tiempo
 
@@ -46,8 +48,8 @@ sobrevive a `JSON.stringify` / `JSON.parse`.
 |---|---|---|
 | **provisional** | Publicado con una sola fuente de peso < 0.9 (RN-03). Califica la `Decision` entera: el marcador en las ramas que lo tienen, el **estado** en `scheduled` y `postponed`, que no lo tienen. | La interfaz lo distingue (p. ej. marcador en gris; sin marcador, el estado). Mejor provisional a tiempo que confirmado tarde. |
 | **confirmado** | Publicado con fuente de peso ≥ 0.9, o dos fuentes independientes ≥ 0.7 coincidentes (RN-02). | Qué cuenta como **independientes** no se presume: se mide. Ver *Independencia entre fuentes*. |
-| **pendente de confirmar** | `finished` alcanzado por timeout, sin fuente que lo cierre. | Literal en galego, va a i18n. |
-| **sen sinal** | Partido `live` sin observación nueva en 15 min (RN-07). | Literal en galego, va a i18n. Genera alerta en el panel. |
+| **pendente de confirmar** | `finished` alcanzado por timeout, sin fuente que lo cierre. | Literal en galego, va a i18n. **Se deriva, no se guarda** (SPEC-013, ADR-021 §6): la `Decision` vigente es `finished` y **ninguna** de sus observaciones de apoyo dice `finished`. |
+| **sen sinal** | Partido `live` sin observación nueva en 15 min (RN-07). | Literal en galego, va a i18n. Genera alerta en el panel. **Se deriva, no se guarda** (SPEC-013, ADR-021 §6): la `Decision` vigente tiene `rule: 'RN-07'`. Entrar en *sen sinal* **emite `Decision`** —cambia lo que ve el usuario, y nada llega al usuario sin pasar por el motor (RN-08)— con el mismo estado y el mismo marcador; salir de él emite otra, con la regla que corresponda (RN-12, escalón 5: «la `Decision` solo mueve el marcador **o su cualificador**»). |
 
 ## Fuentes y organismos
 
@@ -76,6 +78,19 @@ sobrevive a `JSON.stringify` / `JSON.parse`.
 | **espejo** | Fuente cuyos datos vienen de otra en lugar de observar el hecho: es *espejo de* ella. Dos espejos coinciden siempre, y su coincidencia no confirma nada. | Se prueba por **contenido**, no por tiempo: un error transitorio replicado —el mismo marcador equivocado y la misma corrección— es huella de **origen común**, que prueba que hay una tercera fuente detrás pero no cuál es (ver *Origen común y atribución*). Dos fuentes independientes coinciden en los aciertos, porque el marcador real es uno; en los fallos, no (SPEC-002 CA-10). |
 | **independiente** | Fuente que observa el hecho por su cuenta. | Se prueba por **tiempo** —adelantar a la otra, cosa que un espejo no puede hacer— o por **discrepancia persistente** de contenido que no converge (SPEC-002 CA-9, CA-10). **La ausencia de adelantos NO prueba espejo:** una fuente independiente pero lenta produce exactamente la misma señal. |
 | **inconcluso** | Tercer veredicto: no hay prueba ni de espejo ni de independencia. | **Resultado legítimo del test, no fallo suyo** (SPEC-002 CA-11). A efectos de RN-02 se trata como espejo: su segunda vía exige independencia *demostrada*, y lo desconocido no satisface la precondición (SPEC-002 CA-12). |
+
+**Y en el motor la independencia es una relación *declarada*, no deducida en
+caliente** *(añadido el 2026-09-02, SPEC-013, ADR-021 §7)*. Medirla es de
+SPEC-002 y de su instrumento; lo que el motor consume es una **lista cerrada de
+pares declarados independientes**, versionada en `src/decide/`, con el motivo de
+cada entrada escrito a su lado —la forma de `MEASUREMENT_WINDOWS` (ADR-019 §3) y
+de `ALLOWED_PACKAGES` (ADR-016 §3.2)—. La relación es **simétrica y por defecto
+falsa**, que es la traducción ejecutable de «lo desconocido se trata como
+espejo» (SPEC-002 CA-12). **La lista nace vacía**: con una sola fuente
+automática capturable (ADR-008 §1), la segunda vía de RN-02 existe en el código,
+se prueba entera con dobles y **hoy no se dispara con ninguna fuente real**. El
+día que haya veredicto, o que vuelva `futgal.es`, es una entrada con su motivo,
+no una reescritura del motor.
 
 **Techo de resolución del instrumento.** RN-11 limita a 1 petición/minuto por
 fuente y competición, así que el test no distingue diferencias menores de un

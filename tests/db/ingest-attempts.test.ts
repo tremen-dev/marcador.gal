@@ -6,7 +6,7 @@
  * criterios son UNMET, no *skipped* (gate del 2026-08-29). `npm run test:db`.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
-import { migrate } from '@/db/migrate';
+import { migrate, readMigrations } from '@/db/migrate';
 import { PostgresIngestAttemptLog } from '@/db/ingest-attempts';
 import { CompetitionIdSchema, SourceIdSchema } from '@/model/ids';
 import { connect, dropEverything } from './_harness';
@@ -38,8 +38,34 @@ afterAll(async () => {
 });
 
 describe('CA-6 — `migrations/0005` se aplica en orden y una segunda vez no hace nada', () => {
-  test('1. sobre un esquema vacío, `migrate` devuelve las cinco versiones en orden', async () => {
-    expect(await migrate(sql)).toEqual(['0001', '0002', '0003', '0004', '0005']);
+  /**
+   * Las versiones EN DISCO, leídas del propio descubrimiento del runner.
+   *
+   * Esto era el literal `['0001','0002','0003','0004','0005']`. **SPEC-013
+   * CA-11 añade `migrations/0006`** (la tabla `alerts`, ADR-021 §5), así que
+   * una aserción que ENUMERA las migraciones deja de ser cierta POR UNA
+   * DECISIÓN y no por un defecto — la misma forma de F-SPEC-008-1,
+   * F-SPEC-012-3 y las tres enmiendas anteriores (SPEC-001 CA-13, SPEC-010
+   * CA-10, SPEC-011 CA-8), con la vía de ADR-015 ya sancionada. La enmienda
+   * está escrita en el ledger de SPEC-012.
+   *
+   * Se generaliza CONSERVANDO TODO LO QUE AFIRMABA: `migrate` aplica
+   * exactamente lo que hay en disco, en orden, las cinco versiones que CA-6
+   * conocía siguen estando, y la lista no puede pasar descubriendo nada.
+   */
+  const onDisk = async (): Promise<string[]> =>
+    (await readMigrations()).map((migration) => migration.version);
+
+  test('1. sobre un esquema vacío, `migrate` aplica en orden lo que hay en disco', async () => {
+    const expected = await onDisk();
+
+    expect(expected.length).toBeGreaterThanOrEqual(5);
+    expect(expected).toEqual([...expected].sort());
+    for (const version of ['0001', '0002', '0003', '0004', '0005']) {
+      expect(expected).toContain(version);
+    }
+
+    expect(await migrate(sql)).toEqual(expected);
   });
 
   test('2. la segunda ejecución devuelve `[]`', async () => {
