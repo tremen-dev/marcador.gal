@@ -43,7 +43,7 @@ que la fuente oficial **no es capturable** (ADR-008). SPEC-002 queda a la espera
 que lo sea; SPEC-003 mide lo que sí se puede medir sin ella. EPIC-002 **no tiene
 todavía ninguna de las cuatro cifras**.
 
-Hay **dieciséis ADRs**, todos **aprobados e inmutables**. Para cambiar uno
+Hay **diecisiete ADRs**, todos **aprobados e inmutables**. Para cambiar uno
 aprobado, escribe otro ADR que lo supersede; no lo edites. ADR-008 y ADR-009
 superseden **parcialmente** a ADR-002 y ADR-005: lee siempre el que supersede
 antes de apoyarte en el viejo. **ADR-013 fija la semántica visual del marcador**
@@ -66,7 +66,9 @@ frontera de capacidad**: se enumera lo permitido y se exige que el resto sea
 vacío, con listas cerradas contra algo que existe fuera del test, sin
 exenciones por nombre de fichero, con control positivo por cada mecanismo, y
 declarando dentro del propio CA lo que el mecanismo no alcanza — obligatorio
-para toda spec que escriba un test de arquitectura.
+para toda spec que escriba un test de arquitectura. **ADR-017 fija el calendario declarado como lista de partidos de autoridad y versionado**: dónde vive el calendario (`calendario/<temporada>/<competition_id>.json`, versionado), cómo se identifica un partido (`match_id` derivado y estable de competición, jornada, equipos), y las dos semánticas de persistencia (transaccional en `calendar_loads`, con trigger de identidad inmutable). Lo trae **SPEC-010** (EPIC-002), ya `hecho`: `src/calendar/` e implementaciones Postgres de los puertos de SPEC-001 (F-SPEC-001-3 cerrado).
+**ADR-017 fija el calendario declarado como lista de partidos de autoridad y versionado**: dónde vive el calendario (`calendario/<temporada>/<competition_id>.json`, versionado), cómo se identifica un partido (`match_id` derivado y estable de competición, jornada, equipos), y las dos semánticas de persistencia (transaccional en `calendar_loads`, con trigger de identidad inmutable). Lo trae **SPEC-010** (EPIC-002), ya `hecho`: `src/calendar/` e implementaciones Postgres de los puertos de SPEC-001 (F-SPEC-001-3 cerrado).
+
 
 ## Reglas duras
 
@@ -135,8 +137,9 @@ Consecuencias que se olvidan y rompen cosas:
 ```
 src/model/    modelo canónico en zod + tipos derivados (SPEC-001)
 src/raw/      puerto RawStore: store.ts, disk.ts, blob.ts, capture.ts (SPEC-001)
-src/db/       cliente postgres.js, runner de migraciones, puertos, rate-limit.ts (SPEC-001, SPEC-008)
-migrations/   SQL numerado, aplicado en orden (ADR-006); 0001 y 0002 aplicadas
+src/db/       cliente postgres.js, runner de migraciones, puertos, rate-limit.ts (SPEC-001, SPEC-008);
+              calendar.ts, observations.ts, decisions.ts, matches.ts, arrays.ts (SPEC-010)
+migrations/   SQL numerado, aplicado en orden (ADR-006); 0001, 0002 y 0003 aplicadas
 src/polite/   cortesía RN-11 con un solo dueño (ADR-014, SPEC-008): robots.ts,
               http.ts, user-agent.ts, rate-limit.ts, policy.ts, clock.ts.
               src/mirror/ ya no es su domicilio
@@ -148,6 +151,8 @@ src/mirror/   test de espejo (SPEC-002, SPEC-003): dos fases que no se importan
 src/ingest/   adaptador de ceroacero.es (SPEC-008): adapter.ts, ceroacero.ts,
               observations.ts, ports.ts, sources.ts. Cron de planificación,
               todavía sin escribir
+src/calendar/ calendario declarado a mano (SPEC-010): schedule.ts, time.ts, ids.ts,
+              declared.ts, ports.ts, cli.ts, command.ts
 src/decide/   motor de decisiones (RN-01..RN-07)
 src/api/      snapshot (+ stream SSE, fuera de EPIC-001)
 src/admin/    panel mínimo de correcciones y alertas (móvil)
@@ -162,7 +167,7 @@ src/i18n/     bundles de i18n con paridad galego/castellano (SPEC-004 CA-4, EPIC
               gl.ts, es.ts (bundles del sitio público, D-2)
               site-bundle.ts, site.ts (tipos y contrato)
               El bundle para la interfaz del marcador vive aquí también; cada spec aporta su espacio de nombres
-tests/        model/ raw/ db/ types/ mirror/ site/ · fixtures/ SOLO sintéticos
+tests/        model/ raw/ db/ calendar/ stores/ types/ mirror/ site/ · fixtures/ SOLO sintéticos
 raw/          raíz de DiskRawStore en local; NO versionado
 
 FOUNDATION.md            constitución (D-1..D-8 locked)
