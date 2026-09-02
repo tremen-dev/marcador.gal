@@ -127,3 +127,7 @@ cron, verificada por sus 4 casos de handler y la lectura del diff.
 - **Para verificar:** conducir el tick con composición nueva por tick (los tests de `tests/db/ingest-tick.test.ts` son exactamente esa conducción); los controles positivos de CA-3.5 están en el caso 12 de ese fichero y en `policy-durable.test.ts`; CA-3.6 (ningún parser nuevo) se comprueba en el diff — `policy-durable.ts` importa `parseRobots` y no parsea nada por su cuenta.
 - **Pendiente de otros roles:** F-SPEC-012-1 (términos de `dominio.md`, bloqueados por el hook de documentos de verdad — texto propuesto en el informe del implementador), decisión del gate sobre F-SPEC-012-3 (letra de CA-6) y F-SPEC-012-2 (borde `t + PRE` de la consulta). El runbook de jornada de medición es del documentalista tras el GREEN.
 - **Despliegue (fuera de esta spec):** `CRON_SECRET` tiene que existir en el entorno de Vercel o el cron responderá 401 a todo (fallo cerrado deliberado, CA-7); `DATABASE_URL` y `BLOB_READ_WRITE_TOKEN` los leen `productionCronTick`/`BlobRawStore`.
+
+## Enmienda — 2026-09-02: F-SPEC-012-1 cerrado
+
+**F-SPEC-012-1 — Los dos términos de `dominio.md` ya están añadidos** (commit `692b2d4`, sdd-arquitecto). Terminología canónica registrada: **ventana de partido** (intervalo `[kickoff − PRE, kickoff + POST)` de elegibilidad) y **jornada de medición declarada** (intervalo declarado de ingesta, lista cerrada y versionada).
