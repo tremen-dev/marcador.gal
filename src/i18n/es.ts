@@ -8,11 +8,103 @@
  * the scoreboard interface; pulling it in here would make SPEC-004 answer for
  * translations it has no page to show.
  */
+import type { BotBundle } from './bot-bundle';
 import type { CrawlerBundle } from './crawler-bundle';
 import type { SiteBundle } from './site-bundle';
+import type { StatusesBundle } from './statuses-bundle';
 import type { TitlesBundle } from './titles-bundle';
 
 export const es = {
+
+  statuses: {
+    scheduled: 'Programado',
+    live: 'En juego',
+    finished: 'Finalizado',
+    postponed: 'Aplazado',
+    suspended: 'Suspendido',
+  } satisfies StatusesBundle,
+
+  bot: {
+    botDescription:
+      'Recojo los resultados del fútbol gallego que mandan los corresponsales desde el campo.',
+    botAbout: 'El bot de marcador.gal para corresponsales.',
+
+    cmdStart: 'Empezar',
+    cmdHelp: 'Cómo se escribe un resultado',
+    cmdMatches: 'Los partidos abiertos ahora',
+    cmdCancel: 'Descartar lo que está pendiente',
+    cmdLanguage: 'Galego o castellano',
+    cmdPrivacy: 'Qué se hace con tus datos',
+    cmdOptOut: 'Dejar de enviar resultados',
+    cmdStop: 'Dejar de recibir avisos',
+
+    startWho: 'Soy el bot de marcador.gal. Recojo los resultados que mandas desde el campo.',
+    startWhat: 'Escríbeme cuando cambie algo: quién juega, cómo va y el minuto. Nada más.',
+    startNotPublished:
+      'Lo que mandas no sale publicado tal cual: se compara con el resto de fuentes antes de llegar al marcador.',
+    startHelpHint: 'Escribe /axuda para ver ejemplos.',
+
+    noticeController:
+      'Este bot es de marcador.gal, un proyecto de tremen.dev. Para cualquier cosa que tenga que ver con tus datos, escribe a {mailbox}.',
+    noticeWhat:
+      'Guardo el texto que escribes, la fecha del mensaje y un identificador interno tuyo. No guardo tu nombre, ni tu alias de Telegram, ni tu número.',
+    noticePurpose:
+      'Me sirve para llevar los resultados al marcador y para poder revisar después de dónde salió cada dato.',
+    noticeLegalBasis:
+      'La base no es el consentimiento: es que el bot no funciona si no sabe quién envía, y el interés legítimo de poder auditar un marcador publicado.',
+    noticeAiProvider:
+      'El texto que escribes se manda a un proveedor de inteligencia artificial para interpretarlo. El plazo que ese proveedor guarda no lo decidimos nosotros.',
+    noticeRetention:
+      'El archivo se borra a los 30 días de terminar la jornada. Se puede prorrogar una sola vez, por escrito y motivada, y nunca más allá de los 90 días.',
+    noticeRights:
+      'Puedes pedir acceso, rectificación, supresión u oposición. Escribe /baixa para dejar de enviar, o a {mailbox} para el resto.',
+    noticeDoNotSend:
+      'No hace falta que mandes nombres de jugadores, de árbitros ni nada sobre la salud de nadie. Basta con quién juega, cómo va y el minuto.',
+    noticeLink: 'Tienes la información completa en https://marcador.gal/es/privacidade.',
+
+    helpIntro: 'Escribe como hablas. Entiendo cosas como estas:',
+    helpExamples:
+      '2-1 en el minuto 70, Ourense - Celta B\nya ha terminado, 3-1\nsuspendido por la niebla',
+    helpOrder: 'Primero el equipo de casa. «Ourense - Celta B» es 2 del Ourense y 1 del Celta B.',
+    helpIfWrong: 'Si no doy con el partido, añade los nombres de los equipos.',
+    helpCommands:
+      '/partidos — los partidos abiertos ahora\n/cancelar — descartar lo que está pendiente\n/lingua — galego o castellano',
+
+    parsing: 'Lo estoy leyendo…',
+
+    cardHeading: 'Esto es lo que he entendido:',
+    cardScoreLabel: 'Marcador',
+    cardMinuteLabel: 'Minuto',
+    cardStatusLabel: 'Estado',
+    cardConfirm: 'Confirmar',
+    cardDiscard: 'Descartar',
+    cardHint: 'Si algo no cuadra, descarta y escríbelo otra vez.',
+    cardExpired: 'Ha pasado demasiado tiempo. Escríbelo otra vez, por si ha cambiado algo.',
+
+    ackRegistered: 'Registrado: {home} {homeScore} - {awayScore} {away}.',
+    ackNotPublication:
+      'Todavía no está publicado. Se compara con el resto de fuentes y, si procede, sale en el marcador.',
+    ackDiscarded: 'Descartado. No se ha registrado nada.',
+
+    languagePrompt: '¿En qué lengua quieres que te hable?',
+    languageGalego: 'Galego',
+    languageCastelan: 'Castellano',
+    languageChanged: 'Hecho. Sigo en castellano.',
+
+    openMatchesHeading: 'Partidos abiertos ahora:',
+
+    optOutDone:
+      'No acepto más mensajes tuyos. Lo que ya quedó registrado no se borra. Para borrar lo que te identifica, escribe a {mailbox}: lo hace una persona y te contesta por escrito.',
+
+    errNotAuthorised: 'No te reconozco. Este bot solo atiende a corresponsales dados de alta.',
+    errNotUnderstood:
+      'No he entendido el mensaje. Prueba así: «2-1 en el minuto 70, Ourense - Celta B».',
+    errMatchNotFound: 'No encuentro ese partido. Comprueba los nombres de los equipos o mira /partidos.',
+    errAmbiguous: 'Hay más de un partido que cuadra. Elige cuál:',
+    errServiceDown: 'No puedo guardarlo ahora mismo. Vuelve a probar en un minuto.',
+    errNoOpenMatch: 'Ahora mismo no hay ningún partido abierto.',
+    errNothingPending: 'No tienes nada pendiente de confirmar.',
+  } satisfies BotBundle,
   titles: {
     project: 'El proyecto — marcador.gal',
     crawler: 'El rastreador — marcador.gal',
