@@ -100,6 +100,28 @@ describe('CA-9.1 — `src/bot/` NO está en `DECISION_WRITERS`', () => {
   });
 });
 
+describe('CA-9.6 — el residuo declarado: esto CONTESTA a F-SPEC-013-11, no lo cierra', () => {
+  test('8b. `composeCyclePorts` sigue siendo superficie pública', async () => {
+    // La puerta estrecha resuelve ESTE llamante: el bot obtiene lo que necesita
+    // sin obtener la capacidad. NO CIERRA EL RESIDUO — el siguiente módulo
+    // podrá sacar de `composeCyclePorts` lo que éste no saca.
+    // Destino: EPIC-MEJORA; disparador actualizado: la próxima spec que ya
+    // tenga que tocar `src/decide/cycle.ts` por otro motivo, que es cuando
+    // despublicarla deja de ser tocar una spec cerrada sin causa propia.
+    const cycle = await readFile('src/decide/cycle.ts', 'utf8');
+    expect(cycle).toContain('export function composeCyclePorts');
+    expect(cycle).toContain('decisions: new PostgresDecisionStore');
+  });
+
+  test('8c. y esta spec NO ha tocado ningún fichero de SPEC-013', async () => {
+    // La puerta estrecha es un fichero NUEVO. `src/decide/` ya estaba dentro de
+    // `DECISION_WRITERS`, así que la frontera no se ensancha.
+    const entry = await readFile('src/decide/engine-entry.ts', 'utf8');
+    expect(entry).toContain('F-SPEC-013-11');
+    expect(entry).toContain('EPIC-MEJORA');
+  });
+});
+
 describe('CA-5.9 — el resto del bot compone contra el PUERTO', () => {
   test('9. el puerto sin adaptador falla cerrado, con vocabulario NUESTRO', async () => {
     const answer = await unconfiguredModel().propose('calquera prompt');

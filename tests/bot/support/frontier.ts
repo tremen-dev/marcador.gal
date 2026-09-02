@@ -281,5 +281,35 @@ export async function reachableSpecifiers(entry: string): Promise<ReadonlySet<st
   return external;
 }
 
-/** Todo lo que el escaneo cubre, leído una vez, por el único lector. */
-export const scanned = async (): Promise<readonly ScannedFile[]> => await scanRepository();
+/**
+ * Todo lo que el escaneo cubre, leído por el ÚNICO lector — con un reintento
+ * del escaneo ENTERO, y hay que decir por qué.
+ *
+ * F-SPEC-013-10, inventariado en EPIC-MEJORA y anticipado por el ledger de esta
+ * spec (F-SPEC-015-7): los controles positivos de `tests/polite/architecture.
+ * test.ts` ESCRIBEN FICHEROS REALES bajo `src/` y los borran después, y vitest
+ * corre los ficheros de test en paralelo. Un escaneo concurrente puede listar
+ * uno de esos ficheros y encontrárselo ya borrado al leerlo: `ENOENT`, y el
+ * fichero de test entero cae con 0 casos. Medido en la rama base, sin una sola
+ * línea de SPEC-015: 1 de cada 6 ejecuciones.
+ *
+ * Lo que se hace aquí NO DEBILITA NADA, y por eso se reintenta el escaneo
+ * ENTERO y no se perdona un fichero: el resultado sigue siendo la foto
+ * consistente de un instante, con las MISMAS raíces, exclusiones y extensiones
+ * que SPEC-008 CA-2.6 declaró. Un fichero que desaparece a mitad de la lectura
+ * no es código que se despliegue; uno que sigue ahí se lee y se juzga.
+ *
+ * Si tras los intentos sigue fallando, PROPAGA: fallar cerrado es lo que este
+ * guardián hace con todo lo demás.
+ */
+export async function scanned(attempts = 5): Promise<readonly ScannedFile[]> {
+  let last: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await scanRepository();
+    } catch (error) {
+      last = error;
+    }
+  }
+  throw last;
+}

@@ -7,6 +7,8 @@
  * fuente oficial **o a un humano** y el corresponsal es humano (RN-01).
  */
 import { describe, expect, test } from 'vitest';
+import { readFile, readdir } from 'node:fs/promises';
+import { inMeasurementWindow } from '@/ingest/windows';
 import { candidatesFor, inCorrespondentWindow, matchdayIsOpen } from '@/bot/candidates';
 import { CORRESPONDENT_WINDOW } from '@/bot/windows';
 import { validateProposal } from '@/bot/proposal';
@@ -109,6 +111,33 @@ describe('CA-6.1 — filtro 4: la JORNADA DE MEDICIÓN declarada', () => {
   test('9. con la jornada inyectada, sí', () => {
     expect(matchdayIsOpen(base)).toBe(true);
     expect(candidatesFor(base).length).toBe(2);
+  });
+});
+
+describe('CA-13.3 — la comprobación usa LA FUNCIÓN QUE YA EXISTE', () => {
+  test('9b. `matchdayIsOpen` y `candidatesFor` llaman a `inMeasurementWindow`, no a una copia', async () => {
+    const source = await readFile('src/bot/candidates.ts', 'utf8');
+    expect(source).toContain("from '@/ingest/windows'");
+    expect(source).toContain('inMeasurementWindow');
+
+    // Y NO hay una segunda implementación en ningún fichero de `src/bot/`: lo
+    // que se busca es la aritmética de un intervalo `[from, to)` sobre
+    // `windows`, que es lo que una copia tendría que escribir.
+    const files = await readdir('src/bot');
+    const offenders: string[] = [];
+    for (const file of files.filter((name) => name.endsWith('.ts'))) {
+      const text = await readFile(`src/bot/${file}`, 'utf8');
+      const code = text.replaceAll(/\/\*[\s\S]*?\*\//g, '').replaceAll(/^\s*\/\/.*$/gm, '');
+      if (/\.from\b[\s\S]{0,80}\.to\b/.test(code)) offenders.push(file);
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  test('9c. control positivo: la misma comprobación sobre la función real da lo mismo', () => {
+    // Si `matchdayIsOpen` tuviese una aritmética propia, este caso y el 7/9 de
+    // arriba podrían discrepar. Se corre la función heredada al lado.
+    expect(inMeasurementWindow(KICKOFF, DECLARED_MATCHDAY)).toBe(matchdayIsOpen(base));
+    expect(inMeasurementWindow(KICKOFF, [])).toBe(matchdayIsOpen({ ...base, windows: [] }));
   });
 });
 
