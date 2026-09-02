@@ -14,6 +14,13 @@ epica: EPIC-002
 - **Verificada el 2026-09-02: RED.** 14/15 CA cerrados; **CA-13 ❌** por
   **F-SPEC-013-7** (la frontera de RN-08 no ve un `import * as`, medido con los
   tres gates en verde). La spec vuelve a `en-progreso`.
+- **Segunda vuelta, 2026-09-02 (`sdd-implementador`): F-SPEC-013-7 cerrado.** La
+  frontera de RN-08 ve ahora el namespace y cinco formas más de la misma familia,
+  cada mecanismo con su control positivo; la evasión del verificador se reprodujo
+  **en rojo** antes de borrarla. Dos ficheros tocados, los dos de CA-13, commit
+  `175403d`. Gates: `lint` exit=0 · `npm test` **114/1117** · `test:db` 22/276.
+  Queda **F-SPEC-013-9** para el gate: una frase en el texto de CA-13.3 que este
+  rol no puede escribir. La spec vuelve a `en-revision`.
 
 ## Matriz de criterios de aceptación
 <!-- Escritores: sdd-implementador rellena Implementado y Test; sdd-verificador rellena Verif. y Estado. Nunca al revés. -->
@@ -33,9 +40,9 @@ epica: EPIC-002
 | CA-10 — los cuatro cualificadores derivados | `src/decide/qualifier.ts` (`qualifierOf`, pura y total, en el orden de ADR-021 §6) | `tests/decide/qualifier.test.ts` casos 1–12 (uno por valor, orden, totalidad sobre 5 estados × 2 × 6 reglas × 3 apoyos, `finished` con apoyo que lo dice, y `sen_sinal` + `provisional: true` a la vez) · `tests/decide/cycle-route.test.ts` casos 9–10 y `tests/db/decide-cycle.test.ts` caso 4 (CA-10.4: ninguna columna nueva) | `qualifierOf` es pura, total y en el orden de ADR-021 §6, comprobado sobre 5 estados × 2 × 6 reglas × 3 formas de apoyo. `finished` con apoyo que lo dice no es *pendente*. `sen_sinal` + `provisional: true` conviven. CA-10.4 verificado por mí en el diff contra `main`: `src/model/` intacto y `migrations/` sin `alter table` sobre `decisions`/`observations`; las diez columnas de `decisions` leídas de `information_schema` contra Postgres real. Sin literales de UI nuevos: los cuatro valores ya estaban en `src/model/qualifier.ts` (SPEC-001). | ✅ |
 | CA-11 — aplicador, versión arbitrada, `alerts` | `src/decide/apply.ts` (`applyEngine`, reintento único ante `DecisionVersionConflictError`) · `src/db/alerts.ts` (`PostgresAlertStore`) · `migrations/0006_alerts.sql` · `src/decide/ports.ts` (`AlertStore`, `LatestAlerts`) · `src/decide/alert.ts` (esquemas zod, NO modelo canónico) | `tests/db/decide-cycle.test.ts` casos 1–12 (fila válida releída con `DecisionSchema`, apoyo del mismo partido, `decided_at` como cadena `Z`; 11.1 las seis migraciones y segunda ejecución `[]` + columnas de `alerts`; 11.2 `update` y `delete` rechazados; 11.3/11.4 casos 8–10 con escritura concurrente REAL; 11.5 casos 11–12) — **requiere `DATABASE_URL_TEST`** | `npm run test:db` corrido por mí contra Postgres real (`DATABASE_URL_TEST` del `.env.local`, endpoint *pooler*, que **sí** resolvió en esta máquina): 22 ficheros / 276 casos en verde. Fila releída y `DecisionSchema.parse`-ada, apoyo del mismo partido comprobado con una consulta, `decided_at` como cadena `Z`. `migrate` → seis versiones y `[]` la segunda vez; `alerts` con sus seis columnas; `update`/`delete` rechazados por `reject_amendment`. Conflicto de versión provocado con escritura concurrente **real**: un choque → versión 2 con dos intentos; dos choques → `abandoned`, sin lanzar, con motivo. Ciclo sin decisión: cero filas. | ✅ |
 | CA-12 — el ciclo dentro del tick y la ruta | `src/decide/cycle.ts` (`runCycle`, `composeCyclePorts`, `productionCycle`) · `src/app/api/cron/ingest/route.ts` (UNA línea: `tick: productionCycle`) · enmienda de ADR-015 en el ledger de SPEC-012 | `tests/db/decide-cycle.test.ts` casos 13–16 (una invocación persiste `Observation` Y `Decision`; el motor después de la ingesta; fuera de ventana nada; un fallo del motor no revierte la ingesta) · `tests/decide/cycle-route.test.ts` casos 1–8 (12.2 la ruta y `src/ingest/cron.ts` intacto; 12.3 las cinco partes de las DOS enmiendas; 12.4 nadie de las specs cerradas importa `@/decide`) · `tests/ingest/cron.test.ts` y `tests/ingest/vercel-cron.test.ts` pasan sin tocar una aserción | Una invocación de `runCycle` persiste la `Observation` y escribe la `Decision`: `decisions` deja de estar vacía (caso 13, base real). El motor corre después de `runIngestTick` y sobre los mismos elegibles; fuera de ventana, cero peticiones y cero filas. Diff contra `main` leído por mí: `src/ingest/`, `src/polite/`, `src/calendar/`, `src/alias/` y `src/model/` **sin una línea**; `route.ts` cambia el `import` y la línea de composición y nada más; `vercel.json` sin tocar y sus dos casos verdes; `tests/ingest/cron.test.ts` intacto. Las **dos** enmiendas de ADR-015 están en el ledger de SPEC-012 con sus cinco partes; el índice `grep` pasa de 10 a 12 entradas, ambas reales. | ✅ |
-| CA-13 — RN-08: la frontera y su residuo | `tests/decide/support/rn08.ts` (`DECISION_WRITERS` con DOS entradas y su motivo, `DECISION_CAPABILITY_NAMES`, los dos mecanismos) — el lector se hereda de `tests/polite/support/capability.ts` | `tests/decide/rn08-frontier.test.ts` casos 1–16 (conjunto vacío sobre el árbol real; 13.1 control positivo por mecanismo —import, tipo, lista de nombres vaciada, mecanismo textual—; 13.2 fichero inparseable rojo + un solo lector; 13.3 el residuo con su ejemplo ejecutable, destino y disparador; 13.4 sin exenciones por nombre; 13.5 `src/ingest/` limpio y la dirección del grafo) | **ROJO, medido.** El mecanismo estático NO cierra lo que el criterio afirma cerrar. Con `src/probe/evasion.ts` = `import * as d from '@/db/decisions'` + `new d.PostgresDecisionStore(sql)` —un módulo fuera de `DECISION_WRITERS` que obtiene la capacidad— `npm run lint` sale `exit=0` y `npm test` **114/114 ficheros, 1108/1108 casos**, con `tests/decide/rn08-frontier.test.ts` **16/16 en verde**, `tests/polite` 124/124 y `tests/site/contact.test.ts` 5/5. Causa: `decisionImportOffences` mira `specifier.bindings[].name` (un namespace binding se llama `*`) y `reading.bareIdentifiers`, que **excluye** el miembro de un `PropertyAccessExpression`; el mecanismo textual tampoco muerde porque el nombre de la tabla no aparece. El re-export sí es rojo (probado: 2 casos en rojo), así que el fichero **sí se escanea**: lo que falla es el detector, no el escaneo. Esa laguna **no es el residuo declarado** (nombre de tabla compuesto en ejecución), y ADR-016 §6 obliga a declararla dentro del criterio. Precedente en el mismo fichero que hereda el lector: `capability.ts` tiene `namespaceOffences` exactamente por esto. Ver **F-SPEC-013-7**. Lo demás de CA-13 sí está: dos entradas con motivo, controles positivos por mecanismo, fichero inparseable rojo, sin exenciones por nombre, `src/ingest/` limpio y la dirección del grafo. | ❌ |
+| CA-13 — RN-08: la frontera y su residuo | **Segunda vuelta (F-SPEC-013-7 cerrado).** `tests/decide/support/rn08.ts`: `DECISION_WRITERS` sigue con DOS entradas y su motivo y `DECISION_CAPABILITY_NAMES` con los tres nombres —ninguna lista se tocó—; `decisionImportOffences` mira ahora **tres deletreos del mismo nombre** (binding · referencia desnuda · **lectura de miembro** `algo.PostgresDecisionStore`, vía `reading.namespaceReads`, que es por donde entró la evasión) y **falla cerrado** ante un módulo que el compilador nombra y el lector no enumeró (`import d = require(…)`) y ante un especificador no literal; `decisionHandoverOffences` es **nuevo y es el tercer mecanismo**: la superficie ILEGIBLE de un módulo con capacidad —`import * as`, `import()` dinámico, `export *`, `export * as`, import de solo efecto—, que resuelve el especificador con el resolvedor del lector heredado y consulta **la misma** `DECISION_WRITERS` leída en la otra dirección; `decisionOffences` compone los tres. El lector se sigue heredando (`tests/polite/support/capability.ts` + `tests/mirror/support/imports.ts`), sin abrir el compilador ni pasear el árbol | `tests/decide/rn08-frontier.test.ts` casos 1–25 (renumerado: eran 16). Nuevos: **6** (la evasión exacta de F-SPEC-013-7, roja por los DOS mecanismos del grafo), **7** (alias del namespace y `const d = await import(…)`), **8** (`import d = require(…)`, rojo por «el compilador nombra un módulo que el lector no enumeró»), **9** (especificador no literal), **11** (las cuatro formas de entregar la superficie entera), **12** (`(await import(…)).PostgresDecisionStore`, que el mecanismo de nombres NO puede ver y el de superficie sí), **13** (control del nuevo detector: vaciar la lista lo apaga, y el árbol real da vacío), **19** (segundo residuo: la capacidad entregada como tipo estructural), **20** (la reexportación en cadena NO es residuo: roja en los dos extremos y en el consumidor). Conservados con su letra: 4, 5, 10 (antiguo 6), 14–15 (textual), 16–17 (13.2), 18 (13.3 SQL compuesto), 21 (destino y disparador, ahora los DOS), 22–23 (13.4), 24–25 (13.5) | **ROJO, medido.** El mecanismo estático NO cierra lo que el criterio afirma cerrar. Con `src/probe/evasion.ts` = `import * as d from '@/db/decisions'` + `new d.PostgresDecisionStore(sql)` —un módulo fuera de `DECISION_WRITERS` que obtiene la capacidad— `npm run lint` sale `exit=0` y `npm test` **114/114 ficheros, 1108/1108 casos**, con `tests/decide/rn08-frontier.test.ts` **16/16 en verde**, `tests/polite` 124/124 y `tests/site/contact.test.ts` 5/5. Causa: `decisionImportOffences` mira `specifier.bindings[].name` (un namespace binding se llama `*`) y `reading.bareIdentifiers`, que **excluye** el miembro de un `PropertyAccessExpression`; el mecanismo textual tampoco muerde porque el nombre de la tabla no aparece. El re-export sí es rojo (probado: 2 casos en rojo), así que el fichero **sí se escanea**: lo que falla es el detector, no el escaneo. Esa laguna **no es el residuo declarado** (nombre de tabla compuesto en ejecución), y ADR-016 §6 obliga a declararla dentro del criterio. Precedente en el mismo fichero que hereda el lector: `capability.ts` tiene `namespaceOffences` exactamente por esto. Ver **F-SPEC-013-7**. Lo demás de CA-13 sí está: dos entradas con motivo, controles positivos por mecanismo, fichero inparseable rojo, sin exenciones por nombre, `src/ingest/` limpio y la dirección del grafo. | ❌ |
 | CA-14 — replay determinista | `src/decide/replay.ts` (`replayMatch`, `replayInstants`, sin reloj ni base) | `tests/decide/replay.test.ts` casos 1–9 (material sintético archivado y releído por `adapter.read` sin red; 14.1 comparación profunda dos veces + el log de la jornada; 14.3 `Date.now` envenenado con su control positivo; 14.4 `tests/fixtures/` sin un byte de HTML de terceros) · `tests/db/decide-cycle.test.ts` caso 17 (**CA-14.2**: el replay coincide con el log del ciclo REAL) | Replay determinista comprobado con comparación profunda del objeto entero, dos veces y por los tres partidos. Material sintético archivado en el raw store y releído por `adapter.read`, con `spy.requests == []`: ni una petición. La línea temporal es minuto a minuto (116 instantes). `Date.now` envenenado y el replay entero sigue igual, con su control positivo de que el veneno muerde. CA-14.2 contra el ciclo **real** en Postgres: reglas, versiones, tuplas, `decided_at` y apoyos idénticos (caso 17 de `tests/db/decide-cycle.test.ts`). `tests/fixtures/` solo `.ts` (ADR-009). | ✅ |
-| CA-15 — los tres gates y las suites enteras | — | `npm run lint` exit=0 · `npm test` 114 ficheros / 1108 casos · `npm run test:db` 22 ficheros / 276 casos. Recuento fichero a fichero contra `main`: **ningún fichero previo cambia de recuento** (comparación por reporter JSON, abajo) | Los tres gates corridos por mí, salidas literales abajo: `lint` exit=0 · `npm test` 114/1108 · `npm run test:db` 22/276. **Recuento fichero a fichero contra `main` verificado de forma independiente** (reporter JSON en un worktree de `main` y en `HEAD`): 100 ficheros / 919 casos → 114 / 1108, **14 ficheros añadidos, 0 eliminados y 0 con recuento distinto**. `ALLOWED_PACKAGES`, `ENTRY_POINTS` y las enumeraciones de `tests/polite/` no se tocaron (diff vacío en `tests/polite` y `tests/mirror`). | ✅ |
+| CA-15 — los tres gates y las suites enteras | — | **Segunda vuelta (2026-09-02):** `npm run lint` exit=0 · `npm test` 114 ficheros / **1117** casos · `npm run test:db` 22 ficheros / 276 casos. Recuento fichero a fichero contra el commit anterior (`fa4e654`) por reporter JSON: 114/1108 → 114/1117, **cero ficheros añadidos, cero eliminados y UNO con recuento distinto** —`tests/decide/rn08-frontier.test.ts` 16 → 25, que es el fichero de CA-13 y nace en esta rama—. Contra `main` sigue sin cambiar ningún fichero previo | Los tres gates corridos por mí, salidas literales abajo: `lint` exit=0 · `npm test` 114/1108 · `npm run test:db` 22/276. **Recuento fichero a fichero contra `main` verificado de forma independiente** (reporter JSON en un worktree de `main` y en `HEAD`): 100 ficheros / 919 casos → 114 / 1108, **14 ficheros añadidos, 0 eliminados y 0 con recuento distinto**. `ALLOWED_PACKAGES`, `ENTRY_POINTS` y las enumeraciones de `tests/polite/` no se tocaron (diff vacío en `tests/polite` y `tests/mirror`). | ✅ |
 
 
 ## Veredicto del verificador
@@ -181,6 +188,74 @@ crea, y Playwright no se usa porque no hay nada que mirar.
   legítima es que el gate humano lo acepte como residuo, y entonces se escribe
   dentro de CA-13.3 con destino y disparador; pero eso es alcance, y la nota 6
   del gate de esta misma spec dice que se decide **antes**, no aquí.
+
+  **Cierre — 2026-09-02, `sdd-implementador` (salida «a»: se cierra, no se
+  convierte en residuo).** El diff está en `tests/decide/support/rn08.ts` y
+  `tests/decide/rn08-frontier.test.ts`, commit `175403d`, y no toca ninguna otra
+  cosa: `DECISION_WRITERS` sigue con dos entradas, `DECISION_CAPABILITY_NAMES`
+  con tres nombres, y `ALLOWED_PACKAGES`, `ENTRY_POINTS` y las enumeraciones de
+  `tests/polite/` sin una línea.
+
+  **Qué mira ahora el mecanismo del NOMBRE.** Tres deletreos del mismo nombre en
+  vez de dos: el binding de un `import`/`export`, la referencia desnuda, y la
+  **lectura de miembro** —`file.reading.namespaceReads` con `member` en la lista
+  vigilada—, que es exactamente lo que el lector heredado ya publicaba y este
+  guardián no leía. Cubre de una vez el namespace (`d.X`), su alias
+  (`const a = d; a.X`) y el `const d = await import(…); d.X`. Y falla cerrado,
+  antes de mirar ningún nombre, ante dos cosas que antes pasaban en silencio: un
+  módulo que **el compilador nombra** y este lector no enumeró —así entra
+  `import d = require('@/db/decisions')`, cuya declaración el lector no modela—
+  y un especificador que no es un literal estático.
+
+  **Y un tercer mecanismo, independiente del nombre.** `decisionHandoverOffences`
+  cierra la forma en la que el nombre no hace falta: la **superficie ilegible de
+  un módulo con capacidad** —`import * as`, `import()` dinámico, `export *`,
+  `export * as`, import de solo efecto—. No es una segunda lista: resuelve el
+  especificador con el resolvedor del lector heredado y consulta **la misma**
+  `DECISION_WRITERS`, leída en la otra dirección; vaciarla apaga los dos
+  mecanismos a la vez, y eso es un caso (13). Es el único que puede ver
+  `(await import('@/db/decisions')).PostgresDecisionStore`, donde el miembro
+  cuelga de una expresión y no de un identificador: el lector no publica ahí
+  ninguna lectura de miembro, y el caso 12 lo afirma en las dos direcciones.
+
+  **La evasión del verificador, reproducida antes y después.** Con
+  `src/probe/evasion.ts` —el fichero literal del hallazgo— en el árbol: con el
+  guardián de la vuelta anterior, `tests/decide/rn08-frontier.test.ts` **16/16
+  en verde**; con el guardián nuevo, **tres casos en rojo**, y los mensajes
+  nombran lo que se prohíbe:
+
+  ```
+  × 3. el conjunto de ficheros que cruzan la capacidad … es VACÍO
+    + "src/probe/evasion.ts: crosses `PostgresDecisionStore` and is not a declared decision writer",
+    + "src/probe/evasion.ts: binds the whole namespace `d` of the decision writer src/db/decisions.ts",
+  × 10. vaciar la lista de NOMBRES VIGILADOS deja el mecanismo sin medir nada
+    + "src/probe/evasion.ts",
+  × 13. y vaciar la lista apaga también ESTE mecanismo, que es su control
+    + "src/probe/evasion.ts: binds the whole namespace `d` of the decision writer src/db/decisions.ts",
+  ```
+
+  Y otras tres formas de la misma familia, escritas como ficheros **reales** bajo
+  `src/` y medidas igual, no afirmadas: `export * from '@/db/decisions'` →
+  *hands over the whole namespace of the decision writer src/db/decisions.ts*;
+  `new (await import('@/db/decisions')).PostgresDecisionStore(sql)` →
+  *dynamic import() of the decision writer src/db/decisions.ts*;
+  `import d = require('@/db/decisions')` → *the compiler names @/db/decisions and
+  the reader did not enumerate it* (y además `tsc` lo rechaza con TS1202: dos
+  redes independientes). **Las cuatro sondas se borraron**: el árbol queda limpio.
+
+  **La reexportación en cadena no es residuo, y lleva su caso (20):** quien
+  reexporta el nombre lo nombra en su cláusula —incluso renombrándolo, porque el
+  binding es el nombre tal y como lo exporta el módulo—, quien reexporta el
+  módulo entero entrega la superficie ilegible de un módulo con capacidad, y el
+  consumidor vuelve a deletrear el nombre en su propio fichero. Los tres extremos
+  son rojos, así que el nombre no llega a nadie sin escribirse donde el lector
+  mira.
+
+  **Lo que sigue sin alcanzarse está escrito**, con destino y disparador, en el
+  comentario de módulo de `tests/decide/support/rn08.ts` y afirmado por los casos
+  19 y 21: la capacidad entregada como **tipo estructural, sin nombrarla**. Ver
+  **F-SPEC-013-10**, que es la mitad que este rol no puede escribir: el texto del
+  criterio.
 
 - **F-SPEC-013-8 — NO BLOQUEANTE. Una corrección del corresponsal que llega
   tarde queda retenida por RN-05, y CA-5.2 no lo mira.** Levantado por
@@ -384,6 +459,65 @@ crea, y Playwright no se usa porque no hay nada que mirar.
   otras máquinas). Súmese a F-SPEC-010-7: la rama de Neon es compartida entre
   worktrees y dos ejecuciones concurrentes se corrompen entre sí.
 
+- **F-SPEC-013-9 — El texto de CA-13 no nombra el residuo que el mecanismo nuevo
+  deja, y este rol no puede escribirlo.** Levantado por `sdd-implementador` el
+  2026-09-02 al cerrar F-SPEC-013-7.
+
+  **Qué queda fuera.** La capacidad entregada de forma **estructural, sin
+  nombrarla**: un módulo que reciba por inyección un
+  `{ append: (d: Decision) => Promise<void> }` escrito como tipo anónimo nunca
+  deletrea `DecisionStore`, y un mecanismo de **nombres** —que es lo que
+  ADR-016 §3.1 pide— no puede verlo. Cerrarlo pide comparar **tipos**, no
+  nombres. Hoy no puede pasar sin complicidad: quien compone tiene que tener la
+  capacidad, y el único que la tiene es `src/decide/`.
+
+  **Dónde está declarado hoy.** En el comentario de módulo de
+  `tests/decide/support/rn08.ts`, con destino y disparador, y afirmado por dos
+  casos: el **19** lo ejercita —los tres mecanismos dan vacío sobre un fichero
+  que recibe el almacén estructuralmente— y el **21** exige que el módulo lleve
+  escritos **dos** «Destino: EPIC-MEJORA; disparador: …», uno por residuo.
+
+  **Por qué es un follow-up y no una omisión.** ADR-016 §6 dice, con esas
+  palabras, que la obligación de escribir el residuo **dentro del texto del
+  criterio** es «la que este ADR le pone al **autor de la spec**». El
+  implementador no edita la spec (contrato del rol), así que la mitad ejecutable
+  está hecha y la mitad de letra no puede estarlo desde aquí.
+
+  **Matiz honesto sobre la gravedad.** La letra de CA-13 promete que es vacío «el
+  conjunto de ficheros que **importan** `PostgresDecisionStore`,
+  `DecisionVersionConflictError` o el tipo `DecisionStore`». Un módulo que recibe
+  la capacidad estructuralmente **no importa ninguno de los tres**, así que no
+  falsea lo que el criterio afirma —a diferencia de la evasión de F-SPEC-013-7,
+  que sí importaba el nombre por namespace—. El mecanismo, además, cierra ahora
+  **más** de lo que el criterio promete. Aun así, ADR-016 §6 pide que lo que no
+  se alcanza esté nombrado dentro del criterio.
+
+  **Texto propuesto para CA-13.3**, para que sea un paste y no una redacción:
+  «**Y un segundo residuo, del mismo rango:** este mecanismo es de **nombres**, y
+  no alcanza a la capacidad entregada como **tipo estructural** —un módulo que
+  reciba `{ append, getLatestByMatch }` escrito a mano nunca deletrea
+  `DecisionStore`—. Cerrarlo pediría comparar tipos. **Destino: EPIC-MEJORA**;
+  **disparador: el día que un módulo fuera de `src/decide/` reciba un almacén de
+  decisiones por inyección.**»
+
+  **Destino: `sdd-arquitecto` bajo firma del gate, antes del GREEN.** Es una
+  frase en CA-13.3 de una spec que está `en-progreso`, no una enmienda de
+  ADR-015 (la spec no está cerrada).
+
+- **F-SPEC-013-10 — NO BLOQUEANTE. Carrera entre dos suites cerradas:
+  `tests/polite/architecture.test.ts` caso 2d escribe un fichero real bajo `src/`
+  y `tests/site/contact.test.ts` caso 5 enumera `src/` a la vez.** Levantado por
+  `sdd-implementador` el 2026-09-02, **medido**: en una de cinco ejecuciones de
+  `npm test`, `contact.test.ts` caso 5 falló con
+  `+ "ingest/robots/hidden-control.ts"` en la lista escaneada. Es el fichero que
+  el control positivo de F-SPEC-008-V28 escribe y borra dentro de su `finally`;
+  los dos ficheros corren en workers distintos y `src/` es estado compartido.
+
+  **No lo trae esta spec:** los dos ficheros son de specs `hecho` (SPEC-008 y
+  SPEC-004), ninguno se toca en esta rama y su recuento no cambia. Las otras
+  cuatro ejecuciones dieron 114/1117. **Destino: EPIC-MEJORA**; **disparador: la
+  próxima spec que tenga que tocar cualquiera de los dos ficheros**, o la
+  segunda vez que un gate se caiga por esto.
 Y dos residuos ya **declarados por la spec** antes de implementar, que el
 implementador no tiene que descubrir y el verificador no tiene que levantar como
 hallazgo:
@@ -400,10 +534,27 @@ hallazgo:
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
 
-**Estado (2026-09-02, sdd-implementador):** los quince CA implementados con TDD,
-los tres gates en verde, todo commiteado en `ft/SPEC-013-motor-de-decisiones`
-(sin push, sin PR: lo hace el orquestador tras el GREEN). La spec está en
-`en-revision`.
+**Estado (2026-09-02, sdd-implementador, SEGUNDA VUELTA tras el RED):** el único
+CA abierto era **CA-13**, y **F-SPEC-013-7 está cerrado** (salida «a»: se cierra,
+no se convierte en residuo). Commit `175403d` en
+`ft/SPEC-013-motor-de-decisiones`, **dos ficheros tocados y ninguno más**:
+`tests/decide/support/rn08.ts` y `tests/decide/rn08-frontier.test.ts`. Los tres
+gates, corridos de nuevo enteros: `lint` exit=0 · `npm test` **114/1117** ·
+`npm run test:db` **22/276**. La spec vuelve a `en-revision`.
+
+**Lo que el verificador debería intentar primero, porque es lo que falló:**
+reescribir su evasión y sus variantes. Están todas como casos —6, 7, 8, 9, 11,
+12, 20— y tres de ellas se reprodujeron además como ficheros **reales** bajo
+`src/` antes de borrarlas. Si encuentra una forma nueva, el sitio donde mirar es
+`decisionImportOffences` (el nombre, en sus tres deletreos) y
+`decisionHandoverOffences` (la superficie ilegible de un módulo con capacidad).
+**Lo que sigue sin alcanzarse está escrito y es F-SPEC-013-9**, que necesita una
+frase de `sdd-arquitecto` en el texto de CA-13.3: el implementador no edita la
+spec.
+
+**Estado de la primera vuelta (2026-09-02, sin cambios salvo CA-13):** los quince
+CA implementados con TDD, todo commiteado en la misma rama (sin push, sin PR: lo
+hace el orquestador tras el GREEN).
 
 - **Código nuevo:** `src/decide/` entero —`rules.ts` (el reducer puro),
   `attribution.ts`, `qualifier.ts`, `roles.ts`, `independence.ts`,
@@ -431,26 +582,32 @@ los tres gates en verde, todo commiteado en `ft/SPEC-013-motor-de-decisiones`
    escrito contra el CA-6 de ocho subpuntos (commit `ae05a98`): durante la
    gracia **se publica** la más reciente marcada provisional y `held` es `null`;
    pasada la gracia no hay `Decision`, hay alerta y `held` nombra `RN-05`.
-2. **Los controles positivos de CA-13** (casos 4–9 de
-   `tests/decide/rn08-frontier.test.ts`): son los que dicen si la frontera de
-   RN-08 mide algo. El caso 6 enumera exactamente los tres ficheros que cruzan
-   la capacidad hoy.
+2. **Los controles positivos de CA-13** (casos 4–15 de
+   `tests/decide/rn08-frontier.test.ts`, renumerados en la segunda vuelta): son
+   los que dicen si la frontera de RN-08 mide algo, y ahora son **tres
+   mecanismos con su control cada uno** (ADR-016 §3.4). El caso **10** enumera
+   exactamente los tres ficheros que cruzan la capacidad hoy; el **6** es la
+   evasión de F-SPEC-013-7 escrita como caso; el **12** es la forma que el
+   mecanismo de nombres **no puede** ver y el de superficie sí; el **13** apaga
+   el detector nuevo vaciando la lista.
 3. **F-SPEC-013-4**, que es la única lectura de RN-01/RN-12 que esta
    implementación fija y que un CA podría leer de otra manera.
 4. **`npm run test:db` necesita `DATABASE_URL_TEST`** y, en esta máquina, el
    endpoint **directo** de Neon (F-SPEC-013-6). Sin él, CA-11 y CA-12 son
    **UNMET, no *skipped***.
 
-**Salidas literales de los tres gates (2026-09-02):**
+**Salidas literales de los tres gates — SEGUNDA VUELTA (2026-09-02, con
+F-SPEC-013-7 cerrado):**
 
 ```
 $ npm run lint
+> marcador@0.0.1 lint
 > oxlint --type-aware
 (sin salida; exit=0)
 
 $ npm test
  Test Files  114 passed (114)
-      Tests  1108 passed (1108)
+      Tests  1117 passed (1117)
  Type Errors  no errors
 
 $ npm run test:db
@@ -458,7 +615,19 @@ $ npm run test:db
       Tests  276 passed (276)
 ```
 
-**Recuento fichero a fichero contra `main` (CA-15).** Comparación por reporter
+`npm test` se corrió **cinco veces**: cuatro en 114/1117 y una con
+`tests/site/contact.test.ts` caso 5 en rojo por una carrera entre dos suites
+cerradas que esta rama no toca — está medida y escrita en **F-SPEC-013-10**.
+`npm run test:db` se corrió con `ps aux | grep vitest` en **0** antes de
+arrancar, y el endpoint del `.env.local` resolvió sin tocar el fichero.
+
+**Recuento fichero a fichero de la segunda vuelta**, por reporter JSON de
+`npm test` contra el commit anterior (`fa4e654`): **114 ficheros / 1108 casos →
+114 / 1117**; **cero ficheros añadidos, cero eliminados y exactamente uno con
+recuento distinto** —`tests/decide/rn08-frontier.test.ts`, 16 → 25, que es el
+fichero de CA-13 y nace en esta rama—. Ningún fichero previo a la rama se movió.
+
+**Recuento fichero a fichero contra `main` (CA-15), primera vuelta.** Comparación por reporter
 JSON de `npm test` antes y después: **base 100 ficheros / 919 casos → 114
 ficheros / 1108 casos**, con **catorce ficheros nuevos, todos bajo
 `tests/decide/`**, y **ningún fichero previo con recuento distinto** —cero en
