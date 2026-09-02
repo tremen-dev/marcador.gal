@@ -84,6 +84,9 @@ describe('CA-2.6 — el escaneo cubre todo el código, no solo `src/`', () => {
     expect(POLITE.map((file) => file.path)).toEqual([
       'src/polite/clock.ts',
       'src/polite/http.ts',
+      // El gate durable de SPEC-012 (ADR-019 §4): cortesía, así que vive aquí
+      // (ADR-014 §1). La enumeración crece por decisión firmada, no por drift.
+      'src/polite/policy-durable.ts',
       'src/polite/policy.ts',
       'src/polite/rate-limit.ts',
       'src/polite/robots.ts',

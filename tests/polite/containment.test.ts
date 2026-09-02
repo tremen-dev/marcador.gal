@@ -569,7 +569,15 @@ describe('CA-2.8 — lo que este criterio NO promete, dicho dentro del criterio'
     // residuo es que NINGUNO DE ELLOS PUEDE ALCANZAR LA PUERTA por el grafo de
     // imports: sin `src/polite/http.ts` en su grafo no hay salida legítima que
     // conducir, y cualquier otra sería roja en estático por CA-2.3 o CA-2.4.
-    const DRIVEN = ['src/ingest/adapter.ts', 'src/mirror/cli/capturar-cli.ts'];
+    // La ruta del cron (SPEC-012) alcanza la puerta A TRAVÉS del adaptador:
+    // delega entera en `src/ingest/` (ADR-019 §1) y su grafo no añade ninguna
+    // salida que el primer punto conducido no cubra ya — el caso de abajo
+    // afirma que alcanza la puerta, y CA-2.1 conduce ese mismo camino.
+    const DRIVEN = [
+      'src/app/api/cron/ingest/route.ts',
+      'src/ingest/adapter.ts',
+      'src/mirror/cli/capturar-cli.ts',
+    ];
 
     for (const entry of ENTRY_POINTS) {
       if (DRIVEN.includes(entry)) continue;

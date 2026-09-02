@@ -39,7 +39,7 @@ import type { AliasStore } from '@/alias/ports';
 import type { MatchStore } from '@/calendar/ports';
 import type { Sql } from '@/db/client';
 import type { ObservationStore } from '@/db/ports';
-import type { CompetitionId, Instant } from '@/model/ids';
+import type { Instant } from '@/model/ids';
 import type { Clock } from '@/polite/clock';
 import type { HttpFetcher } from '@/polite/http';
 import type { PolicyGate } from '@/polite/policy';
@@ -159,7 +159,7 @@ function eligibleAdapter(
   ports: TickPorts,
   entry: SourceEntry,
   competitions: SourceEntry['competitions'],
-): { adapter: SourceAdapter; targets: ReadonlyMap<CompetitionId, IngestTarget> } {
+): { adapter: SourceAdapter; targets: ReadonlyMap<string, IngestTarget> } {
   const registry = sourceRegistry([{ ...entry, competitions }]);
 
   const adapter = new SourceAdapter({
@@ -179,7 +179,9 @@ function eligibleAdapter(
     }),
   });
 
-  const targets = new Map(registry.targets().map((target) => [target.competition_id, target]));
+  const targets = new Map<string, IngestTarget>(
+    registry.targets().map((target) => [target.competition_id, target]),
+  );
   return { adapter, targets };
 }
 
@@ -192,12 +194,19 @@ function eligibleAdapter(
 async function settle(
   ports: TickPorts,
   adapter: SourceAdapter,
-  targets: ReadonlyMap<CompetitionId, IngestTarget>,
+  targets: ReadonlyMap<string, IngestTarget>,
   record: TickRecord,
 ): Promise<{ outcome: 'ok' | 'skipped' | 'failed'; persisted: number }> {
+  // The record's ids come back widened to `string`; the target carries the
+  // branded ones the attempt record and `read` demand, from the same registry.
+  const target = targets.get(record.competition_id);
+  if (target === undefined) {
+    throw new Error(`unreachable: no target for ${record.source}/${record.competition_id}`);
+  }
+
   const head = {
-    source: record.source,
-    competition_id: record.competition_id,
+    source: target.source,
+    competition_id: target.competition_id,
     attempted_at: record.at,
     raw_ref: record.raw_ref,
   } as const;
@@ -215,11 +224,6 @@ async function settle(
 
   let persisted = 0;
   try {
-    const target = targets.get(record.competition_id);
-    if (target === undefined) {
-      throw new Error(`unreachable: no target for ${record.source}/${record.competition_id}`);
-    }
-
     // The bytes are re-read FROM THE ARCHIVE, not kept from the response:
     // what cannot be read back from the raw store cannot be replayed either,
     // and this is the path the replay of CA-4.3 exercises for real (RN-10).

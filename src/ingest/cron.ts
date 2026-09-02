@@ -53,12 +53,24 @@ export function cronIngestHandler(
     }
 
     const summary = await options.tick();
-    return Response.json(summary);
+    return json(summary, 200);
   };
 }
 
+/**
+ * `new Response`, not `Response.json`: the global's declared surface concedes
+ * the constructor and nothing else (SPEC-009 CA-1, `ALLOWED_GLOBALS`), and a
+ * static helper is not worth widening a frontier for.
+ */
+function json(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 function unauthorized(): Response {
-  return Response.json({ error: 'unauthorized' }, { status: 401 });
+  return json({ error: 'unauthorized' }, 401);
 }
 
 let productionSql: Sql | null = null;

@@ -364,6 +364,12 @@ export const ENTRY_POINTS: readonly string[] = [
   'src/app/(gl)/proxecto/page.tsx',
   'src/app/(gl)/robot/page.tsx',
   'src/app/_contract/model-client.tsx',
+  // The ingest cron's door (SPEC-012 CA-7, ADR-019 §1): a route of `src/app/`,
+  // entry by the rule SPEC-008 CA-2.5 already declared. It delegates whole in
+  // `src/ingest/cron.ts` — auth with `CRON_SECRET` failing closed, then the
+  // tick — so its reachable exit surface is exactly the adapter path CA-2.1
+  // already drives; the route itself adds no way out.
+  'src/app/api/cron/ingest/route.ts',
   'src/app/robots.txt/route.ts',
   // The commands of `package.json`.
   // `alias:cargar` (SPEC-011 CA-7): loads a declared alias catalogue against

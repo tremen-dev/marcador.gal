@@ -280,7 +280,9 @@ describe('CA-2, CA-3.1, CA-4 y CA-5 — el primer tick recorre el camino entero'
 
     // El ritmo durable tiene el par elegible y el turno del robots; del par
     // no elegible no hay fila (CA-2).
-    expect(await rhythmPairs()).toEqual([PAIR_PREFERENTE, ROBOTS_TURN]);
+    const pairs = await rhythmPairs();
+    expect(pairs).toEqual([PAIR_PREFERENTE, ROBOTS_TURN]);
+    expect(pairs).not.toContain(PAIR_TERCERA);
 
     // El robots quedó archivado bajo `<source>/robots/…` (RN-10, ADR-014 §3.4).
     const robotsKeys = sharedStore.keys.filter((key) => key.startsWith('ceroacero/robots/'));
