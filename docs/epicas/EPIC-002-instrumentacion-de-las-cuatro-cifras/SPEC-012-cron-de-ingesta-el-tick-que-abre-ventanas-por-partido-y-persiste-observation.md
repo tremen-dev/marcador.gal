@@ -2,13 +2,14 @@
 id: SPEC-012
 tipo: spec
 epica: EPIC-002
-estado: en-revision
+estado: hecho
 aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-09-02, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-09-02, por: Alberto Fojo}
   - {estado: en-progreso, fecha: 2026-09-02, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-09-02, por: sdd-implementador}
+  - {estado: hecho, fecha: 2026-09-02, por: sdd-verificador}
 ---
 # SPEC-012 — Cron de ingesta: el tick que abre ventanas por partido y persiste Observation
 
