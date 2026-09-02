@@ -31,15 +31,15 @@ epica: EPIC-002
 
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 esquema del fichero | `src/alias/catalog.ts` (`AliasCatalogSchema`, `parseAliasCatalog`, `InvalidCatalogError` que nombra entrada o campo; colisiones tras `normalizeAlias` cerradas en `superRefine`; `declareAliasCatalog`/`readAliasCatalogFile` con digest sha256 reutilizando `sha256Hex` de SPEC-010); fixture sintético `tests/fixtures/aliases.ts` (6 entradas, `ud-ourense` con tres grafías, una con acento) | `tests/alias/catalog.test.ts` — 12 casos: el fixture valida entero; las 10 variantes del CA rechazadas nombrando entrada/campo (kebab-case, alias vacío, doble espacio, NFC compuesta/descompuesta vía `́`, duplicado exacto, `declared_by` vacío, `2026-27`, `CeroACero`, instante inválido, `aliases: []`); y un no-objeto. `npm test`, puro | — | ⬜ |
-| CA-2 carga con reemplazo transaccional | `src/db/aliases.ts` `loadAliasCatalog(sql, file, { clock })`: una transacción — `team_id` ausente de `teams` rechaza entero nombrándolo (`UnknownTeamError`), delete+insert del `(source, season)` completo (`proposed` incluidas), otras fuentes/temporadas intactas, `confirmed_by`/`confirmed_at` de la declaración normalizado a `Z` (`instantOf(epochMsOf(…))`), fila en `alias_loads` al final; nada escrito si algo falla. `pgTextArray` para el `any(…)` (F-SPEC-010-6) | `tests/db/alias-load.test.ts` §CA-2 — 7 casos: tabla exacta + `inserted`/`removed`; recarga idéntica `[]/[]`; añadida+retirada+reapuntada con las tres nombradas y la retirada sin resolver vía `resolveConfirmedAlias` sobre `listBySource` real; `besoccer` y `2027/28` intactas; `proposed` barrida; equipo fantasma rechaza entero sin cambiar tabla ni `alias_loads`; todo-o-nada con reloj roto que revienta el último insert de la transacción. Requiere `DATABASE_URL_TEST` | — | ⬜ |
-| CA-3 registro `alias_loads` inmutable | `migrations/0004` + el insert final de `loadAliasCatalog` (digest de los bytes, `loaded_at` del `Clock` inyectado, recuentos coherentes con el resultado) | `tests/db/alias-load.test.ts` §CA-3 — 4 casos: fila completa con digest sha256 verificado en el test, `loaded_at` del reloj congelado, `declared_at` en `Z`; segunda carga = segunda fila con `inserted = 0`; `update`/`delete` rechazados por `reject_amendment`; `declared_by = ''` rechazado por la base | — | ⬜ |
-| CA-4 `PostgresAliasStore` | `src/db/aliases.ts` `PostgresAliasStore.listBySource`: parse por `TeamAliasSchema.readonly()` (congelado sin conceder `Object.freeze`), orden `alias, team_id`, la rama `proposed` construida sin los `null` de SQL (los `never` de SPEC-001 no admiten `null`) | `tests/db/alias-store.test.ts` — 3 casos (completo/congelado/ordenado con `InstantSchema` sobre `confirmed_at`; nada de otra fuente/temporada; `proposed` sin rastro de confirmación). Muerde: mutación temporal (sin `.readonly()`, otro orden) → 1 caso en rojo, restaurado. Tipo: `tests/types/spec011-alias-store.test-d.ts` — sin `insert`/`update`/`delete` (`@ts-expect-error` invertido) y superficie == puerto | — | ⬜ |
-| CA-5 resolver todo o nada (dobles) | `src/alias/resolver.ts` `catalogMatchResolver({source, season, aliases, matches})`: `resolveConfirmedAlias` reutilizado (el diff no reimplementa comparación), `listByTeams`, exactamente uno o `null`; sin `canonical_name`, sin `source_ref`/`kickoff`, sin reloj ni red. `src/alias/ports.ts` `AliasStore.listBySource` (un método, `proposed` incluidas) | `tests/alias/resolver.test.ts` — 6 casos sobre dobles en memoria con el `MatchId` derivado de `declaredMatches` (no inventado): grafía con espacios de más + Unicode descompuesta resuelve exacto; desconocidos → `null` (3 combinaciones); canónico sin alias → `null`; `proposed` → `null`; cero y dos partidos → `null`; `source_ref`/`kickoff` irrelevantes y caja significativa. `npm test`, puro | — | ⬜ |
-| CA-6 integración real punta a punta | (composición: sin código nuevo — ese es el punto del CA) | `tests/db/alias-resolution.test.ts` — 2 casos contra la base real: `resolve` con `PostgresAliasStore` + `PostgresMatchStore` devuelve `futgal-preferente-g1-2026-27-j1-ud-ourense-rc-celta-b` exacto; `readRows` de SPEC-008 (sin tocar) con este resolver → **una** `Observation` con ese `match_id` y la fila desconocida **entera** en `unresolved`. Nota honesta: pasó a la primera — cada pieza ya había pasado su propio rojo→verde; el CA es el encaje | — | ⬜ |
-| CA-7 CLI `alias:cargar` | `src/alias/cli.ts` (hook de resolución + import dinámico, como los CLI existentes), `src/alias/command.ts` (`main(argv, io)` inyectado; orden: fichero entero → `requireDatabaseUrl` → `openClient`; lo retirado se lista por grafía como «no longer resolves»); `package.json` script; `tests/polite/support/capability.ts` `ENTRY_POINTS` += `src/alias/cli.ts` con motivo — **lo único tocado en `tests/polite/`** | `tests/alias/command.test.ts` — 9 casos (`npm test`): válido → recuentos + load id, exit 0, cliente cerrado; inválido → error CA-1 nombrando entrada, **`openClient` sin llamar**; inexistente; sin `DATABASE_URL` → «DATABASE_URL is not set»; sin ruta → usage; carga fallida → exit 1 y cliente cerrado; **dos arranques reales de `node src/alias/cli.ts`**. `tests/db/alias-cli.test.ts` — 3 casos con cliente real: 6/0 + id; retirada nombrada; fantasma → exit 1 sin fila nueva | — | ⬜ |
-| CA-8 `migrations/0004` | `migrations/0004_alias_loads.sql`: una tabla (`alias_loads`, identity PK, `declared_by` no vacío, digest `^[0-9a-f]{64}$`, `aliases_count >= 1`) y un trigger (`reject_amendment` de 0001 reutilizado, sin función propia). SQL a mano, sin ORM, sin rollback | `tests/db/alias-schema.test.ts` — 8 casos: cuarta en disco; `migrate` → `['0001','0002','0003','0004']` y luego `[]`; tabla y trigger leídos **de la migración**; sin función propia; el SQL ejecutable no nombra `team_aliases` ni altera nada; los `CHECK`s de CA-17 muerden por SQL directo (sin persona, y persona vacía); a mano. CA-8.3: `parity.test.ts` verde **sin entrada nueva** (sus mapas no cambian en el diff) | — | ⬜ |
-| CA-9 gates y suites cerradas | — | `npm run lint` exit=0 · `npm test` 95 ficheros / **896 passed**, Type Errors: no errors · `npm run test:db` 19 ficheros / **237 passed** (salidas literales abajo). `tests/polite` 117/117 **sin global nuevo**; diff de `tests/` contra `main`: solo altas salvo `calendar-schema.test.ts` (8 casos antes y después, ver enmienda) y las 5 líneas de `capability.ts` (1 entrada + motivo) | — | ⬜ |
+| CA-1 esquema del fichero | `src/alias/catalog.ts` (`AliasCatalogSchema`, `parseAliasCatalog`, `InvalidCatalogError` que nombra entrada o campo; colisiones tras `normalizeAlias` cerradas en `superRefine`; `declareAliasCatalog`/`readAliasCatalogFile` con digest sha256 reutilizando `sha256Hex` de SPEC-010); fixture sintético `tests/fixtures/aliases.ts` (6 entradas, `ud-ourense` con tres grafías, una con acento) | `tests/alias/catalog.test.ts` — 12 casos: el fixture valida entero; las 10 variantes del CA rechazadas nombrando entrada/campo (kebab-case, alias vacío, doble espacio, NFC compuesta/descompuesta vía `́`, duplicado exacto, `declared_by` vacío, `2026-27`, `CeroACero`, instante inválido, `aliases: []`); y un no-objeto. `npm test`, puro | Leídos los 12 casos: cada variante afirma sobre el mensaje que nombra la entrada o el campo; verde en `npm test`; el rechazo también visto en arranque real de la CLI (caso «invalid file» con `UD_Ourense`) | ✅ |
+| CA-2 carga con reemplazo transaccional | `src/db/aliases.ts` `loadAliasCatalog(sql, file, { clock })`: una transacción — `team_id` ausente de `teams` rechaza entero nombrándolo (`UnknownTeamError`), delete+insert del `(source, season)` completo (`proposed` incluidas), otras fuentes/temporadas intactas, `confirmed_by`/`confirmed_at` de la declaración normalizado a `Z` (`instantOf(epochMsOf(…))`), fila en `alias_loads` al final; nada escrito si algo falla. `pgTextArray` para el `any(…)` (F-SPEC-010-6) | `tests/db/alias-load.test.ts` §CA-2 — 7 casos: tabla exacta + `inserted`/`removed`; recarga idéntica `[]/[]`; añadida+retirada+reapuntada con las tres nombradas y la retirada sin resolver vía `resolveConfirmedAlias` sobre `listBySource` real; `besoccer` y `2027/28` intactas; `proposed` barrida; equipo fantasma rechaza entero sin cambiar tabla ni `alias_loads`; todo-o-nada con reloj roto que revienta el último insert de la transacción. Requiere `DATABASE_URL_TEST` | 7/7 contra la base real; **mutación**: sin el `delete` de la transacción, 5 casos en rojo (restaurado); flujo real a mano: 3 cargas por la CLI, la retirada deja de resolver (ver veredicto). CA-2.8: dos aserciones de `calendar-schema.test.ts` tocadas — F-SPEC-011-1 juzgada y aceptada vía ADR-015 | ⚠️ |
+| CA-3 registro `alias_loads` inmutable | `migrations/0004` + el insert final de `loadAliasCatalog` (digest de los bytes, `loaded_at` del `Clock` inyectado, recuentos coherentes con el resultado) | `tests/db/alias-load.test.ts` §CA-3 — 4 casos: fila completa con digest sha256 verificado en el test, `loaded_at` del reloj congelado, `declared_at` en `Z`; segunda carga = segunda fila con `inserted = 0`; `update`/`delete` rechazados por `reject_amendment`; `declared_by = ''` rechazado por la base | 4/4 contra la base real; digest sha256 recalculado en el test desde los bytes; flujo a mano: 3 filas en `alias_loads` (12/13/14), la recarga idéntica dejó fila con `inserted=0` | ✅ |
+| CA-4 `PostgresAliasStore` | `src/db/aliases.ts` `PostgresAliasStore.listBySource`: parse por `TeamAliasSchema.readonly()` (congelado sin conceder `Object.freeze`), orden `alias, team_id`, la rama `proposed` construida sin los `null` de SQL (los `never` de SPEC-001 no admiten `null`) | `tests/db/alias-store.test.ts` — 3 casos (completo/congelado/ordenado con `InstantSchema` sobre `confirmed_at`; nada de otra fuente/temporada; `proposed` sin rastro de confirmación). Muerde: mutación temporal (sin `.readonly()`, otro orden) → 1 caso en rojo, restaurado. Tipo: `tests/types/spec011-alias-store.test-d.ts` — sin `insert`/`update`/`delete` (`@ts-expect-error` invertido) y superficie == puerto | 3/3 contra la base real (congelado con `Object.isFrozen`, `InstantSchema` sobre `confirmed_at`, `proposed` sin rastro de confirmación); `.test-d.ts` con directivas invertidas verificado en `npm test` (typecheck sin errores) | ✅ |
+| CA-5 resolver todo o nada (dobles) | `src/alias/resolver.ts` `catalogMatchResolver({source, season, aliases, matches})`: `resolveConfirmedAlias` reutilizado (el diff no reimplementa comparación), `listByTeams`, exactamente uno o `null`; sin `canonical_name`, sin `source_ref`/`kickoff`, sin reloj ni red. `src/alias/ports.ts` `AliasStore.listBySource` (un método, `proposed` incluidas) | `tests/alias/resolver.test.ts` — 6 casos sobre dobles en memoria con el `MatchId` derivado de `declaredMatches` (no inventado): grafía con espacios de más + Unicode descompuesta resuelve exacto; desconocidos → `null` (3 combinaciones); canónico sin alias → `null`; `proposed` → `null`; cero y dos partidos → `null`; `source_ref`/`kickoff` irrelevantes y caja significativa. `npm test`, puro | 6/6; **mutación**: con el desempate `length === 0` en el resolver, el caso 5 muerde (restaurado); leído el diff: `resolveConfirmedAlias` importado de `src/model/team.ts`, sin comparación propia, sin `canonical_name`, reloj ni red | ✅ |
+| CA-6 integración real punta a punta | (composición: sin código nuevo — ese es el punto del CA) | `tests/db/alias-resolution.test.ts` — 2 casos contra la base real: `resolve` con `PostgresAliasStore` + `PostgresMatchStore` devuelve `futgal-preferente-g1-2026-27-j1-ud-ourense-rc-celta-b` exacto; `readRows` de SPEC-008 (sin tocar) con este resolver → **una** `Observation` con ese `match_id` y la fila desconocida **entera** en `unresolved`. Nota honesta: pasó a la primera — cada pieza ya había pasado su propio rojo→verde; el CA es el encaje | 2/2 contra la base real: `MatchId` derivado exacto y `readRows` de SPEC-008 (sin diff) devolviendo una `Observation` + la fila desconocida entera en `unresolved` | ✅ |
+| CA-7 CLI `alias:cargar` | `src/alias/cli.ts` (hook de resolución + import dinámico, como los CLI existentes), `src/alias/command.ts` (`main(argv, io)` inyectado; orden: fichero entero → `requireDatabaseUrl` → `openClient`; lo retirado se lista por grafía como «no longer resolves»); `package.json` script; `tests/polite/support/capability.ts` `ENTRY_POINTS` += `src/alias/cli.ts` con motivo — **lo único tocado en `tests/polite/`** | `tests/alias/command.test.ts` — 9 casos (`npm test`): válido → recuentos + load id, exit 0, cliente cerrado; inválido → error CA-1 nombrando entrada, **`openClient` sin llamar**; inexistente; sin `DATABASE_URL` → «DATABASE_URL is not set»; sin ruta → usage; carga fallida → exit 1 y cliente cerrado; **dos arranques reales de `node src/alias/cli.ts`**. `tests/db/alias-cli.test.ts` — 3 casos con cliente real: 6/0 + id; retirada nombrada; fantasma → exit 1 sin fila nueva | 9/9 + 3/3 en verde; flujo real a mano por la CLI de `package.json` (3 cargas, salidas en el veredicto): recuentos, «no longer resolves» por grafía y load id en stdout; diff de `tests/polite/` = 5 líneas de `ENTRY_POINTS` con motivo, `ALLOWED_*` sin cambios | ✅ |
+| CA-8 `migrations/0004` | `migrations/0004_alias_loads.sql`: una tabla (`alias_loads`, identity PK, `declared_by` no vacío, digest `^[0-9a-f]{64}$`, `aliases_count >= 1`) y un trigger (`reject_amendment` de 0001 reutilizado, sin función propia). SQL a mano, sin ORM, sin rollback | `tests/db/alias-schema.test.ts` — 8 casos: cuarta en disco; `migrate` → `['0001','0002','0003','0004']` y luego `[]`; tabla y trigger leídos **de la migración**; sin función propia; el SQL ejecutable no nombra `team_aliases` ni altera nada; los `CHECK`s de CA-17 muerden por SQL directo (sin persona, y persona vacía); a mano. CA-8.3: `parity.test.ts` verde **sin entrada nueva** (sus mapas no cambian en el diff) | 8/8 contra la base real; leída la migración: SQL a mano, una tabla + un trigger, `reject_amendment` de 0001 reutilizado, el SQL ejecutable no nombra `team_aliases`; `parity.test.ts` sin diff contra `main` | ✅ |
+| CA-9 gates y suites cerradas | — | `npm run lint` exit=0 · `npm test` 95 ficheros / **896 passed**, Type Errors: no errors · `npm run test:db` 19 ficheros / **237 passed** (salidas literales abajo). `tests/polite` 117/117 **sin global nuevo**; diff de `tests/` contra `main`: solo altas salvo `calendar-schema.test.ts` (8 casos antes y después, ver enmienda) y las 5 líneas de `capability.ts` (1 entrada + motivo) | Los tres gates corridos por el verificador: lint exit=0, `npm test` 896/896, `test:db` 237/237 (salidas en el veredicto); `tests/polite` 117/117; recuento contra `main`: en `tests/` solo altas salvo `calendar-schema.test.ts` (8/8 antes y después) y `capability.ts`. «Sin tocar una aserción» no se cumple a la letra — F-SPEC-011-1, aceptada | ⚠️ |
 
 ### Salidas literales de los gates (2026-09-02, implementador)
 
@@ -158,3 +158,126 @@ $ npm run test:db
    del fichero en `src/alias/catalog.ts`. El fichero real de alias sigue sin
    existir (F-SPEC-011-3) y sus minutos de escritura cuentan para la cifra de
    operación manual.
+
+## Veredicto del verificador — 2026-09-02: GREEN
+
+**GREEN.** Los 9 CA verificados contra la spec: 7 en ✅ y 2 en ⚠️ (CA-2 y CA-9,
+la misma salvedad F-SPEC-011-1, juzgada abajo y aceptada). Verificado sobre la
+rama `ft/SPEC-011-catalogo-de-alias`; el diff de `src/` contra `main` son solo
+ficheros nuevos (`src/alias/`, `src/db/aliases.ts`) — `src/ingest/`,
+`src/model/`, `src/calendar/` y `src/db/ports.ts` sin un byte de diff
+(ADR-011 §6). `alias/` no existe, y no debe (F-SPEC-011-3). Árbol limpio al
+terminar; las dos mutaciones fueron restauradas con `git checkout` y
+`git status` quedó vacío.
+
+### Salidas literales de los gates (2026-09-02, verificador)
+
+```
+$ ps aux | grep vitest | grep -v grep
+(sin procesos: nadie más contra la rama de Neon, F-SPEC-010-7)
+
+$ npm run lint
+> oxlint --type-aware
+(exit=0)
+
+$ npm test
+ Test Files  95 passed (95)
+      Tests  896 passed (896)
+Type Errors  no errors
+
+$ npm run test:db
+ Test Files  19 passed (19)
+      Tests  237 passed (237)
+
+$ npx vitest run tests/polite
+ Test Files  5 passed (5)
+      Tests  117 passed (117)
+```
+
+### Mutaciones (los tests muerden, y donde importa)
+
+1. **Resolver, la decisión «todo o nada» (ADR-018 §3):**
+   `candidates.length !== 1` → `candidates.length === 0` (desempata eligiendo
+   el primero). `tests/alias/resolver.test.ts`: **caso 5 en rojo** («zero
+   matches … and so are two: ambiguity is not broken»), 5/6 verdes.
+   Restaurado.
+2. **Carga, la decisión «reemplazo» (ADR-018 §2):** eliminado el
+   `delete from team_aliases where source … and season …` de la transacción.
+   `tests/db/alias-load.test.ts`: **5 casos en rojo** (recarga idéntica,
+   retirada+reapuntada, barrido de `proposed`, todo-o-nada, y el CA-3.1 de la
+   segunda fila). Restaurado.
+
+### Flujo real (CLI de `package.json` contra la base de test, 2026-09-02)
+
+Calendario sintético cargado con `calendario:cargar` (teams desde el
+calendario, no desde el fichero de alias) y después **tres cargas** con
+`node src/alias/cli.ts` (el mismo binario que `npm run alias:cargar`):
+
+```
+1ª carga (fixture):        exit=0  inserted: 6  removed: 0  load id: 12
+2ª carga (mismo fichero):  exit=0  inserted: 0  removed: 0  load id: 13
+3ª carga («Ourense» retirada, «Novo Exemplo» añadida): exit=0
+  inserted: 1   inserted: "Novo Exemplo" -> cd-exemplo
+  removed: 1    removed (no longer resolves): "Ourense" -> ud-ourense
+  load id: 14
+```
+
+Y tras la 3ª, sobre `PostgresAliasStore` real con `resolveConfirmedAlias`:
+
+```
+"Ourense" (retirada)   → null
+"UD Ourense" (vigente) → "ud-ourense"
+"Novo Exemplo" (alta)  → "cd-exemplo"
+alias_loads: {id:12, inserted:6, removed:0} {id:13, inserted:0, removed:0}
+             {id:14, inserted:1, removed:1}
+```
+
+La retirada **deja de resolver en esa misma carga** — lo central de ADR-018,
+visto funcionar, con la fila de carga incluso cuando nada cambió (CA-3.1).
+
+### Juicio de las salvedades del implementador
+
+- **F-SPEC-011-1 — ACEPTADA (⚠️ en CA-2 y CA-9, no bloquea).** La letra de
+  CA-2.8/CA-9 («sin tocar una aserción») era insatisfacible desde que CA-8 de
+  esta misma spec ordena `migrations/0004`: las dos aserciones de
+  `tests/db/calendar-schema.test.ts` enumeraban tres migraciones. La vía
+  seguida es exactamente la que ADR-015 (aprobada) fija: enmienda en el ledger
+  de SPEC-010 bajo el encabezado literal, con los **cinco puntos** de
+  ADR-015 §3 presentes — incluida la pérdida de red dicha sin suavizar (la
+  enumeración vive ahora con la migración más joven,
+  `tests/db/alias-schema.test.ts`) y la condición de despertar. Sustancia
+  conservada (0003 tercera, orden, idempotencia) y recuento intacto:
+  **8 casos antes y 8 después**, comprobado contra `main`. Precedente:
+  F-SPEC-008-16.
+- **F-SPEC-011-2 — no bloquea.** CLI en inglés, como `db:migrate` y
+  `calendario:cargar`; no es interfaz de producto (D-2 no aplica). Queda bajo
+  el juicio pendiente de F-SPEC-010-9, para todos los comandos a la vez.
+- **F-SPEC-011-3 — conforme.** `alias/` no existe (`ls` lo confirma) y la spec
+  lo excluye expresamente; nada que hacer.
+- **F-SPEC-011-4 — conforme y probado** (CA-2.5 verde y la mutación 2 lo hizo
+  morder). Decisión de ADR-018 §2 aprobada; deuda señalizada para la spec del
+  bot.
+
+### Comprobaciones de diff (leer, no solo correr)
+
+- `src/alias/resolver.ts` importa `resolveConfirmedAlias` de
+  `src/model/team.ts` y no contiene comparación propia, ni `canonical_name`,
+  ni `source_ref`/`kickoff`, ni reloj, ni red (CA-5.4, ADR-018 §3).
+- `migrations/0004_alias_loads.sql`: SQL a mano, una tabla y un trigger,
+  reutiliza `reject_amendment` de 0001; el SQL ejecutable no nombra
+  `team_aliases` ni contiene `alter`/`drop` (CA-8.2, CA-8.4).
+- `tests/db/parity.test.ts`: **sin diff** contra `main` (CA-8.3).
+- `tests/polite/support/capability.ts`: +5 líneas, una entrada
+  (`src/alias/cli.ts`) en `ENTRY_POINTS` con su motivo (ADR-016 §3.2);
+  `ALLOWED_GLOBALS`/`ALLOWED_PACKAGES` con cero líneas de diff (CA-9).
+- `dominio.md` gana **catálogo de alias declarado**; ADR-018 está `aprobada`
+  (firmado por Alberto Fojo el 2026-09-02).
+- Fixtures solo sintéticos: `tests/fixtures/aliases.ts` no contiene ninguna
+  grafía real (ADR-009).
+
+### Findings del verificador
+
+Ninguno. No se abre ningún F-SPEC-011-V*.
+
+Transición registrada: `en-revision` → `hecho` (por sdd-verificador,
+2026-09-02).
