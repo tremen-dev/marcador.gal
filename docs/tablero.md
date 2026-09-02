@@ -40,6 +40,7 @@ Actualizado: 2026-09-02
 
 | Spec | Estado | Último cambio |
 |---|---|---|
+| SPEC-014 — la-carrera-entre-la-suite-que-escribe-en-el-arbol-y-la-que-lo-lee | hecho | 2026-09-02 (sdd-verificador) |
 
 ## ADRs
 
@@ -69,4 +70,4 @@ Actualizado: 2026-09-02
 
 ## Resumen
 
-- hecho: 13
+- hecho: 14

@@ -1,30 +1,528 @@
-import { defineConfig } from 'vitest/config';
+import { existsSync } from 'node:fs';
+import { readdir } from 'node:fs/promises';
+import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { defineConfig } from 'vitest/config';
+import { readModule, resolveModule } from './tests/mirror/support/imports.ts';
+import { isCodeFile } from './tests/polite/support/capability.ts';
 
-export default defineConfig({
-  resolve: {
-    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
-  },
-  // Vitest has no Next in front of it, so it needs the JSX runtime spelled out
-  // to be able to render the site's routes to a string (SPEC-004 CA-2, CA-3).
-  // Explicit and not inherited from tsconfig on purpose: `next build` rewrites
-  // that field on its own, and the suite should not move when it does.
-  oxc: { jsx: { runtime: 'automatic' } },
-  test: {
-    include: ['tests/**/*.test.ts'],
-    // The suites that need real credentials are NOT here, and they are not
-    // skipped either: they live in `vitest.integration.config.ts` and fail
-    // loudly without them (`npm run test:db`, `npm run test:blob`). The gate of
-    // 2026-08-29 ruled that without credentials the affected criteria are
-    // UNMET, not skipped — so they must never make this suite green by silence.
-    exclude: ['**/node_modules/**', 'tests/db/**', 'tests/raw/blob.contract.test.ts'],
-    // CA-3, CA-4, CA-6: los invariantes se prueban a nivel de TIPO. Los ficheros
-    // .test-d.ts usan @ts-expect-error: si el invariante deja de sostenerse, la
-    // directiva queda sin usar y tsc falla. Es la prueba invertida.
-    typecheck: {
-      enabled: true,
-      include: ['tests/**/*.test-d.ts'],
-      tsconfig: './tsconfig.json',
+/**
+ * SPEC-014 — THE SUITE THAT WRITES IN THE TREE AND THE SUITE THAT READS IT.
+ *
+ * `npm test` was red one run in five with nothing broken, in `main`, with three
+ * different victims. The cause is one: `tests/polite/architecture.test.ts`
+ * writes REAL FILES INSIDE THE REPOSITORY — eight paths, two of them at the
+ * root — and removes them in its `finally`, because its positive controls are
+ * only true if the file exists (ADR-016 §4). A dozen other suites walk that
+ * same tree. Vitest runs files in parallel, so reader and writer land in
+ * different workers over shared state: either the walk catches the file and a
+ * set assertion has ONE FILE TOO MANY, or it catches it between the `readdir`
+ * and the `readFile` and the run dies with `ENOENT`.
+ *
+ * The fix is a partition, and the whole of it lives here: two projects that
+ * never run at the same time. The guardian that keeps it honest is
+ * `tests/config/partition.test.ts`.
+ *
+ * WHY THE RULE IS «CAN REACH `node:fs`» AND NOT «WALKS THE REAL TREE».
+ * The narrow list would be fifteen files today, and it would be closed by
+ * SOMEONE'S READING OF THE CODE — which is what ADR-016 §3.1 refuses. «Can
+ * reach the file system through the repository's import graph» is closed by the
+ * module graph the compiler resolves, which exists outside this file. The price
+ * is measured and paid on purpose: 41 of 100 files run in series, 26 of them
+ * without touching the shared tree. Narrowing the rule to buy time back is
+ * reintroducing the hand-written list; the way out, when the budget of CA-8.4
+ * gets close, is the shared lock declared out of scope in the spec.
+ */
+
+const ROOT = fileURLToPath(new URL('.', import.meta.url));
+
+/** The glob the runtime suites are selected by. Declared once (CA-2.1). */
+export const TEST_INCLUDE: readonly string[] = ['tests/**/*.test.ts'];
+
+/**
+ * The glob the TYPE suites are selected by — the inverted proof of SPEC-001
+ * CA-3/CA-4/CA-6, which lives in `@ts-expect-error` and not in an assertion.
+ */
+export const TYPE_TEST_INCLUDE: readonly string[] = ['tests/**/*.test-d.ts'];
+
+/**
+ * EVERYTHING THE TWO PROJECTS RUN, AS ONE DECLARATION (CA-2.1, CA-3.1).
+ *
+ * THERE USED TO BE TWO LISTS AND ONE OF THEM WAS SHORT, which is F-SPEC-014-7.
+ * The projects declared both globs; `testUniverse()` filtered
+ * `endsWith('.test.ts')` on its own. So the fourteen `.test-d.ts` ran in the
+ * parallel group and were IN NO GROUP AT ALL for the mechanism — not in the
+ * universe, not in either half of the partition, not in an `exclude` — and
+ * CA-3.1's claim, «no file of the parallel group reaches `node:fs`», was made
+ * over a group holding fourteen files the walk never opened. A
+ * `tests/types/zz-evasion.test-d.ts` with `import { readdirSync } from
+ * 'node:fs'` — the exact spelling CA-3 names — came back `[parallel]` with the
+ * guardian at 23/23 and `oxlint --type-aware` at exit 0.
+ *
+ * It is the shape of F-SPEC-008-V33 once more: two lists of what to look at,
+ * and the shorter one deciding in silence. So the projects and the walk now
+ * derive from the same constant, and `tests/config/partition.test.ts` case
+ * CA-2 nº 5 goes red if a project ever selects by a glob this list has not
+ * heard of.
+ *
+ * MEASURED, and it matters for how far the old hole reached: vitest 4.1.11 does
+ * NOT execute a `.test-d.ts` at runtime — a `writeFileSync` inside one never
+ * ran — so the evasion was a false CLAIM before it was a live path to the tree.
+ * The claim is what CA-3.1 makes, and it is what had to be made true.
+ */
+export const RUN_INCLUDE: readonly string[] = [...TEST_INCLUDE, ...TYPE_TEST_INCLUDE];
+
+/**
+ * The exclusions that were always here, unchanged by SPEC-014.
+ *
+ * The suites that need real credentials are NOT here, and they are not skipped
+ * either: they live in `vitest.integration.config.ts` and fail loudly without
+ * them (`npm run test:db`, `npm run test:blob`). The gate of 2026-08-29 ruled
+ * that without credentials the affected criteria are UNMET, not skipped — so
+ * they must never make this suite green by silence.
+ *
+ * BOTH PROJECTS CARRY THIS LIST VERBATIM. That is what makes the union of the
+ * partition exact by construction: whatever the walk below over- or
+ * under-collects, a file matching the glob and not excluded here runs in
+ * exactly one of the two groups.
+ */
+export const TEST_EXCLUSIONS: readonly string[] = [
+  '**/node_modules/**',
+  'tests/db/**',
+  'tests/raw/blob.contract.test.ts',
+];
+
+/**
+ * The capability the partition is drawn around (CA-3), NAMED AS NODE NAMES IT.
+ *
+ * IT USED TO BE A LIST OF TWO LITERALS — `node:fs` and `node:fs/promises` — and
+ * that is F-SPEC-014-8: Node accepts FOUR spellings for the same two modules,
+ * because the `node:` prefix is optional, and `import { readFileSync } from
+ * 'fs'` walked into the parallel group with the guardian at 23/23 and
+ * `oxlint --type-aware` at exit 0. Nothing in this repository forbids the bare
+ * spelling: the rule that would (`unicorn/prefer-node-protocol`) is of category
+ * *style* and `.oxlintrc.json` enables only `correctness`, and `tests/` is
+ * outside `SCAN_ROOTS`, so ADR-014 §4 never looks at a test file either.
+ *
+ * So the membership is a RULE over Node's builtin namespace — the optional
+ * prefix, and the `fs` builtin with everything under it — and NOT an
+ * enumeration of spellings written by hand. What closes it is Node's own
+ * builtin table: `tests/config/partition.test.ts` case 10 sweeps
+ * `builtinModules` whole, in both spellings, and demands that this predicate
+ * accept exactly the `fs` family and reject every other builtin (ADR-016 §3.1).
+ *
+ * WHY THE TABLE IS READ THERE AND NOT HERE: this file is inside `SCAN_ROOTS`
+ * and the surface ADR-014 §4 concedes for `node:module` is `registerHooks`,
+ * nothing else — measured, `builtinModules` and `isBuiltin` both come back as
+ * offences of CA-2.3. Widening that surface means editing
+ * `tests/polite/support/capability.ts`, a file of a spec in `hecho`, which
+ * CA-4.2 and ADR-015 forbid. The guardian lives outside the roots and can.
+ */
+export const FILE_SYSTEM_BUILTIN = 'fs';
+
+/**
+ * Whether a specifier names Node's file-system builtin, however it is spelled.
+ *
+ * Our own modules are not builtins however they are named, so `@/fs` and `./fs`
+ * are out before the question is asked; a package called `fs-extra` is out
+ * because the family is `fs` and what hangs below `fs/`, not what starts with
+ * those two letters.
+ */
+export function isFileSystemModule(specifier: string): boolean {
+  if (specifier.startsWith('.') || specifier.startsWith('@/')) return false;
+  const bare = specifier.startsWith('node:') ? specifier.slice(5) : specifier;
+  return bare === FILE_SYSTEM_BUILTIN || bare.startsWith(`${FILE_SYSTEM_BUILTIN}/`);
+}
+
+export const PARALLEL_GROUP = 'parallel';
+export const SERIALIZED_GROUP = 'serialized';
+
+/** `groupOrder`: groups run from lowest to highest, and never at the same time. */
+const PARALLEL_ORDER = 0;
+const SERIALIZED_ORDER = 1;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The universe.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** `tests/**\/*.test-d.ts` → `.test-d.ts`. The glob's own tail, not a copy. */
+function suffixOf(glob: string): string {
+  return glob.slice(glob.lastIndexOf('*') + 1);
+}
+
+/**
+ * Every file the two projects run, as paths relative to the root — and «every»
+ * means every glob of `RUN_INCLUDE`, never a suffix written again here.
+ *
+ * A SUPERSET of what runs on purpose: nothing here is filtered by
+ * `TEST_EXCLUSIONS`, because both projects carry those exclusions themselves. A
+ * file classified here that the exclusions drop simply never runs — and a file
+ * this walk missed still runs, in the parallel group, instead of vanishing.
+ * Over-collecting is harmless; under-collecting is not, and this is the shape
+ * that keeps the dangerous direction closed.
+ *
+ * `readdir` and not a glob library: `node:fs/promises` concedes `readdir` in
+ * `ALLOWED_PACKAGES` and this file is inside the roots ADR-014 §4 audits.
+ */
+export async function testUniverse(): Promise<readonly string[]> {
+  const suffixes = RUN_INCLUDE.map(suffixOf);
+  const entries = await readdir(join(ROOT, 'tests'), { recursive: true });
+  return entries
+    .map((entry) => `tests/${entry.replaceAll(sep, '/')}`)
+    .filter((path) => suffixes.some((suffix) => path.endsWith(suffix)))
+    .sort();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The graph. ONE READER, and it is the compiler's own tree.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface Node {
+  /** Project files this one imports, relative to the root. */
+  readonly edges: readonly string[];
+  /** The file-system module this one imports directly, or `null`. */
+  readonly fileSystem: string | null;
+  /** Why this file cannot be judged. Empty when it can. */
+  readonly unreadable: readonly string[];
+  /** It carries a specifier that is not a static literal (CA-3.5 residue). */
+  readonly nonLiteral: boolean;
+}
+
+/**
+ * The `.js` → `.ts` substitution the compiler does, so a specifier written the
+ * way NodeNext spells it still lands on the file it names. Nothing in the
+ * repository writes one today; it is here because CA-3.2 asks the resolution to
+ * cover it, and because a specifier that does not land is red (CA-3.3), not
+ * silence.
+ */
+function typescriptTwin(specifier: string): string | null {
+  if (specifier.endsWith('.js')) return `${specifier.slice(0, -3)}.ts`;
+  if (specifier.endsWith('.jsx')) return `${specifier.slice(0, -4)}.tsx`;
+  if (specifier.endsWith('.mjs')) return `${specifier.slice(0, -4)}.ts`;
+  if (specifier.endsWith('.cjs')) return `${specifier.slice(0, -4)}.ts`;
+  return null;
+}
+
+/**
+ * Why a literal specifier the reader could not place is not a hole — or the
+ * diagnostic that says it is. `null` means «no edge, and nothing to report».
+ *
+ * IT USED TO FAIL OPEN, AND THAT IS F-SPEC-014-9. The old shape asked one
+ * question — «does this path exist?» — and discarded the specifier in silence
+ * whenever the answer was yes. `resolveModule` only offers `.ts`, `.tsx` and
+ * `index.*`, so EVERY REAL `.mts` OR `.cts` MODULE fell through there: measured
+ * with a paired control, the same helper byte for byte, the `.ts` importer went
+ * to the serialized group and the `.mts` and `.cts` importers to the parallel
+ * one, without a line of diagnostic. It is the blind spot of F-SPEC-008-V33
+ * reintroduced in a new reader, and CA-3.3 promises the opposite.
+ *
+ * THE THREE OUTCOMES ARE NOW TOLD APART, and only one of them may be silent:
+ *
+ *   - it names nothing inside the tree → RED, naming itself;
+ *   - it names A FILE OF CODE this reader cannot follow → RED, naming itself.
+ *     What counts as code is NOT decided here: it is `SCAN_EXTENSIONS`, the
+ *     repository's one declaration of the question, with a written motive per
+ *     entry and F-SPEC-008-V33's own story inside it. A second list would be
+ *     the very defect that list exists to close (ADR-016 §3.1, §5 bis);
+ *   - it names something that exists and is NOT code — `../globals.css` is the
+ *     live case, and the only one — → no edge and no noise, because an asset
+ *     carries no imports and closes the walk instead of opening a hole.
+ *
+ * Something inside the tree with NO EXTENSION AT ALL — a directory, an
+ * extensionless file — is red too: nothing proves it carries no imports, and
+ * «I could not tell» is not a reason to stay quiet.
+ *
+ * WHAT THIS COSTS, said out loud: importing `capability.ts` makes Vite print
+ * its `configLoader: 'native'` warning three times per run, about extensionless
+ * imports inside that module (F-SPEC-014-4). Fixing those would be editing a
+ * file of a spec in `hecho` (ADR-015), and writing the list again here would be
+ * the defect. The noise is the cheaper of the three.
+ */
+function unfollowable(specifier: string, fromFile: string): string | null {
+  const base = specifier.startsWith('@/')
+    ? join(ROOT, 'src', specifier.slice(2))
+    : resolve(dirname(join(ROOT, fromFile)), specifier);
+
+  if (!base.startsWith(ROOT) || !existsSync(base)) {
+    return 'does not resolve inside the repository';
+  }
+  if (isCodeFile(base)) return 'names a file of code this reader cannot follow';
+
+  const name = base.slice(base.lastIndexOf(sep) + 1);
+  if (name.lastIndexOf('.') <= 0) {
+    return 'names something inside the repository this reader cannot place';
+  }
+  return null;
+}
+
+async function readNode(file: string): Promise<Node> {
+  const reading = readModule(file);
+  if (reading.unparseable) {
+    return {
+      edges: [],
+      fileSystem: null,
+      unreadable: [`${file}: the compiler cannot parse this file, or cannot see it at all`],
+      nonLiteral: false,
+    };
+  }
+
+  const edges: string[] = [];
+  const unreadable: string[] = [];
+  let fileSystem: string | null = null;
+  let nonLiteral = false;
+
+  for (const specifier of reading.specifiers) {
+    const text = specifier.text;
+    if (text === null) {
+      // CA-3.5: declared residue. A specifier nobody can read names no module,
+      // so this reader cannot follow it. It is COUNTED and not tolerated in
+      // silence: `tests/polite/containment.test.ts` writes one on purpose —
+      // `await import('node:' + 'http')`, case 7, the positive control of a
+      // closed spec — and the guardian asks that no file of the PARALLEL group
+      // carry one anywhere in its graph, which is where the residue could
+      // decide a group behind our backs.
+      nonLiteral = true;
+      continue;
+    }
+    if (!text.startsWith('.') && !text.startsWith('@/')) {
+      // Not one of ours: either the capability the partition is drawn around,
+      // or a package, which CA-3.5 declares as residue.
+      if (isFileSystemModule(text)) fileSystem = text;
+      continue;
+    }
+
+    let resolved = await resolveModule(text, file);
+    if (resolved === null) {
+      const twin = typescriptTwin(text);
+      if (twin !== null) resolved = await resolveModule(twin, file);
+    }
+    if (resolved === null) {
+      // FAIL CLOSED (CA-3.3), and the silence is now the exception with a
+      // reason: only an asset that exists in the tree adds no edge without a
+      // word. Everything else names itself.
+      const reason = unfollowable(text, file);
+      if (reason !== null) unreadable.push(`${file}: ${text} ${reason}`);
+      continue;
+    }
+    edges.push(resolved.startsWith(ROOT) ? resolved.slice(ROOT.length) : resolved);
+  }
+
+  return { edges, fileSystem, unreadable, nonLiteral };
+}
+
+export interface Partition {
+  /** Every test file the glob names, exclusions aside. */
+  readonly universe: readonly string[];
+  /** Those whose import graph reaches `node:fs`/`node:fs/promises`. */
+  readonly serialized: readonly string[];
+  /** All the rest. */
+  readonly parallel: readonly string[];
+  /** Entry → the chain from it to the file-system module it reaches. */
+  readonly witness: ReadonlyMap<string, readonly string[]>;
+  /** Fail-closed diagnostics, each naming its file. Non-empty means RED. */
+  readonly unreadable: readonly string[];
+  /** Files in the graph carrying a specifier that is not a static literal. */
+  readonly nonLiteral: readonly string[];
+  /** Test files whose graph contains one of those, so the residue could bite. */
+  readonly nonLiteralReach: readonly string[];
+}
+
+/**
+ * Which group each test file belongs to, decided by the import graph.
+ *
+ * > A test file belongs to the SERIALIZED group if and only if its transitive
+ * > import graph inside the repository — itself plus every module of `tests/`
+ * > and of `src/` it reaches — contains `node:fs` or `node:fs/promises`.
+ *
+ * There is no list of exempt files here and there is nowhere to put one: the
+ * only inputs are the universe and the graph (CA-3.4, ADR-016 §3.3).
+ */
+export async function partitionTestFiles(entries?: readonly string[]): Promise<Partition> {
+  const universe = entries ?? (await testUniverse());
+  const nodes = new Map<string, Node>();
+
+  const load = async (file: string): Promise<Node> => {
+    const known = nodes.get(file);
+    if (known !== undefined) return known;
+    const node = await readNode(file);
+    nodes.set(file, node);
+    for (const edge of node.edges) await load(edge);
+    return node;
+  };
+  for (const entry of universe) await load(entry);
+
+  const serialized: string[] = [];
+  const parallel: string[] = [];
+  const witness = new Map<string, readonly string[]>();
+  const nonLiteralReach: string[] = [];
+
+  for (const entry of universe) {
+    const chain = chainTo(entry, nodes, (node) => node.fileSystem !== null);
+    if (chain === null) parallel.push(entry);
+    else {
+      serialized.push(entry);
+      const last = nodes.get(chain.at(-1)!)!;
+      witness.set(entry, [...chain, last.fileSystem!]);
+    }
+    if (chainTo(entry, nodes, (node) => node.nonLiteral) !== null) nonLiteralReach.push(entry);
+  }
+
+  const unreadable: string[] = [];
+  const nonLiteral: string[] = [];
+  for (const [file, node] of [...nodes].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
+    unreadable.push(...node.unreadable);
+    if (node.nonLiteral) nonLiteral.push(file);
+  }
+
+  return { universe, serialized, parallel, witness, unreadable, nonLiteral, nonLiteralReach };
+}
+
+/** The shortest chain of files from `entry` to one the predicate accepts. */
+function chainTo(
+  entry: string,
+  nodes: ReadonlyMap<string, Node>,
+  accepts: (node: Node) => boolean,
+): string[] | null {
+  const came = new Map<string, string | null>([[entry, null]]);
+  const queue = [entry];
+
+  while (queue.length > 0) {
+    const file = queue.shift()!;
+    const node = nodes.get(file);
+    if (node === undefined) continue;
+    if (accepts(node)) {
+      const chain: string[] = [];
+      let step: string | null = file;
+      while (step !== null) {
+        chain.unshift(step);
+        step = came.get(step) ?? null;
+      }
+      return chain;
+    }
+    for (const edge of node.edges) {
+      if (came.has(edge)) continue;
+      came.set(edge, file);
+      queue.push(edge);
+    }
+  }
+  return null;
+}
+
+/**
+ * What a claimed partition gets wrong against the graph's verdict.
+ *
+ * The guardian of CA-3.1, written as a function so CA-6.3 can switch the
+ * mechanism off — move a file that reaches `node:fs` into the parallel group —
+ * and read the red instead of waiting for a flake that may not come.
+ */
+export function partitionOffences(
+  claimed: { readonly serialized: readonly string[]; readonly parallel: readonly string[] },
+  truth: Partition,
+): readonly string[] {
+  const offences: string[] = [];
+  const claimedSerialized = new Set(claimed.serialized);
+  const claimedParallel = new Set(claimed.parallel);
+
+  for (const file of claimed.parallel) {
+    const chain = truth.witness.get(file);
+    if (chain !== undefined) {
+      offences.push(`${file}: runs in the parallel group and reaches ${chain.join(' → ')}`);
+    }
+  }
+  for (const file of truth.witness.keys()) {
+    if (!claimedSerialized.has(file)) {
+      offences.push(`${file}: reaches the file system and is not in the serialized group`);
+    }
+  }
+  for (const file of truth.universe) {
+    if (!claimedSerialized.has(file) && !claimedParallel.has(file)) {
+      offences.push(`${file}: is in neither group, so it would stop running in silence`);
+    }
+    if (claimedSerialized.has(file) && claimedParallel.has(file)) {
+      offences.push(`${file}: is in both groups`);
+    }
+  }
+  return offences;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The configuration.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export default defineConfig(async () => {
+  const { serialized, parallel, unreadable } = await partitionTestFiles();
+
+  // FAIL CLOSED (CA-3.3). A file this reader cannot judge does not get put in
+  // the fast group by default: the suite refuses to start, naming it.
+  if (unreadable.length > 0) {
+    throw new Error(
+      `SPEC-014: the import graph cannot be read, so the partition cannot be drawn:\n${unreadable.join('\n')}`,
+    );
+  }
+
+  return {
+    resolve: {
+      alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
     },
-  },
+    // Vitest has no Next in front of it, so it needs the JSX runtime spelled out
+    // to be able to render the site's routes to a string (SPEC-004 CA-2, CA-3).
+    // Explicit and not inherited from tsconfig on purpose: `next build` rewrites
+    // that field on its own, and the suite should not move when it does.
+    oxc: { jsx: { runtime: 'automatic' as const } },
+    test: {
+      // The two projects inherit everything above with `extends: true`: the
+      // alias and the JSX runtime are declared ONCE and both receive them
+      // (CA-5.1). Copying them would be two places to forget.
+      projects: [
+        {
+          extends: true as const,
+          test: {
+            name: PARALLEL_GROUP,
+            include: [...TEST_INCLUDE],
+            exclude: [...TEST_EXCLUSIONS, ...serialized],
+            sequence: { groupOrder: PARALLEL_ORDER },
+            // CA-3, CA-4, CA-6 de SPEC-001: los invariantes se prueban a nivel
+            // de TIPO. Los ficheros .test-d.ts usan @ts-expect-error: si el
+            // invariante deja de sostenerse, la directiva queda sin usar y tsc
+            // falla. Es la prueba invertida.
+            //
+            // LOS DOS GRUPOS LO DECLARAN, y no uno solo (F-SPEC-014-7). Antes
+            // vivía aquí, así que un `.test-d.ts` corría en el paralelo dijera
+            // lo que dijera su grafo de imports: el mecanismo no tenía dónde
+            // ponerlo. Ahora cada grupo excluye al otro, exactamente como en
+            // `test.exclude`, así que el conjunto y el `tsconfig` son los mismos
+            // (CA-5.2) y la pertenencia la sigue decidiendo el grafo (CA-3).
+            typecheck: {
+              enabled: true,
+              include: [...TYPE_TEST_INCLUDE],
+              exclude: [...TEST_EXCLUSIONS, ...serialized],
+              tsconfig: './tsconfig.json',
+            },
+          },
+        },
+        {
+          extends: true as const,
+          test: {
+            name: SERIALIZED_GROUP,
+            include: [...TEST_INCLUDE],
+            exclude: [...TEST_EXCLUSIONS, ...parallel],
+            typecheck: {
+              enabled: true,
+              include: [...TYPE_TEST_INCLUDE],
+              exclude: [...TEST_EXCLUSIONS, ...parallel],
+              tsconfig: './tsconfig.json',
+            },
+            // The two mechanisms of CA-1, and they are not redundant.
+            // `sequence.groupOrder` is the DOCUMENTED one — «If you don't set
+            // this option, all projects run in parallel» — and it is what keeps
+            // this group away from the other. `fileParallelism: false` is what
+            // keeps it away from ITSELF: the writer and the readers are both in
+            // here.
+            fileParallelism: false,
+            sequence: { groupOrder: SERIALIZED_ORDER },
+          },
+        },
+      ],
+    },
+  };
 });
