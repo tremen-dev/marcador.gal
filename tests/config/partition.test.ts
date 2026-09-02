@@ -14,15 +14,25 @@
  * asserts what the criteria ask, in their order:
  *
  *   CA-1.1 — the shape of the two projects, ON THE RESOLVED OBJECT.
- *   CA-2   — the partition is exact: union, empty intersection.
- *   CA-3   — membership is decided BY THE IMPORT GRAPH, fails closed, and
- *            concedes no exemption by name.
+ *   CA-2   — the partition is exact: union, empty intersection, and the
+ *            universe covers EVERYTHING THE TWO PROJECTS RUN (F-SPEC-014-7).
+ *   CA-3   — membership is decided BY THE IMPORT GRAPH, is closed against
+ *            Node's own builtin table (F-SPEC-014-8), fails closed even for a
+ *            real module it cannot follow (F-SPEC-014-9), and concedes no
+ *            exemption by name.
  *   CA-5.1 — the shared configuration is declared once and both inherit it.
  *   CA-6.3 — the positive control of the membership mechanism.
  *
  * WHY IT IMPORTS `vitest.config.ts` AND NOT A COPY OF ITS RULE: the config is
  * what decides, so it is the config that must be judged. Reading it as text
  * would be judging its spelling.
+ *
+ * THE THREE CASES THE SECOND ROUND ADDED ALL CARRY THEIR OWN CONTROL, because
+ * the first round's guardian was green — 23 of 23 — while three files reached
+ * the tree from the parallel group. A guardian that agrees with its mechanism
+ * proves nothing about it: what each of those cases asks is closed by something
+ * that is NOT this configuration — Node's builtin table, `SCAN_EXTENSIONS`, and
+ * the globs the projects themselves declare.
  */
 import { rmSync, writeFileSync } from 'node:fs';
 import { builtinModules, isBuiltin } from 'node:module';
@@ -44,6 +54,9 @@ import config, {
 } from '../../vitest.config.ts';
 import { registerSyntheticSource } from '../mirror/support/imports.ts';
 
+/** The repository root, for the real files case 12 has to put on the disk. */
+const ROOT = fileURLToPath(new URL('../..', import.meta.url));
+
 /**
  * EVERY SPELLING NODE ACCEPTS FOR A BUILTIN, FROM NODE'S OWN TABLE.
  *
@@ -57,13 +70,12 @@ import { registerSyntheticSource } from '../mirror/support/imports.ts';
  *
  * It lives HERE and not in `vitest.config.ts` because `vitest.config.ts` is
  * inside `SCAN_ROOTS` and the surface ADR-014 §4 concedes for `node:module` is
- * `registerHooks` and nothing else. Widening it would be editing a file of a
- * closed spec (CA-4.2, ADR-015). `tests/` is outside the roots by a declared
+ * `registerHooks` and nothing else — measured: `builtinModules` and `isBuiltin`
+ * both come back as offences of CA-2.3. Widening it would be editing a file of
+ * a closed spec (CA-4.2, ADR-015). `tests/` is outside the roots by a declared
  * exclusion, so the guardian pays for the enumeration and the configuration
  * carries only the rule the guardian proves equal to it.
  */
-const ROOT = fileURLToPath(new URL('../..', import.meta.url));
-
 const BUILTIN_SPELLINGS: readonly string[] = [
   ...new Set(
     builtinModules.flatMap((name) => {
@@ -83,7 +95,7 @@ type Project = {
     readonly exclude?: readonly string[];
     readonly fileParallelism?: boolean;
     readonly sequence?: { readonly groupOrder?: number };
-      readonly typecheck?: {
+    readonly typecheck?: {
       readonly enabled?: boolean;
       readonly include?: readonly string[];
       readonly exclude?: readonly string[];
@@ -192,7 +204,7 @@ describe('CA-2 — la partición es exacta', () => {
       ...(project.test?.typecheck?.include ?? []),
     ]);
     expect(declared.length).toBeGreaterThan(0);
-    for (const glob of [...new Set(declared)]) {
+    for (const glob of new Set(declared)) {
       expect([glob, RUN_INCLUDE.includes(glob)]).toEqual([glob, true]);
     }
     expect([...RUN_INCLUDE].sort()).toEqual(
@@ -398,7 +410,7 @@ describe('CA-3 — la pertenencia la decide el grafo de imports', () => {
       for (const path of Object.values(helpers)) writeFileSync(join(ROOT, path), source);
 
       const verdicts: Record<string, { group: 'serialized' | 'parallel'; diagnostics: string }> = {};
-      for (const [extension, path] of Object.entries(helpers)) {
+      for (const extension of Object.keys(helpers)) {
         const entry = `tests/spec014-control-${extension}.test.ts`;
         registerSyntheticSource(entry, `import './config/spec014-control-helper.${extension}';\n`);
         const partition = await partitionTestFiles([entry]);
@@ -531,8 +543,9 @@ describe('CA-5.1 — la configuración compartida se declara una vez', () => {
     // system runs serialized like any other file, and the SET of type tests and
     // the tsconfig are the same as before (CA-5.2).
     const declaring = projects.filter((project) => project.test?.typecheck?.enabled === true);
-    expect(declaring.map((project) => project.test?.name)?.sort()).toEqual(
-      [PARALLEL_GROUP, SERIALIZED_GROUP].sort(),
+    const byOrder = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
+    expect(declaring.map((project) => project.test?.name ?? '<unnamed>').sort(byOrder)).toEqual(
+      [PARALLEL_GROUP, SERIALIZED_GROUP].sort(byOrder),
     );
     for (const project of declaring) {
       expect(project.test?.typecheck?.include).toEqual([...TYPE_TEST_INCLUDE]);
