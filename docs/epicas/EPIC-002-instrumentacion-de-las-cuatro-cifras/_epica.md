@@ -135,7 +135,7 @@ cortesía RN-11 con una sola implementación—, `hecho` y verificada GREEN el
 2026-09-01 tras siete vueltas, junto con **ADR-014**. El estado fino vive en el
 tablero, no aquí.
 
-**Y de ella nació una segunda, SPEC-009** (`borrador`): «La frontera de capacidad
+**Y de ella nació una segunda, SPEC-009** (`hecho` desde 2026-09-02): «La frontera de capacidad
 de RN-11, demostrada sin listas negras». No es una spec nueva de producto: es un
 criterio de SPEC-008 que **no terminaba**. Nueve evasiones escritas y medidas
 tumbaron cuatro mecanismos seguidos, y el 2026-09-01 Alberto Fojo decidió sacarlo
