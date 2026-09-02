@@ -30,11 +30,14 @@ const CLI = join(process.cwd(), 'src/calendar/cli.ts');
 let dir: string;
 let validFile: string;
 let invalidFile: string;
+/** Schema-valid, but one kickoff falls in the hour Europe/Madrid skips (F-SPEC-010-10). */
+let gapFile: string;
 
 beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), 'calendario-'));
   validFile = join(dir, 'valido.json');
   invalidFile = join(dir, 'invalido.json');
+  gapFile = join(dir, 'hueco.json');
   await writeFile(validFile, calendarBytes(calendarFixture));
 
   const broken = cloneCalendar(calendarFixture) as { -readonly [K in keyof CalendarFixture]: CalendarFixture[K] };
@@ -45,6 +48,15 @@ beforeAll(async () => {
   rounds[0]!.matches[0]!.home_id = 'club-fantasma';
   broken.rounds = rounds;
   await writeFile(invalidFile, calendarBytes(broken));
+
+  const gap = cloneCalendar(calendarFixture) as { -readonly [K in keyof CalendarFixture]: CalendarFixture[K] };
+  const gapRounds = structuredClone(gap.rounds) as {
+    round: number;
+    matches: { home_id: string; away_id: string; kickoff: string; venue: string | null }[];
+  }[];
+  gapRounds[1]!.matches[1]!.kickoff = '2027-03-28 02:30';
+  gap.rounds = gapRounds;
+  await writeFile(gapFile, calendarBytes(gap));
 });
 
 interface Harness {
@@ -126,6 +138,21 @@ describe('CA-6 — main, without a child process', () => {
     expect(h.err.join('\n')).toMatch(/round 1/);
     expect(h.err.join('\n')).toMatch(/club-fantasma/);
     expect(h.err.join('\n')).toMatch(/not declared in teams/);
+    expect(h.out).toEqual([]);
+  });
+
+  test('a kickoff the timezone skips: exit 1 naming round and match, NO connection opened (F-SPEC-010-10)', async () => {
+    const h = harness({}, { DATABASE_URL: 'postgres://example.invalid/marcador' });
+
+    const code = await main([gapFile], h.io);
+
+    expect(code).toBe(1);
+    expect(h.opened).toEqual([]);
+    expect(h.ended()).toBe(0);
+    expect(h.err.join('\n')).toMatch(/round 2, match sd-inventada-ud-ourense/);
+    expect(h.err.join('\n')).toMatch(/does not exist/);
+    // It never reached the loader, so it is not reported as a failed load.
+    expect(h.err.join('\n')).not.toMatch(/load failed/);
     expect(h.out).toEqual([]);
   });
 

@@ -28,7 +28,6 @@
  * This module makes NO network request. RN-11 is not exercised: there is
  * nobody to ask (ADR-017 §1).
  */
-import { declaredMatches } from '@/calendar/declared';
 import type { DeclaredCalendar } from '@/calendar/declared';
 import type { CompetitionId, MatchId, TeamId } from '@/model/ids';
 import type { Match } from '@/model/match';
@@ -93,9 +92,9 @@ export async function loadSchedule(
   options: LoadOptions = {},
 ): Promise<LoadResult> {
   const clock = options.clock ?? systemClock;
-  const { schedule } = file;
+  // Already validated whole, kickoffs converted (`declareCalendar`, F-SPEC-010-10).
+  const { schedule, matches } = file;
   const competitionId = schedule.competition.id as CompetitionId;
-  const matches = declaredMatches(schedule);
   const rounds = schedule.rounds.map((round) => round.round);
 
   return sql.begin(async (tx) => {

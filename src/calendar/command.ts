@@ -7,8 +7,10 @@
  *
  * Order of the three failures, on purpose:
  *
- *   1. the file is read and validated WHOLE before anything else — an invalid
- *      file exits 1 naming the row and NO CONNECTION IS OPENED (CA-1, CA-6);
+ *   1. the file is read and validated WHOLE before anything else — schema and
+ *      kickoff conversion alike — so an invalid file, a kickoff the timezone
+ *      skips included, exits 1 naming the row and NO CONNECTION IS OPENED
+ *      (CA-1, CA-2, CA-6; F-SPEC-010-10);
  *   2. then the connection string is required — missing, exit 1 with the
  *      message of `MissingDatabaseUrlError`;
  *   3. only then a client is opened, the load runs in one transaction, and the

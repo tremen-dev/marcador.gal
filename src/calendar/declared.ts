@@ -6,9 +6,12 @@
  * derived identity of `./ids.ts` and the kickoff instant of `./time.ts`. No
  * SQL here: that half is `src/db/calendar.ts`.
  *
- * The file is validated WHOLE before anything downstream sees it, and a
- * kickoff the timezone skips or repeats is rejected naming the round and the
- * match, like every other mistake a person can make in the file (CA-1, CA-2).
+ * The file is validated WHOLE before anything downstream sees it — the schema
+ * AND the kickoff conversion: a kickoff the timezone skips or repeats is
+ * rejected by `declareCalendar` itself, naming the round and the match, like
+ * every other mistake a person can make in the file (CA-1, CA-2). So the CLI
+ * refuses it before opening a connection, and the loader receives rows it can
+ * write without converting anything (F-SPEC-010-10).
  *
  * `Date` does not appear here (ADR-006).
  */
@@ -26,19 +29,27 @@ import {
   wallTimeToInstant,
 } from './time';
 
-/** A declared calendar as read from a file: the bytes, their digest, and what they say. */
+/**
+ * A declared calendar as read from a file: the bytes, their digest, what they
+ * say, and the `Match` rows they stand for (identity of CA-3, kickoff of CA-2).
+ */
 export interface DeclaredCalendar {
   readonly bytes: Uint8Array;
   /** sha256 of the bytes, hex. What `calendar_loads.file_digest` records. */
   readonly digest: string;
   readonly schedule: Schedule;
+  /** `declaredMatches(schedule)`, computed once here so the whole file is validated. */
+  readonly matches: readonly Match[];
 }
 
 export function sha256Hex(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
-/** Validates the bytes of a declared calendar, whole, and keeps their digest. */
+/**
+ * Validates the bytes of a declared calendar, WHOLE — schema and kickoffs —
+ * and keeps their digest.
+ */
 export function declareCalendar(bytes: Uint8Array): DeclaredCalendar {
   let json: unknown;
   try {
@@ -51,7 +62,8 @@ export function declareCalendar(bytes: Uint8Array): DeclaredCalendar {
       },
     ]);
   }
-  return { bytes, digest: sha256Hex(bytes), schedule: parseSchedule(json) };
+  const schedule = parseSchedule(json);
+  return { bytes, digest: sha256Hex(bytes), schedule, matches: declaredMatches(schedule) };
 }
 
 /** Reads and validates a declared calendar from disk. The loader's only I/O. */

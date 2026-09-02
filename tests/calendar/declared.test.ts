@@ -8,7 +8,7 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, test } from 'vitest';
 import { declareCalendar, declaredMatches } from '@/calendar/declared';
-import { InvalidScheduleError } from '@/calendar/schedule';
+import { InvalidScheduleError, parseSchedule } from '@/calendar/schedule';
 import { MatchSchema } from '@/model/match';
 import { calendarBytes, calendarFixture, cloneCalendar } from '../fixtures/calendar';
 import type { CalendarFixture } from '../fixtures/calendar';
@@ -45,6 +45,37 @@ describe('declareCalendar — bytes to a validated calendar with its digest', ()
     });
     expect(() => declareCalendar(calendarBytes(bad))).toThrow(InvalidScheduleError);
   });
+
+  // F-SPEC-010-10: the file is validated WHOLE here, the kickoff conversion of
+  // CA-2 included, so nothing downstream — the CLI, the loader — sees a
+  // calendar whose hours do not exist.
+  test('carries the Match rows of the calendar, converted once (F-SPEC-010-10)', () => {
+    const declared = declareCalendar(calendarBytes(calendarFixture));
+
+    expect(declared.matches).toHaveLength(4);
+    expect(declared.matches).toEqual(declaredMatches(declared.schedule));
+    expect(declared.matches[0]?.kickoff).toBe('2026-09-06T15:00:00.000Z');
+  });
+
+  test('a kickoff that does not exist is rejected HERE, naming the round and the match', () => {
+    const gap = variant((draft) => {
+      draft.rounds[1]!.matches[1]!.kickoff = '2027-03-28 02:30';
+    });
+
+    expect(() => declareCalendar(calendarBytes(gap))).toThrow(InvalidScheduleError);
+    expect(() => declareCalendar(calendarBytes(gap))).toThrow(/round 2, match sd-inventada-ud-ourense/);
+    expect(() => declareCalendar(calendarBytes(gap))).toThrow(/does not exist/);
+  });
+
+  test('an ambiguous kickoff is rejected HERE, naming the round and the match', () => {
+    const overlap = variant((draft) => {
+      draft.rounds[0]!.matches[0]!.kickoff = '2026-10-25 02:30';
+    });
+
+    expect(() => declareCalendar(calendarBytes(overlap))).toThrow(InvalidScheduleError);
+    expect(() => declareCalendar(calendarBytes(overlap))).toThrow(/round 1, match ud-ourense-rc-celta-b/);
+    expect(() => declareCalendar(calendarBytes(overlap))).toThrow(/ambiguous/);
+  });
 });
 
 describe('declaredMatches — the Match rows of a calendar', () => {
@@ -71,7 +102,8 @@ describe('declaredMatches — the Match rows of a calendar', () => {
     const gap = variant((draft) => {
       draft.rounds[1]!.matches[1]!.kickoff = '2027-03-28 02:30';
     });
-    const schedule = declareCalendar(calendarBytes(gap)).schedule;
+    // `parseSchedule` alone: `declareCalendar` refuses this file since F-SPEC-010-10.
+    const schedule = parseSchedule(gap);
 
     expect(() => declaredMatches(schedule)).toThrow(InvalidScheduleError);
     expect(() => declaredMatches(schedule)).toThrow(/round 2, match sd-inventada-ud-ourense/);
@@ -82,7 +114,7 @@ describe('declaredMatches — the Match rows of a calendar', () => {
     const overlap = variant((draft) => {
       draft.rounds[0]!.matches[0]!.kickoff = '2026-10-25 02:30';
     });
-    const schedule = declareCalendar(calendarBytes(overlap)).schedule;
+    const schedule = parseSchedule(overlap);
 
     expect(() => declaredMatches(schedule)).toThrow(/round 1, match ud-ourense-rc-celta-b/);
     expect(() => declaredMatches(schedule)).toThrow(/ambiguous/);
