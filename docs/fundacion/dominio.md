@@ -34,13 +34,38 @@ sobrevive a `JSON.stringify` / `JSON.parse`.
 
 ## Estados de un partido
 
-| Término | Significado | Cómo se entra |
-|---|---|---|
-| `scheduled` | Programado, sin señal de juego. | Estado inicial. |
-| `live` | En juego. | Primera observación de juego después de `kickoff − 2 min` (RN-06). |
-| `finished` | Terminado. | Fuente oficial, dos fuentes coincidentes, o `kickoff + 110 min` sin señal (RN-06). |
-| `postponed` | Aplazado. | **Solo** fuente oficial o humano (RN-06). |
-| `suspended` | Suspendido. | **Solo** fuente oficial o humano (RN-06). |
+El identificador (`scheduled`, `live`, …) es **de código y va en inglés**; el
+literal es lo que ve una persona y **va a i18n en las dos lenguas** (D-2).
+
+| Término | Significado | Cómo se entra | Literal galego | Literal castellano |
+|---|---|---|---|---|
+| `scheduled` | Programado, sin señal de juego. | Estado inicial. | **Programado** | Programado |
+| `live` | En juego. | Primera observación de juego después de `kickoff − 2 min` (RN-06). | **En xogo** | En juego |
+| `finished` | Terminado. | Fuente oficial, dos fuentes coincidentes, o `kickoff + 110 min` sin señal (RN-06). | **Rematado** | Finalizado |
+| `postponed` | Aplazado. | **Solo** fuente oficial o humano (RN-06). | **Aprazado** | Aplazado |
+| `suspended` | Suspendido. | **Solo** fuente oficial o humano (RN-06). | **Suspendido** | Suspendido |
+
+**Los literales se añaden el 2026-09-02** (SPEC-015, el bot del corresponsal),
+porque hasta hoy el glosario definía los cinco estados **solo como
+identificadores en inglés** y la tarjeta de confirmación del bot es **el primer
+sitio del sistema real donde un estado se le enseña a una persona**. Sin
+registrarlos aquí, el marcador y el bot acabarían diciendo cosas distintas del
+mismo estado, que es exactamente lo que este glosario existe para evitar.
+
+**`live` se dice de dos maneras, y la distinción es parte del registro.** *En
+xogo* es el **estado** —describe el partido— y es el literal obligatorio en
+cualquier sitio donde se muestre `MatchStatus`. *Directo* se admite **solo como
+etiqueta de filtro de una lista** —describe una vista, no un partido—, que es el
+uso que `docs/diseno/` (EPIC-004, congelada) ya le da en sus componentes. Fuera
+de esa posición, `live` es *En xogo*. Dictaminado por `sdd-lingua` el 2026-09-02
+(`docs/epicas/EPIC-002-instrumentacion-de-las-cuatro-cifras/dictamenes-SPEC-015.md`,
+§4.2); la elección la firma una persona en el gate de SPEC-015, porque EPIC-004
+está congelada.
+
+Nota de norma, del mismo dictamen: **`aprazar`/`Aprazado`**, no *adiar*
+(portugués). Y *rematar* tiene dos sentidos en fútbol —terminar y disparar a
+puerta—, así que el estado se muestra **siempre con su etiqueta** («Estado:
+Rematado») y nunca como frase suelta.
 
 ## Cualificadores del marcador (visibles en UI, en galego)
 
