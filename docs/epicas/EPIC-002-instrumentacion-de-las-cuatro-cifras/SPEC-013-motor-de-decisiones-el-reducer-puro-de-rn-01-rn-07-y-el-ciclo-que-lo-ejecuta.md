@@ -2,7 +2,7 @@
 id: SPEC-013
 tipo: spec
 epica: EPIC-002
-estado: en-revision
+estado: hecho
 aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-09-02, por: sdd-arquitecto}
@@ -11,6 +11,7 @@ historial:
   - {estado: en-revision, fecha: 2026-09-02, por: sdd-implementador}
   - {estado: en-progreso, fecha: 2026-09-02, por: sdd-verificador}
   - {estado: en-revision, fecha: 2026-09-02, por: sdd-implementador}
+  - {estado: hecho, fecha: 2026-09-02, por: sdd-verificador}
 ---
 # SPEC-013 — Motor de decisiones: el reducer puro de RN-01..RN-07 y el ciclo que lo ejecuta
 
