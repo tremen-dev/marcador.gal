@@ -260,13 +260,49 @@ confirmación humana.** Antes de la confirmación **no existe ninguna fila en
 `observations`**. El LLM no determina nada por sí solo, y ésa es además la
 mitigación que mantiene el art. 22 del RGPD fuera de juego.
 
-**Proveedor: Anthropic, por API HTTP, con un cliente propio y delgado en
-`src/bot/llm.ts`.** No se añade un SDK: la llamada es un `POST` con cuerpo JSON,
-y el proyecto ya tiene una frontera cerrada sobre las dependencias declaradas
+**El proveedor no se fija aquí, y por eso la llamada va detrás de un puerto del
+proyecto.** *(Añadido el 2026-09-03 por indicación del gate: se valorarán también
+familias de modelos que no son las dos obvias.)* Este ADR **no elige proveedor ni
+modelo** —eso se aplaza a la implementación (ADR-023 §3 bis, §6.4)— y lo que sí
+fija es la forma que hace que esa elección no se pague dos veces.
+
+**La frontera: `src/bot/llm.ts` declara un puerto del dominio; `src/bot/models/`
+tiene un adaptador por proveedor.** El puerto se escribe en el vocabulario del
+problema —entra el texto y los candidatos, sale una propuesta ya validada o un
+rechazo— y **no en la forma de ningún SDK**.
+
+**Lo que se queda de este lado y no se mueve al cambiar de proveedor:**
+
+1. **El constructor del prompt** (`prompt.ts`), con el tipo de entrada que no
+   puede transportar identidad.
+2. **El esquema zod que valida la salida** (`proposal.ts`). Es RN-09 y es nuestro:
+   ningún proveedor lo aporta.
+3. **El archivado de la respuesta cruda** antes de validarla (RN-10, §3).
+4. **La frontera ADR-016 de quién puede llamar.** Enumera módulos nuestros, no
+   nombres de proveedor, así que sobrevive al cambio.
+
+**Y lo que no cruza hacia el dominio, dicho como prohibición porque es donde se
+filtra sin querer:** bloques de contenido con la forma de un proveedor, nombres
+de parámetros de razonamiento o de esfuerzo, cabeceras, códigos de error propios,
+**y el identificador del modelo**, que vive **dentro de su adaptador** y en
+ningún otro sitio. Un tipo del dominio que deletree cualquiera de esas cosas es
+el adaptador filtrándose, y entonces cambiar de proveedor deja de ser escribir un
+adaptador.
+
+**Sin SDK, y ahora con una segunda razón.** La llamada es un `POST` con cuerpo
+JSON: el proyecto tiene una frontera cerrada sobre las dependencias declaradas
 (SPEC-009) a la que un SDK entero pediría entrada para reintentos y *streaming*
-que nadie usa. El identificador del modelo vive en **una constante nombrada en un
-solo sitio**, es **elegido y no medido**, y **se verifica contra la documentación
-vigente del proveedor en el momento de implementar; no se copia de memoria**.
+que nadie usa — y además **un SDK por proveedor es una entrada nueva en esa lista
+por cada candidato que se evalúe**. Un cliente delgado por adaptador no.
+
+**Consecuencia sobre la validación, que deja de ser una precaución teórica.**
+Mientras el proveedor era uno y grande, el rechazo de la salida inválida era una
+red que casi nunca se usaba. **Con el proveedor intercambiable, es el guardián
+principal**: cuanto más débil sea el modelo, más trabaja el zod. Un modelo que
+devuelve JSON roto, que inventa un partido que no estaba entre los candidatos o
+que rellena un marcador en una rama que no lo tiene **tiene que caer en el
+rechazo, no en la tarjeta de confirmación**. Ésa es la razón de que la validación
+enumere sus formas de rechazo en vez de confiar en que la salida venga bien.
 
 **La llamada al LLM es una petición de salida y se declara como tal.** No es
 scraping y **RN-11 no la alcanza** —no se le pide un marcador a un tercero, se le
@@ -362,6 +398,10 @@ más rápida del sistema, **justo sobre la primera cifra que la épica mide**.
 ### §10. Lo que este ADR no decide
 
 - **La retención de este archivo y el régimen de datos personales**: ADR-023.
+- **Qué proveedor de modelo se usa.** Este ADR fija el **puerto**; la elección se
+  aplaza (ADR-023 §3 bis) y **cada candidato reabre el análisis legal desde
+  cero** (ADR-023 §3 ter). El puerto abarata el cambio **en código y solo en
+  código**.
 - **El panel del operador**, que es la spec siguiente. Aquí no hay bandeja de
   alertas, ni corrección, ni peso 1.0.
 - **Cómo se ve un marcador**: no hay snapshot ni página. El bot no enseña
@@ -410,9 +450,14 @@ más rápida del sistema, **justo sobre la primera cifra que la épica mide**.
 - **La lista de jornadas declaradas vacía deja el bot apagado**, así que ninguna
   suite prueba el camino completo contra Telegram real. Se prueba entero con
   dobles y con una lista inyectada, como SPEC-013 probó la segunda vía de RN-02.
-- **Anthropic es un encargado del tratamiento en un tercer país**, y su plazo de
-  retención no lo mandamos nosotros. ADR-023 §3 lo trata, y deja **cuatro puntos
-  marcados como pendientes de revisión profesional**.
+- **El proveedor de modelo es un encargado del tratamiento**, casi siempre en un
+  tercer país, y su plazo de retención no lo mandamos nosotros. ADR-023 §3 lo
+  trata, y deja **cinco puntos marcados como pendientes de revisión
+  profesional**.
+- **El puerto del modelo abarata el cambio en código y no en derecho, y eso
+  engaña.** Un implementador que vea una interfaz limpia y dos adaptadores va a
+  asumir que cambiar de proveedor es configuración. **No lo es** (ADR-023 §3 ter),
+  y por eso la advertencia está escrita en el ADR y no en un comentario.
 
 ## Alternativas consideradas
 
@@ -449,7 +494,11 @@ más rápida del sistema, **justo sobre la primera cifra que la épica mide**.
   resolvieron declarando, y deja que el modelo invente un partido que no existe
   en el calendario.
 - **Un SDK de proveedor de LLM.** Rechazada por §6: una dependencia entera en una
-  frontera cerrada, para un `POST`.
+  frontera cerrada, para un `POST` — y una entrada nueva en esa lista por cada
+  proveedor que se evalúe.
+- **Llamar al proveedor directamente desde el flujo, sin puerto.** Rechazada por
+  §6. Es la que parece más barata hoy y la que hace que el segundo candidato
+  cueste una reescritura del criterio en vez de un fichero nuevo.
 - **Mandar el `correspondent_id` al LLM «para dar contexto».** Rechazada. No
   aporta nada al parseo y saca el seudónimo del dominio en el que es seguro.
 - **Inferir la lengua del `language_code` de Telegram.** Rechazada por §8: es la

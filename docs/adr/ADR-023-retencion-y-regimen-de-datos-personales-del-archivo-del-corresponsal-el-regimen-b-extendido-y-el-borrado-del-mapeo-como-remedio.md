@@ -199,6 +199,65 @@ de la implementación (SPEC-015, notas §6.2), y lo que no se aplaza es la
 precondición: sin proveedor elegido y sin DPA guardado y fechado, el criterio del
 LLM no se implementa (§6.4).
 
+### §3 ter. Cambiar de proveedor es barato técnicamente y caro jurídicamente
+
+*(Añadido el 2026-09-03 por indicación del gate: el proveedor de modelo tiene que
+quedar preparado para intercambiarse, porque se valorarán también familias que no
+son las dos obvias.)*
+
+ADR-022 §6 pone la llamada al modelo detrás de un **puerto**, con un adaptador por
+proveedor. Eso hace que cambiar de proveedor sea **escribir un fichero**. Y
+precisamente por eso hay que escribir aquí, con letra grande, lo que el puerto
+**no** cambia — porque un implementador que vea una interfaz limpia y dos
+adaptadores va a asumir lo contrario:
+
+> **El análisis legal no viaja con el adaptador. Cada proveedor nuevo reabre la
+> pregunta desde cero.**
+
+**El dictamen de `sdd-legal-datos` del 2026-09-02 analizó a UN proveedor,
+Anthropic**, y ese análisis **no se hereda**. Lo que hay que rehacer entero por
+cada candidato, y ninguna de las cuatro respuestas viene en el `package.json`:
+
+1. **El contrato de encargado del tratamiento** (art. 28.3). Existe, se puede
+   firmar, y qué dice.
+2. **La base de la transferencia internacional.** Cuál, y si se sostiene.
+3. **La retención del subencargado**: cuánto conserva, con qué excepciones, y si
+   ofrece retención cero.
+4. **Si entrena o no con el contenido enviado**, y si eso está en el contrato o
+   solo en una página de marketing.
+
+**Y no todos los candidatos cuestan lo mismo. La diferencia es de grado, no de
+trámite.** Dos de los nombres que el gate quiere valorar —**Kimi**, de Moonshot,
+y **Qwen**, de Alibaba— son proveedores **chinos**, y **China no tiene decisión de
+adecuación de la Comisión Europea**. Consecuencia directa: **la vía del art. 45 no
+existe para ellos**, así que la transferencia tendría que apoyarse en el **art.
+46** —cláusulas contractuales tipo— **más una evaluación de impacto de la
+transferencia**, que es un análisis del entorno jurídico del país de destino y de
+las garantías suplementarias. Sobre **texto libre que lleva datos de terceros y
+posiblemente datos de salud** (§1, Contexto), eso es **materialmente más duro**
+que lo que ya está hecho para Anthropic, no una versión equivalente con otro
+nombre. *(La ausencia de decisión de adecuación para China se afirma a fecha de
+hoy; como todo lo demás de este ADR, se vuelve a comprobar en el momento del
+análisis.)*
+
+**La excepción, y es la única que simplifica en vez de complicar: pesos
+abiertos.** Algunas de esas familias publican modelos de pesos abiertos. Un modelo
+ejecutado **en infraestructura propia o europea** elimina de un golpe **la
+transferencia internacional y la relación de encargado enteras**: sin contrato de
+encargado, sin cláusulas contractuales tipo, sin tercer país, sin retención de un
+subencargado que no controlamos, y sin la pregunta de si entrena con el contenido.
+Los cuatro puntos de arriba **desaparecen**, no se contestan.
+
+**Si el criterio acaba siendo el coste —que es de donde salió esta pregunta
+(§3 bis)—, ésta es la variante que conviene analizar primero, no la última.**
+
+**Y la cautela, que es parte de la decisión:** este ADR **no afirma** que ningún
+modelo concreto tenga pesos disponibles, ni bajo qué licencia, ni que la licencia
+permita este uso, ni qué haría falta para ejecutarlo. **Nada de eso se ha
+comprobado, y no se comprueba ahora.** Queda la **vía nombrada como opción a
+evaluar** cuando llegue el análisis del proveedor, con su verificación por
+delante. Lo que sí se fija es el orden en que mirarla.
+
 ### §4. El dominio seudonimizado, y el borrado del mapeo como remedio de la supresión
 
 ADR-022 §2 separa las dos mitades. Este ADR dice para qué sirve esa separación,
@@ -308,8 +367,10 @@ de encender el bot**, no criterios de aceptación:
    encargado, aunque el código fuese idéntico. **El resto de la spec avanza sin
    ella**: las catorce restantes no dependen del proveedor, y el bot llega a
    tener tarjeta y confirmación con un doble del modelo en su sitio.
-   **Disparador: antes de escribir la primera línea de `src/bot/llm.ts`.** Y la
-   comprobación no es de trámite (§3 bis, §7).
+   **Disparador: antes de escribir la primera línea del primer adaptador de
+   `src/bot/models/`.** Y la comprobación no es de trámite (§3 bis, §3 ter, §7):
+   se hace **por proveedor**, y **un adaptador nuevo la vuelve a disparar
+   entera**. El puerto de ADR-022 §6 abarata el código, no esta precondición.
 5. **Un «no procede» corto y fechado sobre la evaluación de impacto (art. 35)**,
    en `docs/legal/`. Lectura del rol legal: no procede —ni gran escala, ni
    observación sistemática, ni art. 9 por diseño—, pero la combinación texto
@@ -363,7 +424,7 @@ es lo que hace que aprobarla no sea aprobar la exposición.
 - **`docs/legal/` no existe todavía.** Lo crea la primera de las seis
   precondiciones que se escriba.
 
-## §7. Los cuatro puntos que exigen revisión profesional
+## §7. Los cinco puntos que exigen revisión profesional
 
 Ninguno se da por resuelto por estar escrito aquí, y ninguno lo puede cerrar un
 rol `sdd-*`:
@@ -377,6 +438,10 @@ rol `sdd-*`:
    la misma reserva que ADR-009 escribió sobre su propio plazo y por el mismo
    motivo: nadie aquí puede afinar el correcto, así que se elige groseramente
    conservador.
+5. **La transferencia internacional de cada proveedor candidato** (§3 ter), y en
+   particular la **evaluación de impacto de la transferencia** que exigiría un
+   proveedor de un país sin decisión de adecuación. *Añadido el 2026-09-03.* Es el
+   punto que un puerto limpio hace parecer innecesario, y no lo es.
 
 Y una comprobación que no es jurídica pero bloquea un criterio: **que el
 proveedor de LLM elegido esté certificado en el DPF hoy y que su DPA firmado

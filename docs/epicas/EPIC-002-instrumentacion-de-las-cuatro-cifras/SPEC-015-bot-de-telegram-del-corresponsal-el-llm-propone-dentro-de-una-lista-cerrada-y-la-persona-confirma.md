@@ -143,7 +143,8 @@ src/bot/
   archive.ts      los tres objetos crudos, por captureThenParse (RN-10)
   candidates.ts   la lista cerrada de partidos elegibles, del calendario declarado
   windows.ts      PRE/POST del corresponsal, nombrados, en un solo sitio
-  llm.ts          el cliente delgado y el modelo, en una constante
+  llm.ts          el PUERTO del modelo: la firma que usa el dominio, sin SDK dentro
+  models/         un adaptador por proveedor; nada de aquí cruza a llm.ts
   prompt.ts       buildPrompt: su tipo de entrada no puede llevar identidad
   proposal.ts     el esquema zod de la propuesta y su validación contra candidatos
   card.ts         la tarjeta de confirmación y su teclado
@@ -452,13 +453,45 @@ sostiene el plazo de ADR-023.
      candidatos entregados, marcador negativo, estado fuera de `MATCH_STATUSES`, o
      marcador presente en una rama sin marcador. En los cinco casos: aviso a la
      persona y **cero filas** en `observations` y `bot_proposals`.
-  7. El identificador del modelo vive en **una constante nombrada en un solo
-     sitio**, y un caso afirma que no aparece escrito en ningún otro fichero.
+
+     **Y la razón de enumerar las cinco en vez de confiar en que la salida venga
+     bien, que con el puerto del punto 9 deja de ser teórica: cuanto más débil
+     sea el modelo, más trabaja esta validación.** Un modelo pequeño que devuelve
+     JSON roto o que alucina un partido **tiene que caer aquí, no en la tarjeta de
+     confirmación**. Un caso lo ejercita con un doble que devuelve basura
+     plausible —JSON bien formado con un `match_id` inventado— y comprueba que
+     termina en rechazo.
+  7. El identificador del modelo vive en **una constante nombrada dentro de su
+     adaptador**, y un caso afirma que no aparece escrito en ningún otro fichero
+     —en particular, **en ninguno del dominio**—.
   8. **Residuo declarado dentro del criterio** (ADR-016 §6): este mecanismo **no
      alcanza** a que el corresponsal escriba su propio nombre dentro del texto,
      que sí viaja. Es suyo y es inevitable. Y **no alcanza** a lo que el proveedor
      haga con lo recibido: su plazo de retención no lo mandamos nosotros y se
      declara en el aviso (ADR-023 §3), no se promete aquí.
+  9. **El proveedor está detrás de un puerto, no de un cliente** (ADR-022 §6).
+     `src/bot/llm.ts` declara la firma que usa el dominio —entra el texto y los
+     candidatos, sale una propuesta validada o un rechazo— y **cada proveedor es
+     un adaptador en `src/bot/models/`**. Un caso comprueba que **el resto del
+     bot compone contra el puerto y no contra ningún adaptador**: sustituir el
+     adaptador por un doble **no toca una sola aserción** de los otros catorce
+     criterios. Un cliente delgado no basta: lo que se exige es la **frontera**.
+  10. **Ninguna forma propietaria cruza al dominio.** El puerto, el constructor
+     del prompt y el esquema de la propuesta **no deletrean** bloques de
+     contenido de ningún proveedor, nombres de parámetros de razonamiento o de
+     esfuerzo, cabeceras, códigos de error propios ni identificadores de modelo;
+     y **ningún módulo del dominio nombra a un proveedor**. Un caso lo afirma con
+     el lector del compilador sobre los tipos publicados, con **control
+     positivo**: mover un nombre propietario al tipo del puerto pone rojo un caso
+     nombrado.
+
+     **Residuo declarado** (ADR-016 §6): este mecanismo es de **nombres**, así que
+     no alcanza a una forma propietaria copiada **estructuralmente** —un tipo
+     anónimo con la misma silueta que la respuesta de un proveedor— ni a una
+     semántica filtrada sin nombre, como asumir que la salida siempre trae un solo
+     bloque de texto. **Destino: EPIC-MEJORA**; **disparador: el segundo
+     adaptador**, que es cuando la fuga se hace visible porque algo deja de
+     encajar.
 
 - **CA-6 — La identidad del partido sale de una lista cerrada de candidatos, no
   del catálogo de alias (ADR-017, ADR-018 §3, ADR-022 §5).**
@@ -888,6 +921,25 @@ Fojo. Dos cerradas, una aplazada a propósito.**
    habría que estudiarlo desde cero. **Consecuencia operativa: CA-5 no se
    implementa hasta que haya proveedor elegido y DPA guardado y fechado; los
    otros catorce criterios avanzan sin eso** (ADR-023 §6.4).
+
+   **Añadido del gate el mismo día: el proveedor tiene que quedar preparado para
+   intercambiarse**, porque se valorarán también familias como Kimi o Qwen. La
+   spec no elige nada —eso sigue aplazado— pero ahora **exige la frontera**: la
+   llamada va detrás de un puerto (`src/bot/llm.ts`) con un adaptador por
+   proveedor (`src/bot/models/`), y CA-5 crece con dos subpuntos, 9 y 10, para
+   que eso sea comprobable y no una intención. **Y la trampa que hay que ver,
+   escrita en ADR-023 §3 ter:** el puerto abarata el cambio **en código y solo en
+   código**. El dictamen legal analizó **un** proveedor; **cada candidato reabre
+   la pregunta entera** —contrato de encargado, base de la transferencia,
+   retención del subencargado, y si entrena con el contenido—, y **ninguna de
+   esas respuestas viaja con el adaptador**. Kimi y Qwen son proveedores chinos y
+   **China no tiene decisión de adecuación**, así que ahí no hay art. 45: sería
+   art. 46 más evaluación de impacto de la transferencia, sobre texto libre con
+   datos de terceros. Es **materialmente más duro**, no equivalente. La única
+   variante que simplifica en vez de complicar es un modelo de **pesos abiertos
+   ejecutado en infraestructura propia o europea**, que elimina la transferencia y
+   el encargo enteros; **está nombrada como opción a evaluar primero, y nada de
+   ella se ha comprobado** (ADR-023 §3 ter).
 3. **`live` — DECIDIDO: *En xogo*, siempre.** Una sola forma en todo el producto.
    `dominio.md` ya lo registra así. Ver nota §3. **Ya no bloquea nada.**
 

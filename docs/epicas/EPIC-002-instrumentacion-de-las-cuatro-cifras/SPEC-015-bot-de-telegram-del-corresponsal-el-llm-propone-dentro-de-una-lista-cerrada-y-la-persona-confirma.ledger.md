@@ -30,6 +30,34 @@ hasta que el gate lo diga.
 | 2 | Proveedor de LLM y su DPA | **NO decidido, aplazado a la implementación a propósito** | ADR-023 **§3 bis** (nuevo) y §6.4 (reforzado); SPEC-015 CA-5 (precondición) y notas §6.2 |
 | 3 | ¿`live` es *En xogo* o *Directo*? | **DECIDIDO: «En xogo» siempre**, una sola forma en todo el producto. Descarta expresamente la distinción estado/filtro que recomendaba `sdd-lingua` | `docs/fundacion/dominio.md`; SPEC-015 notas §3 y *Fuera de alcance*; EPIC-MEJORA (inventario) |
 
+**Añadido del gate el 2026-09-03, sobre la misma pregunta 2: el proveedor tiene
+que quedar preparado para intercambiarse** —se valorarán también familias como
+Kimi o Qwen, no solo las dos obvias—. **No es una elección y no amplía el
+alcance**: la elección sigue aplazada. Lo que cambia son dos cosas, y la segunda
+es la que no se ve:
+
+- **Diseño.** La llamada va detrás de un **puerto** (`src/bot/llm.ts`) con un
+  adaptador por proveedor (`src/bot/models/`). Se quedan de este lado, y no se
+  mueven: el constructor del prompt, el esquema zod (RN-09), el archivado de la
+  respuesta cruda (RN-10) y la frontera ADR-016 de quién puede llamar. **ADR-022
+  §6 reescrito** —dejaba fijado «Anthropic» como proveedor, que contradecía el
+  aplazamiento— y **CA-5 crece con los subpuntos 9 y 10**. La decisión previa de
+  «cliente delgado sin SDK» empujaba en esa dirección pero **no era una
+  frontera**; ahora se exige y es comprobable.
+- **Legal, y con letra grande. ADR-023 §3 ter, nuevo.** El puerto abarata el
+  cambio **en código y solo en código**. El dictamen analizó **un** proveedor y
+  ese análisis **no se hereda**: cada candidato reabre contrato de encargado, base
+  de la transferencia, retención del subencargado y si entrena con el contenido.
+  Kimi (Moonshot) y Qwen (Alibaba) son chinos y **China no tiene decisión de
+  adecuación**, así que no hay art. 45: art. 46 más **evaluación de impacto de la
+  transferencia**, sobre texto libre con datos de terceros y posiblemente de
+  salud. **Materialmente más duro, no equivalente.** La única variante que
+  simplifica es **pesos abiertos en infraestructura propia o europea**, que
+  elimina transferencia y encargo enteros; queda **nombrada como opción a
+  evaluar primero**, con la cautela escrita de que **no se ha comprobado nada** de
+  su disponibilidad ni de su licencia. §7 pasa de cuatro a **cinco** puntos de
+  revisión profesional.
+
 **Sobre la 2, y por qué generó texto nuevo en vez de una línea.** La respuesta
 literal fue: *«no estoy seguro, y el principal motivo es el precio. si puedo usar
 mi suscripción, sin duda anthropic, si tengo que ir por api, tengo que analizarlo
@@ -181,6 +209,22 @@ Abiertas ya al escribir la spec, para que nadie las descubra a mitad:
   (ADR-023 §6.4). Los otros catorce avanzan. **No es deuda: es orden de trabajo**,
   y está escrito para que el implementador no se bloquee entero por un criterio.
   **Disparador: antes de la primera línea de `src/bot/llm.ts`.**
+- **F-SPEC-015-11 — El puerto del modelo abarata el código y no el derecho, y
+  eso engaña.** Un implementador que vea `src/bot/llm.ts` limpio y dos adaptadores
+  asumirá que cambiar de proveedor es configuración. **No lo es** (ADR-023 §3
+  ter): cada candidato reabre el análisis legal entero, y para un proveedor de un
+  país sin decisión de adecuación hace falta además una evaluación de impacto de
+  la transferencia. **No es deuda: es una advertencia que tiene que sobrevivir en
+  el ADR**, y por eso está ahí y no en un comentario. **Disparador: el segundo
+  adaptador de `src/bot/models/`.**
+- **F-SPEC-015-12 — La vía de pesos abiertos está nombrada y sin comprobar.**
+  ADR-023 §3 ter dice que un modelo de pesos abiertos en infraestructura propia o
+  europea elimina la transferencia internacional y el encargo enteros, y que
+  conviene analizarla **primero** si el criterio es el coste. **No se ha
+  verificado** disponibilidad de pesos, condiciones de licencia, ni si la licencia
+  permite este uso, ni qué haría falta para ejecutarlo — y la spec no afirma nada
+  de eso. **Destino: el análisis de proveedor**; **disparador: cuando se abra ese
+  análisis, antes que las vías con transferencia.**
 - **F-SPEC-015-6 — `docs/legal/` no existe todavía.** Lo crea la primera de las
   seis precondiciones que se escriba.
 - **F-SPEC-015-7 — La carrera de F-SPEC-013-10 sigue viva** y esta spec añade
