@@ -37,10 +37,10 @@ tipo: roadmap
   **entregada**: **SPEC-008** —adaptador de `ceroacero.es` y cortesía RN-11 con
   una sola implementación—, `hecho` y verificada GREEN el 2026-09-01 tras siete
   vueltas, junto con **ADR-014**. El desglose propuesto por `sdd-arquitecto` es
-  de nueve specs (008 a 016), con el bot del corresponsal y el panel del
+  de diez specs (008 a 017), con el bot del corresponsal y el panel del
   operador **antes** que el snapshot y las cifras: es lo que este mismo apartado
   llama «lo que sube de rango», ya convertido en orden. Y hay una décima que
-  nadie planificó: **SPEC-009** (`borrador`), la frontera de capacidad de RN-11,
+  nadie planificó: **SPEC-009** (`aprobada`, 2026-09-02, en implementación en otro checkout), la frontera de capacidad de RN-11,
   que salió de SPEC-008 porque su criterio no terminaba — nueve evasiones
   medidas tumbaron cuatro mecanismos seguidos. No compite con el bot ni con el
   panel: su fecha es **antes de que el cron despliegue algo que pida a un

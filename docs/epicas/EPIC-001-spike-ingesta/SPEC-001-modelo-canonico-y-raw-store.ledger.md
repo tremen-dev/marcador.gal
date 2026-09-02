@@ -404,9 +404,7 @@ Abiertas ya en el momento de redactar (ver *Notas para el gate humano* de la spe
 - **F-SPEC-001-2** — `CLAUDE.md` contradice ADR-001 (sección Stack sigue en
   Python/FastAPI) y su sección Estructura no contempla `src/model/`, `src/raw/`,
   `src/db/` ni `migrations/`. Destino: el humano, fuera del pipeline de specs.
-- **F-SPEC-001-3** — Implementación de `ObservationStore` y `DecisionStore` contra
-  Postgres. Aquí solo se definen los puertos. Destino: la primera spec que los
-  necesite (previsiblemente la del motor de decisiones).
+- **F-SPEC-001-3** — Implementación de `ObservationStore` y `DecisionStore` contra Postgres. Aquí solo se definen los puertos. Destino: la primera spec que los necesite. **Cerrado por SPEC-010** (2026-09-02): `src/db/observations.ts`, `src/db/decisions.ts` y `src/db/matches.ts` implementan los tres puertos sin tocar su definición en `src/db/ports.ts`.
 - **F-SPEC-001-4** — Mapa de pesos por fuente (RN-01). Destino: spec del motor.
 
 Abiertas por sdd-implementador al implementar (2026-08-29). Las cuatro primeras
