@@ -21,7 +21,7 @@ epica: EPIC-MEJORA
 | CA-4 — ningún test de spec cerrada tocado | — (criterio sobre el diff) | `git diff main --name-status`; ver «CA-4 — el diff» | | 🚧 |
 | CA-5 — alias, JSX y typecheck sobreviven | `vitest.config.ts` (`extends: true` en los dos proyectos; `typecheck` en el paralelo) | `tests/config/partition.test.ts` → CA-5.1 casos 1–3; CA-5.3 en «Control positivo del typecheck» | | 🚧 |
 | CA-6 — control positivo por mecanismo | `vitest.config.ts` (`partitionOffences`) | `tests/config/partition.test.ts` → CA-6.3 casos 1–4; CA-6.1 y CA-6.2 en «Controles por mecanismo» | | 🚧 |
-| CA-7 — cierre del flake: medida + control + 20 y 20 | — (criterio de evidencia) | «Medida de solapes» + «CA-7.2» + «CA-7.3» | | 🚧 |
+| CA-7 — cierre del flake: medida + control + 20 y 20 | — (criterio de evidencia) | «CA-1.3 / CA-7.1 — la medida de solapes» (0 pares) + «CA-7.2» (5 rojas de 20) + «CA-7.3» (20 verdes de 20) | | 🚧 |
 | CA-8 — los tres gates y el presupuesto de tiempo | — | «Los tres gates» | | 🚧 |
 
 ## Mediciones de partida (sdd-arquitecto, 2026-09-02)
@@ -277,7 +277,31 @@ en el run 16).
 
 ### CA-7.3 — la red, DESPUÉS
 
-Ver «CA-7.3 — las 20 ejecuciones verdes», más abajo.
+20 ejecuciones consecutivas de `npm test` sobre la rama, con el árbol limpio
+(`git status --short` vacío) y sin tocar un fichero entre medias:
+
+```
+ 1 VERDE 13,58s   6 VERDE 13,97s  11 VERDE 14,06s  16 VERDE 14,09s
+ 2 VERDE 13,68s   7 VERDE 14,04s  12 VERDE 14,10s  17 VERDE 14,02s
+ 3 VERDE 13,94s   8 VERDE 14,12s  13 VERDE 14,04s  18 VERDE 14,12s
+ 4 VERDE 13,96s   9 VERDE 13,96s  14 VERDE 13,99s  19 VERDE 14,01s
+ 5 VERDE 13,99s  10 VERDE 14,07s  15 VERDE 14,12s  20 VERDE 14,13s
+```
+
+**20 de 20 verdes**, y las tres cifras idénticas en las veinte:
+
+```
+  20  Test Files  115 passed (115)
+  20       Tests  1140 passed (1140)
+  20 Type Errors  no errors
+```
+
+Con p ≈ 0,2 sin corregir, la probabilidad de 20 verdes seguidas es ≈ 1,2 %. La
+autoridad sigue estando en la medida de solapes (CA-7.1): esto es la red, no la
+prueba.
+
+**Las tres piezas de CA-7, juntas:** medida de solapes = **0 pares**; control
+positivo antes = **5 rojas de 20**; red después = **20 verdes de 20**.
 
 ### Los tres gates (CA-8)
 
@@ -394,6 +418,19 @@ de las ejecuciones de CA-6 y CA-7.
   *Destino:* EPIC-MEJORA. *Disparador:* el día que otra spec toque
   `tests/polite/support/capability.ts` por cualquier motivo, se le añaden las
   extensiones y las once líneas vuelven a un solo sitio.
+
+- **F-SPEC-014-6 — F-SPEC-013-12 se cierra para este mecanismo, no para los
+  otros dos.** CA-3.3 dice que el defecto de F-SPEC-013-12 —un `null` que
+  significa «no sé colocar el especificador» indistinguible de un `null` que
+  significa «es un paquete»— «se cierra aquí en vez de heredarse». Se cerró
+  **dentro de `vitest.config.ts`**: `readNode` distingue los tres casos
+  (paquete → se ignora; literal relativo o `@/…` que no resuelve → rojo
+  nombrándose; `.js`/`.jsx`/`.mjs`/`.cjs` → se reintenta con la extensión de
+  TypeScript, `typescriptTwin`). **`tests/decide/support/rn08.ts` y
+  `tests/mirror/support/imports.ts` siguen con el defecto**, porque son ficheros
+  de specs cerradas y CA-4 prohíbe tocarlos.
+  *Destino:* F-SPEC-013-12 sigue abierto en el inventario de EPIC-MEJORA con su
+  disparador intacto. Esta spec no lo cierra; le quita una víctima.
 
 - **F-SPEC-014-5 — el guardián nuevo cuesta 0,3 s en cada carga de la
   configuración.** `partitionTestFiles()` corre dentro de `defineConfig`, así que
