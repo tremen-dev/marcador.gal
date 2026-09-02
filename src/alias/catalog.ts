@@ -22,7 +22,9 @@
  * Case and accents are SIGNIFICANT (SPEC-001 CA-5, gate 2026-08-29): «CELTA B»
  * and «Celta B» are two entries. This file inherits that decision.
  */
+import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
+import { sha256Hex } from '@/calendar/declared';
 import { KEBAB_CASE, RFGF_SEASON } from '@/calendar/schedule';
 import { normalizeAlias } from '@/model/team';
 
@@ -141,6 +143,42 @@ function locate(input: unknown, path: readonly PropertyKey[]): string {
       : `entry #${index + 1}`;
   }
   return '';
+}
+
+/**
+ * A declared alias catalogue as read from a file: the bytes, their digest and
+ * what they say. The digest is what `alias_loads.file_digest` records (CA-3).
+ */
+export interface DeclaredAliasCatalog {
+  readonly bytes: Uint8Array;
+  /** sha256 of the bytes, hex — `sha256Hex` of SPEC-010, reused. */
+  readonly digest: string;
+  readonly catalog: AliasCatalog;
+}
+
+/**
+ * Validates the bytes of a declared alias catalogue, WHOLE, and keeps their
+ * digest. The loader receives this, so nothing invalid ever reaches a
+ * connection (CA-7, the same order as `declareCalendar`).
+ */
+export function declareAliasCatalog(bytes: Uint8Array): DeclaredAliasCatalog {
+  let json: unknown;
+  try {
+    json = JSON.parse(new TextDecoder('utf8', { fatal: true }).decode(bytes));
+  } catch (error) {
+    throw new InvalidCatalogError([
+      {
+        path: '',
+        message: `the file is not JSON: ${error instanceof Error ? error.message : String(error)}`,
+      },
+    ]);
+  }
+  return { bytes, digest: sha256Hex(bytes), catalog: parseAliasCatalog(json) };
+}
+
+/** Reads and validates a declared alias catalogue from disk. The loader's only I/O. */
+export async function readAliasCatalogFile(path: string): Promise<DeclaredAliasCatalog> {
+  return declareAliasCatalog(await readFile(path));
 }
 
 /**
