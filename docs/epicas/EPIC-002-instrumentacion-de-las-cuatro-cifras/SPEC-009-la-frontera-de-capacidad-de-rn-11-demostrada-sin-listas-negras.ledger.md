@@ -636,3 +636,60 @@ sigue siendo válido:
    worktree y copiar `.env.local` del checkout principal (para
    `DATABASE_URL_TEST`). Nunca un symlink, nunca `git add -f`. Si `test:db` da
    `ENOTFOUND` contra Neon, es DNS: repetir (F-SPEC-008-21).
+
+## Integración — 2026-09-02: el merge de SPEC-010 dispara CA-1, y el gate require-spec bloquea la concesión
+
+Tras el merge de `origin/main` (SPEC-010, `hecho`) en esta rama (commit
+7c1b6e6), el guardián de CA-1 juzga por primera vez `src/calendar/` y el
+`src/db/arrays.ts` nuevo. **Es el mecanismo funcionando, no un bug**: código
+nuevo obliga a conceder capacidad de forma declarada. Estado al escribir esto:
+`npm test` 867/868 con **un solo rojo**, `architecture.test.ts` caso 8, con
+estas 7 ofensas (salida literal del caso):
+
+- `src/calendar/cli.ts`: `process.exitCode`, `process.stderr` (fuera de la superficie declarada de `process`)
+- `src/calendar/time.ts`: `Date.UTC`, `Intl` (identificador no declarado), `Math.floor`
+- `src/db/arrays.ts`: `Number.isSafeInteger`, `TypeError` (identificador no declarado)
+
+**Concesión mínima preparada y NO aplicada** (en `ALLOWED_GLOBALS`,
+`tests/polite/support/capability.ts`; la lista pasaría de 20 a 22 entradas y
+ningún caso fija ese número — el 21 de CA-1.6 es medición de identificadores
+libres distintos en el ledger, no aserción):
+
+1. `process`: superficie `['argv', 'env', 'exitCode', 'stderr', 'stdout']` —
+   `exitCode` y `stderr` los usa la CLI de SPEC-010 (`src/calendar/cli.ts:18-21`)
+   para señalar fallo y reportar errores al operador. `getBuiltinModule` sigue fuera.
+2. `Date`: superficie `['UTC', 'parse']` — `Date.UTC` convierte horas de pared
+   declaradas en epoch ms (`src/calendar/time.ts`), sin leer ningún reloj.
+3. `Intl` **(entrada nueva)**: `asValue: false`, superficie `['DateTimeFormat']` —
+   la aritmética de zona horaria de SPEC-010 sin dependencia (ADR-017 §5);
+   `Intl.DateTimeFormatPartTypes` es posición de tipo y se exime por borrado.
+4. `Math`: superficie `['ceil', 'floor']` — truncado al minuto en `offsetAt`.
+5. `Number`: superficie `['isFinite', 'isNaN', 'isSafeInteger']` — validación de
+   enteros antes de formatear un array SQL (`src/db/arrays.ts:29`).
+6. `TypeError` **(entrada nueva)**: `asValue: true`, superficie `[]` — lanzado
+   por `src/db/arrays.ts:30` cuando un no-entero corrompería un array int.
+
+**Por qué no está aplicada**: el gate L1 `require-spec` deniega toda edición
+bajo `tests/` en esta rama — SPEC-009 está en `hecho`, estado terminal no
+codeable, y `estado.mjs` no permite ninguna transición de salida. La válvula
+documentada (`SDD_SKIP_GATE=1`) solo puede ponerla el entorno de la sesión que
+ejecuta el hook, no un subagente; burlar la denegación editando por otra vía
+no es una opción. **Decisión para el gate humano**: aplicar la concesión de
+arriba con la válvula puesta (o la vía que el humano prefiera). El diff es el
+que CA-1 exige: una entrada, su motivo, en un diff que un revisor lee.
+
+**Los otros dos gates, medidos hoy en esta rama**: `lint exit=0` ·
+`test:db` **210/210** (14 ficheros; creció desde 144 con los repositorios de
+SPEC-010, credenciales reales de `.env.local`).
+
+**El rojo de `tests/site/contact.test.ts` caso 5 NO se reproduce**: 4 pasadas
+completas de `npm test` tras el merge y siempre verde (91 ficheros, único rojo
+el caso 8 de arquitectura). Analizado el mecanismo: ambos paseos del caso
+recorren `src/` con el mismo comparador; vitest 4 usa pool de forks aislado
+por fichero, así que el `process.chdir` de `containment.test.ts` caso 3 no
+puede filtrarse a otro fichero; y ningún test escribe bajo el `src/` real
+(todos usan `mkdtemp`). Un desacuerdo entre los dos paseos exige que el árbol
+cambie entre ambos (~ms): la causa plausible es un fichero transitorio bajo
+`src/` durante la resolución del conflicto (editor, `.DS_Store`), ya
+desaparecido — `git status` limpio. Si reaparece, el diff de la aserción
+nombra el fichero intruso; con eso se diagnostica en el acto.
