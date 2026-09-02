@@ -170,7 +170,7 @@ src/i18n/     bundles de i18n con paridad galego/castellano (SPEC-004 CA-4, EPIC
               gl.ts, es.ts (bundles del sitio público, D-2)
               site-bundle.ts, site.ts (tipos y contrato)
               El bundle para la interfaz del marcador vive aquí también; cada spec aporta su espacio de nombres
-tests/        model/ raw/ db/ alias/ calendar/ stores/ types/ mirror/ site/ decide/ · fixtures/ SOLO sintéticos
+tests/        model/ raw/ db/ alias/ calendar/ config/ stores/ types/ mirror/ site/ decide/ · fixtures/ SOLO sintéticos
 raw/          raíz de DiskRawStore en local; NO versionado
 
 FOUNDATION.md            constitución (D-1..D-8 locked)
