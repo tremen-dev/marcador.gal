@@ -178,7 +178,8 @@ docs/roadmap.md          secuencia de épicas
 docs/fundacion/          contexto, visión, dominio, reglas, retos
 docs/epicas/             épicas y sus specs
 docs/adr/                ADRs
-docs/procedimientos/     runbooks operativos (la ventana de observación) y calendario-de-compromisos.md (fechas con plazo; casi ninguna la vigila un test)
+docs/procedimientos/     runbooks operativos: ventana de observación, carga del calendario, carga de
+              alias, jornada de medición; calendario-de-compromisos.md (fechas con plazo)
 docs/negocio/            monetización y marca
 docs/diseno/             sistema de diseño del marcador: fuentes, tokens y lienzo (EPIC-004)
 ```
