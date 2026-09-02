@@ -232,7 +232,7 @@ describe('CA-2 — the load replaces the catalogue of its source and season', ()
     // inserts have already run inside it.
     const broken: Clock = { now: () => 'not-an-instant' as Instant };
 
-    await expect(load(sql, edited, broken)).rejects.toThrow();
+    await expect(load(sql, edited, broken)).rejects.toThrow(/not-an-instant/);
 
     expect(await aliasesInDb()).toEqual(before);
     expect(await loadCount()).toBe(loadsBefore);

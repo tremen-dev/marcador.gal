@@ -69,12 +69,14 @@ describe('CA-4 — listBySource', () => {
     for (const entry of catalog) {
       expect(Object.isFrozen(entry)).toBe(true);
       expect(entry.status).toBe('confirmed');
-      if (entry.status === 'confirmed') {
-        // A `Z` STRING that satisfies the canonical instant, never a Date (ADR-006).
-        expect(typeof entry.confirmed_at).toBe('string');
-        expect(() => InstantSchema.parse(entry.confirmed_at)).not.toThrow();
-        expect(entry.confirmed_by).toBe('Persoa de Proba');
-      }
+    }
+    const confirmed = catalog.flatMap((entry) => (entry.status === 'confirmed' ? [entry] : []));
+    expect(confirmed).toHaveLength(catalog.length);
+    for (const entry of confirmed) {
+      // A `Z` STRING that satisfies the canonical instant, never a Date (ADR-006).
+      expect(typeof entry.confirmed_at).toBe('string');
+      expect(() => InstantSchema.parse(entry.confirmed_at)).not.toThrow();
+      expect(entry.confirmed_by).toBe('Persoa de Proba');
     }
   });
 

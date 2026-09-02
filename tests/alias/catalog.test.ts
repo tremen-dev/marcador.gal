@@ -22,13 +22,16 @@ function variant(edit: (draft: Mutable<AliasCatalogFixture>) => void): AliasCata
 
 /** Parses a variant and hands back the error message, which MUST name the row. */
 function rejectionOf(fixture: AliasCatalogFixture): string {
+  let caught: unknown;
   try {
     parseAliasCatalog(fixture);
   } catch (error) {
-    expect(error).toBeInstanceOf(InvalidCatalogError);
-    return (error as InvalidCatalogError).message;
+    caught = error;
   }
-  throw new Error('expected the catalogue to be rejected, and it validated');
+  expect(caught, 'expected the catalogue to be rejected, and it validated').toBeInstanceOf(
+    InvalidCatalogError,
+  );
+  return (caught as InvalidCatalogError).message;
 }
 
 describe('CA-1 — the synthetic fixture validates', () => {
