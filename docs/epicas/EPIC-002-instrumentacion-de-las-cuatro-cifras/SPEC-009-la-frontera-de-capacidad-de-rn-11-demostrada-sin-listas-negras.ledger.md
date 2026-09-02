@@ -6,11 +6,15 @@ epica: EPIC-002
 # Ledger — SPEC-009 La frontera de capacidad de RN-11, demostrada sin listas negras
 
 ## Resumen
-- Fase: **`en-progreso`** — aprobada por Alberto Fojo el 2026-09-01,
+- Fase: **`en-revision`** — aprobada por Alberto Fojo el 2026-09-01,
   implementada por `sdd-implementador` el 2026-09-02 (primera vuelta, ver
   «Primera vuelta» abajo), **verificada RED el 2026-09-02** (primera
   verificación: F-SPEC-009-V1 y V2, las dos formas de la duodécima evasión,
-  medidas con los tres gates en verde). Vuelve al implementador.
+  medidas con los tres gates en verde), y **segunda vuelta de implementación el
+  2026-09-02** (ver «Segunda vuelta» abajo): V1 cerrada con mecanismo —el paseo
+  refusa los symlinks por construcción, nombrándose—, V2 escrita como residuo
+  dentro del criterio con E12b como superviviente medida, V3 corregida, V4 con
+  destino propuesto por escrito. Espera segunda verificación.
 - **Esta spec no empieza de cero: hereda el expediente de SPEC-008.** Las once
   evasiones, los cuatro mecanismos superados, las cinco verificaciones y las
   cuatro enmiendas viven en
@@ -30,12 +34,12 @@ epica: EPIC-002
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
 | CA-1 — lista blanca de identificadores globales, con superficie y motivo | `tests/mirror/support/imports.ts` (`freeReferences`: el checker decide libre/ligado; ambient no liga; tipo se exime; shorthand se juzga por su valor) · `tests/polite/support/capability.ts` (`ALLOWED_GLOBALS`, 20 entradas con `asValue`+superficie+motivo; `capabilityOffences` juzga SOLO contra lo declarado; `CAPABILITY_NAMES` borrada) | `tests/polite/architecture.test.ts` casos 8, 9, 10, 11, 11b (conservados, mensajes nuevos) y 11c (V34 literal: rojo por superficie, `process.env` verde), 11d (lista invertida, como 4c), 11e (ambient), 11f (shorthand), 11g (CA-1.4), 11h (dos ejes + motivo + lista negra borrada + cada entrada usada) | 1ª verif. (2026-09-02): M1 repetida → ROJO ×3 (`architecture` 8, 11c y **E11** — no 11h, ver V3); **V34 real** (`src/ingest/vdoor9.ts`, fichero de verdad) → ROJO en 8 por superficie, más 13 por huérfano; mutación ambient-off → ROJO 11e; **medición CA-1.6 re-derivada por mí**: 89 ficheros, 182 refs libres, **21 distintos** — idéntica al ledger; `CAPABILITY_NAMES` borrada (grep, 11h) | ✅ |
-| CA-2 — la cobertura fuera de las raíces no la decide `git` | `tests/polite/support/capability.ts` (`repositorySources()`: el árbol entero, con el mismo paseo y las mismas declaraciones que `scannedSources()`; 6 exclusiones nuevas con motivo — `tests/`, `.git/`, `.next/`, `.claude/`, `raw/`, `next-env.d.ts`; `.gitignore` intacto) | `tests/polite/architecture.test.ts` casos 2j (cobertura por árbol; el paseo mide fuera de las raíces; dentro, árbol = lectura), 2k (control positivo V35: `git` no lo ve, el importador no ofende, el árbol lo pone rojo), 2b actualizado (las 8 exclusiones, cada una con motivo) | V35 real (`robots/side.ts`) → ROJO 2j; M2 repetida (cobertura devuelta a `git`) → ROJO 2k. **PERO un SYMLINK de código es invisible a las TRES listas** — medido dos veces, con lint=0 y 800/800, y enganchado a `adapter.ts` (F-SPEC-009-V1). Quedar fuera NO es hoy una decisión declarada: es un accidente de `withFileTypes` | ❌ |
-| CA-3 — las once evasiones, como batería ejecutable | `tests/polite/evasions.test.ts` (E1..E11 nombradas, cada una contra su mecanismo; E2/E3/E7 como supervivencias comprobadas; cabecera con el sitio de la duodécima) | `tests/polite/evasions.test.ts` 11 casos + N4 reproducida dentro de E7 (el parser funcional en `src/site/robots-txt.ts` NO ofende); las mutaciones R/Q/N de SPEC-008 siguen matando los mismos casos (spot-check R5 abajo) | E1..E11 ejecutadas en verde; E7/N4 sobrevive (debe); M1/M2/R5/ambient-off matan casos nombrados. La cabecera dice dónde entra la duodécima — **y la duodécima ya existe, en dos formas (V1 y V2): entra en la batería con el arreglo** | ✅ |
-| CA-4 — lo que la frontera NO promete, dentro del criterio | `tests/polite/containment.test.ts` (describe «SPEC-009 CA-4»: residuos 1, 2a, 2b y 4 con ejemplo ejecutable, siempre a 127.0.0.1) · `tests/polite/evasions.test.ts` (describe «CA-4.3»: `z` de `zod`) | `containment` casos CA-4.1 (rama no ejecutada: cero disparos), CA-4.2a (UDP no pasa por el socket), CA-4.2b+CA-4.4 (subproceso: el servidor local recibe, la trampa registra cero) · `evasions` CA-4.3 (superficie concedida, contenido sin juzgar) | Los cuatro residuos declarados tienen ejemplo ejecutable y corren en verde. **PERO el residuo declarado está medido MENOR que el residuo real**: la capacidad `eval` es alcanzable sin nombrar `eval` ni `Function` ni ningún identificador libre (F-SPEC-009-V2), y ningún residuo escrito la nombra de forma medible (ADR-016 §6) | ❌ |
-| CA-5 — lo construido no se rehace, y sigue mordiendo | Sin cambios en los mecanismos: `readModule` intacto (solo GANA `freeReferences`), la trampa del socket intacta, `ALLOWED_PACKAGES` y la concesión por superficie intactos, `scannedSources` mismo paseo (extraído a `walkTree` compartido) | Spot-check R5 (la octava en `#captureGranted`): roja en las DOS mitades — `architecture` 3 + `containment` 2, 4, 8, 9, igual que en SPEC-008. Casos 14, 15, 16, 17 de `containment` y 2d, 2g, 2i, 3b..3g, 4..4h de `architecture` sin perder ni una aserción. La propiedad de RN-11 (denegar por defecto) la comprueban los casos 1 y 15 de `containment`, intactos | R5 repetida por mí: ROJO en las dos mitades (`architecture` 3 + `containment` 2, 4, 8, 9), revertida con diff vacío. Diff de `tests/mirror/support/imports.ts` leído entero: `readModule` solo gana `freeReferences`. La trampa y `ALLOWED_PACKAGES` sin una línea de diff | ✅ |
-| CA-6 — no se toca `src/` | `git diff main -- src/ migrations/ .gitignore` → vacío (comprobado 2026-09-02). Todo el trabajo vive en `tests/` y en este ledger | — (es una propiedad del diff, no un caso) | `git diff main -- src/ migrations/ .gitignore` → 0 líneas, repetido por mí (2026-09-02). Árbol de trabajo limpio. Ningún HTML de terceros añadido (ADR-009 §3) | ✅ |
-| CA-7 — los tres gates y las suites cerradas enteras | Salidas literales en «Primera vuelta» abajo: `lint exit=0` · `npm test` 800/800 (82 ficheros) · `test:db` 144/144 con `DATABASE_URL_TEST` real | Recuento fichero a fichero contra `main`: solo cambia `tests/polite` (`architecture` 41→49, `containment` 17→20, `evasions` +12); `tests/mirror`, `tests/site`, `tests/docs`, `tests/model`, `tests/raw`, `tests/db` y `tests/types` idénticos fichero a fichero | Corridos por mí: `lint exit=0` · `npm test` **800/800** · `test:db` **144/144** (al 5º intento; 4 `ENOTFOUND` de DNS contra Neon, el flake documentado F-SPEC-008-21). Recuento por fichero con reporter JSON contra un worktree de `main` (777): **79 ficheros idénticos**, solo cambia `tests/polite` (41→49, 17→20, +12). Salidas literales abajo | ✅ |
+| CA-2 — la cobertura fuera de las raíces no la decide `git` | `tests/polite/support/capability.ts` (`repositorySources()`: el árbol entero, con el mismo paseo y las mismas declaraciones que `scannedSources()`; 6 exclusiones nuevas con motivo — `tests/`, `.git/`, `.next/`, `.claude/`, `raw/`, `next-env.d.ts`; `.gitignore` intacto) · **2ª vuelta (F-SPEC-009-V1)**: `walkTree` clasifica todo dirent de forma EXHAUSTIVA (`TreeWalk`): fichero juzgado, directorio recorrido, exclusión declarada, o **refusal nombrándose** — un symlink (o cualquier dirent que no sea fichero ni directorio) es rojo por construcción salvo exclusión declarada con motivo; `walkRefusals()` lo expone, con `base` parametrizable solo para la batería | `tests/polite/architecture.test.ts` casos 2j (cobertura por árbol; el paseo mide fuera de las raíces; dentro, árbol = lectura), 2k (control positivo V35: `git` no lo ve, el importador no ofende, el árbol lo pone rojo), 2b actualizado (las 8 exclusiones, cada una con motivo), **2l** (árbol real sin refusals + control positivo con nombre propio: symlink de fichero en `robots/` y de directorio bajo `src/ingest/`) · `evasions.test.ts` **E12a** (S1, S2 y el symlink de DIRECTORIO sobre árbol sintético con el paseo y las listas reales; la exclusión declarada sigue siendo la única salida) | V35 real (`robots/side.ts`) → ROJO 2j; M2 repetida (cobertura devuelta a `git`) → ROJO 2k. **PERO un SYMLINK de código es invisible a las TRES listas** — medido dos veces, con lint=0 y 800/800, y enganchado a `adapter.ts` (F-SPEC-009-V1). Quedar fuera NO es hoy una decisión declarada: es un accidente de `withFileTypes` | ❌ |
+| CA-3 — las once evasiones, como batería ejecutable | `tests/polite/evasions.test.ts` (E1..E11 nombradas, cada una contra su mecanismo; E2/E3/E7 como supervivencias comprobadas) · **2ª vuelta**: la duodécima ENTRÓ en la batería como manda CA-3.3, en sus dos formas — **E12a** (V1, muere contra `walkRefusals`) y **E12b** (V2, sobrevive como residuo declarado, como N4) —, y la cabecera registra las doce y reserva el sitio de la decimotercera | `tests/polite/evasions.test.ts` **14 casos** + N4 reproducida dentro de E7 (el parser funcional en `src/site/robots-txt.ts` NO ofende); las mutaciones R/Q/N de SPEC-008 siguen matando los mismos casos (spot-check R5 abajo) | E1..E11 ejecutadas en verde; E7/N4 sobrevive (debe); M1/M2/R5/ambient-off matan casos nombrados. La cabecera dice dónde entra la duodécima — **y la duodécima ya existe, en dos formas (V1 y V2): entra en la batería con el arreglo** | ✅ |
+| CA-4 — lo que la frontera NO promete, dentro del criterio | `tests/polite/containment.test.ts` (describe «SPEC-009 CA-4»: residuos 1, 2a, 2b y 4 con ejemplo ejecutable, siempre a 127.0.0.1) · `tests/polite/evasions.test.ts` (describe «CA-4.3»: `z` de `zod`) · **2ª vuelta (F-SPEC-009-V2)**: el residuo del cierre estático se ENSANCHA y va escrito, medible, dentro del criterio — docstring de `capabilityOffences` en `capability.ts`: el miembro sobre una expresión que NO es identificador libre no se juzga jamás, a ningún nivel, y por `constructor.constructor` todo valor alcanza `Function`; sin cierre posible sin lista negra (ADR-016 §3.5), con nota al gate (F-SPEC-009-6) | `containment` casos CA-4.1 (rama no ejecutada: cero disparos), CA-4.2a (UDP no pasa por el socket), CA-4.2b+CA-4.4 (subproceso: el servidor local recibe, la trampa registra cero) · `evasions` CA-4.3 (superficie concedida, contenido sin juzgar) y **E12b** (la expresión medida sobrevive a los dos juicios, ENTREGA `node:child_process` en el proceso del test sin mandar un byte, y el párrafo del residuo tiene que seguir en el guardián: borrarlo es rojo) | Los cuatro residuos declarados tienen ejemplo ejecutable y corren en verde. **PERO el residuo declarado está medido MENOR que el residuo real**: la capacidad `eval` es alcanzable sin nombrar `eval` ni `Function` ni ningún identificador libre (F-SPEC-009-V2), y ningún residuo escrito la nombra de forma medible (ADR-016 §6) | ❌ |
+| CA-5 — lo construido no se rehace, y sigue mordiendo | Sin cambios en los mecanismos: `readModule` intacto (solo GANA `freeReferences`), la trampa del socket intacta, `ALLOWED_PACKAGES` y la concesión por superficie intactos, `scannedSources` mismo paseo (extraído a `walkTree` compartido) · **2ª vuelta**: `readModule`, `freeReferences`, la trampa, `ALLOWED_PACKAGES` y `ALLOWED_GLOBALS` sin una línea de diff; lo único que cambia es que el paseo compartido GANA la clasificación exhaustiva de dirents (CA-2), sigue siendo UNO y las dos listas siguen derivando de él | Spot-check R5 (la octava en `#captureGranted`): roja en las DOS mitades — `architecture` 3 + `containment` 2, 4, 8, 9, igual que en SPEC-008. Casos 14, 15, 16, 17 de `containment` y 2d, 2g, 2i, 3b..3g, 4..4h de `architecture` sin perder ni una aserción. La propiedad de RN-11 (denegar por defecto) la comprueban los casos 1 y 15 de `containment`, intactos | R5 repetida por mí: ROJO en las dos mitades (`architecture` 3 + `containment` 2, 4, 8, 9), revertida con diff vacío. Diff de `tests/mirror/support/imports.ts` leído entero: `readModule` solo gana `freeReferences`. La trampa y `ALLOWED_PACKAGES` sin una línea de diff | ✅ |
+| CA-6 — no se toca `src/` | `git diff main -- src/ migrations/ .gitignore` → vacío (comprobado 2026-09-02, y REPETIDO tras la segunda vuelta: los dos commits nuevos tocan solo `tests/polite/`). Todo el trabajo vive en `tests/` y en este ledger | — (es una propiedad del diff, no un caso) | `git diff main -- src/ migrations/ .gitignore` → 0 líneas, repetido por mí (2026-09-02). Árbol de trabajo limpio. Ningún HTML de terceros añadido (ADR-009 §3) | ✅ |
+| CA-7 — los tres gates y las suites cerradas enteras | Salidas literales en «Primera vuelta» y en «Segunda vuelta» abajo: 2ª vuelta `lint exit=0` · `npm test` **803/803** (82 ficheros) · `test:db` **144/144** con `DATABASE_URL_TEST` real (al primer intento) | Recuento fichero a fichero contra `main`: solo cambia `tests/polite` (`architecture` 41→**50**, `containment` 17→20, `evasions` +**14**); `tests/mirror`, `tests/site`, `tests/docs`, `tests/model`, `tests/raw`, `tests/db` y `tests/types` idénticos fichero a fichero (el único fichero fuera de `tests/polite/` con diff es `tests/mirror/support/imports.ts`, el soporte de la 1ª vuelta, y no es una suite) | Corridos por mí: `lint exit=0` · `npm test` **800/800** · `test:db` **144/144** (al 5º intento; 4 `ENOTFOUND` de DNS contra Neon, el flake documentado F-SPEC-008-21). Recuento por fichero con reporter JSON contra un worktree de `main` (777): **79 ficheros idénticos**, solo cambia `tests/polite` (41→49, 17→20, +12). Salidas literales abajo | ✅ |
 
 ## Primera vuelta — la lista negra se borra y la cobertura deja de ser de `git` (2026-09-02, `sdd-implementador`)
 
@@ -160,7 +164,7 @@ pierde un caso.
 
 | # | Mutación | Resultado |
 |---|---|---|
-| M1 | `ALLOWED_GLOBALS` sin la entrada `process` | **ROJO ×3**: `architecture` 8, 11c, 11h |
+| M1 | `ALLOWED_GLOBALS` sin la entrada `process` | **ROJO ×3**: `architecture` 8, 11c y `evasions` E11 *(corregido en la 2ª vuelta por F-SPEC-009-V3: esta fila decía «11h», y 11h no puede ponerse rojo por QUITAR una entrada — vigila que las que están se usen. El ×3 era cierto; el tercer caso, no)* |
 | M2 | `repositorySources()` devuelta a `git` (`versionedSources`) | **ROJO**: `architecture` 2k — la reproducción exacta de V35 deja de verse |
 | M3 | R5 de SPEC-008: la octava evasión repuesta en `#captureGranted` de `src/ingest/adapter.ts` | **ROJO EN LAS DOS MITADES**, igual que documenta SPEC-008: `architecture` 3 + `containment` 2, 4, 8, 9. Revertida; `git diff main -- src/` vacío |
 
@@ -213,6 +217,117 @@ una expresión que NO es identificador no se juzga jamás, a ningún nivel.
 | R5 | La octava evasión repuesta en `#captureGranted` de `src/ingest/adapter.ts` | **ROJO EN LAS DOS MITADES**: `architecture` 3 + `containment` 2, 4, 8, 9. Revertida, diff vacío |
 | **S1/S2** | **Symlink** `robots/evil-link.ts` (raíz) y `src/ingest/robots/evil.ts` (bajo raíz), destino con `cheerio.fromURL`, el segundo IMPORTADO desde `adapter.ts` | **VERDE TOTAL: lint exit=0, `tests/polite` 114/114, `npm test` 800/800, typecheck limpio** → F-SPEC-009-V1 |
 | **F** | `src/db/fdoor.ts`: `const cp = (''.constructor.constructor)("return process.getBuiltinModule('node:child_process')")()` | **VERDE TOTAL: lint exit=0, `tests/polite` 114/114** → F-SPEC-009-V2 |
+
+## Segunda vuelta — el paseo decide los symlinks, y el residuo de `eval` se escribe donde se juzga (2026-09-02, `sdd-implementador`)
+
+Dos findings bloqueantes, dos arreglos, y ninguno toca `src/` (CA-6). Los dos
+ciclos fueron TDD medido: los casos nuevos corrieron ROJOS contra el guardián
+viejo antes de escribir el mecanismo (E12a y 2l cayeron con `walkRefusals is
+not a function`; la aserción de E12b sobre el texto del criterio cayó con el
+residuo aún sin escribir, mientras sus mitades estática y dinámica ya pasaban —
+que es exactamente lo que una superviviente debe hacer).
+
+### 1. F-SPEC-009-V1 → cerrado con mecanismo: el paseo clasifica TODO dirent, y refusa nombrándose
+
+El defecto era un cuarto destino silencioso: un dirent de symlink no es
+`isFile()` ni `isDirectory()` y `walkTree` lo saltaba sin raíz, sin exclusión y
+sin motivo. Ahora el paseo es **exhaustivo y declarado**: fichero juzgado,
+directorio recorrido, exclusión declarada con motivo, o **refusal rojo por
+construcción, nombrándose** — para un symlink y para cualquier otra cosa que la
+plataforma pueda poner en un directorio (FIFO, socket: lo que el paseo no sabe
+clasificar es rojo, nunca silencio, la misma obligación que ADR-016 §5 bis le
+pone al lector). El paseo **no sigue el enlace**: resolverlo auditaría un
+fichero de fuera del repositorio bajo una ruta de dentro, y un symlink de
+directorio injertaría un árbol ajeno entero. La única salida sigue siendo una
+exclusión declarada con su motivo, comprobada en sus dos formas (dentro de una
+exclusión no se entra; un symlink EN una ruta excluida tampoco se refusa).
+
+- `walkRefusals(extensions?, exclusions?, base?)` expone las refusals del árbol
+  entero; `base` existe SOLO para que la batería reproduzca sobre un árbol
+  sintético fuera del repositorio — un symlink real escrito por E12a correría
+  en paralelo con el guardián vivo de `architecture.test.ts` y lo pondría rojo
+  por el motivo equivocado (el mismo razonamiento que E10 sin disco).
+- **Caso 2l** (`architecture.test.ts`, CA-2.6): el árbol real no tiene hoy
+  ninguna refusal, y el control positivo con nombre propio
+  (`robots/refusal-control.ts` y `src/ingest/refusal-control-tree`, colgantes a
+  propósito y preguntados con `lstatSync`, porque `existsSync` sigue el enlace
+  y mentiría) comprueba las dos formas medidas — y que refusar NO es leer:
+  ninguno entra en la lista de ficheros de nadie.
+- **E12a** (batería, CA-3.3): S1, S2 y el symlink de DIRECTORIO, con el paseo y
+  las listas reales sobre árbol sintético.
+
+### 2. F-SPEC-009-V2 → el residuo se ensancha y se ESCRIBE dentro del criterio, con E12b como superviviente medida
+
+No hay mecanismo que cierre `constructor.constructor` sin lista negra: juzgar
+`constructor` por su nombre sería un nombre otra vez (ADR-016 §3.5), y el
+verificador lo dijo con esas palabras. El arreglo honesto es el de ADR-016 §6:
+el párrafo del residuo vive ahora en el docstring de `capabilityOffences`
+(`capability.ts`), nombrado de forma medible — el miembro se juzga SOLO cuando
+su base es un identificador libre; sobre cualquier otra expresión (un literal,
+un resultado, un local) no se juzga jamás, a ningún nivel, y por
+`constructor.constructor` todo valor alcanza `Function`: la capacidad `eval` es
+alcanzable sin escribir `eval`, `Function` ni ningún identificador libre. Lo
+que lo estrecha es la trampa de CA-2.1 (el byte sigue teniendo que salir por un
+socket de este proceso); lo que lo cerraría es la cobertura, que este proyecto
+no mide (EPIC-MEJORA, ADR-016 §Consecuencias negativas 2).
+
+**E12b** (batería, describe CA-4.3) lo mantiene medible con tres aserciones:
+la reproducción literal del verificador sobrevive a los DOS juicios estáticos
+(`importOffences` y `capabilityOffences` vacíos — `process` solo existe dentro
+de una cadena); la expresión ENTREGA `node:child_process` entero en el proceso
+del test, sin mandar un byte (RN-11: se demuestra que se podría, no se pide
+nada); y el párrafo del residuo tiene que seguir escrito en el guardián —
+borrarlo sin borrar el caso es rojo. Es superviviente A PROPÓSITO, como N4:
+matarla exigiría un mecanismo nuevo con firma, y este caso es el que lo haría
+visible. La nota al gate va en F-SPEC-009-6. F-SPEC-009-4 queda ensanchada como
+pidió el veredicto.
+
+### 3. F-SPEC-009-V3 y V4
+
+La fila M1 de la primera vuelta está corregida (el tercer rojo es `evasions`
+E11, no 11h), con la corrección anotada en la propia fila para que el mapa de
+mutaciones no envejezca mal. Y F-SPEC-008-V36, V38 y V39 tienen destino
+propuesto por escrito en F-SPEC-009-5, porque ninguno cabe en los CA firmados
+de esta spec y cerrarla sin decirlo los dejaría huérfanos otra vez.
+
+### 4. Gates — las TRES salidas literales (2026-09-02, este checkout)
+
+```
+$ npm run lint
+> marcador@0.0.1 lint
+> oxlint --type-aware
+(sin diagnósticos; exit=0)
+
+$ npm test
+ Test Files  82 passed (82)
+      Tests  803 passed (803)
+Type Errors  no errors
+   Duration  4.40s
+
+$ npm run test:db        # DATABASE_URL_TEST real, desde .env.local
+ Test Files  8 passed (8)
+      Tests  144 passed (144)
+   Duration  52.92s
+```
+
+**Recuento fichero a fichero contra `main` (777 → 803)**: el diff completo de
+suites es `tests/polite/architecture.test.ts` 41→**50**,
+`tests/polite/containment.test.ts` 17→20 y `tests/polite/evasions.test.ts`
++**14**. Las suites cerradas — `tests/mirror`, `tests/site`, `tests/docs`,
+`tests/model`, `tests/raw`, `tests/db` (144/144 en integración) y
+`tests/types` — **idénticas fichero a fichero**: ninguna pierde un caso. El
+único fichero con diff fuera de `tests/polite/` es
+`tests/mirror/support/imports.ts` (el soporte de la primera vuelta), que no es
+una suite.
+
+### 5. Mutaciones de esta vuelta, aplicadas y revertidas
+
+| # | Mutación / ataque | Resultado |
+|---|---|---|
+| S1+S2 | **La duodécima del verificador, repetida tal cual**: symlink `robots/evil-link.ts` (raíz) y `src/ingest/robots/evil.ts` (bajo raíz), destino con `cheerio.fromURL` fuera del repositorio | **ROJO**: `architecture` 2l, nombrando LOS DOS — `robots/evil-link.ts: a symbolic link, which the walk refuses by construction (F-SPEC-009-V1)` y su gemelo bajo `src/ingest/`. Revertida; árbol limpio |
+| M4 | El paseo devuelto al salto silencioso (`isSymbolicLink() → continue` sin refusal) | **ROJO ×2**: `evasions` E12a + `architecture` 2l (control positivo). Revertida |
+| F | La segunda forma repetida tal cual: `src/db/fdoor.ts` con `(''.constructor.constructor)("return process.getBuiltinModule('node:child_process')")()` | **VERDE — sobrevive, y AHORA es lo que el criterio declara**: 117/117, el residuo escrito la nombra y E12b la mantiene medible. Revertida |
+| (RED de TDD) | E12b con el párrafo del residuo aún sin escribir en `capability.ts` | **ROJO**: `expected … to match /F-SPEC-009-V2/` — borrar el texto del criterio sin borrar el caso es rojo |
 
 ## Evidencia visual
 
@@ -312,23 +427,85 @@ está en la tabla de mutaciones y en las salidas literales de los gates.
   suite de la frontera. Es el precio correcto y va dicho, como el «fichero
   basura bajo una raíz es rojo» de CA-2.6. **Sin destino: es el comportamiento
   especificado.**
-- **F-SPEC-009-4 — `freeReferences` juzga el primer nivel de miembro
-  (`process.getBuiltinModule`), no los niveles siguientes
-  (`process.env.X`).** Es la misma línea de grano que las superficies de
-  `ALLOWED_PACKAGES` y está declarada como residuo en CA-4.3: una superficie
-  concedida no queda cerrada por dentro. **Sin destino: residuo declarado del
-  criterio.**
+- **F-SPEC-009-4 — el juicio de miembros alcanza EXACTAMENTE un nivel, y solo
+  sobre una base que sea identificador libre.** *(Ensanchada en la 2ª vuelta,
+  como pidió el veredicto de la 1ª: el texto original decía solo «primer nivel
+  de miembro», y F-SPEC-009-V2 midió que el hueco real es más ancho.)* Dos
+  mitades: (a) `freeReferences` juzga el primer nivel
+  (`process.getBuiltinModule`), no los siguientes (`process.env.X`) — la misma
+  línea de grano que las superficies de `ALLOWED_PACKAGES`; y (b) **el miembro
+  sobre una expresión que NO es un identificador libre no se juzga jamás, a
+  ningún nivel** — un literal, el resultado de una llamada, un valor local — y
+  por `constructor.constructor` todo valor alcanza `Function`
+  (F-SPEC-009-V2). Las dos mitades están hoy ESCRITAS dentro del criterio
+  (docstring de `capabilityOffences`) y la segunda tiene superviviente medida
+  en la batería (E12b). **Sin destino: residuo declarado del criterio (ADR-016
+  §6), con la nota al gate en F-SPEC-009-6.**
+- **F-SPEC-009-5 — destino propuesto, por escrito, para los tres heredados que
+  esta spec no cubre (cierra F-SPEC-009-V4).** F-SPEC-008-V36, V38 y V39
+  fueron rutados «destino SPEC-009» en el ledger de SPEC-008 y ningún CA
+  firmado de esta spec los alcanza; dejarlos sin destino al cerrar sería
+  perderlos otra vez. Propuesta del implementador, para que `sdd-arquitecto` y
+  el gate humano la confirmen o la muevan al cerrar la spec:
+  1. **F-SPEC-008-V36** (la cuarta lista de extensiones, en `resolveModule()`
+     de `tests/mirror/support/imports.ts`): **EPIC-MEJORA.** Su modo de fallo
+     es un **rojo falso, nunca un verde falso** — un `.mts`/`.cts`/`.js`/`.mjs`
+     legítimo quedaría huérfano y pondría rojo `architecture` 13 —, así que no
+     es un agujero de frontera sino deuda de ergonomía. Disparador (el mismo
+     que ya tiene escrito): el día que entre en el repositorio un fichero
+     legítimo de esas extensiones. No se arregla aquí porque tocar el
+     resolvedor mueve el conjunto `reachable` del que dependen los casos 13,
+     15, 16 y 17 (CA-5: lo construido no se rehace).
+  2. **F-SPEC-008-V38 y V39** (lo que cuesta la exclusión de `docs/diseno/`, y
+     que es por directorio y más ancha que su motivo): **EPIC-MEJORA, como una
+     sola entrada.** Son un residuo declarado de CA-2.6 de SPEC-008 que CA-2 de
+     esta spec no reabre — la exclusión sigue siendo una decisión declarada con
+     motivo, que es lo que ambos CA piden. Disparadores (los que V38/V39 ya
+     traen escritos): el día que algo bajo una raíz importe algo de
+     `docs/diseno/`, o el día que EPIC-004 se descongele y sus fuentes pasen a
+     ser código desplegado.
+  **Destino: `sdd-arquitecto` + gate humano al cierre de esta spec, con esta
+  propuesta delante.**
+- **F-SPEC-009-6 — nota al gate humano: el residuo de `constructor.constructor`
+  queda DECLARADO, no cerrado, y cambiar eso es una firma.** La segunda forma
+  de la duodécima (F-SPEC-009-V2) sobrevive a propósito como residuo escrito
+  (ADR-016 §6): no se conoce mecanismo que la cierre sin lista negra — juzgar
+  `constructor` por su nombre sería un nombre otra vez (§3.5), y el verificador
+  llegó a la misma conclusión. Si el gate prefiere **pagar un mecanismo**
+  (p. ej. juzgar TODO acceso a miembro cuyo nombre coincida con uno «peligroso»
+  sea cual sea la base, que es una lista negra asumida y dicha, o exigir
+  cobertura en ejecución, que hoy no se mide), esa es su firma, no la del
+  implementador ni la del verificador. Mientras tanto la contención real es la
+  trampa de CA-2.1: la expresión entrega la capacidad, pero el byte sigue sin
+  poder salir de un test hacia un tercero. **Destino: gate humano de esta
+  spec.**
 
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
 
-**Primera verificación RED (2026-09-02): la spec vuelve a `en-progreso`. Lo
-siguiente es cerrar F-SPEC-009-V1 y F-SPEC-009-V2 en `tests/` — el paseo
-decide los symlinks de forma declarada, el residuo de la capacidad `eval` se
-escribe dentro del criterio, y las dos evasiones entran en la batería como
-E12a y E12b (CA-3.3) — más la corrección menor de V3. Nada de esto toca
-`src/`.** Lo que sigue es el handoff de la implementación de la primera
-vuelta, que sigue siendo válido:
+**Segunda vuelta hecha (2026-09-02): la spec está en `en-revision` y espera la
+segunda verificación.** Los cuatro findings de la primera están atendidos:
+**V1** cerrada con mecanismo (`walkTree` clasifica todo dirent; `walkRefusals`;
+caso 2l + E12a), **V2** escrita como residuo dentro del criterio (docstring de
+`capabilityOffences`) con E12b como superviviente medida y nota al gate
+(F-SPEC-009-6), **V3** corregida en la fila M1 de la primera vuelta, **V4** con
+destino propuesto por escrito (F-SPEC-009-5, a confirmar por `sdd-arquitecto` y
+gate humano al cierre). Gates: `lint exit=0` · `npm test` **803/803** ·
+`test:db` **144/144**. `git diff main -- src/ migrations/ .gitignore` sigue
+vacío. Commits de la vuelta: `919942a` (V1) y `417f232` (V2), más el del
+ledger.
+
+**Para el verificador, lo nuevo de esta vuelta**: las mutaciones S1/S2 de tu
+primera verificación ahora mueren en `architecture` 2l nombrándose (repetidas
+tal cual, ver tabla de la segunda vuelta); el control 2l usa **nombres
+propios** (`robots/refusal-control.ts`, `src/ingest/refusal-control-tree`), así
+que tus symlinks y los suyos conviven; E12a reproduce sobre árbol sintético
+fuera del repositorio (mismo paseo, mismas listas, `base` parametrizada) para
+no correr en paralelo contra el guardián vivo; y la F de `src/db/fdoor.ts`
+sigue VERDE **a propósito** — es E12b y el residuo escrito, no un olvido.
+
+Lo que sigue es el handoff de la implementación de la primera vuelta, que
+sigue siendo válido:
 
 1. **La firma del gate fue (a)**: lista blanca de identificadores globales con
    superficie y motivo (Alberto Fojo, 2026-09-01). Implementada: quién decide
@@ -345,10 +522,12 @@ vuelta, que sigue siendo válido:
    `tests/polite/containment.test.ts` (ejecución + residuos CA-4); la batería
    de las once evasiones en `tests/polite/evasions.test.ts`.
 3. **Para el verificador**: las mutaciones R1..R13/Q/N de SPEC-008 siguen
-   siendo el mapa (spot-check R5 repetido en esta vuelta, mismo resultado). La
-   duodécima evasión, si aparece, entra como caso en `evasions.test.ts` (su
-   cabecera lo dice). Las cuatro salvedades F-SPEC-009-1..4 son deliberadas y
-   esperan su juicio, no arreglo.
+   siendo el mapa (spot-check R5 repetido en la primera vuelta, mismo
+   resultado). La duodécima ya entró (E12a y E12b); la decimotercera, si
+   aparece, entra como caso en `evasions.test.ts` (su cabecera lo dice). Las
+   salvedades F-SPEC-009-1..6 son deliberadas y esperan juicio, no arreglo
+   (la 4 ya ensanchada como pidió tu veredicto; la 5 y la 6 son de la segunda
+   vuelta).
 4. **N4 sigue sobreviviendo** (CA-3.2) y ahora tiene caso propio: E7/N4 en la
    batería reproduce el parser funcional y exige que NO ofenda.
 5. **Para correr las tres suites desde un worktree**: `npm ci` **dentro** del
