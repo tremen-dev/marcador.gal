@@ -21,6 +21,12 @@ epica: EPIC-002
   `175403d`. Gates: `lint` exit=0 · `npm test` **114/1117** · `test:db` 22/276.
   Queda **F-SPEC-013-9** para el gate: una frase en el texto de CA-13.3 que este
   rol no puede escribir. La spec vuelve a `en-revision`.
+- **Gate del 2026-09-02 (Alberto Fojo), y con esto no queda nada pendiente:**
+  **F-SPEC-013-9 cerrado** —el segundo residuo ya está escrito en CA-13.3— y
+  **F-SPEC-013-4 cerrado** con la lectura **estrecha**, hecha explícita en CA-9.
+  Los dos son cambios de **letra de la spec**: ni `src/` ni `tests/` ni
+  `reglas.md` ni ADR-021 cambian, y ningún caso se movió. Lista para la
+  reverificación.
 
 ## Matriz de criterios de aceptación
 <!-- Escritores: sdd-implementador rellena Implementado y Test; sdd-verificador rellena Verif. y Estado. Nunca al revés. -->
@@ -422,7 +428,42 @@ crea, y Playwright no se usa porque no hay nada que mirar.
   que es justo lo que pide CA-6.4. **No necesita decisión**: se levanta aquí
   para que el verificador la juzgue como lectura declarada y no como hallazgo.
 
-- **F-SPEC-013-4 — «Escalón 1 de RN-12» se implementa exigiendo DISCREPANCIA, y
+- **F-SPEC-013-4 — CERRADO. Alberto Fojo firma la lectura ESTRECHA el
+  2026-09-02, y `sdd-arquitecto` la hace explícita en CA-9 ese mismo día.**
+  `RN-01` se registra en `rule` **solo** cuando la `Decision` resuelve de verdad
+  una discrepancia por precedencia del operador; un operador solo, sin nadie que
+  le contradiga, se registra por el escalón que corresponda (`RN-06` si cambia el
+  estado, `RN-02`/`RN-03` si no).
+
+  **No hay diff de código ni de tests: la implementación ya hacía esto.** Lo que
+  se corrigió es la letra del criterio. En CA-9, la cláusula «una decisión del
+  operador que además cambia el estado registra `RN-01`» pasa a decir «una
+  decisión del operador **que resuelve una discrepancia** —otra fuente dice algo
+  distinto— y que además cambia el estado registra `RN-01`», que es exactamente
+  el escenario del caso 3 de `tests/decide/rules-attribution.test.ts`
+  (`ceroacero` dice `live` 2-1 y el operador dice `finished` 2-2). Y se añade el
+  párrafo que nombra la condición y cita la letra de RN-12 —«resuelve una
+  discrepancia», «por qué ganó el operador **un empate**»— con el motivo:
+  registrar `RN-01` sin discrepancia convertiría `rule` en un sinónimo de la
+  `source` del apoyo, que es lo que RN-12 prohíbe en «por qué la decisiva y no la
+  primera en orden».
+
+  **`docs/fundacion/reglas.md` NO cambia, y es una decisión, no un olvido.** Las
+  cuatro aclaraciones del 2026-09-02 existen porque el texto de `reglas.md` era
+  genuinamente ambiguo y había **dos lecturas posibles de la propia regla**. Aquí
+  no: RN-12 ya dice literalmente «resuelve una discrepancia» y «un empate». La
+  ambigüedad estaba en la **paráfrasis** de CA-9, no en la regla. Añadir una
+  quinta aclaración metería en el documento de verdad la corrección de un error
+  de una spec, sugeriría que RN-12 no estaba claro cuando sí lo estaba, y
+  debilitaría la señal de las cuatro que sí resolvían una ambigüedad real. La
+  spec **referencia** la fuente de verdad, no la duplica (`CLAUDE.md`).
+
+  **Se conserva el disparador original**, porque la lectura solo se pondrá a
+  prueba de verdad con observaciones de operador reales: **la spec del panel**.
+
+  <details><summary>Hallazgo original, tal como lo levantó el implementador</summary>
+
+  **«Escalón 1 de RN-12» se implementa exigiendo DISCREPANCIA, y
   CA-9 podría leerse sin ella.** `operatorPrecedence` es cierto cuando el
   operador lidera **y** alguna otra fuente dice algo distinto; un operador solo,
   sin nadie que le contradiga, se registra por el escalón que corresponda
@@ -437,6 +478,8 @@ crea, y Playwright no se usa porque no hay nada que mirar.
   **Destino: gate humano**, y si la lectura amplia es la buena es un diff de una
   condición en `src/decide/rules.ts` con su caso. **Disparador: la spec del
   panel**, que es la que traerá observaciones de operador de verdad.
+
+  </details>
 
 - **F-SPEC-013-5 — `productionCronTick` se queda sin llamante en producción.**
   La ruta del cron inyecta ahora `productionCycle` (CA-12.2). `productionCronTick`
@@ -459,9 +502,26 @@ crea, y Playwright no se usa porque no hay nada que mirar.
   otras máquinas). Súmese a F-SPEC-010-7: la rama de Neon es compartida entre
   worktrees y dos ejecuciones concurrentes se corrompen entre sí.
 
-- **F-SPEC-013-9 — El texto de CA-13 no nombra el residuo que el mecanismo nuevo
-  deja, y este rol no puede escribirlo.** Levantado por `sdd-implementador` el
-  2026-09-02 al cerrar F-SPEC-013-7.
+- **F-SPEC-013-9 — CERRADO. Firmado por Alberto Fojo el 2026-09-02 y escrito por
+  `sdd-arquitecto` ese mismo día en el cuerpo de CA-13.3.** El texto propuesto se
+  usó casi literal, con **una** mejora: donde decía «este mecanismo es de
+  nombres» ahora dice «**el mecanismo del grafo** es de nombres», porque CA-13.3
+  describe **dos** mecanismos —el del grafo y el textual del SQL— y «este» podía
+  leerse como el segundo, que es el que le precede en el párrafo. Se conservó
+  íntegro el matiz de gravedad, que era lo que calibraba el hallazgo: un módulo
+  estructural **no importa ninguno de los tres nombres**, así que no falsea lo
+  que la letra promete —a diferencia de la evasión de F-SPEC-013-7, que sí lo
+  importaba— y el mecanismo cierra hoy **más** de lo que el criterio promete; se
+  declara porque ADR-016 §6 obliga, no porque haya una promesa incumplida.
+  **No es una enmienda de ADR-015** —la spec está `en-revision`, no cerrada— y el
+  índice de `## Enmienda —` no se ha tocado. **Nada de `tests/` ni de `src/`
+  cambió**: la mitad ejecutable ya estaba (casos 19 y 21).
+
+  <details><summary>Hallazgo original, tal como lo levantó el implementador</summary>
+
+  **El texto de CA-13 no nombra el residuo que el mecanismo nuevo deja, y este
+  rol no puede escribirlo.** Levantado por `sdd-implementador` el 2026-09-02 al
+  cerrar F-SPEC-013-7.
 
   **Qué queda fuera.** La capacidad entregada de forma **estructural, sin
   nombrarla**: un módulo que reciba por inyección un
@@ -504,6 +564,8 @@ crea, y Playwright no se usa porque no hay nada que mirar.
   frase en CA-13.3 de una spec que está `en-progreso`, no una enmienda de
   ADR-015 (la spec no está cerrada).
 
+  </details>
+
 - **F-SPEC-013-10 — NO BLOQUEANTE. Carrera entre dos suites cerradas:
   `tests/polite/architecture.test.ts` caso 2d escribe un fichero real bajo `src/`
   y `tests/site/contact.test.ts` caso 5 enumera `src/` a la vez.** Levantado por
@@ -518,6 +580,26 @@ crea, y Playwright no se usa porque no hay nada que mirar.
   cuatro ejecuciones dieron 114/1117. **Destino: EPIC-MEJORA**; **disparador: la
   próxima spec que tenga que tocar cualquiera de los dos ficheros**, o la
   segunda vez que un gate se caiga por esto.
+
+  **Ampliado el 2026-09-02 por `sdd-arquitecto`, y ya es la segunda vez.** La
+  carrera **no es solo del caso 5 de `contact.test.ts`**: alcanza a cualquier
+  caso que enumere `src/` por `tests/site/source-scan.ts`. Medido al correr los
+  gates tras la edición de letra de F-SPEC-013-9 y F-SPEC-013-4: una ejecución
+  de `npm test` dio **1 failed | 1116 passed**, con
+  `tests/site/title-source.test.ts` cayendo en `readSourceFiles`
+  (`source-scan.ts:44`) por `ENOENT … src/ingest/refusal-control-tree` — otro
+  fichero sintético de `tests/polite/architecture.test.ts`, esta vez pillado
+  **entre el `writeFileSync` y el `rm` del `finally`**, no después. La ejecución
+  inmediatamente siguiente, sin tocar nada, dio **114/114 y 1117/1117**.
+
+  **Para el verificador, y es el motivo de escribir esto ahora:** si `npm test`
+  cae con un `ENOENT` o con un fichero de más bajo `src/ingest/` en un caso de
+  `tests/site/`, **es este flake y no un defecto de SPEC-013** — repítelo antes
+  de anotar nada. Nada de `src/` ni de `tests/` cambió en esta vuelta (el diff
+  es solo `docs/`), así que no puede venir de aquí. Con la segunda caída, el
+  disparador de este finding **ya se ha cumplido**: aislar el escaneo de `src/`
+  de los controles positivos que escriben en él deja de ser opcional, y es la
+  única entrada de esta spec que sube a *Ahora* en EPIC-MEJORA.
 Y dos residuos ya **declarados por la spec** antes de implementar, que el
 implementador no tiene que descubrir y el verificador no tiene que levantar como
 hallazgo:
@@ -548,9 +630,11 @@ reescribir su evasión y sus variantes. Están todas como casos —6, 7, 8, 9, 1
 `src/` antes de borrarlas. Si encuentra una forma nueva, el sitio donde mirar es
 `decisionImportOffences` (el nombre, en sus tres deletreos) y
 `decisionHandoverOffences` (la superficie ilegible de un módulo con capacidad).
-**Lo que sigue sin alcanzarse está escrito y es F-SPEC-013-9**, que necesita una
-frase de `sdd-arquitecto` en el texto de CA-13.3: el implementador no edita la
-spec.
+**Lo que sigue sin alcanzarse está escrito en el propio criterio**: el segundo
+residuo —la capacidad entregada como **tipo estructural**— lo escribió
+`sdd-arquitecto` en CA-13.3 el 2026-09-02 bajo firma del gate (F-SPEC-013-9,
+cerrado), con destino EPIC-MEJORA y su disparador. El verificador lo encontrará
+en el texto del criterio, no solo en el comentario de `tests/decide/support/rn08.ts`.
 
 **Estado de la primera vuelta (2026-09-02, sin cambios salvo CA-13):** los quince
 CA implementados con TDD, todo commiteado en la misma rama (sin push, sin PR: lo
@@ -590,8 +674,10 @@ hace el orquestador tras el GREEN).
    evasión de F-SPEC-013-7 escrita como caso; el **12** es la forma que el
    mecanismo de nombres **no puede** ver y el de superficie sí; el **13** apaga
    el detector nuevo vaciando la lista.
-3. **F-SPEC-013-4**, que es la única lectura de RN-01/RN-12 que esta
-   implementación fija y que un CA podría leer de otra manera.
+3. **F-SPEC-013-4, ya cerrado por el gate con la lectura estrecha** y escrito en
+   CA-9: `RN-01` solo cuando la `Decision` resuelve una discrepancia. El caso 3
+   de `tests/decide/rules-attribution.test.ts` es exactamente ese escenario, y no
+   se tocó.
 4. **`npm run test:db` necesita `DATABASE_URL_TEST`** y, en esta máquina, el
    endpoint **directo** de Neon (F-SPEC-013-6). Sin él, CA-11 y CA-12 son
    **UNMET, no *skipped***.

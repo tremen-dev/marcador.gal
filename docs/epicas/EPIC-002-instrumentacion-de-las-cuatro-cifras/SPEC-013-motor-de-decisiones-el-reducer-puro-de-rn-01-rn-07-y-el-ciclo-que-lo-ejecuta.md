@@ -432,8 +432,20 @@ recibe ninguna observación humana: el bot y el panel son las specs siguientes.
   RN-07 > RN-06 > RN-02/RN-03— con un caso por escalón y **un caso por cada par
   adyacente concurrente**: una transición `scheduled → live` con una sola fuente
   de 0.8 registra `RN-06` y no `RN-03`; una bajada de marcador que además cambia
-  el estado registra `RN-04`; una decisión del operador que además cambia el
-  estado registra `RN-01`. Y además:
+  el estado registra `RN-04`; una decisión del operador **que resuelve una
+  discrepancia** —otra fuente dice algo distinto— y que además cambia el estado
+  registra `RN-01`.
+
+  **El escalón 1 exige la discrepancia, y esto es la letra de RN-12, no una
+  interpretación:** el escalón dice «la `Decision` **resuelve una discrepancia**
+  por precedencia del operador — por qué ganó el operador **un empate** no está
+  en ninguna otra columna». Un operador **solo**, sin nadie que le contradiga,
+  no resuelve ningún empate y se registra por el escalón que corresponda —
+  `RN-06` si cambia el estado, `RN-02`/`RN-03` si no—; registrar `RN-01` ahí
+  convertiría `rule` en un sinónimo de la `source` del apoyo, que es
+  exactamente lo que RN-12 prohíbe en «por qué la decisiva y no la primera en
+  orden». La condición vive en **un solo predicado** del reducer, y es él quien
+  la hace verdadera o falsa. Y además:
   1. **RN-05 nunca aparece en `rule`**: cuando es conflicto no emite `Decision`
      (CA-6.2), y durante la gracia —cuando todavía no lo es— lo que se publica
      se atribuye por el orden normal, `RN-02`/`RN-03` o `RN-06` (CA-6.3). Una
@@ -560,6 +572,24 @@ recibe ninguna observación humana: el bot y el panel son las specs siguientes.
      es el nombre de tabla compuesto en tiempo de ejecución**, y su destino es
      **EPIC-MEJORA** con disparador escrito: el día que un módulo fuera de
      `src/decide/` y de `src/db/` necesite escribir en la base.
+
+     **Y un segundo residuo, del mismo rango:** el mecanismo del grafo es de
+     **nombres** —que es lo que ADR-016 §3.1 pide—, y no alcanza a la capacidad
+     entregada como **tipo estructural**: un módulo que reciba
+     `{ append, getLatestByMatch }` escrito a mano nunca deletrea
+     `DecisionStore`. Cerrarlo pediría comparar **tipos**, no nombres.
+     **Destino: EPIC-MEJORA**; **disparador: el día que un módulo fuera de
+     `src/decide/` reciba un almacén de decisiones por inyección.**
+
+     **Y el rango, dicho sin inflarlo:** este segundo residuo **no falsea** lo
+     que este criterio afirma. La letra promete vacío el conjunto de ficheros
+     que **importan** `PostgresDecisionStore`, `DecisionVersionConflictError` o
+     el tipo `DecisionStore`, y un módulo que recibe la capacidad
+     estructuralmente no importa ninguno de los tres — a diferencia de la
+     evasión por namespace, que sí importaba el nombre y por eso fue un RED.
+     El mecanismo, de hecho, cierra hoy **más** de lo que esta letra promete.
+     Se declara porque ADR-016 §6 obliga a nombrar lo que no se alcanza, no
+     porque haya una promesa incumplida.
   4. **Ninguna exención por nombre de fichero** (ADR-016 §3.3): la lista es de
      módulos con capacidad, no de ficheros perdonados, y un caso afirma que no
      existe ninguna lista de exclusiones propia de este criterio.
