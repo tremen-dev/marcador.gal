@@ -16,7 +16,7 @@ Actualizado: 2026-09-02
 | Spec | Estado | Último cambio |
 |---|---|---|
 | SPEC-008 — adaptador-de-ceroacero-es-y-cortesia-rn-11-con-una-sola-implementacion | hecho | 2026-09-01 (sdd-verificador) |
-| SPEC-009 — la-frontera-de-capacidad-de-rn-11-demostrada-sin-listas-negras | borrador | 2026-09-01 (sdd-arquitecto) |
+| SPEC-009 — la-frontera-de-capacidad-de-rn-11-demostrada-sin-listas-negras | hecho | 2026-09-02 (sdd-verificador) |
 | SPEC-010 — calendario-declarado-a-mano-y-repositorios-de-observation-y-decision-en-postgres | hecho | 2026-09-02 (sdd-verificador) |
 
 ## EPIC-003 — paxina-de-proxecto-e-respaldo-publico-da-carta (hecho)
@@ -62,5 +62,4 @@ Actualizado: 2026-09-02
 
 ## Resumen
 
-- hecho: 9
-- borrador: 1
+- hecho: 10

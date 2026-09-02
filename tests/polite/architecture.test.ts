@@ -28,12 +28,13 @@
  * La mitad en EJECUCIÓN —CA-2.1 y CA-2.2— vive en `containment.test.ts`, que
  * instala las trampas antes de importar nada de `src/`.
  */
-import { existsSync, mkdirSync, rmSync, rmdirSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, rmSync, rmdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { describe, expect, test } from 'vitest';
-import { readModule, reachableModules } from '../mirror/support/imports';
+import { freeReferences, readModule, reachableModules } from '../mirror/support/imports';
 import { stripComments } from '../support/source-tree';
 import {
+  ALLOWED_GLOBALS,
   ALLOWED_PACKAGES,
   CONTAINED_DIRS,
   COURTESY_DIR,
@@ -44,12 +45,16 @@ import {
   capabilityOffences,
   importOffences,
   packageEntry,
+  repositorySources,
+  resolvesInsideRepository,
   scanRepository,
   scannedSources,
   syntheticFile,
   underScanRoots,
   versionedSources,
+  walkRefusals,
 } from './support/capability';
+import type { GlobalEntry } from './support/capability';
 
 const SCANNED = await scanRepository();
 const OUTSIDE = SCANNED.filter((file) => !file.path.startsWith(COURTESY_DIR));
@@ -90,15 +95,145 @@ describe('CA-2.6 — el escaneo cubre todo el código, no solo `src/`', () => {
     // Hasta la cuarta vuelta esta lista no existía, porque las exclusiones eran
     // las de `.gitignore` — un fichero escrito para otra cosa. La segunda llega
     // con `.js` declarado (F-SPEC-008-V37) y trae su motivo, como manda CA-2.6.2.
-    // Si algún día un motivo es «ahí hay ficheros que molestan», la frontera
-    // está mal trazada.
+    // Desde SPEC-009 CA-2 la cobertura recorre el árbol ENTERO del repositorio,
+    // así que quedar fuera de él también es una decisión declarada: las seis
+    // entradas nuevas son exactamente eso. Si algún día un motivo es «ahí hay
+    // ficheros que molestan», la frontera está mal trazada.
     expect(SCAN_EXCLUSIONS.map((exclusion) => exclusion.path)).toEqual([
       'node_modules/',
       'docs/diseno/',
+      'tests/',
+      '.git/',
+      '.next/',
+      '.claude/',
+      'raw/',
+      'next-env.d.ts',
     ]);
     for (const exclusion of SCAN_EXCLUSIONS) {
       expect(exclusion.motive, `${exclusion.path} sin motivo`).toBeTruthy();
     }
+  });
+
+  test('2j. la cobertura sale del ÁRBOL DE FICHEROS, no de `git` (SPEC-009 CA-2)', () => {
+    // F-SPEC-008-V35: bajo las raíces la LECTURA ya no heredaba `.gitignore`,
+    // pero la COBERTURA —el caso que hace que quedar fuera sea una decisión
+    // declarada— seguía saliendo de `git ls-files --exclude-standard`, y `git`
+    // no ve lo que `.gitignore` esconde. Un `robots/side.ts` en la raíz del
+    // repositorio dejaba `lint exit=0`, `npm test` 772/772 y `tests/polite`
+    // 86/86 sin aparecer en `git status`. Aquí la pregunta se le hace al árbol
+    // de ficheros, que es de lo que ninguna otra regla decide.
+    const uncovered = repositorySources().filter((path) => !underScanRoots(path));
+    expect(uncovered).toEqual([]);
+
+    // Y el paseo mide algo fuera de las raíces: sin la exclusión declarada de
+    // `docs/diseno/`, encuentra los ficheros reales del sistema de diseño —
+    // exactamente los que `git` también echa de menos en 2h.
+    const withoutDesign = SCAN_EXCLUSIONS.filter((exclusion) => exclusion.path !== 'docs/diseno/');
+    const uncoveredThen = repositorySources(SCAN_EXTENSIONS, withoutDesign).filter(
+      (path) => !underScanRoots(path),
+    );
+    expect(uncoveredThen).toContain('docs/diseno/_logic.js');
+    expect(uncoveredThen).toContain('docs/diseno/build.mjs');
+
+    // Dentro de las raíces, el árbol y la lectura son LA MISMA lista: la
+    // cobertura no puede quedarse más corta que lo que se lee.
+    const scanned = scannedSources();
+    const underRoots = repositorySources().filter(underScanRoots);
+    expect(underRoots).toEqual(scanned);
+  });
+
+  test('2k. control positivo (F-SPEC-008-V35): lo que `.gitignore` esconde fuera de las raíces ES ROJO', async () => {
+    // Reproducción exacta del tercer hueco. `.gitignore:17` (`**/robots/*`)
+    // esconde el contenido del directorio `robots/` de la raíz —regla legítima
+    // y ajena: los `robots.txt` de terceros quedan fuera del repositorio por
+    // ADR-009 §3, y NO SE TOCA—. `git` no lo lista, así que el caso 1 no lo
+    // puede echar de menos; `resolvesInsideRepository` acepta la ruta relativa
+    // desde `src/ingest/adapter.ts`, así que el importador NO ofende. La única
+    // red es la cobertura del árbol (2j), y esto comprueba que la tiene.
+    //
+    // Nombre propio de este caso, y NO el `side.ts` de la medición, por lo
+    // mismo que 2d y 2g: el verificador repite la mutación con ese nombre, y
+    // un control que la pisara la borraría al limpiar.
+    const path = 'robots/side-control.ts';
+    const source = [
+      "import { fromURL } from 'cheerio';",
+      'export const ask = async (url: string) => await fromURL(url);',
+    ].join('\n');
+
+    expect(existsSync(path), `${path} ya existe: este caso no lo pisa`).toBe(false);
+    try {
+      writeFileSync(path, `${source}\n`, 'utf8');
+
+      // Las tres mitades de la reproducción: `git` NO lo ve…
+      expect(versionedSources()).not.toContain(path);
+      // …el importador no ofendería —la ruta resuelve dentro del repositorio—…
+      expect(await resolvesInsideRepository('../../robots/side-control', 'src/ingest/adapter.ts')).toBe(
+        true,
+      );
+      // …y el árbol SÍ lo ve, fuera de toda raíz y de toda exclusión: rojo,
+      // nombrándose, por el mismo juicio que aplica 2j.
+      expect(repositorySources()).toContain(path);
+      expect(repositorySources().filter((entry) => !underScanRoots(entry))).toContain(path);
+    } finally {
+      rmSync(path, { force: true });
+    }
+
+    expect(existsSync(path)).toBe(false);
+    expect(repositorySources().filter((entry) => !underScanRoots(entry))).not.toContain(path);
+  });
+
+  test('2l. un symlink NO queda fuera en silencio: el paseo lo REFUSA, nombrándose (F-SPEC-009-V1)', () => {
+    // F-SPEC-009-V1, la duodécima evasión en su primera forma. Un dirent de
+    // symlink no es `isFile()` ni `isDirectory()`, y el paseo lo saltaba EN
+    // SILENCIO — sin raíz, sin exclusión y sin motivo: un accidente de
+    // `readdirSync(withFileTypes)`, «una regla escrita para otra cosa» ni
+    // siquiera. Medido dos veces (2026-09-02): un `robots/evil-link.ts` en la
+    // raíz y un `src/ingest/robots/evil.ts` BAJO UNA RAÍZ, importado desde
+    // `adapter.ts`, dejaron `lint exit=0` y `npm test` 800/800 con
+    // `cheerio.fromURL` dentro y sin que NADIE juzgara el fichero. Hoy el paseo
+    // decide de forma DECLARADA: refusa el symlink, nombrándose, y la única
+    // salida es una exclusión declarada con su motivo.
+    const SYMLINK = 'a symbolic link, which the walk refuses by construction (F-SPEC-009-V1)';
+
+    // Hoy el árbol está limpio: nada que el paseo no sepa clasificar.
+    expect(walkRefusals()).toEqual([]);
+
+    // Control positivo, con nombre propio (el verificador repite S1/S2 con
+    // `evil-link.ts`/`evil.ts`, y este caso no los pisa): las dos formas
+    // medidas. `existsSync` SIGUE el enlace y mentiría sobre uno colgante, así
+    // que se pregunta con `lstatSync`.
+    const filePath = 'robots/refusal-control.ts';
+    const treePath = 'src/ingest/refusal-control-tree';
+    const present = (path: string): boolean => {
+      try {
+        lstatSync(path);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    expect(present(filePath), `${filePath} ya existe: este caso no lo pisa`).toBe(false);
+    expect(present(treePath), `${treePath} ya existe: este caso no lo pisa`).toBe(false);
+    try {
+      // Colgantes a propósito: refusar no es seguir, y el destino da igual —
+      // también da igual para el paseo, que no hace `stat` de lo que refusa.
+      symlinkSync('outside-the-repository.ts', filePath);
+      symlinkSync('outside-the-repository-tree', treePath);
+
+      const refusals = walkRefusals();
+      expect(refusals).toContain(`${filePath}: ${SYMLINK}`);
+      expect(refusals).toContain(`${treePath}: ${SYMLINK}`);
+
+      // Y refusar NO es leer: ninguno entra en la lista de ficheros de nadie.
+      expect(repositorySources()).not.toContain(filePath);
+      expect(scannedSources()).not.toContain(treePath);
+    } finally {
+      rmSync(filePath, { force: true });
+      rmSync(treePath, { force: true });
+    }
+    expect(present(filePath)).toBe(false);
+    expect(present(treePath)).toBe(false);
+    expect(walkRefusals()).toEqual([]);
   });
 
   test('2c. la lista de lo que se LEE no la decide `git`: es la más ancha de las dos', () => {
@@ -513,6 +648,13 @@ describe('CA-2.3 — no se concede un paquete, se concede una superficie', () =>
       'src/ingest/computed.ts',
       'src/ingest/escape.ts',
       'src/polite/late-door.ts',
+      'src/ingest/door11.ts',
+      'src/ingest/env-user.ts',
+      'src/ingest/inverted11.ts',
+      'src/ingest/ambient.ts',
+      'src/ingest/augmented.ts',
+      'src/ingest/shorthand.ts',
+      'src/ingest/declared.ts',
     ]) {
       expect(existsSync(path), `${path}`).toBe(false);
     }
@@ -764,23 +906,24 @@ describe('CA-2.3 — no se concede un paquete, se concede una superficie', () =>
   });
 });
 
-describe('CA-2.4 — la capacidad global no se toma prestada fuera de `src/polite/`', () => {
-  test('8. fuera de `src/polite/` no aparece ninguna de las cuatro vías', () => {
-    expect(OUTSIDE.flatMap(capabilityOffences)).toEqual([]);
+describe('CA-2.4 y SPEC-009 CA-1 — la capacidad global se CONCEDE, no se prohíbe', () => {
+  test('8. fuera de `src/polite/` todo identificador libre es una entrada declarada', () => {
+    // SPEC-009 CA-1: ya no hay nueve nombres prohibidos. Se enumeran, desde el
+    // árbol del compilador, los identificadores que cada fichero usa como
+    // referencia LIBRE, y cada uno tiene que ser una entrada de
+    // `ALLOWED_GLOBALS` usada dentro de su superficie. Lo que no está, es rojo,
+    // y no hace falta que nadie sepa que existe.
+    expect(OUTSIDE.flatMap((file) => capabilityOffences(file))).toEqual([]);
   });
 
-  test('9. y dentro de `src/polite/` aparece EXACTAMENTE una vez, en la puerta', () => {
-    // Que el detector mida algo: `globalThis` existe en el árbol, y está donde
-    // ADR-014 §4 dice que tiene que estar.
-    //
-    // La lista es de UNO desde que esto se lee del árbol, y la que se va era un
-    // FALSO POSITIVO del patrón de texto: lo que casaba con «bare `fetch`» en
-    // `src/polite/http.ts` es la línea 32, `fetch(request: HttpRequest)`, que es
-    // el MIEMBRO DE UNA INTERFAZ y no una capacidad tomada prestada. Las tres
-    // apariciones reales de `fetch` en ese fichero son un miembro declarado, un
-    // `fetcher.fetch(…)` y el `globalThis.fetch(…)` de la puerta: ninguna es un
-    // identificador global desnudo, que es lo que CA-2.4 prohíbe.
-    expect(POLITE.flatMap(capabilityOffences)).toEqual(['src/polite/http.ts: globalThis']);
+  test('9. y dentro de `src/polite/` queda EXACTAMENTE una ofensa, en la puerta', () => {
+    // Que el mecanismo mida algo: `globalThis` existe en el árbol, está donde
+    // ADR-014 §4 dice que tiene que estar, y NO es una entrada de la lista —
+    // no porque un nombre lo prohíba, sino porque nadie lo declara. Este caso
+    // es lo que fija la puerta a UN sitio.
+    expect(POLITE.flatMap((file) => capabilityOffences(file))).toEqual([
+      'src/polite/http.ts: `globalThis` is not a declared global identifier',
+    ]);
   });
 
   test('10. control positivo: la cuarta evasión, la más natural de todas', () => {
@@ -788,7 +931,7 @@ describe('CA-2.4 — la capacidad global no se toma prestada fuera de `src/polit
     // el guardián viejo convivía con `npm test` en 705/705 y `lint exit=0`:
     // la llamada es `send(`, no hay `import`, y la cadena `user-agent` no se
     // escribe nunca entera. Aquí cae por lo único que no puede esconder — que
-    // la capacidad se saca de `globalThis`.
+    // la capacidad se saca de `globalThis`, y `globalThis` no está declarado.
     const sideDoor = syntheticFile(
       'src/ingest/side-door.ts',
       [
@@ -804,25 +947,30 @@ describe('CA-2.4 — la capacidad global no se toma prestada fuera de `src/polit
       ].join('\n'),
     );
 
-    expect(capabilityOffences(sideDoor)).toEqual(['src/ingest/side-door.ts: globalThis']);
+    expect(capabilityOffences(sideDoor)).toEqual([
+      'src/ingest/side-door.ts: `globalThis` is not a declared global identifier',
+    ]);
   });
 
-  test('11. y las otras tres vías del lenguaje llevan cada una su control', () => {
+  test('11. y las vías que ya morían llevan cada una su control (SPEC-009 CA-1.3)', () => {
+    // Las ocho formas que CAPABILITY_NAMES prohibía por nombre siguen siendo
+    // rojas — ahora POR NO ESTAR DECLARADAS, que es lo que no tiene última
+    // entrada que olvidar.
     const cases: readonly (readonly [string, string, string])[] = [
-      ['bare `fetch`', 'const r = await fetch(url);', 'bare `fetch`'],
-      ['eval', "const f = eval('(' + src + ')');", 'eval'],
-      ['new Function', "const f = new Function('u', 'return u');", 'new Function'],
-      ['require', "const https = require('node:https');", 'require'],
-      ['XMLHttpRequest', 'const x = new XMLHttpRequest();', 'XMLHttpRequest'],
-      ['WebSocket', "const s = new WebSocket('wss://x');", 'WebSocket'],
-      ['EventSource', "const s = new EventSource('/x');", 'EventSource'],
-      ['navigator', 'navigator.sendBeacon(url, body);', 'navigator'],
+      ['bare `fetch`', 'const r = await fetch(url);', '`fetch`'],
+      ['eval', "const f = eval('(' + src + ')');", '`eval`'],
+      ['new Function', "const f = new Function('u', 'return u');", '`Function`'],
+      ['require', "const https = require('node:https');", '`require`'],
+      ['XMLHttpRequest', 'const x = new XMLHttpRequest();', '`XMLHttpRequest`'],
+      ['WebSocket', "const s = new WebSocket('wss://x');", '`WebSocket`'],
+      ['EventSource', "const s = new EventSource('/x');", '`EventSource`'],
+      ['navigator', 'navigator.sendBeacon(url, body);', '`navigator`'],
     ];
 
     for (const [name, line, expected] of cases) {
       const file = syntheticFile('src/site/probe.ts', line);
       expect(capabilityOffences(file), `${name} no se caza`).toContain(
-        `src/site/probe.ts: ${expected}`,
+        `src/site/probe.ts: ${expected} is not a declared global identifier`,
       );
     }
   });
@@ -832,7 +980,8 @@ describe('CA-2.4 — la capacidad global no se toma prestada fuera de `src/polit
     // escapes Unicode es el mismo para el compilador y no para un patrón»— y
     // decía que cerrarlo sería barato el día que el árbol estuviera ahí. El
     // árbol está ahí, y esto es ese día. Con el detector de texto,
-    // `globalThis` no casaba con /\bglobalThis\b/ y salía verde.
+    // `globalThis` no casaba con /\bglobalThis\b/ y salía verde. SPEC-009
+    // CA-1.5 lo conserva: se lee del árbol, y el árbol no tiene texto.
     const escaped = syntheticFile(
       'src/ingest/escaped.ts',
       [
@@ -843,13 +992,17 @@ describe('CA-2.4 — la capacidad global no se toma prestada fuera de `src/polit
       ].join('\n'),
     );
 
-    expect(capabilityOffences(escaped)).toEqual(['src/ingest/escaped.ts: globalThis']);
+    expect(capabilityOffences(escaped)).toEqual([
+      'src/ingest/escaped.ts: `globalThis` is not a declared global identifier',
+    ]);
   });
 
   test('12. y NO se caza la prosa ni el nombre de un módulo: el detector no es ruido', () => {
     // Sin esto el criterio se vuelve inservible y alguien lo afloja. Un
     // comentario que cita `globalThis.fetch` y un `import … from '@/polite/http'`
-    // no son una capacidad tomada prestada.
+    // no son una capacidad tomada prestada. Y `HttpFetcher` en posición de TIPO
+    // se borra entero en la emisión: no cruza ninguna capacidad, igual que un
+    // `import type` (CA-2.3).
     const innocent = syntheticFile(
       'src/site/innocent.ts',
       [
@@ -860,6 +1013,171 @@ describe('CA-2.4 — la capacidad global no se toma prestada fuera de `src/polit
     );
 
     expect(capabilityOffences(innocent)).toEqual([]);
+  });
+
+  test('11c. control positivo (F-SPEC-008-V34): la undécima evasión es ROJA sin lista negra', () => {
+    // La reproducción exacta de la evasión que crea SPEC-009, con la fuente
+    // literal del ledger. `process` ES una entrada declarada —el escaneo usa
+    // `process.env`, `process.argv` y `process.stdout`— y por eso el rojo no lo
+    // da el identificador sino LA SUPERFICIE: `getBuiltinModule` no está
+    // declarado, y nadie tuvo que saber que existía para que sea rojo.
+    const door11 = syntheticFile(
+      'src/ingest/door11.ts',
+      [
+        "const cp = process.getBuiltinModule('node:child_process');",
+        '',
+        'export function preflight(url: string): string {',
+        "  return cp.execFileSync('curl', ['-s', '-A', '', url], { encoding: 'utf8' });",
+        '}',
+      ].join('\n'),
+    );
+
+    expect(capabilityOffences(door11)).toEqual([
+      'src/ingest/door11.ts: the global `process` does not declare `getBuiltinModule` in its surface',
+    ]);
+
+    // Y la otra mitad de CA-1.2: `process.env` está declarado con su motivo,
+    // así que NO es una ofensa. El grano es la superficie, no el identificador.
+    const env = syntheticFile(
+      'src/ingest/env-user.ts',
+      "export const token = process.env['BLOB_READ_WRITE_TOKEN'];",
+    );
+    expect(capabilityOffences(env)).toEqual([]);
+  });
+
+  test('11d. el juicio sale SOLO de lo declarado: lista sintética invertida (CA-1.1)', () => {
+    // Como el caso 4c hace con `ALLOWED_PACKAGES`: con una lista que concede
+    // exactamente lo contrario, el veredicto se invierte. Si quedara un nombre
+    // cableado en el guardián —una lista negra, o una lista de «globales
+    // seguros» escondida en la condición de admisión— este caso la destapa.
+    const inverted: readonly GlobalEntry[] = [
+      {
+        identifier: 'process',
+        asValue: false,
+        surface: ['getBuiltinModule'],
+        motive: 'solo para este caso: la superficie invertida',
+      },
+    ];
+    const file = syntheticFile(
+      'src/ingest/inverted11.ts',
+      [
+        "const cp = process.getBuiltinModule('node:fs');",
+        'const home = process.env;',
+        "const r = fetch('https://x/');",
+        'export const all = [cp, home, r];',
+      ].join('\n'),
+    );
+
+    const offences = capabilityOffences(file, inverted);
+    expect(offences).not.toContain(
+      'src/ingest/inverted11.ts: the global `process` does not declare `getBuiltinModule` in its surface',
+    );
+    expect(offences).toContain(
+      'src/ingest/inverted11.ts: the global `process` does not declare `env` in its surface',
+    );
+    expect(offences).toContain(
+      'src/ingest/inverted11.ts: `fetch` is not a declared global identifier',
+    );
+  });
+
+  test('11e. una declaración AMBIENT no es una ligadura: `declare` no fabrica permiso', () => {
+    // `declare const fetch` no emite ninguna ligadura: en el JavaScript emitido
+    // esa referencia resuelve al global de la plataforma. Un lector que se
+    // creyera la declaración diría «ligado» y dejaría pasar la capacidad. Se
+    // falla cerrado: una declaración que no liga en ejecución no liga aquí.
+    const ambient = syntheticFile(
+      'src/ingest/ambient.ts',
+      [
+        'declare const fetch: (u: string) => Promise<unknown>;',
+        'export const ask = (u: string) => fetch(u);',
+      ].join('\n'),
+    );
+    expect(capabilityOffences(ambient)).toEqual([
+      'src/ingest/ambient.ts: `fetch` is not a declared global identifier',
+    ]);
+
+    // Y `declare global` tampoco: aumentar el objeto global es DESCRIBIR una
+    // capacidad del anfitrión, no crearla.
+    const augmented = syntheticFile(
+      'src/ingest/augmented.ts',
+      [
+        'declare global { var sneak: (u: string) => Promise<unknown>; }',
+        'export const ask = (u: string) => sneak(u);',
+      ].join('\n'),
+    );
+    expect(capabilityOffences(augmented)).toEqual([
+      'src/ingest/augmented.ts: `sneak` is not a declared global identifier',
+    ]);
+  });
+
+  test('11f. la propiedad shorthand es una REFERENCIA: `{ fetch }` roba la capacidad', () => {
+    // `export const stolen = { fetch }` lee `globalThis.fetch` y lo entrega en
+    // un objeto. Para el árbol, ese `fetch` es a la vez el nombre de la
+    // propiedad y una referencia al valor; un lector que solo mirara «¿es un
+    // nombre de declaración?» lo saltaría EN SILENCIO.
+    const shorthand = syntheticFile(
+      'src/ingest/shorthand.ts',
+      'export const stolen = { fetch };',
+    );
+    expect(capabilityOffences(shorthand)).toEqual([
+      'src/ingest/shorthand.ts: `fetch` is not a declared global identifier',
+    ]);
+  });
+
+  test('11g. un identificador declarado por el fichero no es una capacidad (CA-1.4)', () => {
+    // El falso positivo que la quinta vuelta corrigió no vuelve: el miembro
+    // `fetch` de una interfaz es una DECLARACIÓN, no una referencia libre; y un
+    // parámetro llamado `fetch` es una ligadura del ámbito que lo contiene.
+    const declared = syntheticFile(
+      'src/ingest/declared.ts',
+      [
+        'export interface Fetcher { fetch(url: string): Promise<number>; }',
+        'export function ok(fetch: (u: string) => number): number {',
+        "  return fetch('x');",
+        '}',
+      ].join('\n'),
+    );
+    expect(capabilityOffences(declared)).toEqual([]);
+
+    // Y sobre el fichero REAL que motivó la corrección: la única ofensa de
+    // `src/polite/http.ts` es la puerta, nunca su interfaz.
+    const http = SCANNED.find((file) => file.path === 'src/polite/http.ts');
+    expect(http).toBeDefined();
+    expect(capabilityOffences(http!)).toEqual([
+      'src/polite/http.ts: `globalThis` is not a declared global identifier',
+    ]);
+  });
+
+  test('11h. la lista es cerrada en sus dos ejes, cada entrada llega con motivo, y la lista negra está BORRADA', async () => {
+    // Eje 1: qué identificadores hay. Literales, únicos, ordenados.
+    const names = ALLOWED_GLOBALS.map((entry) => entry.identifier);
+    expect(new Set(names).size).toBe(names.length);
+    expect([...names].sort()).toEqual(names);
+
+    // Eje 2: qué concede cada uno — el uso como valor y los miembros leídos.
+    // Nada de comodines, y el motivo es obligatorio en TODAS las entradas: un
+    // global es capacidad del anfitrión, y ninguno se explica solo.
+    for (const entry of ALLOWED_GLOBALS) {
+      expect(entry.motive, `${entry.identifier} sin motivo`).toBeTruthy();
+      expect(entry.surface, `${entry.identifier}`).not.toContain('*');
+      expect(new Set(entry.surface).size, `${entry.identifier}`).toBe(entry.surface.length);
+    }
+
+    // La lista no se ensancha «por si acaso»: cada entrada la usa hoy el
+    // escaneo real. Una entrada que deje de usarse se borra, no se hereda.
+    const used = new Set(
+      SCANNED.flatMap((file) =>
+        file.reading.unparseable ? [] : freeReferences(file.path).map((ref) => ref.name),
+      ),
+    );
+    for (const entry of ALLOWED_GLOBALS) {
+      expect(used.has(entry.identifier), `${entry.identifier} no se usa en el escaneo`).toBe(true);
+    }
+
+    // Y la lista negra está borrada DE VERDAD, no envuelta: no queda ninguna
+    // constante de nombres prohibidos en el guardián.
+    const guard = await readFile(new URL('./support/capability.ts', import.meta.url), 'utf8');
+    expect(stripComments(guard)).not.toMatch(/\bCAPABILITY_NAMES\b/);
   });
 });
 
