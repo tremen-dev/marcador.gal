@@ -24,7 +24,10 @@
  * what decides, so it is the config that must be judged. Reading it as text
  * would be judging its spelling.
  */
+import { rmSync, writeFileSync } from 'node:fs';
 import { builtinModules, isBuiltin } from 'node:module';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import config, {
   TEST_INCLUDE,
@@ -57,6 +60,8 @@ import { registerSyntheticSource } from '../mirror/support/imports.ts';
  * exclusion, so the guardian pays for the enumeration and the configuration
  * carries only the rule the guardian proves equal to it.
  */
+const ROOT = fileURLToPath(new URL('../..', import.meta.url));
+
 const BUILTIN_SPELLINGS: readonly string[] = [
   ...new Set(
     builtinModules.flatMap((name) => {
@@ -306,6 +311,93 @@ describe('CA-3 — la pertenencia la decide el grafo de imports', () => {
     for (const specifier of ['fs', 'node:fs', 'fs/promises', 'node:fs/promises']) {
       expect([specifier, isFileSystemModule(specifier)]).toEqual([specifier, true]);
     }
+  });
+
+  it('12. F-SPEC-014-9 — FALLA CERRADO ante un módulo real que no sabe seguir, y su gemelo `.ts` no', async () => {
+    // WHAT WENT WRONG THE FIRST TIME: a literal specifier the reader could not
+    // place was DISCARDED IN SILENCE whenever the path existed, so a real
+    // `.mts` or `.cts` module — which `resolveModule` cannot return, because it
+    // only offers `.ts`, `.tsx` and `index.*` — came back with no edges and its
+    // importer landed in the parallel group. Nothing said a word.
+    //
+    // THE CONTROL IS PAIRED AND THE FILES ARE REAL, because that is the whole
+    // question: the same source, byte for byte, under three extensions. The
+    // `.ts` twin is what proves the reader was working and the extension is
+    // what decided (ADR-016 §3.4). They are real files inside the repository
+    // and this suite runs in the SERIALIZED group, which is what this spec
+    // exists to make safe.
+    //
+    // It is the same blind spot F-SPEC-008-V33 measured — a `src/ingest/door.mts`
+    // with `node:child_process` left the three gates green because neither list
+    // matched it — and its motive is written inside `SCAN_EXTENSIONS`, which is
+    // the list this reader now asks instead of writing a second one.
+    const source = "import { readdirSync } from 'node:fs';\nexport const files = () => readdirSync('src');\n";
+    const helpers = {
+      ts: 'tests/config/spec014-control-helper.ts',
+      mts: 'tests/config/spec014-control-helper.mts',
+      cts: 'tests/config/spec014-control-helper.cts',
+    } as const;
+
+    try {
+      for (const path of Object.values(helpers)) writeFileSync(join(ROOT, path), source);
+
+      const verdicts: Record<string, { group: 'serialized' | 'parallel'; diagnostics: string }> = {};
+      for (const [extension, path] of Object.entries(helpers)) {
+        const entry = `tests/spec014-control-${extension}.test.ts`;
+        registerSyntheticSource(entry, `import './config/spec014-control-helper.${extension}';\n`);
+        const partition = await partitionTestFiles([entry]);
+        verdicts[extension] = {
+          group: partition.serialized.includes(entry) ? 'serialized' : 'parallel',
+          diagnostics: partition.unreadable.join('\n'),
+        };
+      }
+
+      // THE CONTROL: the `.ts` twin is followed, reaches `node:fs`, and is
+      // serialized with nothing to report.
+      expect(verdicts.ts).toEqual({ group: 'serialized', diagnostics: '' });
+
+      // THE TWO THAT USED TO PASS IN SILENCE: red, and each names itself.
+      for (const extension of ['mts', 'cts'] as const) {
+        expect([extension, verdicts[extension]!.diagnostics]).toEqual([
+          extension,
+          expect.stringContaining(`spec014-control-helper.${extension}`),
+        ]);
+        expect([extension, verdicts[extension]!.diagnostics]).toEqual([
+          extension,
+          expect.stringContaining('names a file of code this reader cannot follow'),
+        ]);
+      }
+    } finally {
+      for (const path of Object.values(helpers)) rmSync(join(ROOT, path), { force: true });
+    }
+  });
+
+  it('13. y lo que existe sin ser código sigue cerrando el paseo sin ruido: `../globals.css`', async () => {
+    // The live case F-SPEC-014-4 describes, and the reason the widening exists
+    // at all: `src/app/(gl)/layout.tsx` imports `../globals.css` for its side
+    // effect. It is inside the tree, it is not a file of code by the
+    // repository's own declaration (`SCAN_EXTENSIONS`), and it carries no
+    // imports — so it closes the walk instead of opening a hole, and says
+    // nothing. THIS is the half that may stay silent; case 12 is the half that
+    // may not, and telling them apart is the whole of F-SPEC-014-9.
+    registerSyntheticSource(
+      'tests/spec014-control-asset.test.ts',
+      "import '../src/app/globals.css';\n",
+    );
+    const partition = await partitionTestFiles(['tests/spec014-control-asset.test.ts']);
+    expect(partition.unreadable).toEqual([]);
+    expect(partition.parallel).toEqual(['tests/spec014-control-asset.test.ts']);
+  });
+
+  it('14. y un especificador que no nombra nada dentro del árbol sigue siendo rojo', async () => {
+    // The third outcome, kept apart from the other two so that a red says
+    // WHICH of the three happened: nothing at that path at all.
+    registerSyntheticSource(
+      'tests/spec014-control-absent.test.ts',
+      "import './config/spec014-there-is-no-such-helper.mts';\n",
+    );
+    const partition = await partitionTestFiles(['tests/spec014-control-absent.test.ts']);
+    expect(partition.unreadable.join('\n')).toContain('does not resolve inside the repository');
   });
 });
 

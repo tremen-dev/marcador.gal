@@ -4,6 +4,7 @@ import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import { readModule, resolveModule } from './tests/mirror/support/imports.ts';
+import { isCodeFile } from './tests/polite/support/capability.ts';
 
 /**
  * SPEC-014 — THE SUITE THAT WRITES IN THE TREE AND THE SUITE THAT READS IT.
@@ -163,22 +164,55 @@ function typescriptTwin(specifier: string): string | null {
 }
 
 /**
- * Whether a literal specifier names something that EXISTS in the tree without
- * being a module this reader can follow — `../globals.css` is the live case.
+ * Why a literal specifier the reader could not place is not a hole — or the
+ * diagnostic that says it is. `null` means «no edge, and nothing to report».
  *
- * The same widening SPEC-008 made for the same reason, and spelled here rather
- * than imported from `tests/polite/support/capability.ts` because importing
- * that module makes Vite warn, three times per run, about extensionless
- * imports it cannot load natively. What it is NOT is a second reader of
- * imports: the specifiers still come from the one AST reader, and this only
- * says whether a path escapes the tree.
+ * IT USED TO FAIL OPEN, AND THAT IS F-SPEC-014-9. The old shape asked one
+ * question — «does this path exist?» — and discarded the specifier in silence
+ * whenever the answer was yes. `resolveModule` only offers `.ts`, `.tsx` and
+ * `index.*`, so EVERY REAL `.mts` OR `.cts` MODULE fell through there: measured
+ * with a paired control, the same helper byte for byte, the `.ts` importer went
+ * to the serialized group and the `.mts` and `.cts` importers to the parallel
+ * one, without a line of diagnostic. It is the blind spot of F-SPEC-008-V33
+ * reintroduced in a new reader, and CA-3.3 promises the opposite.
+ *
+ * THE THREE OUTCOMES ARE NOW TOLD APART, and only one of them may be silent:
+ *
+ *   - it names nothing inside the tree → RED, naming itself;
+ *   - it names A FILE OF CODE this reader cannot follow → RED, naming itself.
+ *     What counts as code is NOT decided here: it is `SCAN_EXTENSIONS`, the
+ *     repository's one declaration of the question, with a written motive per
+ *     entry and F-SPEC-008-V33's own story inside it. A second list would be
+ *     the very defect that list exists to close (ADR-016 §3.1, §5 bis);
+ *   - it names something that exists and is NOT code — `../globals.css` is the
+ *     live case, and the only one — → no edge and no noise, because an asset
+ *     carries no imports and closes the walk instead of opening a hole.
+ *
+ * Something inside the tree with NO EXTENSION AT ALL — a directory, an
+ * extensionless file — is red too: nothing proves it carries no imports, and
+ * «I could not tell» is not a reason to stay quiet.
+ *
+ * WHAT THIS COSTS, said out loud: importing `capability.ts` makes Vite print
+ * its `configLoader: 'native'` warning three times per run, about extensionless
+ * imports inside that module (F-SPEC-014-4). Fixing those would be editing a
+ * file of a spec in `hecho` (ADR-015), and writing the list again here would be
+ * the defect. The noise is the cheaper of the three.
  */
-function existsInsideRepository(specifier: string, fromFile: string): boolean {
+function unfollowable(specifier: string, fromFile: string): string | null {
   const base = specifier.startsWith('@/')
     ? join(ROOT, 'src', specifier.slice(2))
     : resolve(dirname(join(ROOT, fromFile)), specifier);
-  if (!base.startsWith(ROOT)) return false;
-  return existsSync(base);
+
+  if (!base.startsWith(ROOT) || !existsSync(base)) {
+    return 'does not resolve inside the repository';
+  }
+  if (isCodeFile(base)) return 'names a file of code this reader cannot follow';
+
+  const name = base.slice(base.lastIndexOf(sep) + 1);
+  if (name.lastIndexOf('.') <= 0) {
+    return 'names something inside the repository this reader cannot place';
+  }
+  return null;
 }
 
 async function readNode(file: string): Promise<Node> {
@@ -223,15 +257,11 @@ async function readNode(file: string): Promise<Node> {
       if (twin !== null) resolved = await resolveModule(twin, file);
     }
     if (resolved === null) {
-      // Wider than TypeScript's resolution, and the same widening SPEC-008
-      // already made: a side-effect import of `../globals.css` names a file
-      // that IS in the tree and carries no imports of its own, so it closes the
-      // walk instead of opening a hole. What it is not is a module this reader
-      // can follow, so it adds no edge.
-      if (existsInsideRepository(text, file)) continue;
-      // FAIL CLOSED (CA-3.3): a literal specifier this reader cannot place is
-      // a file we cannot judge, and it says so naming itself.
-      unreadable.push(`${file}: ${text} does not resolve inside the repository`);
+      // FAIL CLOSED (CA-3.3), and the silence is now the exception with a
+      // reason: only an asset that exists in the tree adds no edge without a
+      // word. Everything else names itself.
+      const reason = unfollowable(text, file);
+      if (reason !== null) unreadable.push(`${file}: ${text} ${reason}`);
       continue;
     }
     edges.push(resolved.startsWith(ROOT) ? resolved.slice(ROOT.length) : resolved);
