@@ -192,6 +192,8 @@ export function telegramWebhookHandler(
 
 interface Incoming {
   readonly kind: 'message' | 'callback';
+  /** The update AS IT ARRIVED. It is what the whitelist is applied to (CA-3). */
+  readonly raw: unknown;
   readonly senderId: number;
   readonly chat: ChatRef;
   readonly text: string;
@@ -212,6 +214,7 @@ function readIncoming(update: unknown): Incoming | null {
     if (typeof senderId !== 'number') return null;
     return {
       kind: 'callback',
+      raw: update,
       senderId,
       chat: { chat_id: typeof chat?.['id'] === 'number' ? chat['id'] : senderId },
       text: '',
@@ -228,6 +231,7 @@ function readIncoming(update: unknown): Incoming | null {
   if (typeof senderId !== 'number') return null;
   return {
     kind: 'message',
+    raw: update,
     senderId,
     chat: { chat_id: typeof chat?.['id'] === 'number' ? chat['id'] : senderId },
     text: typeof sent['text'] === 'string' ? sent['text'] : '',
@@ -461,7 +465,7 @@ async function onContent(
     ports.store,
     'mensaxe',
     now,
-    redact(rawUpdateOf(incoming), correspondent.correspondent_id),
+    redact(incoming.raw, correspondent.correspondent_id),
   );
 
   // 6. THE CANDIDATES, from the declared calendar.
@@ -529,13 +533,6 @@ async function onContent(
   );
 }
 
-/** What gets redacted: the update as it arrived, minus everything else. */
-function rawUpdateOf(incoming: Incoming): Record<string, unknown> {
-  return incoming.kind === 'message'
-    ? { message: { text: incoming.text } }
-    : { callback_query: { id: incoming.callbackId, data: incoming.data } };
-}
-
 function decodeBody(body: Uint8Array): string {
   return new TextDecoder().decode(body);
 }
@@ -570,9 +567,6 @@ async function onCallback(
     return reply(incoming.chat, botBundle(chosen).languageChanged);
   }
 
-  // CA-7.3 — expiry. One named constant, one place (`./windows.ts`).
-  await ports.proposals.removeExpired(now);
-
   if (action.kind === 'm') {
     const pending = await ports.proposals.latestOf(correspondent.correspondent_id);
     if (pending === null) return reply(incoming.chat, bundle.cardExpired);
@@ -605,6 +599,15 @@ async function onCallback(
     return reply(incoming.chat, botBundle('gl').errNotAuthorised);
   }
 
+  // CA-7.3 — EXPIRY. The same outcome as discarding — the row goes, nothing is
+  // written — with the notice that asks for it again IN CASE SOMETHING CHANGED,
+  // which is the whole reason a scoreboard confirmed from memory is not one.
+  // The TTL is a named constant in one place (`./windows.ts`).
+  if (pending.expires_at <= now) {
+    await ports.proposals.removeExpired(now);
+    return reply(incoming.chat, bundle.cardExpired);
+  }
+
   if (action.kind === 'd') {
     await ports.proposals.remove(pending.id);
     return reply(incoming.chat, bundle.ackDiscarded);
@@ -615,7 +618,7 @@ async function onCallback(
     ports.store,
     'confirmacion',
     now,
-    redact(rawUpdateOf(incoming), correspondent.correspondent_id),
+    redact(incoming.raw, correspondent.correspondent_id),
   );
 
   const matchId = pending.match_id;

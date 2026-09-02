@@ -39,6 +39,14 @@
 export interface ArchivedKey {
   /** The path in the archived object, dot-separated. */
   readonly path: string;
+  /**
+   * Where the value is read from in the incoming update, when Telegram nests it
+   * somewhere else. Absent means «the same path». It exists for exactly one
+   * key — the card's `message_id`, which Telegram hangs off the callback's own
+   * message — and it is declared rather than flattened silently, because the
+   * assertion of CA-3.1 is over the ARCHIVED shape.
+   */
+  readonly from?: string;
   /** Why it survives redaction. Obligatory, like an entry of `ALLOWED_PACKAGES`. */
   readonly motive: string;
 }
@@ -57,7 +65,7 @@ export const ARCHIVED_KEYS: readonly ArchivedKey[] = [
   {
     path: 'correspondent_id',
     motive:
-      'The declared pseudonym, archived IN PLACE OF `from.id` and `chat.id`. It is the ONLY durable home of who sent what (ADR-022 §2), and the chain of RN-12 ends here.',
+      'The declared pseudonym, archived IN PLACE OF `from.id` and `chat.id`. It is the ONLY durable home of who sent what (ADR-022 sec. 2), and the chain of RN-12 ends here.',
   },
   {
     path: 'message.message_id',
@@ -67,7 +75,7 @@ export const ARCHIVED_KEYS: readonly ArchivedKey[] = [
   {
     path: 'message.date',
     motive:
-      'RAW MATERIAL OF THE FIRST FIGURE OF EPIC-002. Without the instant the person pressed send there is no latency to measure (ADR-022 §3).',
+      'RAW MATERIAL OF THE FIRST FIGURE OF EPIC-002. Without the instant the person pressed send there is no latency to measure (ADR-022 sec. 3).',
   },
   {
     path: 'message.text',
@@ -82,31 +90,16 @@ export const ARCHIVED_KEYS: readonly ArchivedKey[] = [
   {
     path: 'callback_query.data',
     motive:
-      'Our own payload: which proposal was confirmed or discarded. It is the evidence that RN-09 was satisfied — that a person pressed the button.',
+      'Our own payload: which proposal was confirmed or discarded. It is the evidence that RN-09 was satisfied: a person pressed the button.',
   },
   {
     path: 'callback_query.message_id',
+    from: 'callback_query.message.message_id',
     motive:
-      'The card the button belongs to. It closes the chain message → card → confirmation without any Telegram identifier of a person.',
+      'The card the button belongs to. It closes the chain message, card, confirmation without any Telegram identifier of a person.',
   },
 ];
 
-/**
- * The six fields of the update that carry a person and that NO PARSER READS.
- *
- * They are here ONLY so a case can assert they are absent — that is CA-3.2,
- * which checks a consequence. THE MECHANISM IS THE WHITELIST ABOVE: nothing in
- * the redaction consults this list, and a seventh field Telegram adds tomorrow
- * is out without anybody having to know it exists.
- */
-export const FORBIDDEN_FIELDS: readonly string[] = [
-  'first_name',
-  'last_name',
-  'username',
-  'language_code',
-  'is_bot',
-  'is_premium',
-];
 
 function valueAt(source: unknown, path: readonly string[]): unknown {
   let current = source;
@@ -151,7 +144,10 @@ export function redact(
 
   for (const key of keys) {
     const path = key.path.split('.');
-    const value = path[0] === 'correspondent_id' ? correspondentId : valueAt(source, path);
+    const value =
+      path[0] === 'correspondent_id'
+        ? correspondentId
+        : valueAt(source, (key.from ?? key.path).split('.'));
     if (value === undefined) continue;
     setAt(archived, path, value);
   }

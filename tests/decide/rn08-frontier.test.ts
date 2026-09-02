@@ -185,10 +185,22 @@ describe('CA-13.1 — control positivo de CADA mecanismo, no de la batería', ()
       (file) => decisionImportOffences(file, DECISION_CAPABILITY_NAMES, []).length > 0,
     );
 
+    // ASERCIÓN DERIVADA, y crece con los ficheros REALES que tienen la
+    // capacidad — no con la frontera, que no se toca (precedente de cómo se
+    // enmienda una aserción derivada: F-SPEC-011-1).
+    //
+    // `src/decide/engine-entry.ts` llega con **SPEC-015 CA-9**: la puerta
+    // estrecha por la que el bot llama al motor SIN obtener la capacidad de
+    // escribir una `Decision` (ADR-022 §9, contestando al disparador de
+    // F-SPEC-013-11). Compone `PostgresDecisionStore` dentro de `src/decide/`,
+    // que YA ESTÁ en `DECISION_WRITERS`, así que la lista de módulos con
+    // capacidad NO SE ENSANCHA: lo que crece es esta enumeración de quién la
+    // cruza, que es exactamente lo que este control mide.
     expect(crossing.map((file) => file.path).sort()).toEqual([
       'src/db/decisions.ts',
       'src/decide/apply.ts',
       'src/decide/cycle.ts',
+      'src/decide/engine-entry.ts',
     ]);
 
     const withNoNames = SCANNED.filter(
