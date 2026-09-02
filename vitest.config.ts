@@ -36,8 +36,41 @@ import { isCodeFile } from './tests/polite/support/capability.ts';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 
-/** The glob the universe of `npm test` is derived from. Declared once (CA-2.1). */
+/** The glob the runtime suites are selected by. Declared once (CA-2.1). */
 export const TEST_INCLUDE: readonly string[] = ['tests/**/*.test.ts'];
+
+/**
+ * The glob the TYPE suites are selected by — the inverted proof of SPEC-001
+ * CA-3/CA-4/CA-6, which lives in `@ts-expect-error` and not in an assertion.
+ */
+export const TYPE_TEST_INCLUDE: readonly string[] = ['tests/**/*.test-d.ts'];
+
+/**
+ * EVERYTHING THE TWO PROJECTS RUN, AS ONE DECLARATION (CA-2.1, CA-3.1).
+ *
+ * THERE USED TO BE TWO LISTS AND ONE OF THEM WAS SHORT, which is F-SPEC-014-7.
+ * The projects declared both globs; `testUniverse()` filtered
+ * `endsWith('.test.ts')` on its own. So the fourteen `.test-d.ts` ran in the
+ * parallel group and were IN NO GROUP AT ALL for the mechanism — not in the
+ * universe, not in either half of the partition, not in an `exclude` — and
+ * CA-3.1's claim, «no file of the parallel group reaches `node:fs`», was made
+ * over a group holding fourteen files the walk never opened. A
+ * `tests/types/zz-evasion.test-d.ts` with `import { readdirSync } from
+ * 'node:fs'` — the exact spelling CA-3 names — came back `[parallel]` with the
+ * guardian at 23/23 and `oxlint --type-aware` at exit 0.
+ *
+ * It is the shape of F-SPEC-008-V33 once more: two lists of what to look at,
+ * and the shorter one deciding in silence. So the projects and the walk now
+ * derive from the same constant, and `tests/config/partition.test.ts` case
+ * CA-2 nº 5 goes red if a project ever selects by a glob this list has not
+ * heard of.
+ *
+ * MEASURED, and it matters for how far the old hole reached: vitest 4.1.11 does
+ * NOT execute a `.test-d.ts` at runtime — a `writeFileSync` inside one never
+ * ran — so the evasion was a false CLAIM before it was a live path to the tree.
+ * The claim is what CA-3.1 makes, and it is what had to be made true.
+ */
+export const RUN_INCLUDE: readonly string[] = [...TEST_INCLUDE, ...TYPE_TEST_INCLUDE];
 
 /**
  * The exclusions that were always here, unchanged by SPEC-014.
@@ -112,8 +145,14 @@ const SERIALIZED_ORDER = 1;
 // The universe.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** `tests/**\/*.test-d.ts` → `.test-d.ts`. The glob's own tail, not a copy. */
+function suffixOf(glob: string): string {
+  return glob.slice(glob.lastIndexOf('*') + 1);
+}
+
 /**
- * Every `tests/**\/*.test.ts` of the repository, as paths relative to the root.
+ * Every file the two projects run, as paths relative to the root — and «every»
+ * means every glob of `RUN_INCLUDE`, never a suffix written again here.
  *
  * A SUPERSET of what runs on purpose: nothing here is filtered by
  * `TEST_EXCLUSIONS`, because both projects carry those exclusions themselves. A
@@ -126,10 +165,11 @@ const SERIALIZED_ORDER = 1;
  * `ALLOWED_PACKAGES` and this file is inside the roots ADR-014 §4 audits.
  */
 export async function testUniverse(): Promise<readonly string[]> {
+  const suffixes = RUN_INCLUDE.map(suffixOf);
   const entries = await readdir(join(ROOT, 'tests'), { recursive: true });
   return entries
     .map((entry) => `tests/${entry.replaceAll(sep, '/')}`)
-    .filter((path) => path.endsWith('.test.ts'))
+    .filter((path) => suffixes.some((suffix) => path.endsWith(suffix)))
     .sort();
 }
 
@@ -444,12 +484,18 @@ export default defineConfig(async () => {
             // CA-3, CA-4, CA-6 de SPEC-001: los invariantes se prueban a nivel
             // de TIPO. Los ficheros .test-d.ts usan @ts-expect-error: si el
             // invariante deja de sostenerse, la directiva queda sin usar y tsc
-            // falla. Es la prueba invertida. Vive en el grupo paralelo — en uno
-            // solo, para no correr dos veces — y por eso nunca solapa con el
-            // serializado (CA-1.3, CA-5.2).
+            // falla. Es la prueba invertida.
+            //
+            // LOS DOS GRUPOS LO DECLARAN, y no uno solo (F-SPEC-014-7). Antes
+            // vivía aquí, así que un `.test-d.ts` corría en el paralelo dijera
+            // lo que dijera su grafo de imports: el mecanismo no tenía dónde
+            // ponerlo. Ahora cada grupo excluye al otro, exactamente como en
+            // `test.exclude`, así que el conjunto y el `tsconfig` son los mismos
+            // (CA-5.2) y la pertenencia la sigue decidiendo el grafo (CA-3).
             typecheck: {
               enabled: true,
-              include: ['tests/**/*.test-d.ts'],
+              include: [...TYPE_TEST_INCLUDE],
+              exclude: [...TEST_EXCLUSIONS, ...serialized],
               tsconfig: './tsconfig.json',
             },
           },
@@ -460,6 +506,12 @@ export default defineConfig(async () => {
             name: SERIALIZED_GROUP,
             include: [...TEST_INCLUDE],
             exclude: [...TEST_EXCLUSIONS, ...parallel],
+            typecheck: {
+              enabled: true,
+              include: [...TYPE_TEST_INCLUDE],
+              exclude: [...TEST_EXCLUSIONS, ...parallel],
+              tsconfig: './tsconfig.json',
+            },
             // The two mechanisms of CA-1, and they are not redundant.
             // `sequence.groupOrder` is the DOCUMENTED one — «If you don't set
             // this option, all projects run in parallel» — and it is what keeps

@@ -30,8 +30,10 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import config, {
+  RUN_INCLUDE,
   TEST_INCLUDE,
   TEST_EXCLUSIONS,
+  TYPE_TEST_INCLUDE,
   FILE_SYSTEM_BUILTIN,
   PARALLEL_GROUP,
   SERIALIZED_GROUP,
@@ -81,7 +83,12 @@ type Project = {
     readonly exclude?: readonly string[];
     readonly fileParallelism?: boolean;
     readonly sequence?: { readonly groupOrder?: number };
-    readonly typecheck?: { readonly enabled?: boolean; readonly include?: readonly string[] };
+      readonly typecheck?: {
+      readonly enabled?: boolean;
+      readonly include?: readonly string[];
+      readonly exclude?: readonly string[];
+      readonly tsconfig?: string;
+    };
   };
 };
 
@@ -100,8 +107,8 @@ const serialized = byName.get(SERIALIZED_GROUP)!;
  * exclusions and in a group (`tests/raw/blob.contract.test.ts` is), and
  * filtering by membership would silently drop it and read as a hole.
  */
-function addedExclusions(project: Project): readonly string[] {
-  const exclude = project.test?.exclude ?? [];
+function addedExclusions(project: Project, of: 'test' | 'typecheck' = 'test'): readonly string[] {
+  const exclude = (of === 'test' ? project.test?.exclude : project.test?.typecheck?.exclude) ?? [];
   expect(exclude.slice(0, TEST_EXCLUSIONS.length)).toEqual(TEST_EXCLUSIONS);
   return exclude.slice(TEST_EXCLUSIONS.length);
 }
@@ -161,9 +168,58 @@ describe('CA-2 — la partición es exacta', () => {
     }
     const universe = await testUniverse();
     expect(universe.length).toBeGreaterThan(0);
-    expect(universe.every((file) => file.startsWith('tests/') && file.endsWith('.test.ts'))).toBe(
-      true,
+    expect(universe.every((file) => file.startsWith('tests/'))).toBe(true);
+  });
+
+  it('5. F-SPEC-014-7 — el universo cubre TODO lo que los dos proyectos ejecutan, y de UNA declaración', async () => {
+    // WHAT WENT WRONG THE FIRST TIME: there were TWO lists of what runs. The
+    // projects declared `tests/**/*.test.ts` AND `tests/**/*.test-d.ts`, and
+    // `testUniverse()` filtered `endsWith('.test.ts')` — so the fourteen
+    // `.test-d.ts` were in the parallel group and IN NO GROUP AT ALL as far as
+    // the mechanism was concerned: not in `universe`, not in `serialized`, not
+    // in `parallel`, not in an `exclude`. A `tests/types/zz-evasion.test-d.ts`
+    // with `import { readdirSync } from 'node:fs'` — THE EXACT SPELLING CA-3
+    // NAMES — came back `[parallel]` with the guardian at 23/23, and CA-3.1
+    // claimed over a group holding fourteen files it never looked at. Two
+    // lists, one of them short: the shape of F-SPEC-008-V33 again.
+    //
+    // From here there is ONE declaration, `RUN_INCLUDE`, and both derive from
+    // it: what the projects select and what the walk judges. This case is what
+    // keeps them together — a project that starts running a third kind of file
+    // without the universe knowing is a red naming the glob.
+    const declared = projects.flatMap((project) => [
+      ...(project.test?.include ?? []),
+      ...(project.test?.typecheck?.include ?? []),
+    ]);
+    expect(declared.length).toBeGreaterThan(0);
+    for (const glob of [...new Set(declared)]) {
+      expect([glob, RUN_INCLUDE.includes(glob)]).toEqual([glob, true]);
+    }
+    expect([...RUN_INCLUDE].sort()).toEqual(
+      [...new Set([...TEST_INCLUDE, ...TYPE_TEST_INCLUDE])].sort(),
     );
+
+    // And the walk collects every kind the declaration names — not «at least
+    // one kind», which is what a short filter also satisfies.
+    const universe = await testUniverse();
+    const suffixes = RUN_INCLUDE.map((glob) => glob.slice(glob.lastIndexOf('*') + 1));
+    for (const suffix of suffixes) {
+      expect([suffix, universe.some((file) => file.endsWith(suffix))]).toEqual([suffix, true]);
+    }
+    expect(universe.every((file) => suffixes.some((suffix) => file.endsWith(suffix)))).toBe(true);
+  });
+
+  it('6. y cada `.test-d.ts` cae en exactamente un grupo, como cualquier otro fichero', async () => {
+    const partition = await partitionTestFiles();
+    const types = partition.universe.filter((file) => file.endsWith('.test-d.ts'));
+    expect(types.length).toBeGreaterThan(0);
+    for (const file of types) {
+      const groups = [
+        partition.serialized.includes(file) ? SERIALIZED_GROUP : null,
+        partition.parallel.includes(file) ? PARALLEL_GROUP : null,
+      ].filter((group) => group !== null);
+      expect([file, groups.length]).toEqual([file, 1]);
+    }
   });
 
   it('4. y ningún fichero se cae de los dos: cada grupo excluye exactamente al otro', async () => {
@@ -466,9 +522,31 @@ describe('CA-5.1 — la configuración compartida se declara una vez', () => {
     expect(resolved.oxc).toEqual({ jsx: { runtime: 'automatic' } });
   });
 
-  it('3. CA-5.2 — el typecheck sobre `.test-d.ts` sigue declarado, y en un solo grupo', () => {
+  it('3. CA-5.2 — el typecheck sobre `.test-d.ts` sigue declarado, y ahora en los DOS grupos', async () => {
+    // IT USED TO LIVE IN ONE, and that is half of F-SPEC-014-7: a `.test-d.ts`
+    // ran in whichever project declared the typechecker, whatever its import
+    // graph said, because the mechanism had nowhere to put it. Now the two
+    // groups declare it with the same glob and the same `tsconfig`, and each
+    // one excludes the other group — so a `.test-d.ts` that reaches the file
+    // system runs serialized like any other file, and the SET of type tests and
+    // the tsconfig are the same as before (CA-5.2).
     const declaring = projects.filter((project) => project.test?.typecheck?.enabled === true);
-    expect(declaring.length).toBe(1);
-    expect(declaring[0]!.test?.typecheck?.include).toEqual(['tests/**/*.test-d.ts']);
+    expect(declaring.map((project) => project.test?.name)?.sort()).toEqual(
+      [PARALLEL_GROUP, SERIALIZED_GROUP].sort(),
+    );
+    for (const project of declaring) {
+      expect(project.test?.typecheck?.include).toEqual([...TYPE_TEST_INCLUDE]);
+      expect(project.test?.typecheck?.tsconfig).toBe('./tsconfig.json');
+    }
+
+    // And between the two they run every `.test-d.ts` of the universe, once:
+    // what each excludes is exactly the other group.
+    const partition = await partitionTestFiles();
+    expect(addedExclusions(parallel, 'typecheck').slice().sort()).toEqual(
+      [...partition.serialized].sort(),
+    );
+    expect(addedExclusions(serialized, 'typecheck').slice().sort()).toEqual(
+      [...partition.parallel].sort(),
+    );
   });
 });
