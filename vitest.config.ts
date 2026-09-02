@@ -162,8 +162,12 @@ async function readNode(file: string): Promise<Node> {
     const text = specifier.text;
     if (text === null) {
       // CA-3.5: declared residue. A specifier nobody can read names no module,
-      // so this reader cannot follow it. It is counted, not tolerated in
-      // silence, and today the count is zero.
+      // so this reader cannot follow it. It is COUNTED and not tolerated in
+      // silence: `tests/polite/containment.test.ts` writes one on purpose —
+      // `await import('node:' + 'http')`, case 7, the positive control of a
+      // closed spec — and the guardian asks that no file of the PARALLEL group
+      // carry one anywhere in its graph, which is where the residue could
+      // decide a group behind our backs.
       nonLiteral = true;
       continue;
     }
