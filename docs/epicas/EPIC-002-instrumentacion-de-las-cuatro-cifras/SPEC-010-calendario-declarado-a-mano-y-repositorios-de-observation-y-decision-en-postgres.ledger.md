@@ -6,7 +6,20 @@ epica: EPIC-002
 # Ledger — SPEC-010 Calendario declarado a mano y repositorios de Observation y Decision en Postgres
 
 ## Resumen
-- **LO ÚLTIMO (2026-09-02): PRIMERA VUELTA DE VERIFICACIÓN, RED por un solo
+- **LO ÚLTIMO (2026-09-02): SEGUNDA VUELTA DE IMPLEMENTACIÓN, F-1 corregido y
+  F-SPEC-010-10 cerrado, y la spec vuelve a `en-revision`.** Ver *«Segunda
+  vuelta — corrección de F-1 y F-SPEC-010-10»*, antes de *Cómo retomar*. Dos
+  commits de código (`22e6c05` CA-7, `9a7f380` CA-6) y el de este ledger.
+  `PostgresObservationStore.append` normaliza `observed_at` a la forma
+  almacenada al entrar y compara sobre ella (sin `Date`, con `@/polite/clock`);
+  `PostgresDecisionStore.append` hace lo mismo con `decided_at` para no quedar
+  asimétrico. Y `declareCalendar` valida ahora el fichero ENTERO, horas
+  incluidas: un kickoff inexistente o ambiguo sale por el paso 1 de la CLI sin
+  abrir conexión. Gates: `lint exit=0`, `typecheck exit=0`, `npm test`
+  **842/842** (90 ficheros; +4 en `tests/calendar`), `npm run test:db`
+  **210/210** (14 ficheros; +5 en `tests/db`). Nueve ficheros tocados, todos de
+  esta spec; `_harness.ts`, `parity.test.ts` y `src/db/ports.ts` sin diff.
+- **Antes (2026-09-02): PRIMERA VUELTA DE VERIFICACIÓN, RED por un solo
   criterio, y la spec vuelve a `en-progreso`.** Diez CA ✅ con evidencia propia
   del verificador (sondas contra el Postgres de test y la CLI real, además de
   las suites); **CA-7 ❌** porque `append` del mismo objeto `Observation` con
@@ -52,14 +65,14 @@ epica: EPIC-002
 | CA-1 — el calendario declarado se valida entero y nombra la fila que falla | `src/calendar/schedule.ts` (`ScheduleSchema`, `parseSchedule`, `InvalidScheduleError`, `SCHEDULE_TIMEZONES`); fixture sintético `tests/fixtures/calendar.ts` | `tests/calendar/schedule.test.ts` — el fixture valida; variantes 1..12, cada una con `round N` / `team X` en el mensaje; además temporada `YYYY/YY` y un error por línea (18 casos, `npm test`) | 2026-09-02 · `npm test` 838/838, `tests/calendar/schedule.test.ts` 18/18. Sonda propia fuera del repo (`ca1-probe.ts`, scratchpad) sobre las variantes 7, 8, 9, 10, 12 y `venue: ''`: todas rechazadas con `InvalidScheduleError`; cuando hay fila, el mensaje la nombra (`round 2, match rc-celta-b-cd-exemplo: kickoff has to be written as YYYY-MM-DD HH:MM (got …)`, `round 0: Too small…`, `team UD_Ourense: … kebab-case`); cuando no la hay (7, 9) nombra el campo. Fixture sintético: equipos inventados salvo `UD Ourense`/`RC Celta B`, que ya usa `tests/fixtures/model.ts` (ADR-009 ✓). | ✅ |
 | CA-2 — hora local a cadena ISO UTC en el borde; lo inexistente se rechaza | `src/calendar/time.ts` (`wallTimeToInstant`, `NonexistentWallTimeError`, `AmbiguousWallTimeError`, `MalformedWallTimeError`); `Intl` de Node, sin dependencia; `Date` solo aquí | `tests/calendar/time.test.ts` — los seis casos de la spec (verano, invierno, víspera y día del cambio, hueco de marzo, hora repetida de octubre), `InstantSchema`, medianoche; `tests/types/calendar-time.test-d.ts` — devuelve `Instant`, no `Date` (CA-2.1). CA-2.2 y CA-2.3 son de lectura del diff: `package.json` no gana dependencia; `grep -n '\bDate\b' src/calendar src/db/{calendar,observations,decisions,matches,arrays}.ts` da solo `time.ts` | 2026-09-02 · `tests/calendar/time.test.ts` 9/9 con los seis instantes de la spec (verano, invierno, víspera y día del cambio, hueco de marzo → `NonexistentWallTimeError`, hora repetida → `AmbiguousWallTimeError`). 2.1: `tests/types/calendar-time.test-d.ts` bajo el `typecheck` de vitest («Type Errors no errors») y sonda `tsc` propia (tsconfig en scratchpad): `const d: Date = wallTimeToInstant(…)` sin directiva → `TS2322 Type 'string' is not assignable to type 'Date'`. 2.2: `git diff main -- package.json package-lock.json` solo añade el script `calendario:cargar`; ninguna dependencia. 2.3: `grep -n '\bDate\b'` sobre `src/calendar/*.ts` y los cinco ficheros nuevos de `src/db/`: en código solo `time.ts` (7 apariciones); en los demás aparece únicamente en comentarios que dicen que no aparece. | ✅ |
 | CA-3 — identidad de partido derivada y estable | `src/calendar/ids.ts` (`matchId`, `seasonSlug`) | `tests/calendar/ids.test.ts` — el ejemplo literal de ADR-017 §3, determinismo, local/visitante intercambiados, jornada distinta, `MatchIdSchema` y `^[a-z0-9-]+$` (6 casos) | 2026-09-02 · `tests/calendar/ids.test.ts` 6/6, el ejemplo literal de ADR-017 §3 incluido. En la carga real (sonda E) `matches.id` es exactamente `futgal-preferente-g1-2026-27-j1-ud-ourense-rc-celta-b` y no cambia al mover el kickoff. | ✅ |
-| CA-4 — carga upsert transaccional, sin borrado, identidad inmutable | `src/calendar/declared.ts` (`declareCalendar`, `readCalendarFile`, `declaredMatches`; mitad pura) y `src/db/calendar.ts` (`loadSchedule`, `LoadResult`, `CompetitionRedefinedError`; una transacción); `src/db/arrays.ts` (literales de array); `migrations/0003` (trigger `matches_identity_is_immutable`, índices `matches_one_home_per_round` / `matches_one_away_per_round`) | `tests/db/calendar-load.test.ts` «CA-4» — 4.1 tablas exactas, ids de CA-3 y kickoffs de CA-2; 4.2 recarga idéntica (`inserted: []`, `updated: []`, tablas iguales); 4.3 kickoff+venue cambiados → `updated`, id fijo; 4.4 partido menos → `orphans`, sigue en la base; 4b huérfanos solo en jornadas declaradas; 4.5 `Observation` sobrevive a la recarga; 4.6 `home_id`/`away_id`/`round`/`competition_id` rechazados por la base con «immutable … RN-13», `kickoff`/`venue` admitidos; 4.7 competición redefinida → `CompetitionRedefinedError` y snapshot igual; 4.8 fila manual colisionando con `matches_one_home_per_round` → la carga falla y ningún snapshot cambia, `calendar_loads` vacía. 4.9: `_harness.ts` sin diff (`git diff main -- tests/db/_harness.ts` vacío) y las nueve suites previas verdes. Pura: `tests/calendar/declared.test.ts` (digest, JSON roto, kickoff inexistente/ambiguo nombrando jornada y partido) | 2026-09-02 · `tests/db/calendar-load.test.ts` 18/18 contra el Postgres de test (4.1–4.8 y 4b). 4.9: `git diff main -- tests/db/_harness.ts tests/db/parity.test.ts src/db/ports.ts` vacío; las nueve suites previas de `tests/db/` suman 144/144, igual que `main`. Sondas propias contra la base: `update matches set id = …` también rechazado por `matches_identity_is_immutable`; la carga real por CLI dos veces con el mismo fichero → `inserted 0 / updated 0 / orphans 0`; con kickoff movido y un partido menos → `updated 1`, `orphans 1` nombrado y el partido sigue en `matches`. | ✅ |
+| CA-4 — carga upsert transaccional, sin borrado, identidad inmutable | `src/calendar/declared.ts` (`declareCalendar`, `readCalendarFile`, `declaredMatches`; mitad pura) y `src/db/calendar.ts` (`loadSchedule`, `LoadResult`, `CompetitionRedefinedError`; una transacción; desde la segunda vuelta consume `file.matches` en vez de reconvertir, F-SPEC-010-10); `src/db/arrays.ts` (literales de array); `migrations/0003` (trigger `matches_identity_is_immutable`, índices `matches_one_home_per_round` / `matches_one_away_per_round`) | `tests/db/calendar-load.test.ts` «CA-4» — 4.1 tablas exactas, ids de CA-3 y kickoffs de CA-2; 4.2 recarga idéntica (`inserted: []`, `updated: []`, tablas iguales); 4.3 kickoff+venue cambiados → `updated`, id fijo; 4.4 partido menos → `orphans`, sigue en la base; 4b huérfanos solo en jornadas declaradas; 4.5 `Observation` sobrevive a la recarga; 4.6 `home_id`/`away_id`/`round`/`competition_id` rechazados por la base con «immutable … RN-13», `kickoff`/`venue` admitidos; 4.7 competición redefinida → `CompetitionRedefinedError` y snapshot igual; 4.8 fila manual colisionando con `matches_one_home_per_round` → la carga falla y ningún snapshot cambia, `calendar_loads` vacía. 4.9: `_harness.ts` sin diff (`git diff main -- tests/db/_harness.ts` vacío) y las nueve suites previas verdes. Pura: `tests/calendar/declared.test.ts` (digest, JSON roto, kickoff inexistente/ambiguo nombrando jornada y partido) | 2026-09-02 · `tests/db/calendar-load.test.ts` 18/18 contra el Postgres de test (4.1–4.8 y 4b). 4.9: `git diff main -- tests/db/_harness.ts tests/db/parity.test.ts src/db/ports.ts` vacío; las nueve suites previas de `tests/db/` suman 144/144, igual que `main`. Sondas propias contra la base: `update matches set id = …` también rechazado por `matches_identity_is_immutable`; la carga real por CLI dos veces con el mismo fichero → `inserted 0 / updated 0 / orphans 0`; con kickoff movido y un partido menos → `updated 1`, `orphans 1` nombrado y el partido sigue en `matches`. | ✅ |
 | CA-5 — cada carga deja constancia (`calendar_loads`, append-only) | `src/db/calendar.ts` paso 5; `migrations/0003` (`calendar_loads`, `calendar_loads_are_immutable` con `reject_amendment` de 0001, `check (length(declared_by) > 0)`) | `tests/db/calendar-load.test.ts` «CA-5» — una fila con `competition_id`, `declared_by`, `declared_at` normalizado de `+02:00` a `Z`, `loaded_at` del reloj falso, `file_digest` = sha256 de los bytes, `rounds = [1,2]`, `matches_count 4`, `inserted 4`, `updated 0`; 5.1 segunda carga añade otra fila con `inserted = 0`; contadores tras una carga con un `updated`; 5.2 `update`/`delete` rechazados («append-only»); 5.3 `declared_by = ''` rechazado por el `CHECK` | 2026-09-02 · `calendar-load.test.ts` «CA-5» 5/5: `declared_at` `+02:00` → `2026-09-02T08:00:00.000Z`, `loaded_at` del reloj falso, sha256 de los bytes, `rounds [1,2]`, 5.1 segunda fila con `inserted 0`, 5.2 «append-only», 5.3 CHECK. Sonda E: cuatro cargas reales (una por `loadSchedule`, tres por CLI) → filas `calendar_loads` id 1..4 con `inserted/updated` 4/0, 0/0, 0/0, 0/1 y `matches_count` 4, 4, 4, 3; la carga inválida no dejó fila. | ✅ |
-| CA-6 — CLI `calendario:cargar`, recuentos y fallos claros | `src/calendar/cli.ts` (punto de entrada; hook de resolución + import dinámico, como los CLI de SPEC-002), `src/calendar/command.ts` (`main(argv, io)` con `env`, `stdout`, `stderr`, `openClient`, `load` inyectados; código de salida 0/1); `package.json` script `calendario:cargar`; `tests/polite/support/capability.ts` `ENTRY_POINTS` += `src/calendar/cli.ts` con motivo | `tests/calendar/command.test.ts` (`npm test`) — fichero válido: `inserted`/`updated`/`orphans` (con ids)/`load id` en stdout, exit 0, cliente cerrado; inválido: error de CA-1 nombrando la fila, exit 1, **`openClient` no llamado**; fichero inexistente; sin `DATABASE_URL`: exit 1 con «DATABASE_URL is not set»; sin ruta: usage; carga fallida: exit 1 y cliente cerrado; **dos casos arrancan `node src/calendar/cli.ts` de verdad** (inválido, y válido sin `DATABASE_URL`). `tests/db/cli.test.ts` — `main` con cliente real: 4/0/0 y el id de la fila; 0/1/1 nombrando el huérfano; competición redefinida → exit 1 sin fila nueva. `tests/polite/architecture.test.ts` 17 (ENTRY_POINTS versionado) sigue verde, 91/91 | 2026-09-02 · `tests/calendar/command.test.ts` 9/9 (dos arranques reales de `node src/calendar/cli.ts`) y `tests/db/cli.test.ts` 3/3 con cliente real. Sonda E, CLI real con `DATABASE_URL` apuntando a la rama de test: fichero válido dos veces → exit 0 y `inserted: 0 / updated: 0 / orphans: 0 / teams inserted: 0 / load id: N`; fichero con kickoff movido y un partido menos → `updated: 1 / orphans: 1` con el id del huérfano; fichero inválido de CA-1 → exit 1 nombrando la fila y `openClient` sin llamar (test). `ENTRY_POINTS` gana `src/calendar/cli.ts` con motivo; `ALLOWED_PACKAGES` sin diff. **Nota de forma**: la spec dice «`main` recibe `sql` y `argv` … como `migrate.main`», pero `migrate.main()` no recibe nada; aquí `main(argv, io)` recibe `openClient: (url) => Sql`, que es lo que permite afirmar «sin haber abierto conexión». Se acepta como cumplimiento del CA. El idioma de la salida (inglés) no lo fija el CA: F-SPEC-010-9 queda para el gate. Ver también F-SPEC-010-10. | ✅ |
-| CA-7 — `PostgresObservationStore`: append idempotente, conflicto nombrado | `src/db/observations.ts` (`PostgresObservationStore`, `ObservationConflictError`); `insert … on conflict (id) do nothing returning`, y si no devuelve fila, lee y compara | `tests/db/observations.test.ts` — 7.1 `append` devuelve la guardada, `getById` `toEqual`, `observed_at` cadena `Z` con `InstantSchema`, salida congelada, semilla legible con `confidence` numérico; 7.2 `listByMatch` por `observed_at` y luego `id` (empate forzado), solo ese partido, `[]` y `null` en desconocidos; 7.4 replay: una fila y la segunda llamada devuelve la guardada; 7.5 mismo id y `home_score` distinto → `ObservationConflictError` nombrando el id, la fila conserva lo primero; 7.6 `match_id` inexistente → `code 23503` «foreign key», sin envolver. **7.3** en `tests/stores/entry-validation.test.ts` (`npm test`): `Sql` espía con `Proxy` que cuenta y lanza; `scheduled` con `home_score: 1` → `ZodError` y **0 llamadas**; control positivo: una válida sí llega al espía. **7.7** en `tests/types/spec010-stores.test-d.ts`: `@ts-expect-error` sobre `update`/`delete`, y `keyof` de la clase igual al del puerto | 2026-09-02 · `tests/db/observations.test.ts` 10/10; 7.3 `tests/stores/entry-validation.test.ts` 5/5 con el espía; 7.7 `spec010-stores.test-d.ts` y sonda `tsc` propia (`update`/`delete` → `TS2339` en las dos clases). **Pero CA-7.4 no se sostiene para toda `Observation` válida**: sonda A contra el Postgres de test, `append(o)` dos veces con `o.observed_at = '2026-09-06T15:40:00Z'` (sin milisegundos; `InstantSchema` = `z.iso.datetime({ offset: false })` lo acepta) → la primera devuelve `…15:40:00.000Z` (≠ `o`, así que 7.1 `toEqual` tampoco), la segunda lanza `ObservationConflictError` porque `sameObservation` compara `observed_at` con `===` (`src/db/observations.ts:54-55`, `:82-88`). Con `.000Z` sí es idempotente. **Finding F-1.** | ❌ |
-| CA-8 — `PostgresDecisionStore`: versiones contiguas, una gana | `src/db/decisions.ts` (`PostgresDecisionStore`, `DecisionVersionConflictError`, `isVersionConflict`: `23505` sobre `decisions_pkey` o `23000` del trigger); `migrations/0003` (`decisions_versions_are_contiguous`, **AFTER INSERT**, ver decisión 2); array como literal `pgTextArray(...)::text[]` | `tests/db/decisions.test.ts` — 8.1 v1 guardada, `getLatestByMatch` `toEqual`, congelada, `decided_at` `Z`, tupla no vacía, `rule` en `DECISION_RULES`, `null` sin decisiones; 8.2 v2 tras v1 vigente; v3 tras v1 → `DecisionVersionConflictError` («not contiguous»); v2 sobre vacío → conflicto; misma versión dos veces → conflicto y la primera queda; 8.3 log ascendente y solo ese partido; 8.4 soporte de otro partido → `decisions_supporting_observations_exist`, `23503`, **no** envuelto; **8.5 dos `append` concurrentes con `version: 1` desde dos `connect()` distintos → exactamente 1 éxito y 1 `DecisionVersionConflictError`, después `version: 1` vigente y una fila** (Postgres real); 8.6 segunda red: `insert` SQL con `'RN-13'` → `decisions_rule_shape`. **8.6 (zod)** en `tests/stores/entry-validation.test.ts`: `rule: 'RN-13'` y soporte vacío → `ZodError`, 0 llamadas, control positivo. **8.7** en `tests/types/spec010-stores.test-d.ts` | 2026-09-02 · `tests/db/decisions.test.ts` 11/11 contra el Postgres de test, 8.5 con dos `connect()`; 8.6 zod con espía y CHECK por SQL; 8.7 tipos + sonda `tsc`. Sonda B propia: carrera `v2`/`v2`/`v3` sobre `{1}` desde **tres** conexiones frescas → un `DecisionVersionConflictError`, dos éxitos y log final `[1,2,3]` sin hueco; `insert` SQL directo con `version 5` sobre `{1,2,3}` → `23000` «not contiguous: the next version is 4». El trigger es `AFTER INSERT` y comprueba «existe la versión inmediatamente anterior o la nueva es 1»: bajo READ COMMITTED equivale a `version = max + 1` de ADR-017 §5 (una versión superior a las visibles no puede existir sin violar la propia contigüidad) y la clave primaria arbitra el empate. Cumple. | ✅ |
+| CA-6 — CLI `calendario:cargar`, recuentos y fallos claros | `src/calendar/cli.ts` (punto de entrada; hook de resolución + import dinámico, como los CLI de SPEC-002), `src/calendar/command.ts` (`main(argv, io)` con `env`, `stdout`, `stderr`, `openClient`, `load` inyectados; código de salida 0/1); `package.json` script `calendario:cargar`; `tests/polite/support/capability.ts` `ENTRY_POINTS` += `src/calendar/cli.ts` con motivo. **Segunda vuelta (F-SPEC-010-10)**: el paso 1 valida también las horas, porque `declareCalendar` (`src/calendar/declared.ts`) calcula `DeclaredCalendar.matches`; un kickoff inexistente o ambiguo sale con `InvalidScheduleError` antes de `requireDatabaseUrl` y de `openClient` | `tests/calendar/command.test.ts` (`npm test`) — fichero válido: `inserted`/`updated`/`orphans` (con ids)/`load id` en stdout, exit 0, cliente cerrado; inválido: error de CA-1 nombrando la fila, exit 1, **`openClient` no llamado**; fichero inexistente; sin `DATABASE_URL`: exit 1 con «DATABASE_URL is not set»; sin ruta: usage; carga fallida: exit 1 y cliente cerrado; **dos casos arrancan `node src/calendar/cli.ts` de verdad** (inválido, y válido sin `DATABASE_URL`); **segunda vuelta**: fichero con `2027-03-28 02:30` → exit 1, `opened` vacío, `end()` no llamado, `round 2, match sd-inventada-ud-ourense` y `does not exist` en stderr, sin «load failed» (10 casos en el fichero; rojo antes del cambio). `tests/db/cli.test.ts` — `main` con cliente real: 4/0/0 y el id de la fila; 0/1/1 nombrando el huérfano; competición redefinida → exit 1 sin fila nueva. `tests/polite/architecture.test.ts` 17 (ENTRY_POINTS versionado) sigue verde, 91/91 | 2026-09-02 · `tests/calendar/command.test.ts` 9/9 (dos arranques reales de `node src/calendar/cli.ts`) y `tests/db/cli.test.ts` 3/3 con cliente real. Sonda E, CLI real con `DATABASE_URL` apuntando a la rama de test: fichero válido dos veces → exit 0 y `inserted: 0 / updated: 0 / orphans: 0 / teams inserted: 0 / load id: N`; fichero con kickoff movido y un partido menos → `updated: 1 / orphans: 1` con el id del huérfano; fichero inválido de CA-1 → exit 1 nombrando la fila y `openClient` sin llamar (test). `ENTRY_POINTS` gana `src/calendar/cli.ts` con motivo; `ALLOWED_PACKAGES` sin diff. **Nota de forma**: la spec dice «`main` recibe `sql` y `argv` … como `migrate.main`», pero `migrate.main()` no recibe nada; aquí `main(argv, io)` recibe `openClient: (url) => Sql`, que es lo que permite afirmar «sin haber abierto conexión». Se acepta como cumplimiento del CA. El idioma de la salida (inglés) no lo fija el CA: F-SPEC-010-9 queda para el gate. Ver también F-SPEC-010-10. | ✅ |
+| CA-7 — `PostgresObservationStore`: append idempotente, conflicto nombrado | `src/db/observations.ts` (`PostgresObservationStore`, `ObservationConflictError`); `insert … on conflict (id) do nothing returning`, y si no devuelve fila, lee y compara. **Segunda vuelta (F-1)**: `storedForm` normaliza `observed_at` a la forma que la base devuelve (`.000Z`) al entrar, tras zod y antes de la primera consulta, con `instantOf(epochMsOf(…))` de `@/polite/clock` (sin `Date`, CA-2.3); la escritura y `sameObservation` ven esa forma | `tests/db/observations.test.ts` — **segunda vuelta**, describe «CA-7.1 and CA-7.4 — an observed_at WITHOUT milliseconds (F-1)», 4 casos: 7.1 `append('…:40:00Z')` devuelve la forma almacenada y `getById` la lee `toEqual`; 7.4 replay del mismo objeto sin milisegundos → una fila, sin error (**rojo antes del cambio**, `ObservationConflictError` en `:88`); 7.4 replay con la forma almacenada; 7.5 mismo id sin milisegundos y `away_score` distinto sigue siendo conflicto (14 casos en el fichero). Primera vuelta: 7.1 `append` devuelve la guardada, `getById` `toEqual`, `observed_at` cadena `Z` con `InstantSchema`, salida congelada, semilla legible con `confidence` numérico; 7.2 `listByMatch` por `observed_at` y luego `id` (empate forzado), solo ese partido, `[]` y `null` en desconocidos; 7.4 replay: una fila y la segunda llamada devuelve la guardada; 7.5 mismo id y `home_score` distinto → `ObservationConflictError` nombrando el id, la fila conserva lo primero; 7.6 `match_id` inexistente → `code 23503` «foreign key», sin envolver. **7.3** en `tests/stores/entry-validation.test.ts` (`npm test`): `Sql` espía con `Proxy` que cuenta y lanza; `scheduled` con `home_score: 1` → `ZodError` y **0 llamadas**; control positivo: una válida sí llega al espía. **7.7** en `tests/types/spec010-stores.test-d.ts`: `@ts-expect-error` sobre `update`/`delete`, y `keyof` de la clase igual al del puerto | 2026-09-02 · `tests/db/observations.test.ts` 10/10; 7.3 `tests/stores/entry-validation.test.ts` 5/5 con el espía; 7.7 `spec010-stores.test-d.ts` y sonda `tsc` propia (`update`/`delete` → `TS2339` en las dos clases). **Pero CA-7.4 no se sostiene para toda `Observation` válida**: sonda A contra el Postgres de test, `append(o)` dos veces con `o.observed_at = '2026-09-06T15:40:00Z'` (sin milisegundos; `InstantSchema` = `z.iso.datetime({ offset: false })` lo acepta) → la primera devuelve `…15:40:00.000Z` (≠ `o`, así que 7.1 `toEqual` tampoco), la segunda lanza `ObservationConflictError` porque `sameObservation` compara `observed_at` con `===` (`src/db/observations.ts:54-55`, `:82-88`). Con `.000Z` sí es idempotente. **Finding F-1.** | ❌ |
+| CA-8 — `PostgresDecisionStore`: versiones contiguas, una gana | `src/db/decisions.ts` (`PostgresDecisionStore`, `DecisionVersionConflictError`, `isVersionConflict`: `23505` sobre `decisions_pkey` o `23000` del trigger); `migrations/0003` (`decisions_versions_are_contiguous`, **AFTER INSERT**, ver decisión 2); array como literal `pgTextArray(...)::text[]`. **Segunda vuelta**: `storedForm` normaliza `decided_at` igual que CA-7, para que los dos repositorios traten un instante de la misma manera (nota del verificador en F-1; ningún CA lo exige) | `tests/db/decisions.test.ts` — **segunda vuelta**: un caso de simetría, `decided_at: '…:01Z'` → `append` devuelve `.000Z` y `getLatestByMatch` lo lee `toEqual` (12 casos en el fichero; ya pasaba antes del cambio porque `append` devuelve la fila de la base, se deja como red). Primera vuelta: 8.1 v1 guardada, `getLatestByMatch` `toEqual`, congelada, `decided_at` `Z`, tupla no vacía, `rule` en `DECISION_RULES`, `null` sin decisiones; 8.2 v2 tras v1 vigente; v3 tras v1 → `DecisionVersionConflictError` («not contiguous»); v2 sobre vacío → conflicto; misma versión dos veces → conflicto y la primera queda; 8.3 log ascendente y solo ese partido; 8.4 soporte de otro partido → `decisions_supporting_observations_exist`, `23503`, **no** envuelto; **8.5 dos `append` concurrentes con `version: 1` desde dos `connect()` distintos → exactamente 1 éxito y 1 `DecisionVersionConflictError`, después `version: 1` vigente y una fila** (Postgres real); 8.6 segunda red: `insert` SQL con `'RN-13'` → `decisions_rule_shape`. **8.6 (zod)** en `tests/stores/entry-validation.test.ts`: `rule: 'RN-13'` y soporte vacío → `ZodError`, 0 llamadas, control positivo. **8.7** en `tests/types/spec010-stores.test-d.ts` | 2026-09-02 · `tests/db/decisions.test.ts` 11/11 contra el Postgres de test, 8.5 con dos `connect()`; 8.6 zod con espía y CHECK por SQL; 8.7 tipos + sonda `tsc`. Sonda B propia: carrera `v2`/`v2`/`v3` sobre `{1}` desde **tres** conexiones frescas → un `DecisionVersionConflictError`, dos éxitos y log final `[1,2,3]` sin hueco; `insert` SQL directo con `version 5` sobre `{1,2,3}` → `23000` «not contiguous: the next version is 4». El trigger es `AFTER INSERT` y comprueba «existe la versión inmediatamente anterior o la nueva es 1»: bajo READ COMMITTED equivale a `version = max + 1` de ADR-017 §5 (una versión superior a las visibles no puede existir sin violar la propia contigüidad) y la clave primaria arbitra el empate. Cumple. | ✅ |
 | CA-9 — `PostgresMatchStore`: lecturas parseadas, ordenadas, por intervalo | `src/calendar/ports.ts` (`MatchStore`, puerto nuevo: `getById`, `listByRound`, `listByTeams`, `listKickoffsBetween`), `src/db/matches.ts` (`PostgresMatchStore`) | `tests/db/matches.test.ts` — sobre la carga de los dos fixtures: `getById` `toEqual` con `kickoff` `Z` y `venue` `null` donde toca, desconocido → `null`; `listByRound(…, 1)` por kickoff e id y nada de la 2, jornada inexistente `[]`; `listByTeams` par ordenado → uno, invertido → `[]`, otra competición → `[]`; `listKickoffsBetween` de las dos competiciones con `from` igual a un kickoff (entra) y `to` igual a dos kickoffs (salen), y con `to` + 1 ms entran los dos ordenados por kickoff e id; intervalo vacío `[]`; todo por `MatchSchema.parse` | 2026-09-02 · `tests/db/matches.test.ts` 11/11 contra el Postgres de test: `getById` `toEqual` con `kickoff` `Z` y `venue null`; `listByRound` por kickoff e id, jornada inexistente `[]`; `listByTeams` par, invertido y otra competición; `listKickoffsBetween` con `from` incluido y `to` excluido sobre dos competiciones, y `to` + 1 ms deja entrar los dos del borde ordenados. SQL leído: `order by kickoff asc, id asc`, casts `::timestamptz`, `MatchSchema.parse` en toda salida. | ✅ |
 | CA-10 — `migrations/0003` en orden, sin columnas nuevas en el canónico | `migrations/0003_declared_calendar.sql` — a mano: dos índices únicos, `matches_identity_is_immutable` (BEFORE UPDATE), `decisions_versions_are_contiguous` (AFTER INSERT), tabla `calendar_loads` con `calendar_loads_are_immutable` (`reject_amendment` reutilizado) | `tests/db/calendar-schema.test.ts` — `migrate` sobre esquema vacío devuelve `['0001','0002','0003']` y luego `[]`; 10.1 tabla, índices, triggers y funciones **leídos de la migración con regex** y buscados en `information_schema`/`pg_indexes`; 10.2 columnas exactas de `calendar_loads` y `tests/db/parity.test.ts` **sin diff**; 10.3 toda `tests/db/` previa verde; 10.4 cabecera a mano, sin marcas de generador. `tests/migrations/discovery.test.ts` sigue verde | 2026-09-02 · `tests/db/calendar-schema.test.ts` 8/8: `migrate` → `['0001','0002','0003']` y luego `[]` (también en la sonda propia sobre esquema vacío); nombres leídos de la migración con regex y hallados en `information_schema`/`pg_indexes`; columnas exactas de `calendar_loads`. 10.2: `tests/db/parity.test.ts` 36/36 y sin diff frente a `main`; `src/model/` sin diff. 10.3: 144/144 previos. 10.4: `migrations/0003_declared_calendar.sql` leído entero — SQL a mano, dos índices únicos, dos funciones plpgsql, una tabla, `reject_amendment` reutilizado, sin ORM. | ✅ |
-| CA-11 — los tres gates, las dos suites, las suites cerradas enteras | — | Salidas literales en *«Primera vuelta»* §Gates: `lint exit=0`, `npm test` 838/838, `test:db` 205/205; recuento de ficheros por directorio contra `main` en el Resumen. El recuento **caso a caso** es del verificador | 2026-09-02 · Cuatro gates ejecutados por el verificador (salidas literales en *Veredicto*): `lint exit=0`, `typecheck exit=0`, `npm test` 838/838 (90 ficheros, 0 skipped), `npm run test:db` 205/205 (14 ficheros, 0 skipped). Caso a caso con `--reporter=json`: `tests/mirror` 244, `tests/site` 98, `tests/docs` 5, `tests/model` 186, `tests/raw` 58, `tests/ingest` 69, `tests/polite` 91, `tests/migrations` 19, `tests/types` 9 (7 + 2 nuevos); `tests/db` previos 144 (`ca19` 14, `migrate` 3, `parity` 36, `rate-limit` 14, `rn09` 9, `rn12` 9, `rn13` 5, `scores` 54) + 61 nuevos = 205. `git diff main --numstat -- tests src` no tiene **ninguna línea borrada** en ningún fichero, y 838 − 61 nuevos = 777 y 205 − 61 = 144 coinciden con la línea base de `main`. Ningún `.skip`/`.only`/`.todo` añadido. | ✅ |
+| CA-11 — los tres gates, las dos suites, las suites cerradas enteras | — | **Segunda vuelta**, salidas literales en *«Segunda vuelta»* §Gates: `lint exit=0`, `typecheck exit=0`, `npm test` 842/842 (90 ficheros), `test:db` 210/210 (14 ficheros); 842 − 4 = 838 y 210 − 5 = 205 cuadran con la primera vuelta; `git diff --numstat e14d8ad..HEAD -- tests` borra 3 líneas, las dos `declareCalendar(…).schedule` sustituidas por `parseSchedule` y un blanco, ninguna aserción. Primera vuelta: `lint exit=0`, `npm test` 838/838, `test:db` 205/205. El recuento **caso a caso** es del verificador | 2026-09-02 · Cuatro gates ejecutados por el verificador (salidas literales en *Veredicto*): `lint exit=0`, `typecheck exit=0`, `npm test` 838/838 (90 ficheros, 0 skipped), `npm run test:db` 205/205 (14 ficheros, 0 skipped). Caso a caso con `--reporter=json`: `tests/mirror` 244, `tests/site` 98, `tests/docs` 5, `tests/model` 186, `tests/raw` 58, `tests/ingest` 69, `tests/polite` 91, `tests/migrations` 19, `tests/types` 9 (7 + 2 nuevos); `tests/db` previos 144 (`ca19` 14, `migrate` 3, `parity` 36, `rate-limit` 14, `rn09` 9, `rn12` 9, `rn13` 5, `scores` 54) + 61 nuevos = 205. `git diff main --numstat -- tests src` no tiene **ninguna línea borrada** en ningún fichero, y 838 − 61 nuevos = 777 y 205 − 61 = 144 coinciden con la línea base de `main`. Ningún `.skip`/`.only`/`.todo` añadido. | ✅ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
@@ -283,6 +296,14 @@ Abiertas en la primera vuelta de verificación (2026-09-02, sdd-verificador):
   caso en `command.test.ts` con `opened` vacío para ese fichero); si no,
   **EPIC-MEJORA** con disparador «el primer operador que lea `load failed`
   para un fichero que nunca llegó a la base».
+  **CERRADA en la segunda vuelta (2026-09-02, sdd-implementador, `9a7f380`)**:
+  `DeclaredCalendar` lleva `matches`, calculado en `declareCalendar`, así que
+  el hueco o la ambigüedad horaria salen por el paso 1 de `main` antes de
+  `requireDatabaseUrl` y de `openClient`; `loadSchedule` consume
+  `file.matches`. Caso en `tests/calendar/command.test.ts` con `opened` vacío y
+  sin «load failed»; comprobado con la CLI real sin `DATABASE_URL` (exit 1,
+  `round 2, match sd-inventada-ud-ourense: kickoff 2027-03-28 02:30 does not
+  exist in Europe/Madrid`). Nada queda para EPIC-MEJORA.
 - **F-SPEC-010-6, confirmado por el verificador**: la sonda D reproduce el
   fallo del driver en la primera sentencia de una conexión fresca (`malformed
   array literal: "x,y"`). La salvedad y su destino no cambian; se anota que ya
@@ -324,6 +345,32 @@ Abiertas en la primera vuelta de verificación (2026-09-02, sdd-verificador):
    una ruta: así el CLI puede validar y rechazar **antes** de abrir conexión
    (CA-6) y los tests cargan desde memoria. La ruta la lee `readCalendarFile`,
    el único I/O de fichero del módulo.
+
+Tomadas en la segunda vuelta (2026-09-02):
+
+7. **El instante se normaliza al entrar, en los dos repositorios, y `append`
+   devuelve la forma almacenada.** CA-7.1 dice «`append(o)` devuelve la
+   `Observation` guardada; `getById(o.id)` devuelve un valor `toEqual` al que
+   se guardó»: lo que se guardó es lo que `append` devuelve, con el instante
+   como la base lo entrega (`.000Z`), y `getById` es `toEqual` a eso. No se
+   intenta devolver la cadena literal que entró: sería mentir sobre lo que hay
+   en la base y rompería `toEqual` entre `append` y `getById`. La comparación
+   de CA-7.5 se hace sobre esa forma, así que un instante escrito de dos
+   maneras es el mismo instante y un `away_score` distinto sigue siendo
+   conflicto. `Date` no entra en `src/db/`: se usa `instantOf(epochMsOf(…))` de
+   `src/polite/clock.ts`, como ya hacía `src/db/calendar.ts` con `declared_at`.
+   `PostgresDecisionStore` recibe la misma normalización aunque ningún CA se la
+   pida, porque el verificador señaló la asimetría y porque dos repositorios
+   con dos criterios para un instante es una regla que deja de ser una.
+8. **`DeclaredCalendar.matches` en vez de convertir en el cargador.** De las
+   dos vías que ofrecía F-SPEC-010-10 (mover la conversión a `declareCalendar`
+   o llamarla en `main`), la primera: así hay UNA conversión, la cabecera de
+   `declared.ts` vuelve a ser cierta para todo el que llame a
+   `declareCalendar`, y `loadSchedule` recibe filas listas. `declaredMatches`
+   sigue exportado para quien tenga un `Schedule` sin bytes. Los dos tests de
+   `declaredMatches` que construían el `schedule` con `declareCalendar(…)`
+   pasan a construirlo con `parseSchedule`, porque `declareCalendar` ahora
+   rechaza ese fichero; sus aserciones no cambian.
 
 ## Primera vuelta — lo que se implementó y cómo (2026-09-02, sdd-implementador)
 
@@ -389,18 +436,110 @@ dio `ENOTFOUND` contra Neon y se repitió: F-SPEC-008-21).
 `tests/db/parity.test.ts`, `src/model/`, `src/ingest/`, `src/polite/`,
 `ALLOWED_PACKAGES`, ningún ADR ni el cuerpo de la spec.
 
+## Segunda vuelta — corrección de F-1 y F-SPEC-010-10 (2026-09-02, sdd-implementador)
+
+**Encargo**: el único finding RED (F-1, CA-7.4 y la mitad `toEqual` de
+CA-7.1) y, opcional, F-SPEC-010-10. Los dos hechos con TDD: test en rojo que
+reproduce el fallo, corrección, verde, commit. Nada más se ha tocado.
+
+**F-1 — qué pasaba y qué cambia.** `InstantSchema` acepta `…:00Z` y la base
+devuelve `…:00.000Z`; `sameObservation` comparaba con `===` y el replay del
+mismo objeto lanzaba `ObservationConflictError`. Ahora `append` hace
+`storedForm(ObservationSchema.parse(observation))`: zod primero (CA-7.3, el
+espía sigue en 0 llamadas), después el instante a la forma almacenada con
+`instantOf(epochMsOf(…))` de `@/polite/clock`, y todo lo demás — insert,
+lectura, comparación — trabaja sobre esa forma. `PostgresDecisionStore.append`
+recibe la misma `storedForm` sobre `decided_at`. `Date` sigue sin aparecer en
+`src/db/` (`grep -n '\bDate\b'` sobre `src/calendar/*.ts` y los cinco
+ficheros de `src/db/` de esta spec: solo `time.ts`, cinco líneas de código).
+
+**F-SPEC-010-10 — qué pasaba y qué cambia.** La conversión de hora vivía en
+`loadSchedule`, con el cliente ya abierto; el operador leía «load failed,
+nothing was written» para un fichero que nunca llegó a la base.
+`DeclaredCalendar` gana `matches: readonly Match[]`, calculado en
+`declareCalendar` tras `parseSchedule`; `loadSchedule` desestructura
+`{ schedule, matches }` del fichero y ya no importa `declaredMatches`. La CLI
+no cambia de código: su paso 1 (`readCalendarFile`) rechaza ahora también el
+hueco de marzo y la hora repetida de octubre, antes de `requireDatabaseUrl`.
+
+**Rojo → verde, medido.** `tests/db/observations.test.ts` «7.4: append twice
+of the same object…» falló antes del cambio con `ObservationConflictError` en
+`src/db/observations.ts:88`; los otros tres casos nuevos de F-1 y el de
+simetría de `decisions.test.ts` ya pasaban (documentan la forma devuelta) y
+se dejan como red. Los cuatro casos nuevos de `tests/calendar/` fallaron antes
+del cambio (`declareCalendar` no lanzaba; `opened` tenía un elemento).
+
+**Commits** (sobre `e14d8ad`): `22e6c05` fix CA-7 (F-1) · `9a7f380` fix CA-6
+(F-SPEC-010-10) · y el commit de este ledger y del paso a `en-revision`.
+
+**Ficheros tocados** (nueve, todos de esta spec): `src/db/observations.ts`,
+`src/db/decisions.ts`, `src/db/calendar.ts`, `src/calendar/declared.ts`,
+`src/calendar/command.ts` (solo el comentario de cabecera),
+`tests/db/observations.test.ts` (+4), `tests/db/decisions.test.ts` (+1),
+`tests/calendar/declared.test.ts` (+3, dos construcciones cambiadas),
+`tests/calendar/command.test.ts` (+1). **Sin diff**: `tests/db/_harness.ts`,
+`tests/db/parity.test.ts`, `src/db/ports.ts`, `src/model/`, `src/polite/`,
+`migrations/`, `package.json`, el cuerpo de la spec y los ADR.
+
+**Gates, salidas literales (2026-09-02, worktree, `DATABASE_URL_TEST`
+disponible, `ps aux | grep -c '[v]itest.mjs'` = 0 al arrancar `test:db`):**
+
+```
+$ npm run lint
+> marcador@0.0.1 lint
+> oxlint --type-aware
+lint exit=0
+
+$ npm run typecheck
+> marcador@0.0.1 typecheck
+> tsc --noEmit
+typecheck exit=0
+
+$ npm test
+ Test Files  90 passed (90)
+      Tests  842 passed (842)
+Type Errors  no errors
+   Duration  4.45s (transform 2.11s, setup 0ms, import 9.14s, tests 13.13s, environment 4ms, typecheck 138ms)
+test exit=0
+
+$ npm run test:db
+ Test Files  14 passed (14)
+      Tests  210 passed (210)
+   Duration  97.50s (transform 119ms, setup 0ms, import 477ms, tests 95.95s, environment 1ms)
+test:db exit=0
+```
+
+Frente a la primera vuelta: 838 → 842 (+4, `tests/calendar`), 205 → 210 (+5,
+`tests/db`); mismos 90 y 14 ficheros. Ningún `.skip`/`.only`/`.todo`.
+
+**Sonda con la CLI real** (scratchpad, no commiteada): fichero del fixture con
+`2027-03-28 02:30` en la jornada 2, `env -u DATABASE_URL node
+src/calendar/cli.ts <fichero>` → exit 1, stderr `the declared calendar is
+invalid: round 2, match sd-inventada-ud-ourense: kickoff 2027-03-28 02:30 does
+not exist in Europe/Madrid: the clock skips it`. Sin `DATABASE_URL` no puede
+haber abierto conexión; el mensaje ya no dice «load failed».
+
+**Salvedades nuevas**: ninguna. **Cerrada**: F-SPEC-010-10. F-SPEC-010-9 (idioma
+del CLI) sigue para el gate, sin cambios.
+
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
 
-**Implementación completa en la rama, spec en `en-revision`, a la espera del
-verificador.** Nada queda a medias; lo que hay que saber para verificar o
-seguir:
+**Segunda vuelta de implementación completa en la rama, spec en
+`en-revision`, a la espera del verificador.** F-1 corregido y F-SPEC-010-10
+cerrado; nada queda a medias. Para la verificación de esta vuelta: el
+verificador dijo que «basta rehacer CA-7 y los cuatro gates» mientras el diff
+no toque otros ficheros — esta vuelta toca además `src/db/decisions.ts`
+(simetría, CA-8), `src/calendar/declared.ts`, `src/db/calendar.ts` y la
+cabecera de `src/calendar/command.ts` (F-SPEC-010-10, CA-4/CA-6), así que
+CA-4, CA-6 y CA-8 merecen una segunda mirada además de CA-7. Lo que hay que
+saber para verificar o seguir:
 
 1. **Antes de correr `test:db`, comprobar que nadie más lo está corriendo**
    contra la misma rama de Neon (`ps aux | grep vitest.mjs`): el checkout
    principal comparte `DATABASE_URL_TEST` y un run concurrente da fallos que no
    son de esta spec (F-SPEC-010-7). Si da `ENOTFOUND`, repetir (F-SPEC-008-21).
-2. **Las dos suites**: `npm test` (838) y `npm run test:db` (205). Sin
+2. **Las dos suites**: `npm test` (842) y `npm run test:db` (210). Sin
    `DATABASE_URL_TEST`, CA-4, CA-5, CA-6 (mitad db), CA-7 (salvo 7.3 y 7.7),
    CA-8 (salvo 8.6-zod y 8.7), CA-9 y CA-10 son UNMET, no skipped.
 3. **Lo que el verificador tiene que mirar con más cuidado** (también en el
@@ -427,5 +566,9 @@ seguir:
 6. **Para la spec siguiente** (catálogo de alias / `MatchResolver`):
    `PostgresMatchStore.listByTeams(competition, home, away)` devuelve lista;
    `PostgresObservationStore.append` es idempotente ante la misma
-   `Observation`; `PostgresDecisionStore.append` lanza
+   `Observation`, escriba su `observed_at` con o sin milisegundos, y devuelve
+   siempre la forma almacenada (`.000Z`), igual que `PostgresDecisionStore`
+   con `decided_at`; `PostgresDecisionStore.append` lanza
    `DecisionVersionConflictError` y el motor tiene que decidir qué hacer con él.
+   `declareCalendar` devuelve también `matches`: quien cargue un calendario
+   desde memoria ya tiene las filas convertidas.
