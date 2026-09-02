@@ -82,6 +82,22 @@ describe('CA-8.1 — append and getLatestByMatch', () => {
   });
 });
 
+describe('CA-8.1 — a decided_at WITHOUT milliseconds (symmetry with CA-7, F-1)', () => {
+  // No CA demands it, but the two repositories should treat an instant the
+  // same way: `append` returns the STORED form (`.000Z`), which is what every
+  // read returns, whatever the shape `InstantSchema` let in.
+  test('append returns the stored form and getLatestByMatch reads back equal to it', async () => {
+    const noMillis: LiveDecision = { ...v1, decided_at: '2026-03-21T17:35:01Z' };
+    expect(InstantSchema.safeParse(noMillis.decided_at).success).toBe(true);
+
+    const stored = await store.append(noMillis);
+    expect(stored).toEqual(v1);
+
+    const latest = await store.getLatestByMatch(MATCH);
+    expect(latest).toEqual(stored);
+  });
+});
+
 describe('CA-8.2 — contiguity, arbitrated by the database', () => {
   test('version 2 after 1 is stored and becomes the live one', async () => {
     await store.append(v1);

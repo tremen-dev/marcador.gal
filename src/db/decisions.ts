@@ -12,6 +12,10 @@
  * observation); the `CHECK`s and the trigger of migration 0001 are the second,
  * inherited and not reimplemented (CA-8.4, CA-8.6). Every read is parsed ON
  * THE WAY OUT. Instants cross as `Z` strings; `Date` does not appear here.
+ * `decided_at` is normalised on the way in to the form the database returns
+ * (`.000Z`), with the converter of `src/polite/clock.ts`, for the same reason
+ * and in the same way as `observed_at` in `./observations.ts`: the two
+ * repositories treat an instant alike.
  *
  * THE VERSION IS ARBITRATED BY THE DATABASE (ADR-017 §5). Migration 0003
  * requires `version = max + 1` per match and the primary key of 0001 lets
@@ -26,6 +30,7 @@
 import { DecisionSchema } from '@/model/decision';
 import type { Decision } from '@/model/decision';
 import type { MatchId } from '@/model/ids';
+import { epochMsOf, instantOf } from '@/polite/clock';
 import { pgTextArray } from './arrays';
 import type { Sql } from './client';
 import type { DecisionStore } from './ports';
@@ -58,6 +63,14 @@ const COLUMNS = [
   'version',
 ] as const;
 
+/** The Decision as the database will hand it back: its instant in the stored form. */
+function storedForm(decision: Decision): Decision {
+  return DecisionSchema.parse({
+    ...decision,
+    decided_at: instantOf(epochMsOf(decision.decided_at)),
+  });
+}
+
 /** The two shapes the database's arbitration takes (migration 0003). */
 function isVersionConflict(error: unknown): error is { readonly message: string } {
   if (error === null || typeof error !== 'object') return false;
@@ -81,7 +94,8 @@ export class PostgresDecisionStore implements DecisionStore {
 
   async append(decision: Decision): Promise<Decision> {
     // Zod first. Nothing below runs for a value the model does not accept.
-    const valid = DecisionSchema.parse(decision);
+    // Then the instant, so that what is written is the stored form.
+    const valid = storedForm(DecisionSchema.parse(decision));
 
     const sql = this.#sql;
     // Written as a literal, not handed over as a JS array: see `./arrays.ts`.

@@ -12,6 +12,15 @@
  * is parsed ON THE WAY OUT, because the driver returns `any`. Instants cross
  * as `Z` strings (`createClient` converts them); `Date` does not appear here.
  *
+ * THE INSTANT IS NORMALISED ON THE WAY IN. `InstantSchema` accepts
+ * `…:00Z` as well as `…:00.000Z`; the database always hands back the latter.
+ * The store owns that difference: `observed_at` is rewritten to the stored
+ * form before it is written or compared, with the converter of
+ * `src/polite/clock.ts` (the one place `Date` is allowed to be transient), so
+ * what `append` returns is what every read returns, and the same object
+ * replayed is the same object however its instant was spelled (F-1 of the
+ * first verification round).
+ *
  * `append` IS IDEMPOTENT FOR THE SAME OBSERVATION and refuses, with a named
  * error, a DIFFERENT one under the same id (ADR-017 §5). It is the rule of
  * `RawKeyConflictError` in the raw store — a key already written is not
@@ -22,6 +31,7 @@
 import { ObservationSchema } from '@/model/observation';
 import type { Observation } from '@/model/observation';
 import type { MatchId, ObservationId } from '@/model/ids';
+import { epochMsOf, instantOf } from '@/polite/clock';
 import type { Sql } from './client';
 import type { ObservationStore } from './ports';
 
@@ -50,7 +60,19 @@ const COLUMNS = [
   'raw_ref',
 ] as const;
 
-/** Structural equality of two parsed Observations, key by key. */
+/**
+ * The Observation as the database will hand it back: same content, its
+ * instant in the stored form. Parsed again so the result is frozen like every
+ * other output of the store.
+ */
+function storedForm(observation: Observation): Observation {
+  return ObservationSchema.parse({
+    ...observation,
+    observed_at: instantOf(epochMsOf(observation.observed_at)),
+  });
+}
+
+/** Structural equality of two Observations in stored form, key by key. */
 function sameObservation(a: Observation, b: Observation): boolean {
   return COLUMNS.every((column) => a[column] === b[column]);
 }
@@ -64,7 +86,8 @@ export class PostgresObservationStore implements ObservationStore {
 
   async append(observation: Observation): Promise<Observation> {
     // Zod first. Nothing below runs for a value the model does not accept.
-    const valid = ObservationSchema.parse(observation);
+    // Then the instant, so that writing and comparing see the stored form.
+    const valid = storedForm(ObservationSchema.parse(observation));
 
     // Bound to a local first: oxlint's `no-unused-private-class-members` does
     // not see a private field used as a tagged template (as in rate-limit.ts).

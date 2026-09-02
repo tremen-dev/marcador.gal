@@ -113,6 +113,55 @@ describe('CA-7.4 — replay is harmless', () => {
   });
 });
 
+describe('CA-7.1 and CA-7.4 — an observed_at WITHOUT milliseconds (F-1)', () => {
+  // `InstantSchema` accepts `…:00Z` as well as `…:00.000Z`; the database hands
+  // back `.000Z`. The store owns that difference: what it returns is the stored
+  // form, and a replay of the very same object is still harmless.
+  const noMillis: LiveObservation = {
+    ...fixture,
+    id: 'obs-0101' as ObservationId,
+    observed_at: '2026-03-21T17:40:00Z',
+  };
+  const storedForm: LiveObservation = { ...noMillis, observed_at: '2026-03-21T17:40:00.000Z' };
+
+  test('7.1: append returns the STORED form and getById reads back equal to it', async () => {
+    expect(InstantSchema.safeParse(noMillis.observed_at).success).toBe(true);
+
+    const stored = await store.append(noMillis);
+    expect(stored).toEqual(storedForm);
+
+    const read = await store.getById(noMillis.id);
+    expect(read).toEqual(stored);
+    expect(read).toEqual(storedForm);
+  });
+
+  test('7.4: append twice of the same object leaves ONE row and the second call returns the stored row', async () => {
+    await store.append(noMillis);
+    const again = await store.append(noMillis);
+
+    expect(again).toEqual(storedForm);
+    const rows = await sql`select id from observations where id = ${noMillis.id}`;
+    expect(rows).toHaveLength(1);
+  });
+
+  test('7.4: the replay is also harmless when the second call carries the stored form', async () => {
+    await store.append(noMillis);
+    const again = await store.append(storedForm);
+
+    expect(again).toEqual(storedForm);
+  });
+
+  test('7.5 still holds: same id without milliseconds but a different away_score is a conflict', async () => {
+    await store.append(noMillis);
+
+    const other: LiveObservation = { ...noMillis, away_score: 1 };
+    await expect(store.append(other)).rejects.toThrow(ObservationConflictError);
+
+    const read = await store.getById(noMillis.id);
+    expect(read?.away_score).toBe(noMillis.away_score);
+  });
+});
+
 describe('CA-7.5 — conflict', () => {
   test('another Observation with the same id and a different home_score is refused, and the first content stays', async () => {
     await store.append(fixture);
