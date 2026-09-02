@@ -1,9 +1,11 @@
 ---
 id: ADR-021
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-02, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-02, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # ADR-021: El motor de decisiones: reducer puro sobre los dos logs, ejecutado dentro del tick, con la alerta como tabla y el cualificador derivado
 
