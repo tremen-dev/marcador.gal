@@ -6,7 +6,10 @@ epica: EPIC-002
 # Ledger — SPEC-013 Motor de decisiones: el reducer puro de RN-01..RN-07 y el ciclo que lo ejecuta
 
 ## Resumen
-- Fase: borrador (spec y ADR-021 escritos, pendientes del gate humano)
+- Fase: aprobada (SPEC-013 y ADR-021 firmadas por Alberto Fojo el 2026-09-02;
+  las cuatro lecturas de ADR-021 §8 ya están en `reglas.md`). **Bloqueada para
+  CA-6 hasta que el gate decida F-SPEC-013-1**; el resto de los criterios puede
+  empezar.
 - Rama: `ft/SPEC-013-motor-de-decisiones`
 
 ## Matriz de criterios de aceptación
@@ -44,9 +47,60 @@ verde sin tocar una aserción (CA-12.2).
 ## Salvedades / follow-ups
 <!-- IDs F-SPEC-013-1, F-SPEC-013-2… con destino (spec futura o EPIC-MEJORA). -->
 
-Ninguna todavía. Dos residuos ya **declarados por la spec** antes de
-implementar, que el implementador no tiene que descubrir y el verificador no
-tiene que levantar como hallazgo:
+- **F-SPEC-013-1 — La gracia de RN-05 retiene la publicación, y eso cuesta hasta
+  3 min de latencia contra un presupuesto de 120 s.** Levantado por
+  `sdd-arquitecto` el 2026-09-02, **después de la firma**, al trasladar las
+  lecturas de ADR-021 §8 a `reglas.md`.
+
+  **Qué dice la spec.** CA-6.1 y CA-6.2 son explícitos: ante dos fuentes ≥ 0.7
+  que discrepan y ninguna oficial, «no se emite ninguna `Decision`», y «antes de
+  ese plazo no hay alerta **y tampoco hay `Decision`**». La publicación queda
+  retenida durante toda la ventana de gracia, y CA-6.3 solo publica cuando la
+  rezagada se pone al día.
+
+  **Qué se ve al escribirlo en `reglas.md`.** ADR-021 §8.2 —firmado— define
+  cuándo una discrepancia **es** un conflicto: cuando persiste pasada la gracia.
+  De ahí se sigue que **antes** de la gracia no es un conflicto, y si no lo es,
+  RN-05 no ha disparado y quien debería decidir es RN-03: *mejor provisional a
+  tiempo que confirmado tarde*. La spec eligió lo contrario —retener— y no es una
+  contradicción con el ADR, que no dice qué pasa durante la gracia; es una
+  **elección de la spec sobre lo que el ADR dejó abierto**, tomada sin ponerla al
+  lado de la primera cifra de la épica.
+
+  **Por qué importa.** Con dos fuentes, cada gol produce una discrepancia
+  transitoria mientras la segunda no lo ve. Reteniendo, cada gol se publicaría
+  con hasta `CONFLICT_GRACE` = **3 min** de retraso; el umbral de la métrica de
+  latencia de EPIC-002 es **< 120 s**. La regla que existe para no inflar la
+  **tercera** cifra desactivaría la **primera**.
+
+  **Por qué no es urgente y aun así hay que decidirlo antes de implementar.** Hoy
+  es **latente**, como lo fue la infracción de SPEC-009: solo hay una fuente
+  automática capturable (ADR-008 §1), así que no puede haber discrepancia entre
+  dos. Deja de serlo el día que vuelva `futgal.es` o entre una segunda fuente —
+  que es exactamente el día en el que menos ganas hay de descubrirlo. Y CA-6 se
+  implementa **ahora**: escribir la letra actual y cambiarla después cuesta el
+  doble.
+
+  **Las dos salidas, y la recomendación.** (a) Dejar CA-6 como está y aceptar el
+  coste el día que haya dos fuentes. (b) Publicar durante la gracia lo que dice
+  la observación más reciente, marcado *provisional* (RN-03), y que la gracia
+  gobierne **solo la alerta** —que es lo único que ADR-021 §8.2 dice que
+  gobierna—. **Recomendación de `sdd-arquitecto`: (b)**, y es un cambio de la
+  letra de CA-6.1 y CA-6.2, no del ADR ni de `reglas.md`, que quedan intactos.
+
+  **Destino: gate humano, antes de que empiece la implementación de CA-6.**
+
+  **Y no es una enmienda de ADR-015, a propósito.** ADR-015 §2 reserva el
+  encabezado `## Enmienda —` para un CA de una spec **cerrada** que ha dejado de
+  poder ser cierto, y hace de ese encabezado el índice
+  (`grep -rn "^## Enmienda —" docs/epicas/`). Aquí no se ha invalidado nada:
+  CA-6 sigue siendo implementable y testable tal como está escrito, la spec está
+  `aprobada` y no `hecho`, y no hay ningún veredicto que anotar. Meterlo bajo ese
+  encabezado ensuciaría el índice que ADR-015 hace load-bearing.
+
+Y dos residuos ya **declarados por la spec** antes de implementar, que el
+implementador no tiene que descubrir y el verificador no tiene que levantar como
+hallazgo:
 
 - **Residuo de CA-13.3** — la frontera de RN-08 no alcanza al nombre de tabla
   compuesto en tiempo de ejecución. Declarado dentro del propio criterio, como
@@ -60,20 +114,24 @@ tiene que levantar como hallazgo:
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
 
-**Estado (2026-09-02, sdd-arquitecto):** spec en `borrador` y **ADR-021 en
-`borrador`**, los dos pendientes del gate humano. No hay una línea de `src/` ni
-de `tests/` escrita, y no puede haberla: `gates.requireSpec` exige la spec
-`aprobada`.
+**Estado (2026-09-02, sdd-arquitecto):** spec y **ADR-021 `aprobada`**, firmadas
+por Alberto Fojo. Las tres cosas que tenían que pasar antes de implementar están
+hechas:
 
-Lo que tiene que pasar **antes** de que el implementador empiece, en este orden:
+1. ✅ **Firma de ADR-021**, con sus §8.1 a §8.4 aprobados tal como se propusieron.
+2. ✅ **Las cuatro lecturas trasladadas a `reglas.md`** como aclaraciones
+   fechadas, con la forma de las de RN-01 y RN-03: el peso congelado en la
+   `Observation` en RN-01; la retención que no alcanza a ≥ 0.9 en RN-04; «la
+   vigente» y la persistencia en RN-05; la tabla cerrada y la corrección humana
+   en RN-06. Cada una con su comentario de quién, qué gate, qué fecha y qué hueco
+   cerraba, y diciendo que **no son umbrales nuevos**.
+3. ✅ **Firma de la spec.**
 
-1. **Firma de ADR-021.** Sus §8.1 a §8.4 fijan cuatro lecturas de RN-01..RN-07 y
-   catorce de los quince CA cuelgan de ellas. Si el gate cambia una, cambian sus
-   criterios.
-2. **`sdd-arquitecto` traslada las cuatro lecturas de ADR-021 §8 a
-   `reglas.md`** como aclaraciones fechadas, con el precedente exacto de las de
-   RN-01 y RN-03. Las reglas viven en `reglas.md`, no en un ADR.
-3. **Firma de la spec**, y solo entonces `en-progreso`.
+Queda **una** cosa antes de tocar CA-6: **F-SPEC-013-1** (arriba). Apareció al
+escribir la aclaración de RN-05 y es una decisión del gate, no del implementador.
+El resto de los criterios no depende de ella.
+
+No hay una línea de `src/` ni de `tests/` escrita.
 
 Para el implementador, cuando llegue el turno:
 

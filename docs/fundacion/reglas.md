@@ -60,6 +60,28 @@ propio orden de desempate.
        podía leerse de dos maneras. No es un umbral nuevo: fija cuál de las dos
        lecturas vale, y la spec del motor la necesita. -->
 
+  **El peso que se evalúa es el congelado en la `Observation`, no el de esta
+  tabla hoy.** Cuando RN-02 y RN-03 dicen «peso ≥ 0.9» o «peso < 0.9», el número
+  que se compara es el `confidence` que la `Observation` lleva escrito, que es el
+  que esta tabla tenía **en el instante en que se observó**. Las `Observation`
+  son inmutables (RN-13) y su `confidence` es un hecho histórico como el
+  marcador: si mañana esta tabla cambia un peso, **las decisiones ya tomadas no
+  cambian de cualificador retroactivamente** y las que se tomen sobre
+  observaciones viejas siguen usando el peso con el que se observaron. Lo que
+  esta tabla aporta a partir de ahí es **identidad y no número**: quién es el
+  operador, quién la fuente oficial y quién es humano — que es lo que necesitan
+  la precedencia de esta misma regla y el «humano» de RN-04 y RN-06.
+
+  <!-- Decidido por Alberto Fojo en el gate del 2026-09-02, firmando ADR-021 §8.4
+       (SPEC-013, el motor de decisiones). El hueco lo encontró sdd-arquitecto al
+       escribir el reducer: RN-02 y RN-03 dicen «peso» sin decir de dónde se lee,
+       y hay dos fuentes posibles —el `confidence` de la Observation o esta tabla
+       en tiempo de ejecución— que solo coinciden mientras la tabla no cambie.
+       No es un umbral nuevo ni toca ningún número de esta tabla: fija cuál de
+       las dos lecturas vale, y sin ella el mismo log de observaciones producía
+       un log de decisiones distinto según cuándo se replayara, lo que rompe la
+       trazabilidad de D-6. -->
+
 - **RN-02 — Publicación confirmada.** Se publica como *confirmado* si la
   observación tiene peso ≥ 0.9, **o** si dos fuentes **independientes** con peso
   ≥ 0.7 coinciden. Dos agregadores que beben de la misma fuente no cuentan como
@@ -102,11 +124,67 @@ propio orden de desempate.
   salto de más de 2 goles en una sola observación se retiene hasta segunda
   fuente.
 
+  **La retención del salto no alcanza al peso ≥ 0.9.** La segunda frase de esta
+  regla —el salto de más de 2 goles que espera a una segunda fuente— se aplica a
+  observaciones de peso **< 0.9**. Una de peso ≥ 0.9 —operador, RFGF, API de
+  pago— publica el salto de inmediato. **Solo alcanza a esa segunda frase:** la
+  monotonía de la primera sigue diciendo lo que dice, y una API de pago (0.9),
+  que no es ni oficial ni humana, sigue sin poder **bajar** un marcador.
+
+  Sin esta lectura, RN-04 contradiría a RN-02, que declara el peso ≥ 0.9
+  suficiente para publicar *confirmado*: retener lo que otra regla declara
+  suficiente es dejar que una regla anule a la otra. Y lo que evita es concreto y
+  hoy es el caso normal: **un 0-4 del operador quedaría retenido para siempre**,
+  porque la segunda fuente que lo liberaría no existe — con `futgal.es` no
+  capturable (ADR-008 §1) solo hay una fuente automática, así que un marcador
+  corregido a mano desde el panel no tendría nunca quien lo acompañase y el
+  operador se quedaría sin la función que RN-01 le atribuye, arbitrar.
+
+  <!-- Decidido por Alberto Fojo en el gate del 2026-09-02, firmando ADR-021 §8.1
+       (SPEC-013, el motor de decisiones). El hueco lo encontró sdd-arquitecto al
+       escribir el reducer: la segunda frase de RN-04 no dice a qué pesos alcanza
+       y es anterior a que RN-01 tuviera peso de operador, así que podía leerse de
+       dos maneras. No es un umbral nuevo —no mueve ni el 0.9 de RN-02 ni los 2
+       goles de esta regla—: fija cuál de las dos lecturas vale. La lectura
+       contraria solo era inofensiva mientras hubiera una fuente oficial
+       capturable que pudiera hacer de segunda; ADR-008 §1 la dejó sin serlo. -->
+
 - **RN-05 — Conflicto.** Si dos fuentes con peso ≥ 0.7 discrepan y ninguna es
   oficial: se mantiene la última confirmada y se genera alerta al panel.
   **El conflicto no se publica.** Una discrepancia en la que interviene el
   operador humano **no es un conflicto**: se resuelve por precedencia (RN-01) y
   se publica.
+
+  **«Se mantiene la última confirmada» se lee «se mantiene la vigente».** Lo que
+  esta regla protege es que el conflicto **no se publique**, no que se borre lo
+  que ya estaba publicado: ante un conflicto la `Decision` vigente sigue vigente
+  y no se emite ninguna nueva. La lectura literal —retroceder hasta la última
+  `Decision` *confirmada*— obligaría hoy a **despublicar el partido entero al
+  primer desacuerdo**, porque con una sola fuente automática de peso 0.7 no hay
+  **ninguna** `Decision` confirmada por vía automática a la que volver (ADR-008
+  §1); y despublicar contradiría a RN-03, que dice justo lo contrario —mejor
+  provisional a tiempo que confirmado tarde—.
+
+  **Y una discrepancia solo es conflicto cuando persiste.** Dos fuentes que van a
+  distinta velocidad discrepan unos segundos en cada gol, y eso no es desacuerdo:
+  es latencia. Una discrepancia es conflicto cuando **sigue en pie pasado un
+  plazo de gracia contado desde la más reciente de las dos observaciones que
+  discrepan** — si la rezagada tuvo tiempo de ponerse al día y no lo hizo,
+  discrepan de verdad. El plazo es una constante del motor
+  (`src/decide/thresholds.ts`), **elegida y no medida** como `PRE`, `POST` y las
+  6 h de ADR-014 §3.2, y revisable con la primera jornada delante: no es un
+  umbral de esta regla y por eso no vive aquí. Sin él, la tercera cifra de
+  EPIC-002 —«% de partidos con desacuerdo entre fuentes»— sería un contador de
+  goles.
+
+  <!-- Decidido por Alberto Fojo en el gate del 2026-09-02, firmando ADR-021 §8.2
+       (SPEC-013, el motor de decisiones). Dos huecos que encontró sdd-arquitecto
+       al escribir el reducer, y ninguno es un umbral nuevo: el primero fija cuál
+       de dos lecturas de «la última confirmada» vale, y el segundo dice cuándo
+       una discrepancia cuenta —el número concreto de la gracia vive en el código,
+       no en esta regla, precisamente para que moverlo sea un diff y no una firma—.
+       El primero solo era inofensivo mientras se esperase que alguna fuente
+       automática llegara a *confirmado*; ADR-008 §1 lo impidió. -->
 
 - **RN-06 — Transiciones de estado.**
   `scheduled → live` con la primera observación de juego después de kickoff − 2 min.
@@ -114,6 +192,33 @@ propio orden de desempate.
   sin señal (en ese caso se marca *pendente de confirmar*).
   `postponed` / `suspended` **solo** por fuente oficial o humano —operador **o**
   corresponsal: ver «Humano» en RN-01—.
+
+  **Para una fuente automática, esta lista es una tabla cerrada.** Lo que esta
+  regla enumera es todo lo que una fuente automática puede provocar; lo que no
+  enumera —`finished → live`, `live → scheduled`, `postponed → live`— **no lo
+  hace una fuente automática**: la transición se ignora. La `Observation` se
+  guarda igual, porque es un hecho histórico y no se borra (RN-13), y si concurre
+  con otra fuente cae donde le corresponde, en RN-05. Una fuente que retrocede
+  sola es casi siempre un parseo roto o una página a medio cargar, y publicar eso
+  es exactamente lo que RN-04 evita para el marcador.
+
+  **La fuente oficial y el humano —operador o corresponsal— pueden llevar el
+  partido a cualquiera de los cinco estados.** Esta regla les concede en
+  exclusiva `postponed` y `suspended`, y RN-04 les concede bajar un marcador:
+  son concesiones, no un techo. Negarles la corrección de un estado equivocado
+  —un `finished` que la fuente cerró antes de tiempo— dejaría al operador sin la
+  función que RN-01 le atribuye, arbitrar, y con la fuente oficial no capturable
+  (ADR-008 §1) no habría nadie más que pudiera deshacerlo.
+
+  <!-- Decidido por Alberto Fojo en el gate del 2026-09-02, firmando ADR-021 §8.3
+       (SPEC-013, el motor de decisiones). El hueco lo encontró sdd-arquitecto al
+       escribir el reducer: esta regla enumera entradas a cuatro estados y no dice
+       qué pasa con lo que no enumera, así que podía leerse como lista cerrada o
+       como lista de ejemplos. No es un umbral nuevo —no mueve los 2 min ni los
+       110 min— y no añade ningún estado: fija cuál de las dos lecturas vale, y
+       para quién. -->
+
+
 
 - **RN-07 — Silencio.** Partido `live` sin observación nueva en 15 min → estado
   *sen sinal* visible al usuario y alerta al panel.
