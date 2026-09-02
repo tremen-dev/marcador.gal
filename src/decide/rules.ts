@@ -16,8 +16,8 @@
  * THE ORDER OF EVALUATION is `reglas.md`'s, with ONE documented exception:
  *
  *   RN-01 (who leads) → RN-05 (is this a conflict?) → RN-06 (may the status
- *   move?) → RN-04 (may the scoreboard move?) → RN-02/RN-03 (qualify) →
- *   RN-07 (is it silent?)
+ *   move?) → RN-04 (may the scoreboard move?) → RN-06 again (has the clock run
+ *   out?) → RN-02/RN-03 (qualify) → RN-07 (is it silent?)
  *
  * RN-05 is evaluated BEFORE RN-04 although `reglas.md` lists it after, and the
  * reason is written here so nobody has to guess it: when a discrepancy has
@@ -330,18 +330,15 @@ export function decide(input: DecideInput): DecideResult {
     ? tupleOf(lead)
     : current;
 
-  // RN-06, the third way into `finished`: `kickoff + 110 min` with no signal.
-  // Its `Decision` carries no supporting observation saying `finished`, and
-  // that is where its *pendente de confirmar* comes from (ADR-021 §6).
-  if (
-    proposed.status === 'live' &&
-    nowMs >= epochMsOf(input.match.kickoff) + thresholds.finishTimeoutMs
-  ) {
-    proposed = { ...proposed, status: 'finished' };
-  }
-
   // ── RN-04 — monotonicity, and the retention of a jump ──────────────────────
+  // WHAT RN-04 HOLDS IS THE SCOREBOARD, NOT THE ENGINE. When it retains, the
+  // proposal falls back to what is already published and the chain GOES ON:
+  // the match is still live, it can still fall silent (RN-07) and it can still
+  // run out of clock (RN-06). Returning here instead would leave a match whose
+  // last observation was retained unable to ever go *sen sinal* or to end —
+  // measured on the replay of CA-14, where a retained jump swallowed both.
   let monotonicity = false;
+  let held: Held | null = null;
   if (
     previous !== null &&
     current.home_score !== null &&
@@ -356,16 +353,14 @@ export function decide(input: DecideInput): DecideResult {
       // «Un marcador NO BAJA salvo que lo diga la fuente oficial o un humano
       // —operador o corresponsal—».
       if (!privileged) {
-        return {
-          decision: null,
-          alerts: [],
-          held: {
-            rule: 'RN-04',
-            reason: `${spell(proposed)} would lower ${spell(current)} from ${lead.source}, which is neither official nor human (RN-04)`,
-          },
+        held = {
+          rule: 'RN-04',
+          reason: `${spell(proposed)} would lower ${spell(current)} from ${lead.source}, which is neither official nor human (RN-04)`,
         };
+        proposed = current;
+      } else {
+        monotonicity = true;
       }
-      monotonicity = true;
     } else {
       const jump =
         proposed.home_score -
@@ -383,19 +378,30 @@ export function decide(input: DecideInput): DecideResult {
           (observation) =>
             observation.source !== lead.source && sameTuple(tupleOf(observation), proposed),
         );
-        if (!seconded) {
-          return {
-            decision: null,
-            alerts: [],
-            held: {
-              rule: 'RN-04',
-              reason: `${spell(proposed)} jumps ${String(jump)} goals over ${spell(current)} on one observation of ${lead.source} (${String(lead.confidence)}): retained until a second source (RN-04)`,
-            },
+        if (seconded) {
+          monotonicity = true;
+        } else {
+          held = {
+            rule: 'RN-04',
+            reason: `${spell(proposed)} jumps ${String(jump)} goals over ${spell(current)} on one observation of ${lead.source} (${String(lead.confidence)}): retained until a second source (RN-04)`,
           };
+          proposed = current;
         }
-        monotonicity = true;
       }
     }
+  }
+
+  // RN-06, the third way into `finished`: `kickoff + 110 min` with no signal.
+  // AFTER RN-04, and that order is load-bearing: a match whose last scoreboard
+  // is retained still runs out of clock, and the `Decision` that ends it
+  // carries the scoreboard that WAS published, not the retained one. Its
+  // support says nothing about `finished`, and that is where its *pendente de
+  // confirmar* comes from (ADR-021 §6).
+  if (
+    proposed.status === 'live' &&
+    nowMs >= epochMsOf(input.match.kickoff) + thresholds.finishTimeoutMs
+  ) {
+    proposed = { ...proposed, status: 'finished' };
   }
 
   // ── RN-02 / RN-03 — the qualifier of the WHOLE Decision, in all five ───────
@@ -438,7 +444,7 @@ export function decide(input: DecideInput): DecideResult {
     });
   }
 
-  if (unchanged) return { decision: null, alerts, held: null };
+  if (unchanged) return { decision: null, alerts, held };
 
   const rule = attribute({
     operatorPrecedence,
@@ -460,7 +466,7 @@ export function decide(input: DecideInput): DecideResult {
     version: previous === null ? 1 : previous.version + 1,
   } as Decision;
 
-  return { decision, alerts, held: null };
+  return { decision, alerts, held };
 }
 
 /** The ids of a non-empty list of observations, as RN-12's tuple demands. */
