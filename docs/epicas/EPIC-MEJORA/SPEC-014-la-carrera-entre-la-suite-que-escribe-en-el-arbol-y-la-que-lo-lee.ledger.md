@@ -6,7 +6,10 @@ epica: EPIC-MEJORA
 # Ledger — SPEC-014 La carrera entre la suite que escribe en el árbol y la que lo lee
 
 ## Resumen
-- Fase: en-revisión (implementada; pendiente de sdd-verificador)
+- Fase: **en-progreso** — verificada **RED** el 2026-09-02 por `sdd-verificador`.
+  Siete CA en verde o con salvedad aceptada; **CA-3 en rojo** por tres evasiones
+  medidas (F-SPEC-014-7, F-SPEC-014-8, F-SPEC-014-9), las tres corregibles dentro
+  de `vitest.config.ts` y sin tocar ninguna spec cerrada.
 - Rama: `ft/SPEC-014-carrera-de-la-suite`
 
 ## Matriz de criterios de aceptación
@@ -15,14 +18,14 @@ epica: EPIC-MEJORA
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 — dos grupos que no se solapan, medido | `vitest.config.ts` (`PARALLEL_ORDER`/`SERIALIZED_ORDER`, `fileParallelism: false`, `test.projects`) | `tests/config/partition.test.ts` → CA-1.1 casos 1–3. CA-1.3 es medida, no test: ver «Medida de solapes» | | 🚧 |
-| CA-2 — la partición es exacta | `vitest.config.ts` (`TEST_INCLUDE`, `TEST_EXCLUSIONS`, `testUniverse`, `exclude` cruzado) | `tests/config/partition.test.ts` → CA-2 casos 1–4; CA-2.3 en «Recuento contra `main`» | | 🚧 |
-| CA-3 — pertenencia por grafo de imports, sin nombres | `vitest.config.ts` (`partitionTestFiles`, `readNode`, `chainTo`, `typescriptTwin`, `existsInsideRepository`; el `throw` de fallo cerrado en el `defineConfig`) | `tests/config/partition.test.ts` → CA-3 casos 1–9 | | 🚧 |
-| CA-4 — ningún test de spec cerrada tocado | — (criterio sobre el diff) | `git diff main --name-status`; ver «CA-4 — el diff» | | 🚧 |
-| CA-5 — alias, JSX y typecheck sobreviven | `vitest.config.ts` (`extends: true` en los dos proyectos; `typecheck` en el paralelo) | `tests/config/partition.test.ts` → CA-5.1 casos 1–3; CA-5.3 en «Control positivo del typecheck» | | 🚧 |
-| CA-6 — control positivo por mecanismo | `vitest.config.ts` (`partitionOffences`) | `tests/config/partition.test.ts` → CA-6.3 casos 1–4; CA-6.1 y CA-6.2 en «Controles por mecanismo» | | 🚧 |
-| CA-7 — cierre del flake: medida + control + 20 y 20 | — (criterio de evidencia) | «CA-1.3 / CA-7.1 — la medida de solapes» (0 pares) + «CA-7.2» (5 rojas de 20) + «CA-7.3» (20 verdes de 20) | | 🚧 |
-| CA-8 — los tres gates y el presupuesto de tiempo | — | «Los tres gates» | | 🚧 |
+| CA-1 — dos grupos que no se solapan, medido | `vitest.config.ts` (`PARALLEL_ORDER`/`SERIALIZED_ORDER`, `fileParallelism: false`, `test.projects`) | `tests/config/partition.test.ts` → CA-1.1 casos 1–3. CA-1.3 es medida, no test: ver «Medida de solapes» | Reproducido. Forma: los 3 casos de CA-1.1 verdes sobre el objeto resuelto. Medida propia sobre `--reporter=json`, 3 ejecuciones en la rama + 1 en worktree limpio: **0 pares solapados que toquen al serializado** en las 4 (42 S / 73 P), con 101–126 pares dentro del paralelo | ✅ |
+| CA-2 — la partición es exacta | `vitest.config.ts` (`TEST_INCLUDE`, `TEST_EXCLUSIONS`, `testUniverse`, `exclude` cruzado) | `tests/config/partition.test.ts` → CA-2 casos 1–4; CA-2.3 en «Recuento contra `main`» | Medido contra la selección REAL de vitest (`vitest list --filesOnly --project=…`), no contra la función: unión 42+73=115 **idéntica** al glob `tests/**/*.test.ts` menos exclusiones (101) más los 14 `.test-d.ts`; intersección vacía (`comm -12` sin salida). Recuento fichero a fichero contra `main` por reporter JSON: 114→115 ficheros, 1117→1140 casos, **0 eliminados, 0 con menos casos**, 1 nuevo | ✅ |
+| CA-3 — pertenencia por grafo de imports, sin nombres | `vitest.config.ts` (`partitionTestFiles`, `readNode`, `chainTo`, `typescriptTwin`, `existsInsideRepository`; el `throw` de fallo cerrado en el `defineConfig`) | `tests/config/partition.test.ts` → CA-3 casos 1–9 | **RED.** Tres evasiones escritas por el verificador caen en el grupo PARALELO alcanzando el árbol real, con el guardián 23/23 verde y `lint` exit 0: (1) un `.test-d.ts` con `import { readdirSync } from 'node:fs'` — la grafía exacta que el criterio nombra —, porque `testUniverse()` solo enumera `*.test.ts` y los 14 `.test-d.ts` corren en el paralelo **sin ser juzgados nunca**; (2) `import { readFileSync } from 'fs'` y `from 'fs/promises'`, que `FILE_SYSTEM_MODULES` no lista; (3) un helper `.mts`/`.cts` que importa `node:fs`, tragado **en silencio** por `existsInsideRepository`. Control emparejado: el mismo helper como `.ts` → serializado. F-SPEC-014-7/8/9 | ❌ |
+| CA-4 — ningún test de spec cerrada tocado | — (criterio sobre el diff) | `git diff main --name-status`; ver «CA-4 — el diff» | Reproducido. `git diff main --stat`: solo `vitest.config.ts` (M) y `tests/config/partition.test.ts` (A) bajo código; el resto es `docs/`. `git diff main -- tests/polite/support/capability.ts` = **0 líneas**, luego `ALLOWED_PACKAGES`, `ENTRY_POINTS`, `SCAN_ROOTS`, `SCAN_EXCLUSIONS`, `SCAN_EXTENSIONS` y `ALLOWED_GLOBALS` byte-idénticos. CA-4.3 medido arriba | ✅ |
+| CA-5 — alias, JSX y typecheck sobreviven | `vitest.config.ts` (`extends: true` en los dos proyectos; `typecheck` en el paralelo) | `tests/config/partition.test.ts` → CA-5.1 casos 1–3; CA-5.3 en «Control positivo del typecheck» | Reproducido. `@/…` resuelve en **40 ficheros del serializado y 71 del paralelo**, todos verdes; JSX se renderiza en los dos grupos (`tests/site/pages.test.ts` serializado, `tests/site/i18n.test.ts` paralelo). Los 14 `.test-d.ts` corren, `Type Errors  no errors` en las 24 ejecuciones. Control positivo propio: quitando el `@ts-expect-error` de `tests/types/qualifier.test-d.ts` → **exit 1** con `TypeCheckError: Type '"pending_confirmation"' is not assignable…`; restaurado → 115/1140 verde | ✅ |
+| CA-6 — control positivo por mecanismo | `vitest.config.ts` (`partitionOffences`) | `tests/config/partition.test.ts` → CA-6.3 casos 1–4; CA-6.1 y CA-6.2 en «Controles por mecanismo» | CA-6.1 reproducido: quitando `fileParallelism: false` → **0 → 198 pares solapados dentro del serializado** y el caso 2 de CA-1.1 rojo. CA-6.3 reproducido (casos 1–4 verdes; el 4 recorre los 42 ficheros uno a uno). **CA-6.2 no reproduce tal como está escrito** — igualando `groupOrder` medí 0 solapes entre grupos en 3 ejecuciones, igual que el implementador. Salvedad aceptada con residuo: apagar `groupOrder` sí pone rojo un caso nombrado (ADR-016 §3.4 literal) y encontré un control **dentro del repositorio** que el expediente no tenía (F-SPEC-014-10) | ⚠️ |
+| CA-7 — cierre del flake: medida + control + 20 y 20 | — (criterio de evidencia) | «CA-1.3 / CA-7.1 — la medida de solapes» (0 pares) + «CA-7.2» (5 rojas de 20) + «CA-7.3» (20 verdes de 20) | Las tres piezas reproducidas por el verificador: **7.1** 0 pares solapados (4 mediciones); **7.2** sobre el árbol de `main` en worktree, **3 rojas de 31 ejecuciones** con la firma conocida (`tests/site/contact.test.ts > CA-13 … 5. el escaneo cubre TODO src/`, `expected […124] to deeply equal […125]`) — el flake se reproducía; **7.3** **20 verdes de 20** consecutivas en la rama, 14,03–14,86 s. Salvedad: «la carrera no puede darse» solo alcanza a la pertenencia que CA-3 calcula hoy, y CA-3 está en rojo | ⚠️ |
+| CA-8 — los tres gates y el presupuesto de tiempo | — | «Los tres gates» | Los tres corridos por el verificador, sin CI. `npm run lint` exit 0 sin una línea; `npm test` 115/115 ficheros, 1140/1140 casos, `Type Errors  no errors`, **13,56 s de pared** contra el techo de 60 s; `npm run test:db` 22/22 y 276/276 en 164,35 s con `ps aux \| grep vitest.mjs` en 0 antes de arrancar y `git diff main -- vitest.integration.config.ts` = 0 líneas | ✅ |
 
 ## Mediciones de partida (sdd-arquitecto, 2026-09-02)
 <!-- Números que los CA citan. Reproducibles; si el implementador mide otra cosa, gana su medición y lo dice aquí. -->
@@ -351,6 +354,172 @@ margen.
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
 
+### RED — 2026-09-02, `sdd-verificador`
+
+**Siete de los ocho criterios están donde dicen que están, y los medí yo. CA-3 no,
+y CA-3 es la frontera de capacidad de esta spec.** La corrección funciona para el
+árbol de hoy —cero pares solapados, veinte verdes de veinte, el recuento intacto—
+pero el mecanismo que decide **quién** corre serializado deja pasar tres formas de
+alcanzar el sistema de ficheros, y en las tres el gate entero sale verde. Es la
+forma exacta de fallo que ADR-016 existe para no repetir, y el propio repositorio
+tiene una de ellas documentada con nombre y fecha (F-SPEC-008-V33, cuyo motivo
+está escrito en `SCAN_EXTENSIONS`).
+
+Todo lo de abajo está medido en esta máquina el 2026-09-02, sobre
+`ft/SPEC-014-carrera-de-la-suite` en `6b598ee` con el árbol limpio, vitest 4.1.11.
+El grupo de cada fichero **no se leyó de `partitionTestFiles`** sino de lo que
+vitest selecciona de verdad (`vitest list --filesOnly --project=…`), para no
+juzgar el mecanismo con el propio mecanismo. Las evasiones se escribieron en un
+`git worktree` desechable: el árbol del repositorio no se tocó en ningún momento.
+
+#### Lo que sí está (y lo reproduje entero)
+
+- **La medida de CA-1.3, cuatro veces: 0 pares solapados que toquen al grupo
+  serializado.** 42 ficheros S, 73 P, 101–126 pares solapados todos dentro del
+  paralelo, hueco P→S de 403–429 ms.
+- **La partición es exacta contra la selección real de vitest**: unión 115 =
+  glob (101) + `.test-d.ts` (14), intersección vacía, 0 ficheros eliminados y
+  0 con recuento menor contra `main`.
+- **Los tres gates**, corridos por mí, con sus tiempos.
+- **CA-6.1 muerde de verdad**: 0 → 198 pares dentro del serializado.
+- **CA-7.2 se reproduce**: el flake existía y lo vi, con la firma conocida.
+
+#### Lo que no está: CA-3
+
+Tres ficheros de test escritos por el verificador **alcanzan el árbol real y
+corren en el grupo paralelo**, con `tests/config/partition.test.ts` en 23/23 y
+`npm run lint` en exit 0:
+
+```
+$ npx vitest list --filesOnly | grep zz-
+[parallel]   tests/types/zz-evasion.test-d.ts          import { readdirSync } from 'node:fs'
+[parallel]   tests/zz-evasion-bare-fs.test.ts          import { readFileSync } from 'fs'
+[parallel]   tests/zz-evasion-bare-fsp.test.ts         import { readdir } from 'fs/promises'
+[parallel]   tests/zz-evasion-mts.test.ts              -> tests/support/zz-evasion-helper.mts
+[parallel]   tests/zz-evasion-cts.test.ts              -> tests/support/zz-evasion-helper2.cts
+[serialized] tests/zz-control-ts.test.ts               -> tests/support/zz-control-helper.ts   (CONTROL)
+```
+
+El control emparejado es lo que lo convierte en medición y no en opinión:
+`zz-control-helper.ts` y `zz-evasion-helper.mts` son **el mismo fichero byte a
+byte**, con `import { readdirSync } from 'node:fs'`. El `.ts` cae en el
+serializado; el `.mts` y el `.cts`, en el paralelo. Decide la extensión, y decide
+en silencio.
+
+De las cuatro vías que CA-3.5 declara como residuo, **el especificador dinámico no
+literal es la única que el guardián sí caza**, y lo caza bien:
+
+```
+FAIL |serialized| tests/config/partition.test.ts > CA-3 … > 9. CA-3.5 — el residuo declarado, medido
+AssertionError: expected [ 'tests/zz-evasion-dynamic.test.ts' ] to deeply equal []
+```
+
+Las tres de arriba **no están declaradas en CA-3.5** y no las caza nadie. Detalle
+en F-SPEC-014-7, F-SPEC-014-8 y F-SPEC-014-9.
+
+#### Sobre la salvedad de CA-6.2: aceptada, y con un control mejor que el que trae
+
+Reproduje la salvedad: con `fileParallelism: false` puesto, igualar `groupOrder`
+da **0 solapes entre grupos** en tres ejecuciones (huecos de 650, 652 y 658 ms).
+El implementador no se equivoca y lo dice sin adornos.
+
+No tumba el criterio, por tres razones **medidas**:
+
+1. La obligación literal de **ADR-016 §3.4** —*apagar cada mecanismo pone rojo al
+   menos un caso nombrado*— **se cumple para los dos**. Lo comprobé apagando cada
+   uno por separado: `fileParallelism` → `CA-1.1 … 2.` rojo; `groupOrder` →
+   `CA-1.1 … 3. y un sequence.groupOrder estrictamente mayor`,
+   `AssertionError: expected 0 to be greater than 0`.
+2. **`groupOrder` no es decorativo, y hay control dentro del repositorio** — uno
+   que el expediente no encontró y que no necesita salir a un banco sintético.
+   Se aísla apagando primero al mecanismo que lo tapa (F-SPEC-014-10):
+
+   ```
+   fileParallelism FUERA + groupOrder distinto → entre los dos grupos: 0        (hueco 177 ms)
+   fileParallelism FUERA + groupOrder igualado → entre los dos grupos: 0 / 1 / 0 (huecos 32 / −1 / 12 ms)
+                                                 P tests/model/qualifier.test.ts >< S tests/polite/evasions.test.ts
+   ```
+
+   Un hueco **negativo** es el grupo serializado arrancando antes de que el
+   paralelo termine, y la víctima del par es `tests/polite/evasions.test.ts`, una
+   de las tres del flake original.
+3. El mecanismo es el **documentado** de vitest 4.1.11, y el otro no.
+
+Queda ⚠️ y no ✅ porque el criterio, tal como está escrito, pide algo que su
+propio diseño impide observar. Es un defecto de redacción del CA, no del código.
+
+#### Mis números de CA-7, aparte de los del implementador
+
+- **CA-7.1 — la medida.** 4 ejecuciones, **0 pares solapados** que toquen al
+  serializado en las cuatro.
+- **CA-7.2 — el control positivo, sobre `main`.** En un `git worktree` de `main`:
+  **31 ejecuciones, 3 rojas.** Las 20 de `npm test` salieron verdes; las 11 con
+  `--reporter=json` dieron 3 rojas. Firma literal de la que pude capturar:
+
+  ```
+  run 6 exit=1 success=false files=114 failing=1 site/contact.test.ts
+     CA-13 — el buzón en un solo sitio 5. el escaneo cubre TODO src/, no solo los ficheros de TypeScript
+     :: AssertionError: expected [ 'alias/catalog.ts', …(124) ] to deeply equal [ 'alias/catalog.ts', …(125) ]
+  ```
+
+  Es la forma 1 del problema —*un fichero de más*— sobre una de las tres víctimas
+  que la spec nombra. El flake se reproducía; CA-7.3 dice algo.
+- **CA-7.3 — la red, sobre la rama.** **20 verdes de 20** consecutivas, árbol
+  limpio, sin tocar nada entre medias, 14,03–14,86 s cada una:
+
+  ```
+   1 VERDE 14,76s   6 VERDE 14,64s  11 VERDE 14,13s  16 VERDE 14,03s
+   2 VERDE 14,47s   7 VERDE 14,85s  12 VERDE 14,07s  17 VERDE 14,09s
+   3 VERDE 14,64s   8 VERDE 14,55s  13 VERDE 14,08s  18 VERDE 14,19s
+   4 VERDE 14,32s   9 VERDE 14,19s  14 VERDE 14,09s  19 VERDE 14,06s
+   5 VERDE 14,71s  10 VERDE 14,16s  15 VERDE 14,18s  20 VERDE 14,04s
+  ```
+
+#### Los tres gates, salida literal
+
+```
+$ npm run lint
+> marcador@0.0.1 lint
+> oxlint --type-aware
+$ echo $?
+0
+```
+
+```
+$ time npm test
+ Test Files  115 passed (115)
+      Tests  1140 passed (1140)
+Type Errors  no errors
+   Duration  12.32s (transform 2.11s, setup 0ms, import 9.03s, tests 9.28s, environment 4ms, typecheck 120ms)
+npm test  24.84s user 5.82s system 225% cpu 13.564 total
+```
+
+```
+$ ps aux | grep '[v]itest.mjs' | wc -l
+       0
+$ time npm run test:db
+ Test Files  22 passed (22)
+      Tests  276 passed (276)
+   Duration  164.35s (transform 193ms, setup 0ms, import 886ms, tests 161.75s, environment 1ms)
+npm run test:db  6.92s user 1.64s system 5% cpu 2:44.56 total
+```
+
+**CA-8.4: 13,56 s de pared contra un presupuesto de 60 s.** 77 % de margen.
+
+#### Qué hace falta para volver
+
+Los tres findings bloqueantes viven enteros en `vitest.config.ts` y **ninguno
+obliga a tocar un fichero de una spec cerrada**, así que ADR-015 no entra:
+
+1. Que el universo que se juzga cubra **todo lo que los dos proyectos ejecutan**,
+   `.test-d.ts` incluidos — o que el criterio declare, dentro de sí, que no los
+   alcanza (F-SPEC-014-7).
+2. Que `FILE_SYSTEM_MODULES` se cierre contra **los builtins que Node acepta** y
+   no contra dos grafías (F-SPEC-014-8).
+3. Que `existsInsideRepository` deje de tragar en silencio un especificador cuya
+   extensión es una **extensión de código** — `SCAN_EXTENSIONS` ya las enumera con
+   su motivo — y vuelva a fallar cerrado como promete CA-3.3 (F-SPEC-014-9).
+
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-014/. Informe HTML opcional: _qa/SPEC-014/informe.html -->
 
@@ -442,6 +611,91 @@ de las ejecuciones de CA-6 y CA-7.
   *Destino:* EPIC-MEJORA. *Disparador:* que la carga de la configuración pase de
   1 s. La salida sería cachear la partición contra los `mtime` de `tests/` y
   `src/`, que es estado en disco y trae sus propios modos de fallo.
+
+### Findings del verificador (2026-09-02)
+
+- **F-SPEC-014-7 — BLOQUEANTE. Los 14 `.test-d.ts` corren en el grupo paralelo y
+  el mecanismo no los juzga nunca.** `testUniverse()` filtra
+  `entry.endsWith('.test.ts')`, y `tests/types/qualifier.test-d.ts` no termina en
+  `.test.ts`. Consecuencia: los `.test-d.ts` no están en `universe`, luego no
+  están ni en `serialized` ni en `parallel`, luego **ningún proyecto los excluye**
+  y corren en los dos — en la práctica solo dan resultado en el paralelo, que es
+  el único con `typecheck.enabled`. Ese es justamente el «73 = 59 paralelos + los
+  14 `.test-d.ts`» que el propio ledger escribe.
+  *Medido:* un fichero nuevo `tests/types/zz-evasion.test-d.ts` con
+  `import { readdirSync } from 'node:fs'` y un `test()` que hace
+  `readdirSync('src')` sale `[parallel]` en `vitest list`, y
+  `tests/config/partition.test.ts` da **23 passed (23)**. No hace falta ninguna
+  grafía rara: es **la grafía exacta que CA-3 nombra**.
+  *Por qué es RED y no residuo:* CA-3.1 afirma que «ningún fichero del grupo
+  paralelo alcanza `node:fs`», y el grupo paralelo contiene hoy 14 ficheros que el
+  guardián no mira. La afirmación es más ancha que su mecanismo, que es lo que
+  ADR-016 §6 prohíbe.
+  *Salida:* o el universo cubre lo que los proyectos ejecutan, o CA-3.5 lo declara
+  y el guardián asserta que ningún `.test-d.ts` alcanza el árbol. *Sin acción
+  sobre specs cerradas.*
+
+- **F-SPEC-014-8 — BLOQUEANTE. `FILE_SYSTEM_MODULES` enumera dos de las cuatro
+  grafías que Node acepta para la misma capacidad.** `node:fs` y
+  `node:fs/promises` están; `fs` y `fs/promises` no. Node importa las cuatro.
+  *Medido:* `tests/zz-evasion-bare-fs.test.ts` con
+  `import { readFileSync } from 'fs'` y `tests/zz-evasion-bare-fsp.test.ts` con
+  `import { readdir } from 'fs/promises'` —los dos leyendo el árbol real— salen
+  **`[parallel]`**, el guardián sigue en 23/23 y
+  `npx oxlint --type-aware <los tres ficheros>` **sale exit 0**: la regla que
+  obligaría al prefijo (`unicorn/prefer-node-protocol`) es de categoría *style* y
+  `.oxlintrc.json` solo activa `correctness`. Nada en el repositorio lo impide, y
+  `tests/` está **fuera** de `SCAN_ROOTS`, así que la frontera de ADR-014 §4
+  tampoco los ve.
+  *Por qué es RED:* ADR-016 §3.1 —el único no negociable— pide que la lista esté
+  cerrada por algo que exista fuera del test. La lista de builtins de Node existe
+  fuera del test; una pareja de grafías escogidas a mano, no.
+  *Salida:* cerrar la pertenencia contra el builtin, no contra el literal.
+
+- **F-SPEC-014-9 — BLOQUEANTE. `existsInsideRepository` falla ABIERTO, y CA-3.3
+  promete lo contrario.** En `readNode`, un especificador literal que
+  `resolveModule` no coloca y cuyo `typescriptTwin` tampoco, **se descarta con un
+  `continue` sin arista y sin diagnóstico** si la ruta existe en el árbol. Como
+  `resolveModule` solo prueba `.ts`, `.tsx`, `index.ts` e `index.tsx`, y
+  `typescriptTwin` solo traduce `.js`/`.jsx`/`.mjs`/`.cjs`, **cualquier módulo
+  `.mts` o `.cts` real cae por ese `continue`**.
+  *Control emparejado, medido:* un helper con
+  `import { readdirSync } from 'node:fs'`, copiado byte a byte a tres nombres —
+  `.ts` → el importador sale **`[serialized]`**; `.mts` y `.cts` → **`[parallel]`**,
+  guardián 23/23, sin una línea de diagnóstico.
+  *Alcance hoy:* instrumenté el paseo y ese `continue` se dispara **2 veces**, las
+  dos por `src/app/(gl)|(es)/layout.tsx -> ../globals.css`. El agujero es
+  **latente**, no activo: hoy la partición es correcta. Pero es latente igual que
+  lo fue el de F-SPEC-008-V33, cuyo motivo está escrito literalmente en
+  `SCAN_EXTENSIONS`: *«un `src/ingest/door.mts` con `node:child_process` dejó los
+  tres gates en verde porque ninguna de las dos listas lo cazaba»*. Esta spec
+  reintroduce ese punto ciego en un lector nuevo, y F-SPEC-014-4 lo describe como
+  inofensivo —*«esto solo dice si una ruta se escapa del árbol»*—, que es la
+  media verdad: también decide, callando, que un módulo de verdad no tiene
+  aristas.
+  *Salida:* distinguir «existe y no es un módulo que yo siga» (CSS, JSON) de
+  «existe, es código y no sé colocarlo» → rojo nombrándose. La lista de qué es
+  código ya existe y ya trae su motivo: `SCAN_EXTENSIONS`.
+
+- **F-SPEC-014-10 — no bloqueante, corrige a F-SPEC-014-2: `groupOrder` SÍ tiene
+  control positivo dentro del repositorio.** El expediente concluye que hay que
+  salir a un banco sintético fuera del árbol porque `fileParallelism: false` tapa
+  al otro mecanismo. Cierto — y la salida es apagar primero al que tapa. Medido
+  por el verificador, tres ejecuciones por configuración:
+
+  ```
+  fileParallelism FUERA + groupOrder distinto → entre los dos grupos: 0        (hueco P→S 177 ms)
+  fileParallelism FUERA + groupOrder igualado → entre los dos grupos: 0 / 1 / 0 (huecos 32 / −1 / 12 ms)
+                                                 P tests/model/qualifier.test.ts >< S tests/polite/evasions.test.ts
+  ```
+
+  No es determinista (1 par en 3 ejecuciones), así que no sirve como caso de la
+  suite tal cual; sí sirve como **control por mecanismo de ADR-016 §3.4 medido en
+  el repositorio**, que es lo que CA-6.2 pedía. El banco externo del implementador
+  (22 → 0) sigue siendo la evidencia más fuerte y no se descarta.
+  *Destino:* EPIC-MEJORA, junto a F-SPEC-014-2. *Disparador:* que alguien
+  reescriba CA-6.2 en términos medibles; ya no hace falta código nuevo, solo
+  redactar el apagado como *«los dos fuera vs. solo `fileParallelism` fuera»*.
 
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
