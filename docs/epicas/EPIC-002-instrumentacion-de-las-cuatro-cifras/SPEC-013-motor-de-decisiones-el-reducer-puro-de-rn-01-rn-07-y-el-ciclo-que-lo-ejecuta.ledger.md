@@ -18,21 +18,22 @@ epica: EPIC-002
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 — pesos y roles de RN-01, fallo cerrado | | | | ❌ |
-| CA-2 — RN-02/RN-03 en las cinco ramas | | | | ❌ |
-| CA-3 — independencia declarada, lista vacía | | | | ❌ |
-| CA-4 — precedencia del operador (RN-01) | | | | ❌ |
-| CA-5 — RN-04: monotonía y retención | | | | ❌ |
-| CA-6 — RN-05: conflicto, alerta y gracia | | | | ❌ |
-| CA-7 — RN-06: transiciones y tabla cerrada | | | | ❌ |
-| CA-8 — RN-07: silencio publicado y alertado | | | | ❌ |
-| CA-9 — RN-12: la regla decisiva | | | | ❌ |
-| CA-10 — los cuatro cualificadores derivados | | | | ❌ |
-| CA-11 — aplicador, versión arbitrada, `alerts` | | | | ❌ |
-| CA-12 — el ciclo dentro del tick y la ruta | | | | ❌ |
-| CA-13 — RN-08: la frontera y su residuo | | | | ❌ |
-| CA-14 — replay determinista | | | | ❌ |
-| CA-15 — los tres gates y las suites enteras | | | | ❌ |
+| CA-1 — pesos y roles de RN-01, fallo cerrado | `src/decide/roles.ts` (tabla `SOURCE_ROLES`, `roleOf` con `UnknownSourceRoleError`, `isHuman`, `isOfficial`; pesos importados de `RN01_WEIGHTS`, nunca copiados) | `tests/decide/roles.test.ts` casos 1–8 (rol⊂claves de `RN01_WEIGHTS`, `defaultRegistry()` cubierto, fallo cerrado con nombre, `isHuman` por los seis roles) · `tests/decide/rules-qualification.test.ts` casos 1–2 (CA-1.2: `ceroacero` con `confidence: 0.95` sale confirmada, y con el peso de la tabla no) | | ❌ |
+| CA-2 — RN-02/RN-03 en las cinco ramas | `src/decide/rules.ts` (`decide`: `isConfirmed`, `supporting`, condición de emisión por tupla publicada) | `tests/decide/rules-qualification.test.ts` casos 3–11 (cinco ramas una a una; CA-2.1 caso 5; CA-2.2 casos 6–7 incluidos los caminos de RN-06 timeout y RN-07; CA-2.3 caso 8 —diez entradas `time`, cero decisiones—; CA-2.4 casos 9–11) | | ❌ |
+| CA-3 — independencia declarada, lista vacía | `src/decide/independence.ts` (`IndependentPair`, `INDEPENDENT_PAIRS` VACÍA, `declareIndependence`, `PRODUCTION_INDEPENDENCE`) · `src/decide/rules.ts` (`isConfirmed`, vía 2) | `tests/decide/independence.test.ts` casos 1–6 (simetría, falsedad por defecto con `(ceroacero, besoccer)`, forma de la lista) · `tests/decide/rules-qualification.test.ts` casos 12–17 (CA-3.2 lista inyectada confirma con las dos ids; CA-3.3 una en 0.5 no; CA-3.4 caso 16: con `PRODUCTION_CONFIG` el mismo escenario sale provisional) | | ❌ |
+| CA-4 — precedencia del operador (RN-01) | `src/decide/rules.ts` (`rank` —empate a 1.0 lo rompe el operador—, `operatorPrecedence`, `conflictOf` con el árbitro) | `tests/decide/rules-precedence.test.ts` casos 1–6 (publica lo del operador confirmado con `rule: RN-01`; CA-4.1 sin alerta y sin retención, también pasada la gracia; CA-4.2 simétrico y el corresponsal que pierde por peso; CA-4.3 gana aunque cambie el estado) | | ❌ |
+| CA-5 — RN-04: monotonía y retención | `src/decide/rules.ts` (bloque RN-04: `goesDown`, `jump`, `seconded`; la retención devuelve la propuesta a lo publicado y la cadena sigue) | `tests/decide/rules-precedence.test.ts` casos 7–16 (5.1 retención de bajada; 5.2 corresponsal 0.8 y operador 1.0 con `rule: RN-04`; 5.3 salto de 3 retenido, liberado por segunda fuente con las dos ids, borde en 2 y en 3; 5.4 ≥ 0.9 publica de inmediato; 5.5 sin previa RN-04 no aplica) | | ❌ |
+| CA-6 — RN-05: conflicto, alerta y gracia | `src/decide/rules.ts` (`conflictOf`: huella de la discrepancia, árbitro oficial/operador, plazo desde la más reciente) · `src/decide/thresholds.ts` (`CONFLICT_GRACE_MS`) | `tests/decide/rules-conflict.test.ts` casos 1–17 — **letra nueva**: 6.1 casos 1–2 (publica la más reciente, provisional, `held` null); 6.2 casos 3–5 (antes del borde SÍ hay `Decision` y ninguna alerta; después ninguna `Decision`, alerta y `held: RN-05`); 6.3 casos 6–8; 6.4 caso 9 (dos fuentes alternándose no retroceden); 6.5 casos 10–11; 6.6 casos 12–13 (diez `time` → una fila; otros valores → segunda); 6.7 casos 14–15; 6.8 casos 16–17 | | ❌ |
+| CA-7 — RN-06: transiciones y tabla cerrada | `src/decide/rules.ts` (`transitionAllowed`, timeout de `kickoff + 110 min` tras RN-04) · `src/decide/thresholds.ts` (`LIVE_LEAD_MS`, `FINISH_TIMEOUT_MS`) | `tests/decide/rules-transitions.test.ts` casos 1–16 (7.1 borde `kickoff − 2 min` a los dos lados; 7.2 las tres vías + una sola automática no cierra + borde del timeout; 7.3 el `finished` por timeout sin apoyo que lo diga → *pendente de confirmar*; 7.4 `postponed`/`suspended`; 7.5 caso 14 enumera las 20 transiciones y exige vacío el resto, casos 15–16 la oficial y el humano a los cinco estados) · `tests/decide/thresholds.test.ts` casos 1–6 (CA-7.6) | | ❌ |
+| CA-8 — RN-07: silencio publicado y alertado | `src/decide/rules.ts` (`silence`, `shouldRaiseSilence`, la tupla publicada incluye «la regla es RN-07») · `src/decide/thresholds.ts` (`SILENCE_MS`) | `tests/decide/rules-silence.test.ts` casos 1–12 (8.1 borde de 15 min a los dos lados + alerta; 8.2 una vez por episodio y episodio nuevo tras volver la señal; 8.3 al volver, `RN-03` y deja de ser *sen sinal*, aunque no cambie nada más; 8.4 solo `live`; 8.5 sin observaciones no produce nada) | | ❌ |
+| CA-9 — RN-12: la regla decisiva | `src/decide/attribution.ts` (`ATTRIBUTION_ORDER` + `CONDITIONS`, una sola declaración del orden) | `tests/decide/attribution.test.ts` casos 1–15 (un caso por escalón, un caso por par adyacente, las 32 combinaciones sin RN-05, vocabulario cerrado, RN-02/RN-03 nunca concurren) · `tests/decide/rules-attribution.test.ts` casos 1–10 (los tres pares que el CA nombra, atravesando el reducer; CA-9.1 casos 5–8) | | ❌ |
+| CA-10 — los cuatro cualificadores derivados | `src/decide/qualifier.ts` (`qualifierOf`, pura y total, en el orden de ADR-021 §6) | `tests/decide/qualifier.test.ts` casos 1–12 (uno por valor, orden, totalidad sobre 5 estados × 2 × 6 reglas × 3 apoyos, `finished` con apoyo que lo dice, y `sen_sinal` + `provisional: true` a la vez) · `tests/decide/cycle-route.test.ts` casos 9–10 y `tests/db/decide-cycle.test.ts` caso 4 (CA-10.4: ninguna columna nueva) | | ❌ |
+| CA-11 — aplicador, versión arbitrada, `alerts` | `src/decide/apply.ts` (`applyEngine`, reintento único ante `DecisionVersionConflictError`) · `src/db/alerts.ts` (`PostgresAlertStore`) · `migrations/0006_alerts.sql` · `src/decide/ports.ts` (`AlertStore`, `LatestAlerts`) · `src/decide/alert.ts` (esquemas zod, NO modelo canónico) | `tests/db/decide-cycle.test.ts` casos 1–12 (fila válida releída con `DecisionSchema`, apoyo del mismo partido, `decided_at` como cadena `Z`; 11.1 las seis migraciones y segunda ejecución `[]` + columnas de `alerts`; 11.2 `update` y `delete` rechazados; 11.3/11.4 casos 8–10 con escritura concurrente REAL; 11.5 casos 11–12) — **requiere `DATABASE_URL_TEST`** | | ❌ |
+| CA-12 — el ciclo dentro del tick y la ruta | `src/decide/cycle.ts` (`runCycle`, `composeCyclePorts`, `productionCycle`) · `src/app/api/cron/ingest/route.ts` (UNA línea: `tick: productionCycle`) · enmienda de ADR-015 en el ledger de SPEC-012 | `tests/db/decide-cycle.test.ts` casos 13–16 (una invocación persiste `Observation` Y `Decision`; el motor después de la ingesta; fuera de ventana nada; un fallo del motor no revierte la ingesta) · `tests/decide/cycle-route.test.ts` casos 1–8 (12.2 la ruta y `src/ingest/cron.ts` intacto; 12.3 las cinco partes de las DOS enmiendas; 12.4 nadie de las specs cerradas importa `@/decide`) · `tests/ingest/cron.test.ts` y `tests/ingest/vercel-cron.test.ts` pasan sin tocar una aserción | | ❌ |
+| CA-13 — RN-08: la frontera y su residuo | `tests/decide/support/rn08.ts` (`DECISION_WRITERS` con DOS entradas y su motivo, `DECISION_CAPABILITY_NAMES`, los dos mecanismos) — el lector se hereda de `tests/polite/support/capability.ts` | `tests/decide/rn08-frontier.test.ts` casos 1–16 (conjunto vacío sobre el árbol real; 13.1 control positivo por mecanismo —import, tipo, lista de nombres vaciada, mecanismo textual—; 13.2 fichero inparseable rojo + un solo lector; 13.3 el residuo con su ejemplo ejecutable, destino y disparador; 13.4 sin exenciones por nombre; 13.5 `src/ingest/` limpio y la dirección del grafo) | | ❌ |
+| CA-14 — replay determinista | `src/decide/replay.ts` (`replayMatch`, `replayInstants`, sin reloj ni base) | `tests/decide/replay.test.ts` casos 1–9 (material sintético archivado y releído por `adapter.read` sin red; 14.1 comparación profunda dos veces + el log de la jornada; 14.3 `Date.now` envenenado con su control positivo; 14.4 `tests/fixtures/` sin un byte de HTML de terceros) · `tests/db/decide-cycle.test.ts` caso 17 (**CA-14.2**: el replay coincide con el log del ciclo REAL) | | ❌ |
+| CA-15 — los tres gates y las suites enteras | — | `npm run lint` exit=0 · `npm test` 114 ficheros / 1108 casos · `npm run test:db` 22 ficheros / 276 casos. Recuento fichero a fichero contra `main`: **ningún fichero previo cambia de recuento** (comparación por reporter JSON, abajo) | | ❌ |
+
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
@@ -176,6 +177,55 @@ verde sin tocar una aserción (CA-12.2).
   bajada de un gol— y **no se le añade nada**: la spec queda deliberadamente
   silenciosa, que es distinto de haberlo resuelto sin mirar.
 
+- **F-SPEC-013-3 — La lectura de RN-05 antes que RN-04 en la cadena de
+  evaluación, declarada y no descubierta.** `reglas.md` lista RN-04 antes que
+  RN-05, y el reducer evalúa el conflicto **primero**. El motivo está escrito
+  en el comentario de módulo de `src/decide/rules.ts`: pasada la gracia, RN-05
+  dice que el conflicto **no se publica**, punto, así que no queda ningún
+  marcador cuya monotonía siga en cuestión; con el orden literal, `held`
+  nombraría `RN-04` en la mitad de los conflictos —siempre que la más reciente
+  de las dos discrepantes fuese la más baja— y CA-6.2 solo se cumpliría por
+  suerte. Durante la gracia no hay conflicto, así que RN-04 gobierna entera,
+  que es justo lo que pide CA-6.4. **No necesita decisión**: se levanta aquí
+  para que el verificador la juzgue como lectura declarada y no como hallazgo.
+
+- **F-SPEC-013-4 — «Escalón 1 de RN-12» se implementa exigiendo DISCREPANCIA, y
+  CA-9 podría leerse sin ella.** `operatorPrecedence` es cierto cuando el
+  operador lidera **y** alguna otra fuente dice algo distinto; un operador solo,
+  sin nadie que le contradiga, se registra por el escalón que corresponda
+  (`RN-06` si cambia el estado, `RN-02` si no). Es la letra de RN-12 —«la
+  `Decision` **resuelve una discrepancia** por precedencia del operador… por
+  qué ganó el operador un empate no está en ninguna otra columna»— y lo que
+  evita es que `rule` se vuelva un sinónimo de la columna `source` del apoyo.
+  Pero **CA-9 dice «una decisión del operador que además cambia el estado
+  registra `RN-01`» sin nombrar la discrepancia**, y CA-4.3 lo dice dentro de
+  un escenario que sí la tiene. Los tests de esta rama (CA-4 y CA-9 caso 3) se
+  escriben **con** discrepancia, que es el escenario que los dos CA describen.
+  **Destino: gate humano**, y si la lectura amplia es la buena es un diff de una
+  condición en `src/decide/rules.ts` con su caso. **Disparador: la spec del
+  panel**, que es la que traerá observaciones de operador de verdad.
+
+- **F-SPEC-013-5 — `productionCronTick` se queda sin llamante en producción.**
+  La ruta del cron inyecta ahora `productionCycle` (CA-12.2). `productionCronTick`
+  sigue exportado en `src/ingest/cron.ts` —fichero de una spec `hecho`, que no se
+  toca— y ya no describe lo que corre cada minuto. Está escrito en el punto 3 de
+  la enmienda de ADR-015 del ledger de SPEC-012. **Destino: EPIC-MEJORA**;
+  **disparador: la próxima spec que ya tenga que tocar `src/ingest/cron.ts` por
+  otro motivo**.
+
+- **F-SPEC-013-6 — `DATABASE_URL_TEST` apunta al *pooler* de Neon y `getaddrinfo`
+  no lo resuelve en esta máquina.** Medido el 2026-09-02: `dns.lookup` de Node
+  devuelve `ENOTFOUND` para
+  `ep-soft-river-b1ocpgd1-pooler.c-5.eu-central-1.aws.neon.tech`, mientras
+  `dns.resolve4`, `host` y `dscacheutil` lo resuelven sin problema, y el
+  endpoint **directo** —el mismo nombre sin `-pooler`— sí resuelve por
+  `getaddrinfo`. `npm run test:db` se corrió exportando `DATABASE_URL_TEST` con
+  el endpoint directo; **no se tocó `.env.local`**. Es de entorno, no de código,
+  y no cambia lo que los criterios miden: es la misma base. **Destino: nota
+  operativa para quien vuelva a correr el gate** (y EPIC-MEJORA si se repite en
+  otras máquinas). Súmese a F-SPEC-010-7: la rama de Neon es compartida entre
+  worktrees y dos ejecuciones concurrentes se corrompen entre sí.
+
 Y dos residuos ya **declarados por la spec** antes de implementar, que el
 implementador no tiene que descubrir y el verificador no tiene que levantar como
 hallazgo:
@@ -192,39 +242,76 @@ hallazgo:
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
 
-**Estado (2026-09-02, sdd-arquitecto):** spec y **ADR-021 `aprobada`**, firmadas
-por Alberto Fojo. Las tres cosas que tenían que pasar antes de implementar están
-hechas:
+**Estado (2026-09-02, sdd-implementador):** los quince CA implementados con TDD,
+los tres gates en verde, todo commiteado en `ft/SPEC-013-motor-de-decisiones`
+(sin push, sin PR: lo hace el orquestador tras el GREEN). La spec está en
+`en-revision`.
 
-1. ✅ **Firma de ADR-021**, con sus §8.1 a §8.4 aprobados tal como se propusieron.
-2. ✅ **Las cuatro lecturas trasladadas a `reglas.md`** como aclaraciones
-   fechadas, con la forma de las de RN-01 y RN-03: el peso congelado en la
-   `Observation` en RN-01; la retención que no alcanza a ≥ 0.9 en RN-04; «la
-   vigente» y la persistencia en RN-05; la tabla cerrada y la corrección humana
-   en RN-06. Cada una con su comentario de quién, qué gate, qué fecha y qué hueco
-   cerraba, y diciendo que **no son umbrales nuevos**.
-3. ✅ **Firma de la spec.**
+- **Código nuevo:** `src/decide/` entero —`rules.ts` (el reducer puro),
+  `attribution.ts`, `qualifier.ts`, `roles.ts`, `independence.ts`,
+  `thresholds.ts`, `alert.ts`, `ports.ts`, `apply.ts`, `replay.ts`,
+  `cycle.ts`—, `src/db/alerts.ts` y `migrations/0006_alerts.sql`.
+- **Fuera de `src/decide/`, `src/db/` y `migrations/` se tocó UNA cosa:**
+  `src/app/api/cron/ingest/route.ts`, la función que inyecta al handler
+  (CA-12.2), con su enmienda de ADR-015 escrita en el ledger de SPEC-012.
+  `src/ingest/`, `src/polite/`, `src/calendar/`, `src/alias/` y `src/model/`
+  **intactos** (CA-12.4, comprobable en el diff y por el caso 7 de
+  `tests/decide/cycle-route.test.ts`).
+- **Un test de suite cerrada se generalizó, con la vía sancionada:** el caso 1
+  de `tests/db/ingest-attempts.test.ts` enumeraba `['0001'…'0005']` y
+  `migrations/0006` lo volvió falso **por decisión**. Se generalizó conservando
+  todo lo que afirmaba y la enmienda está escrita (F-SPEC-012-3, ADR-015).
+  Ningún otro fichero previo cambia, ni de contenido ni de recuento.
+- **`ALLOWED_PACKAGES`, `ENTRY_POINTS` y las enumeraciones de `tests/polite/`
+  NO se tocaron**: no hizo falta ninguna entrada nueva. `src/decide/` entra en
+  el escaneo por las raíces que SPEC-008 CA-2.6 ya declaraba y es alcanzable
+  desde la ruta del cron, que ya era `ENTRY_POINTS`.
 
-4. ✅ **F-SPEC-013-1 resuelto** por el gate el 2026-09-02 (salida b) y **CA-6
-   reescrito**: la gracia gobierna solo la alerta. Ya no queda ninguna decisión
-   pendiente y la spec se puede implementar entera.
+**Lo que el verificador tiene que mirar con lupa, en este orden:**
 
-**Si vas a CA-6, lee su texto nuevo y no el del primer commit.** Cambió después
-de la firma, y la diferencia es justo la que importa: durante la gracia **se
-publica** (provisional, RN-03) y el plazo decide **solo** si se abre alerta.
+1. **CA-6 con la letra NUEVA.** `tests/decide/rules-conflict.test.ts` está
+   escrito contra el CA-6 de ocho subpuntos (commit `ae05a98`): durante la
+   gracia **se publica** la más reciente marcada provisional y `held` es `null`;
+   pasada la gracia no hay `Decision`, hay alerta y `held` nombra `RN-05`.
+2. **Los controles positivos de CA-13** (casos 4–9 de
+   `tests/decide/rn08-frontier.test.ts`): son los que dicen si la frontera de
+   RN-08 mide algo. El caso 6 enumera exactamente los tres ficheros que cruzan
+   la capacidad hoy.
+3. **F-SPEC-013-4**, que es la única lectura de RN-01/RN-12 que esta
+   implementación fija y que un CA podría leer de otra manera.
+4. **`npm run test:db` necesita `DATABASE_URL_TEST`** y, en esta máquina, el
+   endpoint **directo** de Neon (F-SPEC-013-6). Sin él, CA-11 y CA-12 son
+   **UNMET, no *skipped***.
 
-No hay una línea de `src/` ni de `tests/` escrita.
+**Salidas literales de los tres gates (2026-09-02):**
 
-Para el implementador, cuando llegue el turno:
+```
+$ npm run lint
+> oxlint --type-aware
+(sin salida; exit=0)
 
-- **Empezar por `src/decide/rules.ts` y `attribution.ts`**, que son puros y no
-  necesitan base: CA-1 a CA-10 se cierran enteros con `npm test`.
-- **`DATABASE_URL_TEST` hace falta desde CA-11.** Sin él, CA-11 y CA-12 son
-  UNMET, no *skipped*.
-- **`src/ingest/`, `src/polite/`, `src/calendar/` y `src/alias/` no se tocan**
-  (CA-12.4). La **única** línea autorizada fuera de `src/decide/`, `src/db/` y
-  `migrations/` es la función que `src/app/api/cron/ingest/route.ts` le inyecta
-  al handler (CA-12.2), y esa línea obliga a escribir la enmienda de ADR-015 en
-  el ledger de SPEC-012 (CA-12.3).
-- **El lector de CA-13 se hereda, no se escribe**: es el del compilador que
-  sostiene la frontera de SPEC-008/SPEC-009 (ADR-016 §5 bis: un solo lector).
+$ npm test
+ Test Files  114 passed (114)
+      Tests  1108 passed (1108)
+ Type Errors  no errors
+
+$ npm run test:db
+ Test Files  22 passed (22)
+      Tests  276 passed (276)
+```
+
+**Recuento fichero a fichero contra `main` (CA-15).** Comparación por reporter
+JSON de `npm test` antes y después: **base 100 ficheros / 919 casos → 114
+ficheros / 1108 casos**, con **catorce ficheros nuevos, todos bajo
+`tests/decide/`**, y **ningún fichero previo con recuento distinto** —cero en
+`tests/mirror`, `tests/site`, `tests/docs`, `tests/model`, `tests/raw`,
+`tests/ingest`, `tests/polite`, `tests/alias`, `tests/calendar`, `tests/stores`,
+`tests/types` y `tests/migrations`—. En `npm run test:db`: **21 ficheros / 259
+casos → 22 / 276**, con **un fichero nuevo** (`tests/db/decide-cycle.test.ts`,
+17 casos) y el recuento de `tests/db/ingest-attempts.test.ts` **sin cambiar**
+(su caso 1 se generalizó, no se borró).
+
+**Lo que esta spec NO entrega, y estaba dicho:** ninguna de las cuatro cifras,
+ninguna pantalla, ninguna entrada humana real. Lo que sí: **`decisions` deja de
+estar vacía** —caso 13 de `tests/db/decide-cycle.test.ts`, contra Postgres real—
+y `alerts` existe para que la tercera cifra tenga materia.
