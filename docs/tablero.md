@@ -18,6 +18,7 @@ Actualizado: 2026-09-02
 | SPEC-008 — adaptador-de-ceroacero-es-y-cortesia-rn-11-con-una-sola-implementacion | hecho | 2026-09-01 (sdd-verificador) |
 | SPEC-009 — la-frontera-de-capacidad-de-rn-11-demostrada-sin-listas-negras | hecho | 2026-09-02 (sdd-verificador) |
 | SPEC-010 — calendario-declarado-a-mano-y-repositorios-de-observation-y-decision-en-postgres | hecho | 2026-09-02 (sdd-verificador) |
+| SPEC-011 — catalogo-de-alias-declarado-y-resolucion-de-identidad-de-partido | hecho | 2026-09-02 (sdd-verificador) |
 
 ## EPIC-003 — paxina-de-proxecto-e-respaldo-publico-da-carta (hecho)
 
@@ -59,7 +60,8 @@ Actualizado: 2026-09-02
 | ADR-015 | aprobada | que-pasa-cuando-una-decision-posterior-invalida-un-ca-de-una-spec-cerrada | 2026-09-01 (Alberto Fojo) |
 | ADR-016 | aprobada | como-se-demuestra-una-frontera-de-capacidad-se-enumera-lo-permitido-y-el-resto-tiene-que-ser-vacio | 2026-09-01 (Alberto Fojo) |
 | ADR-017 | aprobada | calendario-declarado-a-mano-y-persistencia-del-modelo-canonico | 2026-09-02 (Alberto Fojo) |
+| ADR-018 | aprobada | el-catalogo-de-alias-es-una-declaracion-humana-que-se-reemplaza-al-cargar-y-la-identidad-se-resuelve-todo-o-nada | 2026-09-02 (Alberto Fojo) |
 
 ## Resumen
 
-- hecho: 10
+- hecho: 11

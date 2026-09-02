@@ -759,3 +759,52 @@ humano* (F-SPEC-010-9 sobre el idioma del CLI la primera) y para
    `DecisionVersionConflictError` y el motor tiene que decidir qué hacer con él.
    `declareCalendar` devuelve también `matches`: quien cargue un calendario
    desde memoria ya tiene las filas convertidas.
+
+## Enmienda — 2026-09-02: `migrations/0004` invalida la aserción enumerante de CA-10
+
+**Esto es una enmienda, no una reapertura.** SPEC-010 sigue en `hecho`, su
+veredicto sigue siendo GREEN y no se ha tocado una línea del cuerpo de la spec.
+La forma es la de ADR-015 §2 y §3 (`aprobada` desde el 2026-09-01), y el caso es
+literalmente el que su §Contexto anticipa: la tercera vez que una migración
+nueva rompe una aserción que enumera las migraciones (antes F-SPEC-008-16 sobre
+SPEC-001 CA-13, enmendada el 2026-09-01).
+
+1. **Qué afirmaba CA-10 y por qué era razonable.** CA-10 exige que
+   `migrations/0003` se aplique en orden tras `0001` y `0002`, sin rollback, y
+   que una segunda ejecución no aplique nada. Su guardián,
+   `tests/db/calendar-schema.test.ts`, lo mecanizaba **enumerando**:
+   `expect(files).toEqual([...tres ficheros...])` y
+   `expect(await migrate(sql)).toEqual(['0001', '0002', '0003'])`. El
+   2026-09-02 por la mañana `0003` era la última migración y la lista literal
+   era la aserción más fuerte escribible: decía a la vez qué se aplicó y que no
+   se aplicó nada más.
+
+2. **Qué lo invalida.** `migrations/0004_alias_loads.sql`, que **SPEC-011
+   CA-8** (aprobada por Alberto Fojo el 2026-09-02) ordena crear, con ADR-018
+   §2. Desde que existe una cuarta migración, una aserción que enumera tres no
+   puede ser cierta, y reapuntarla a cuatro la dejaría falsa otra vez el día de
+   `0005` — la forma exacta de la enmienda de SPEC-001 CA-13.
+
+3. **Con qué se sustituye, y si la red que queda es menor.** Las dos aserciones
+   pasan a derivarse del descubridor (`readMigrations`), conservando entera la
+   sustancia de CA-10: `0003` sigue siendo el TERCER fichero en disco
+   (`files[2]`), los tres primeros versionados siguen siendo
+   `['0001','0002','0003']` en ese orden, `migrate` aplica exactamente lo que
+   hay en disco y la segunda ejecución devuelve `[]`. La red ES menor en un
+   punto y se dice sin suavizar: el caso ya no falla si aparece una migración
+   posterior que CA-10 no conocía — ese fallo era información, y desde hoy la
+   da `tests/db/alias-schema.test.ts` (SPEC-011 CA-8), que enumera las cuatro
+   y heredará esta misma enmienda el día de `0005`. Ningún otro caso del
+   fichero cambia; el recuento de casos del fichero no cambia.
+
+4. **El veredicto sigue en pie.** El GREEN de SPEC-010 (2026-09-02) juzgó la
+   migración `0003` y su carga contra la base real; nada de eso ha cambiado.
+   Lo único que cambia es cómo el guardián nombra «todas las migraciones».
+
+5. **Qué lo despierta.** Si `readMigrations` dejara de ser la autoridad sobre
+   qué hay en disco (otro descubridor, migraciones fuera de `migrations/`), la
+   aserción derivada quedaría ciega y habría que volver a una lista cerrada
+   con dueño declarado.
+
+Registrado por `sdd-implementador` de SPEC-011 (quien invalida, registra,
+ADR-015 §5).

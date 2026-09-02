@@ -366,6 +366,11 @@ export const ENTRY_POINTS: readonly string[] = [
   'src/app/_contract/model-client.tsx',
   'src/app/robots.txt/route.ts',
   // The commands of `package.json`.
+  // `alias:cargar` (SPEC-011 CA-7): loads a declared alias catalogue against
+  // `DATABASE_URL` from the operator's machine (ADR-018 §2). It reads one
+  // local file and talks to our own Postgres; it asks no third party for
+  // anything, and no LLM is part of the mechanism (ADR-018 §1).
+  'src/alias/cli.ts',
   // `calendario:cargar` (SPEC-010 CA-6): loads a declared calendar against
   // `DATABASE_URL` from the operator's machine. It reads one local file and
   // talks to our own Postgres; it asks no third party for anything.

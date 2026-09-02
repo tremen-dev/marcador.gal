@@ -38,19 +38,35 @@ function declared(kind: RegExp): string[] {
 }
 
 describe('CA-10 — the third migration', () => {
+  /**
+   * These two cases used to ENUMERATE the migrations
+   * (`['0001', '0002', '0003']`), the strongest assertion writable while 0003
+   * was the last one. `migrations/0004` (SPEC-011 CA-8) makes an enumeration
+   * false by a decision and not by a defect — the exact shape of
+   * F-SPEC-008-16 — so they now derive from `readMigrations` and keep CA-10's
+   * substance: 0003 is third, applied after 0002, and a second run applies
+   * nothing. The enumeration of ALL migrations lives with the youngest one
+   * (`tests/db/alias-schema.test.ts`). Ledger of SPEC-010,
+   * «Enmienda — 2026-09-02» (ADR-015).
+   */
   test('is on disk, third, and named after what it brings', async () => {
     const versions = (await readMigrations()).map((migration) => migration.file);
-    expect(versions).toEqual(['0001_canonical_model.sql', '0002_request_rhythm.sql', MIGRATION]);
+    expect(versions.length).toBeGreaterThanOrEqual(3);
+    expect(versions.slice(0, 2)).toEqual(['0001_canonical_model.sql', '0002_request_rhythm.sql']);
+    expect(versions[2]).toBe(MIGRATION);
   });
 
   test('a first run applies 0001, 0002 and 0003 in that order; a second applies nothing', async () => {
-    expect(await migrate(sql)).toEqual(['0001', '0002', '0003']);
+    const onDisk = (await readMigrations()).map((migration) => migration.version);
+    expect(onDisk.slice(0, 3)).toEqual(['0001', '0002', '0003']);
+
+    expect(await migrate(sql)).toEqual(onDisk);
     expect(await migrate(sql)).toEqual([]);
 
     const applied = await sql<{ version: string }[]>`
       select version from schema_migrations order by version
     `;
-    expect(applied.map((row) => row.version)).toEqual(['0001', '0002', '0003']);
+    expect(applied.map((row) => row.version)).toEqual(onDisk);
   });
 
   test('1. the table the migration declares exists', async () => {
