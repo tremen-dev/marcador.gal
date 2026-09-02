@@ -1,9 +1,11 @@
 ---
 id: ADR-018
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-02, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-02, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # ADR-018: El catálogo de alias es una declaración humana que se reemplaza al cargar, y la identidad se resuelve todo o nada
 

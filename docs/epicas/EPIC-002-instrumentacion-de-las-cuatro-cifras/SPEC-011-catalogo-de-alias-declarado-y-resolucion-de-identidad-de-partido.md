@@ -2,10 +2,11 @@
 id: SPEC-011
 tipo: spec
 epica: EPIC-002
-estado: borrador
-aprobada-por:
+estado: aprobada
+aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-09-02, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-02, por: Alberto Fojo}
 ---
 # SPEC-011 — Catálogo de alias declarado y resolución de identidad de partido
 
