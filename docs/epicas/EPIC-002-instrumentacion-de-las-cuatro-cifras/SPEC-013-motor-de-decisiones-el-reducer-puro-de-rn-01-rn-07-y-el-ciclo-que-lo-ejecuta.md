@@ -336,23 +336,41 @@ recibe ninguna observación humana: el bot y el panel son las specs siguientes.
   Dadas dos fuentes de peso 0.7 no declaradas independientes cuyas últimas
   observaciones discrepan, y ninguna oficial,
   entonces:
-  1. **No se emite ninguna `Decision`** y la vigente se mantiene tal cual
-     (lectura «la vigente», ADR-021 §8.2: hoy no hay ninguna *confirmada* que
-     mantener, y despublicar contradiría RN-03). `held` nombra `RN-05`.
-  2. La alerta **solo** se emite cuando la discrepancia sigue en pie
-     `CONFLICT_GRACE` después de la más reciente de las dos observaciones que
-     discrepan. Antes de ese plazo no hay alerta y tampoco hay `Decision`. Dos
-     casos: uno justo antes del borde y otro justo después.
-  3. Si dentro de `CONFLICT_GRACE` la rezagada se pone al día, **no hay alerta**
-     y se publica lo que ambas dicen. Es el caso de dos fuentes a distinta
-     velocidad, que es el normal, y el que separa esta cifra de un contador de
-     goles.
-  4. Mientras la **misma** discrepancia persiste no se emite una alerta nueva:
+  1. **Mientras la discrepancia no ha persistido `CONFLICT_GRACE` no es un
+     conflicto, y se publica.** Sale la observación **más reciente de las dos**,
+     marcada *provisional* (RN-03), y `held` es `null`: RN-05 no ha disparado,
+     así que no retiene nada. Es «mejor provisional a tiempo que confirmado
+     tarde» aplicado al caso normal —dos fuentes a distinta velocidad— y es lo
+     que impide que la gracia se coma el presupuesto de latencia de la épica.
+  2. **Cuando la discrepancia sigue en pie `CONFLICT_GRACE` después de la más
+     reciente de las dos observaciones que discrepan, sí es conflicto**: se abre
+     alerta `RN-05`, **no se emite ninguna `Decision`** y la vigente se mantiene
+     tal cual (lectura «la vigente», ADR-021 §8.2: hoy no hay ninguna
+     *confirmada* que mantener, y despublicar contradiría RN-03). `held` nombra
+     `RN-05`. Dos casos, uno justo antes del borde y otro justo después: el de
+     antes afirma que **sí hubo `Decision`** y ninguna alerta; el de después,
+     que **no hay `Decision`** y sí alerta.
+  3. **`CONFLICT_GRACE` gobierna solo la alerta**, y un caso lo afirma: la
+     `Decision` publicada durante la gracia se atribuye por el orden normal de
+     RN-12 —`RN-02`/`RN-03` si solo mueve el marcador o su cualificador, `RN-06`
+     si además cambia el estado— y **nunca** `RN-05`, que no emite ninguna
+     (CA-9.1). El plazo no decide qué se publica: decide si se abre alerta.
+  4. **La monotonía sigue aplicando durante la gracia**: dos fuentes que se
+     alternan no hacen oscilar el marcador a la baja, porque una bajada desde
+     una automática la bloquea RN-04 (CA-5.1). Un caso conduce las dos fuentes
+     alternándose y afirma que la secuencia publicada **no retrocede**.
+  5. Si dentro de `CONFLICT_GRACE` la rezagada se pone al día, **no se abre
+     ninguna alerta** — y no hay nada retenido que liberar, porque durante la
+     gracia ya se publicó (CA-6.1). La `Decision` no cambia: la tupla publicada
+     es la misma (CA-2.3), salvo que la coincidencia activase la segunda vía de
+     RN-02, que exige independencia declarada y hoy no la satisface ningún par
+     (CA-3.4).
+  6. Mientras la **misma** discrepancia persiste no se emite una alerta nueva:
      diez entradas `time` seguidas producen **una** fila. Una discrepancia
      distinta —otros valores— sí produce una segunda.
-  5. Si **una de las dos es la oficial**, no es conflicto: se publica lo que
+  7. Si **una de las dos es la oficial**, no es conflicto: se publica lo que
      dice la oficial. Y si interviene el operador, tampoco (CA-4.1).
-  6. `CONFLICT_GRACE` vive en `src/decide/thresholds.ts` **en un solo sitio**:
+  8. `CONFLICT_GRACE` vive en `src/decide/thresholds.ts` **en un solo sitio**:
      un test lo cambia ahí y ve moverse el borde de CA-6.2, sin tocar ningún
      otro número. Igual que `POST` en SPEC-012 CA-1.
 
@@ -412,7 +430,9 @@ recibe ninguna observación humana: el bot y el panel son las specs siguientes.
   de 0.8 registra `RN-06` y no `RN-03`; una bajada de marcador que además cambia
   el estado registra `RN-04`; una decisión del operador que además cambia el
   estado registra `RN-01`. Y además:
-  1. **RN-05 nunca aparece en `rule`**: no emite `Decision` (CA-6.1), y una
+  1. **RN-05 nunca aparece en `rule`**: cuando es conflicto no emite `Decision`
+     (CA-6.2), y durante la gracia —cuando todavía no lo es— lo que se publica
+     se atribuye por el orden normal, `RN-02`/`RN-03` o `RN-06` (CA-6.3). Una
      discrepancia en la que interviene el operador enruta al escalón 1 y se
      registra como `RN-01` (RN-12, salvedad de RN-05). Un caso lo afirma, y esta
      spec **declara** con ello dónde entra RN-05 en el orden, como RN-12 le
@@ -592,8 +612,11 @@ recibe ninguna observación humana: el bot y el panel son las specs siguientes.
 - **RN-03** — el cualificador de la `Decision` entera en las cinco ramas: CA-2.
 - **RN-04** — monotonía y retención del salto: CA-5, con la lectura de ADR-021
   §8.1 en CA-5.4.
-- **RN-05** — no publica, alerta, y solo cuando persiste: CA-6, con la lectura
-  de ADR-021 §8.2 en CA-6.1 y CA-6.2.
+- **RN-05** — **el conflicto** no se publica y se alerta, y una discrepancia
+  solo es conflicto cuando persiste: CA-6, con la lectura de ADR-021 §8.2 en
+  CA-6.1 y CA-6.2. Durante la gracia todavía no es conflicto, así que RN-05 no
+  ha disparado y decide RN-03 (CA-6.1, CA-6.3); el plazo gobierna **solo la
+  alerta** (gate del 2026-09-02, F-SPEC-013-1).
 - **RN-06** — las transiciones y su tabla cerrada: CA-7, con la lectura de
   ADR-021 §8.3 en CA-7.5.
 - **RN-07** — el silencio emite `Decision` y alerta: CA-8.
@@ -726,7 +749,11 @@ recomendación de `sdd-arquitecto`; **la decisión es de quien firma**.
    `POST` y las 6 h de ADR-014 §3.2. Si es de más, la tercera cifra sale baja;
    si es de menos, sale inflada por sincronía entre fuentes.
    **Recomendación:** firmarlo y revisarlo con la primera jornada delante; vive
-   en un solo sitio y CA-6.6 lo demuestra.
+   en un solo sitio y CA-6.8 lo demuestra.
+   *(Resuelto en el gate del 2026-09-02: además se decidió que la gracia
+   gobierna **solo la alerta** —F-SPEC-013-1—, así que este número ya no toca a
+   la primera cifra, solo a la tercera. Es lo que dice esta nota, ahora sin
+   asterisco.)*
 4. **El motor corre dentro del tick de ingesta, no en su propio cron.** El
    motivo es la latencia: un segundo cron regalaría hasta 60 s de un presupuesto
    de 120 s. El precio es que la ruta del cron de SPEC-012 cambia una línea y su

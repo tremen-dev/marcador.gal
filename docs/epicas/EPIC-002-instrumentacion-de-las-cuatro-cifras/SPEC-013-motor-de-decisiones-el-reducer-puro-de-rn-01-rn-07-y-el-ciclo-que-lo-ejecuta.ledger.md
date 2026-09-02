@@ -6,10 +6,10 @@ epica: EPIC-002
 # Ledger — SPEC-013 Motor de decisiones: el reducer puro de RN-01..RN-07 y el ciclo que lo ejecuta
 
 ## Resumen
-- Fase: aprobada (SPEC-013 y ADR-021 firmadas por Alberto Fojo el 2026-09-02;
-  las cuatro lecturas de ADR-021 §8 ya están en `reglas.md`). **Bloqueada para
-  CA-6 hasta que el gate decida F-SPEC-013-1**; el resto de los criterios puede
-  empezar.
+- Fase: aprobada y **lista para implementar**. SPEC-013 y ADR-021 firmadas por
+  Alberto Fojo el 2026-09-02; las cuatro lecturas de ADR-021 §8 ya están en
+  `reglas.md`; F-SPEC-013-1 **cerrado** por el gate ese mismo día (salida b) y
+  CA-6 reescrito en consecuencia. No queda ninguna decisión pendiente.
 - Rama: `ft/SPEC-013-motor-de-decisiones`
 
 ## Matriz de criterios de aceptación
@@ -47,10 +47,52 @@ verde sin tocar una aserción (CA-12.2).
 ## Salvedades / follow-ups
 <!-- IDs F-SPEC-013-1, F-SPEC-013-2… con destino (spec futura o EPIC-MEJORA). -->
 
-- **F-SPEC-013-1 — La gracia de RN-05 retiene la publicación, y eso cuesta hasta
-  3 min de latencia contra un presupuesto de 120 s.** Levantado por
-  `sdd-arquitecto` el 2026-09-02, **después de la firma**, al trasladar las
-  lecturas de ADR-021 §8 a `reglas.md`.
+- **F-SPEC-013-1 — CERRADO por el gate el 2026-09-02 (Alberto Fojo), salida
+  (b).** La gracia de RN-05 retenía la publicación, y eso costaba hasta 3 min de
+  latencia contra un presupuesto de 120 s. Levantado por `sdd-arquitecto` el
+  2026-09-02, **después de la firma**, al trasladar las lecturas de ADR-021 §8 a
+  `reglas.md`.
+
+  **Resolución.** `CONFLICT_GRACE` gobierna **solo la alerta**. Durante la
+  gracia se publica la observación más reciente marcada *provisional* (RN-03);
+  el plazo decide únicamente si se abre alerta, que es lo único que ADR-021 §8.2
+  dice que gobierna. **ADR-021 y `reglas.md` no se tocan** y quedan como están:
+  la elección era de la spec sobre lo que el ADR dejó abierto.
+
+  **Qué se corrigió en el cuerpo de la spec** (`aprobada`, no `hecho`, así que
+  se corrige directamente): **CA-6.1** pasa a decir que durante la gracia se
+  publica y `held` es `null`; **CA-6.2** recoge lo que antes decían 6.1 y 6.2
+  juntos —pasado el plazo sí es conflicto: alerta, ninguna `Decision`, la
+  vigente se mantiene, `held` nombra `RN-05`— con sus dos casos de borde
+  afirmando ahora cosas distintas a cada lado; **CA-6.3** es nuevo y fija que el
+  plazo gobierna solo la alerta y con qué regla se atribuye lo publicado durante
+  ella; **CA-6.4** es nuevo y cierra la oscilación (la monotonía de RN-04 sigue
+  aplicando durante la gracia, así que dos fuentes alternándose no hacen
+  retroceder el marcador); **CA-6.5** es el antiguo 6.3, y su valor pasa a ser
+  que **no hubo alerta** —ya no hay nada retenido que liberar—. Los antiguos
+  6.4, 6.5 y 6.6 corren a **6.6, 6.7 y 6.8** sin cambiar de texto.
+
+  **De rebote, dos referencias cruzadas:** **CA-9.1** («RN-05 nunca aparece en
+  `rule`») ahora cita CA-6.2 en vez de CA-6.1 y dice explícitamente con qué
+  regla se registra lo publicado durante la gracia —el orden normal de RN-12,
+  nunca `RN-05`—; y la nota 3 del gate apunta a CA-6.8. La línea de RN-05 en
+  *Entidades y reglas afectadas* se precisa igual. **CA-2 no se movió**: su
+  «el motor no emite una `Decision` por tick» sigue en pie, porque una entrada
+  `time` no trae observación nueva y la tupla publicada no cambia.
+
+  **Lo que no cambió y conviene saber:** el diagnóstico sigue siendo el mismo
+  —hoy es **latente**, con una sola fuente automática capturable (ADR-008 §1) no
+  puede haber discrepancia entre dos— pero la letra se arregló **antes** de
+  implementarla, que era el punto.
+
+  **Y no se escribió bajo `## Enmienda —`, a propósito.** ADR-015 §2 reserva ese
+  encabezado para un CA de una spec **cerrada** que ha dejado de poder ser
+  cierto, y lo hace índice (`grep -rn "^## Enmienda —" docs/epicas/`). Aquí la
+  spec está `aprobada` y no `hecho`, no hay veredicto que anotar y el cuerpo se
+  corrige directamente. Comprobado tras el cambio: el `grep` sigue devolviendo
+  diez enmiendas reales y ninguna falsa.
+
+  <details><summary>Diagnóstico original, tal como se levantó</summary>
 
   **Qué dice la spec.** CA-6.1 y CA-6.2 son explícitos: ante dos fuentes ≥ 0.7
   que discrepan y ninguna oficial, «no se emite ninguna `Decision`», y «antes de
@@ -98,6 +140,42 @@ verde sin tocar una aserción (CA-12.2).
   `aprobada` y no `hecho`, y no hay ningún veredicto que anotar. Meterlo bajo ese
   encabezado ensuciaría el índice que ADR-015 hace load-bearing.
 
+  </details>
+
+- **F-SPEC-013-2 — Un corresponsal que baja el marcador más de dos goles cae
+  entre las dos frases de RN-04, y ninguna manda sobre la otra.** Levantado por
+  `sdd-arquitecto` el 2026-09-02 al escribir la aclaración de RN-04 en
+  `reglas.md`. **Decisión del gate ese mismo día (Alberto Fojo): se deja abierto
+  y sin tocar** — ni quinta aclaración en `reglas.md`, ni cambio en CA-5.
+
+  **El caso, concreto.** La `Decision` vigente dice 5-1. Llega una observación
+  del **corresponsal** (0.8) que dice 1-1. Las dos frases de RN-04 apuntan en
+  direcciones opuestas y las dos son literales:
+  - la **monotonía** se lo **permite**, porque el corresponsal es humano
+    —«operador **o** corresponsal», RN-01— y RN-04 deja bajar a la fuente
+    oficial o a un humano;
+  - la **retención del salto** se lo **retiene**, porque el salto es de más de
+    dos goles y su peso es 0.8, por debajo del 0.9 que la aclaración firmada el
+    2026-09-02 dejó fuera del alcance de la retención.
+
+  **Y es el caso realista, no el rebuscado:** el corresponsal que se queda sin
+  cobertura veinte minutos y escribe cuando la recupera manda de una vez lo que
+  vio en ese rato. Un salto grande desde el campo es exactamente lo que se
+  espera de esa fuente, no una anomalía.
+
+  **Por qué no se cierra ahora.** No puede darse: **no hay puerta de entrada
+  para observaciones de corresponsal**. El bot de Telegram es la spec que la
+  trae, y es quien tendrá delante el comportamiento real de la fuente para
+  decidir con evidencia en vez de por simetría.
+
+  **Destino: la spec del bot de Telegram** (EPIC-002, la siguiente).
+  **Disparador: el día que exista esa puerta** — la primera spec que permita
+  persistir una `Observation` con `source` de corresponsal.
+
+  **Estado hoy en el código:** ninguno. CA-5 no lo cubre —CA-5.2 solo prueba una
+  bajada de un gol— y **no se le añade nada**: la spec queda deliberadamente
+  silenciosa, que es distinto de haberlo resuelto sin mirar.
+
 Y dos residuos ya **declarados por la spec** antes de implementar, que el
 implementador no tiene que descubrir y el verificador no tiene que levantar como
 hallazgo:
@@ -127,9 +205,13 @@ hechas:
    cerraba, y diciendo que **no son umbrales nuevos**.
 3. ✅ **Firma de la spec.**
 
-Queda **una** cosa antes de tocar CA-6: **F-SPEC-013-1** (arriba). Apareció al
-escribir la aclaración de RN-05 y es una decisión del gate, no del implementador.
-El resto de los criterios no depende de ella.
+4. ✅ **F-SPEC-013-1 resuelto** por el gate el 2026-09-02 (salida b) y **CA-6
+   reescrito**: la gracia gobierna solo la alerta. Ya no queda ninguna decisión
+   pendiente y la spec se puede implementar entera.
+
+**Si vas a CA-6, lee su texto nuevo y no el del primer commit.** Cambió después
+de la firma, y la diferencia es justo la que importa: durante la gracia **se
+publica** (provisional, RN-03) y el plazo decide **solo** si se abre alerta.
 
 No hay una línea de `src/` ni de `tests/` escrita.
 
