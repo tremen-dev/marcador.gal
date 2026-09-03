@@ -128,6 +128,7 @@ export class MemoryObservationStore implements ObservationStore {
   }
 
   getById(id: ObservationId): Promise<Observation | null> {
+    this.log.record('observations.getById');
     return Promise.resolve(this.rows.find((row) => row.id === id) ?? null);
   }
 
@@ -152,10 +153,12 @@ export class MemoryMatchStore implements MatchStore {
   }
 
   listByRound(): Promise<readonly Match[]> {
+    this.log.record('matches.listByRound');
     return Promise.resolve([]);
   }
 
   listByTeams(): Promise<readonly Match[]> {
+    this.log.record('matches.listByTeams');
     return Promise.resolve([]);
   }
 
@@ -224,6 +227,7 @@ export class MemoryAckStore implements AlertAckStore {
   }
 
   ackedAt(alertIds: readonly number[]): Promise<ReadonlyMap<number, Instant>> {
+    this.log.record('acks.ackedAt');
     const wanted = new Set(alertIds);
     return Promise.resolve(
       new Map(
@@ -250,6 +254,7 @@ export class MemoryActionLog implements OperatorActionLog {
   }
 
   listBetween(from: Instant, to: Instant): Promise<readonly OperatorActionRecord[]> {
+    this.log.record('actions.listBetween');
     return Promise.resolve(
       this.rows.filter((row) => from <= row.submitted_at && row.submitted_at < to),
     );

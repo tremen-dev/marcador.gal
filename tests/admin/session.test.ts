@@ -27,12 +27,17 @@ import {
   signSession,
 } from '@/admin/session';
 import { adminHandler } from '@/admin/handler';
+import { archiveMeta } from '@/admin/archive';
+import { operatorObservation } from '@/admin/observation';
+import { rawKey } from '@/raw/store';
 import {
   NOW,
   OPERATOR_ONE,
   OPERATOR_ONE_SECRET,
   OPERATOR_TWO,
+  SCENE_MATCH,
   SCENE_SECRET,
+  SCENE_WINDOW,
   scene,
   sceneEnv,
 } from './support/doubles';
@@ -206,6 +211,46 @@ describe('CA-1.3 — comparación en tiempo constante, sin `===` sobre el secret
     expect(/[=!]==/.test(evasion)).toBe(true);
   });
 
+  /**
+   * AÑADIDO EL 2026-09-03. El verificador dejó escrito que el detector del
+   * caso 8 es TEXTUAL sobre `===`/`!==` —la letra del criterio dice «con
+   * `===`», así que se cumplía— pero que `Object.is`, `==` y
+   * `!a.localeCompare(b)` lo esquivarían. Las tres formas se cierran aquí, y
+   * el residuo que QUEDA se dice sin adornos: un mecanismo textual no puede
+   * enumerar todas las maneras de comparar dos cadenas (`a.startsWith(b) &&
+   * b.startsWith(a)`, por ejemplo). Está anotado en el ledger con destino
+   * `sdd-arquitecto`, porque declarar un residuo DENTRO del criterio es una
+   * edición de la spec y la spec no es artefacto del implementador.
+   */
+  test('20. y tampoco lo esquiva por `==`, `Object.is` o `localeCompare`', async () => {
+    const source = await readFile('src/admin/session.ts', 'utf8');
+    const code = source.replaceAll(/\/\*[\s\S]*?\*\//g, '').replaceAll(/^\s*\/\/.*$/gm, '');
+
+    expect(code).not.toMatch(/\bObject\.is\s*\(/);
+    expect(code).not.toMatch(/\.localeCompare\s*\(/);
+
+    // Igualdad NO estricta: `==` y `!=` que no formen parte de `===`/`!==`.
+    const loose = code
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => /(?<![=!<>])==(?!=)|(?<!!)!=(?!=)/.test(line));
+    expect(loose).toEqual([]);
+
+    // Y el detector no está apagado: reconoce las tres formas cuando las ve.
+    const evasions = [
+      'if (Object.is(offered, stored)) return true;',
+      'if (offered == stored) return true;',
+      'if (!offered.localeCompare(stored)) return true;',
+    ];
+    for (const evasion of evasions) {
+      const caught =
+        /\bObject\.is\s*\(/.test(evasion) ||
+        /\.localeCompare\s*\(/.test(evasion) ||
+        /(?<![=!<>])==(?!=)|(?<!!)!=(?!=)/.test(evasion);
+      expect(caught, evasion).toBe(true);
+    }
+  });
+
   test('10. un operador desconocido NO cortocircuita: compara contra un digest imposible', () => {
     // Si saliera antes, «este operador no existe» y «esta clave está mal»
     // tomarían caminos distintos, que es el oráculo que CA-1.3 cierra.
@@ -345,5 +390,84 @@ describe('CA-1.6 — la forma del `operator_id` es una barrera, no un convenio',
     // No queda la mitad buena: queda vacío. Un catálogo a medias es un
     // catálogo sobre el que nadie puede razonar (ADR-018 §3, prestado).
     expect(readOperators(env).size).toBe(0);
+  });
+});
+
+/**
+ * AÑADIDO EL 2026-09-03. El verificador dejó escrita esta salvedad sobre
+ * CA-1.1: cuatro métodos de los dobles no registraban en el `CallLog`
+ * —`MemoryAckStore.ackedAt`, `MemoryObservationStore.getById`,
+ * `MemoryMatchStore.listByRound` y `listByTeams`—, así que «TODOS los dobles
+ * registran, y TODOS están sin llamar» (casos 3, 4 y 13) no era exhaustivo:
+ * era cierto de los que registraban.
+ *
+ * Ahora registran los quince, y este caso lo COMPRUEBA llamándolos uno a uno
+ * en vez de prometerlo en un comentario. Es el control positivo del propio
+ * `CallLog`: si alguien añade un método mudo, el conjunto esperado deja de
+ * casar.
+ */
+describe('CA-1.1 (bis) — el registro de llamadas es EXHAUSTIVO', () => {
+  test('19. TODO método de puerto que la escena ofrece deja su huella', async () => {
+    const built = scene();
+    const proposal = { status: 'live', home_score: 1, away_score: 0 } as const;
+    const body = new TextEncoder().encode('{}');
+    const rawRef = rawKey(archiveMeta('correccion', NOW), body);
+    const observation = operatorObservation({
+      operator_id: OPERATOR_ONE,
+      action: 'correccion',
+      match_id: SCENE_MATCH.id,
+      proposal,
+      reason: 'un motivo escrito de verdad',
+      issued_at: NOW,
+      observed_at: NOW,
+      raw_ref: rawRef,
+    });
+
+    // Cada método, una vez, en el orden en que se espera abajo.
+    await built.store.put(archiveMeta('correccion', NOW), body);
+    await built.observations.append(observation);
+    await built.observations.getById(observation.id);
+    await built.observations.listByMatch(SCENE_MATCH.id);
+    await built.matches.getById(SCENE_MATCH.id);
+    await built.matches.listByRound();
+    await built.matches.listByTeams();
+    await built.matches.listKickoffsBetween(SCENE_WINDOW.from, SCENE_WINDOW.to);
+    await built.teams.namesOf([SCENE_MATCH.home_id]);
+    await built.alerts.listByMatches([SCENE_MATCH.id]);
+    await built.alerts.getById(1);
+    await built.acks.append({ alert_id: 1, acked_at: NOW, raw_ref: rawRef });
+    await built.acks.ackedAt([1]);
+    await built.actions.append({
+      action: 'correccion',
+      match_id: SCENE_MATCH.id,
+      alert_id: null,
+      started_at: NOW,
+      submitted_at: NOW,
+      outcome: 'accepted',
+      raw_ref: null,
+    });
+    await built.actions.listBetween(NOW, NOW);
+    await built.ports.runEngine(SCENE_MATCH.id, NOW);
+    await built.ports.readDecisions(SCENE_MATCH.id);
+
+    expect(built.log.calls).toEqual([
+      'put:correccion',
+      'observations.append',
+      'observations.getById',
+      'observations.listByMatch',
+      'matches.getById',
+      'matches.listByRound',
+      'matches.listByTeams',
+      'matches.listKickoffsBetween',
+      'teams.namesOf',
+      'alerts.listByMatches',
+      'alerts.getById',
+      'acks.append',
+      'acks.ackedAt',
+      'actions.append',
+      'actions.listBetween',
+      'runEngine',
+      'readDecisions',
+    ]);
   });
 });
