@@ -78,10 +78,40 @@ Rematado») y nunca como frase suelta.
 
 | Término | Significado | Notas | Literal galego | Literal castellano |
 |---|---|---|---|---|
-| **provisional** | Publicado con una sola fuente de peso < 0.9 (RN-03). Califica la `Decision` entera: el marcador en las ramas que lo tienen, el **estado** en `scheduled` y `postponed`, que no lo tienen. | La interfaz lo distingue (p. ej. marcador en gris; sin marcador, el estado). Mejor provisional a tiempo que confirmado tarde. | Provisional | Provisional |
-| **confirmado** | Publicado con fuente de peso ≥ 0.9, o dos fuentes independientes ≥ 0.7 coincidentes (RN-02). | Qué cuenta como **independientes** no se presume: se mide. Ver *Independencia entre fuentes*. | Confirmado | Confirmado |
-| **pendente de confirmar** | `finished` alcanzado por timeout, sin fuente que lo cierre. | Va a i18n en las dos lenguas. **Se deriva, no se guarda** (SPEC-013, ADR-021 §6): la `Decision` vigente es `finished` y **ninguna** de sus observaciones de apoyo dice `finished`. | Pendente de confirmar | Pendiente de confirmar |
-| **sen sinal** | Partido `live` sin observación nueva en 15 min (RN-07). | Va a i18n en las dos lenguas. Genera alerta en el panel. **Se deriva, no se guarda** (SPEC-013, ADR-021 §6): la `Decision` vigente tiene `rule: 'RN-07'`. Entrar en *sen sinal* **emite `Decision`** —cambia lo que ve el usuario, y nada llega al usuario sin pasar por el motor (RN-08)— con el mismo estado y el mismo marcador; salir de él emite otra, con la regla que corresponda (RN-12, escalón 5: «la `Decision` solo mueve el marcador **o su cualificador**»). | Sen sinal | Sin señal |
+| **provisional** | Publicado con una sola fuente de peso < 0.9 (RN-03). Califica la `Decision` entera: el marcador en las ramas que lo tienen, el **estado** en `scheduled` y `postponed`, que no lo tienen. | **Hoy es el caso normal, no la excepción**: con una sola fuente automática capturable de peso 0.7 (ADR-008 §1), nada llega a *confirmado* sin una persona. Cómo se distingue en pantalla lo fija **ADR-026 §2** y está bajo esta tabla: **no se apaga**. Mejor provisional a tiempo que confirmado tarde. | Provisional | Provisional |
+| **confirmado** | Publicado con fuente de peso ≥ 0.9, o dos fuentes independientes ≥ 0.7 coincidentes (RN-02). | Qué cuenta como **independientes** no se presume: se mide. Ver *Independencia entre fuentes* — y hoy la segunda vía **no se dispara con ninguna fuente real**, porque la lista de pares declarados nace vacía. Cómo se distingue en pantalla: **ADR-026 §2**, bajo esta tabla. **Lleva etiqueta siempre** —también él— y **nunca se pinta con el acento de marca**. | Confirmado | Confirmado |
+| **pendente de confirmar** | `finished` alcanzado por timeout, sin fuente que lo cierre. | En i18n en las dos lenguas desde el 2026-09-03 (SPEC-017 CA-9.6). **Se deriva, no se guarda** (SPEC-013, ADR-021 §6): la `Decision` vigente es `finished` y **ninguna** de sus observaciones de apoyo dice `finished`. Cómo se distingue: **ADR-026 §2.4** — color de aviso **con su etiqueta al lado, siempre**; nunca el glifo `?` que dibuja `docs/diseno/`, que no está en este glosario y no es traducible (ADR-026 §4.2). | Pendente de confirmar | Pendiente de confirmar |
+| **sen sinal** | Partido `live` sin observación nueva en 15 min (RN-07). | En i18n en las dos lenguas desde el 2026-09-03 (SPEC-017 CA-9.6). Genera alerta en el panel. **Se deriva, no se guarda** (SPEC-013, ADR-021 §6): la `Decision` vigente tiene `rule: 'RN-07'`. Entrar en *sen sinal* **emite `Decision`** —cambia lo que ve el usuario, y nada llega al usuario sin pasar por el motor (RN-08)— con el mismo estado y el mismo marcador; salir de él emite otra, con la regla que corresponda (RN-12, escalón 5: «la `Decision` solo mueve el marcador **o su cualificador**»). Cómo se distingue: **ADR-026 §2.4**, igual que el anterior; nunca el glifo `!`. | Sen sinal | Sin señal |
+
+**Cómo se distinguen en pantalla, y esto ya no está abierto.** *Fijado el
+2026-09-03 por **ADR-026 §2**, que lo decide **para todas las interfaces**, no
+solo para el panel del operador. Es un invariante, no una paleta.*
+
+1. **Ningún cualificador se distingue apagándolo.** *Provisional* y *confirmado*
+   se sirven **los dos con el color de texto principal**, y lo que los distingue
+   es **la etiqueta —siempre presente en los dos, también en *confirmado*—** y, si
+   hace falta, la forma. Es ADR-013 §2 sin escapatoria: color *más* texto o forma,
+   nunca color solo, y **nunca la ausencia de color**.
+2. **No existe ningún token que nombre un cualificador apagado.** El `--fg-prov`
+   (`#8E8C88`) de `docs/diseno/_tokens.css` **no entra en el código, ni con ese
+   nombre ni con otro**: es la primera de las tres divergencias declaradas de
+   ADR-026 §3.4. Un token llamado así es una invitación escrita a reintroducir el
+   error.
+3. **`confirmado` no se pinta con el acento de marca.** El sistema de diseño lo
+   hace y a la vez usa ese verde para la marca, la navegación y los enlaces; un
+   color que significa seis cosas no significa ninguna (ADR-013 §1, regla
+   general).
+4. **Los otros dos sí llevan color, y pueden**, porque son condiciones y no el
+   caso normal: usan los tokens de aviso del sistema, **con su etiqueta de texto
+   al lado, siempre**, y **≥ 4.5:1** sobre su fondo (ADR-013 §6).
+
+**El motivo, en una línea:** con una sola fuente automática capturable de peso
+0.7 (ADR-008 §1), **lo normal es *provisional* y lo raro es *confirmado***. La
+asignación del sistema de diseño —que apaga lo provisional y deja mudo lo
+confirmado, dibujada sobre unos datos de muestra con 55 de 60 partidos
+confirmados— haría que la pantalla **apagase el estado dominante y tratase el
+raro como el caso por defecto**, que es exactamente lo que **D-6** («un marcador
+publicado siempre sabe de dónde viene») y **RN-12** existen para impedir.
 
 **Los literales castellanos se añaden el 2026-09-03** (SPEC-017, el panel del
 operador). Hasta hoy esta tabla registraba **solo la forma galega**, y
@@ -115,14 +145,20 @@ xogo*, con el identificador en otra lengua.
 hay que «arreglarlo». Las que sí cambian son las otras dos: *Pendente de
 confirmar* → **Pendiente de confirmar**, y *Sen sinal* → **Sin señal**.
 
-**Y lo que esta entrada NO decide, porque no le toca:** cuál de los dos
-cualificadores es el estado **normal** y cuál va apagado en la pantalla. Eso
-sigue siendo la **entrada 1 del inventario de EPIC-004** y el punto 2 del *Fuera
-de alcance* de **ADR-013**, que lo dejó abierto a propósito. Registrar cómo se
-dice un cualificador no decide cuánto pesa: ADR-013 §2 sigue exigiendo que los
-dos se distingan siempre con texto o forma además de color, y ADR-013 §6 que
-ninguno baje de 4.5:1 — apagar un cualificador nunca puede significar hacerlo
-ilegible.
+**Y lo que esta entrada dejaba abierto el 2026-09-03 por la mañana, ya no lo
+está.** Hasta ese día aquí se leía que cuál de los dos cualificadores es el
+estado **normal** y cuál va **apagado** en la pantalla seguía siendo la **entrada
+1 del inventario de EPIC-004** y el punto 2 del *Fuera de alcance* de **ADR-013**.
+**ADR-026 §2 lo contestó esa misma tarde y cerró esa entrada para todas las
+interfaces**, y lo hizo enseñando que la pregunta estaba mal planteada:
+**ninguno de los dos va apagado**. Lo que ADR-013 §2 y §6 exigían sigue
+exigiéndose entero —los dos se distinguen siempre con texto o forma además de
+color, y ninguno baja de 4.5:1—; lo que desaparece es la posibilidad de cumplirlo
+*borrando* uno, porque distinguir es distinguir dos cosas legibles, no borrar una.
+
+**Lo que sigue sin decidirse, y no es de este glosario:** cómo se ve exactamente
+la etiqueta, dónde va, y si *confirmado* lleva además una marca. Eso es de la
+spec que dibuje cada pantalla (ADR-026 §2, último párrafo).
 
 
 ## Fuentes y organismos

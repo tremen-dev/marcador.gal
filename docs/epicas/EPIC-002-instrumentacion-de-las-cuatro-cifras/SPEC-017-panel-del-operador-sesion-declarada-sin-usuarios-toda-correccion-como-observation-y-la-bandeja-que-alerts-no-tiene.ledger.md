@@ -1304,3 +1304,304 @@ etiqueta de `provisional` en las tres vistas, el vocabulario alineado con
 contradicen desde el día uno**, que es exactamente la patología que hizo nacer a
 EPIC-004. **No es trabajo de `sdd-arquitecto`: las épicas y el roadmap son de
 `sdd-producto`.**
+
+---
+
+## Enmienda — 2026-09-03: cinco subpuntos de SPEC-017 prometen más de lo que su mecanismo alcanza, y ADR-016 §6 obliga a declararlo (F-SPEC-017-13, F-SPEC-017-15, F-SPEC-017-18)
+
+**Escribe `sdd-arquitecto`. La spec está `hecho`, así que su cuerpo NO se edita
+—ADR-015 §1— y ningún CA se reescribe.** Lo que sigue es la declaración que
+**ADR-016 §6** habría exigido dentro de cada criterio, escrita en el único sitio
+donde cabe una vez cerrada la spec: su ledger, que es también el índice
+(`grep -rn "^## Enmienda —" docs/epicas/`).
+
+**Qué la provoca.** Los findings **F-SPEC-017-13** y **F-SPEC-017-15** del GREEN
+del 2026-09-03, con destino escrito `sdd-arquitecto`, más uno que abro yo al
+revisarlos, **F-SPEC-017-18**. Los cinco son de la misma familia: *el
+comportamiento está bien y el verificador lo comprobó; lo que falta es la frase
+honesta sobre el borde del mecanismo*.
+
+**El veredicto sigue en pie, y no es una concesión** (ADR-015 §3, punto 4). Un
+GREEN se emite contra la letra de los CA, y la letra se cumple en cuatro de los
+cinco casos. En los dos donde no —CA-1.1 y CA-2.5— la parte falsa de la letra es
+**más ancha que el mecanismo**, no más estrecha: no hay ninguna afirmación del
+veredicto que dependa de lo que no se mide, y el comportamiento prohibido está
+cubierto por otro mecanismo que el verificador **sí** puso rojo. Ninguna de las
+cinco declaraciones cambia una línea de `src/`.
+
+**Y una nota de forma, para que no haya que reinventarla la próxima vez.**
+ADR-016 §6 dice «declarándolo dentro del propio CA» y ADR-015 §1 dice que el
+cuerpo de una spec cerrada no se toca. **No se contradicen: se componen.** Una
+declaración de residuo es una nota sobre el **alcance de un veredicto ya
+emitido**, que es la definición literal de lo que ADR-015 §2 manda escribir aquí.
+**No hace falta un ADR nuevo para decir esto**, y no lo escribo: sería ceremonia
+sobre dos ADR que ya cubren el caso. Lo que sí queda dicho es la regla práctica
+—**spec abierta ⇒ el residuo va en el CA; spec cerrada ⇒ va en una enmienda con
+esta cabecera**— y que **la declaración vincula igual** esté en un sitio o en el
+otro.
+
+### 1. CA-1.1 — «todos están sin llamar» son 17 de 20 métodos, no 20
+
+**Qué afirmaba, y por qué era razonable.** «401 sin invocar ningún puerto. Un
+caso lo afirma con dobles que registran si fueron llamados, y **todos** están sin
+llamar.» Se escribió para clavar el fallo cerrado de ADR-024 §2: sin secreto, el
+panel no toca nada. Con dobles que registran, «todos» sonaba a lo que el
+`CallLog` cubriera.
+
+**Qué lo invalida.** El GREEN del 2026-09-03 (F-SPEC-017-15, punto 3): el
+`CallLog` registra **17 de los 20** métodos de puerto. `store.get`, `store.list` y
+`clock.now` **no registran**, y el verificador lo demostró metiendo
+`store.list('')` y `store.get(…)` en el camino del 401 **con la suite en verde**.
+
+**Declaración, con la letra que el criterio tendría que haber llevado.** CA-1.1
+mide que **ninguna escritura ni ninguna consulta registrable** ocurre antes del
+401. **No alcanza a las tres lecturas** `RawStore.get`, `RawStore.list` y
+`Clock.now`: una llamada a cualquiera de las tres en el camino del 401 pasaría el
+caso. Lo que sí queda cazado, y es lo que el criterio existe para proteger, es
+**toda escritura** —`store.put`, las filas de `observations`, `operator_actions`
+y `alert_acks`, y el motor—: ninguna de ellas es invisible al `CallLog`.
+
+**La red que queda es menor que la que la letra prometía**, y se dice sin
+suavizar: un panel que **leyera** el archivo antes de autenticar no pondría rojo
+nada. Hoy no lo hace (leído).
+
+**Qué lo despierta.** La primera spec que toque `src/admin/handler.ts` o los
+dobles de `tests/admin/`. El arreglo es de una línea por método: que
+`RecordingRawStore` registre también `get` y `list`, y que el `Clock` del test
+registre `now`.
+
+### 2. CA-1.3 — el detector de la comparación en tiempo constante es TEXTUAL
+
+**Qué afirmaba, y por qué era razonable.** «Un caso comprueba que **no hay
+ninguna comparación con `===`** sobre el secreto ni sobre su digest en el
+módulo.» La letra nombra `===` y **se cumple**: el caso 20 cierra además
+`Object.is`, `==`/`!=` y `localeCompare`, y el verificador comprobó que **el
+mecanismo mide** —metió `Object.is` en `src/admin/session.ts` y el caso se puso
+rojo—.
+
+**Qué lo invalida.** Nada de la letra. Lo que falta es la declaración: un
+mecanismo que lee el fichero **como texto** no puede enumerar todas las formas de
+comparar dos cadenas. `a.startsWith(b) && b.startsWith(a)` sigue pasando, y
+también cualquier comparación construida en ejecución.
+
+**Declaración.** CA-1.3 afirma la **ausencia de cuatro formas nombradas** de
+comparación no constante en `src/admin/session.ts`, no la ausencia de toda
+comparación no constante. **No alcanza** a formas no enumeradas ni a comparación
+compuesta en ejecución. Es el mismo límite que CA-2.4 ya declara para su
+detector textual de SQL, y el mismo que SPEC-013 CA-13.3 declaró antes: **un
+detector textual promete lo que lee, no lo que ocurre**.
+
+**Qué lo despierta.** Que la comparación de secretos salga de
+`src/admin/session.ts` a un segundo módulo, o que aparezca una quinta forma en
+una revisión. El cierre real no es ampliar la lista: es que la comparación viva
+en **una sola función exportada** y que el mecanismo afirme que nadie más toca el
+secreto — que es una frontera de capacidad, forma ADR-016 §3, y es trabajo de una
+spec, no de un renglón.
+
+**Residuo de forma, que no es de la letra sino del test.** El control positivo
+del caso 20 **duplica en línea las tres expresiones regulares de la aserción** en
+vez de compartir función con ella. Es un predicado paralelo, justo lo que
+ADR-016 §3.4 desaconseja: apagar la aserción sin apagar su control es posible.
+**Destino: EPIC-MEJORA; disparador: la próxima spec que toque
+`tests/admin/session.test.ts`.**
+
+### 3. CA-2.4 — el mecanismo escanea `src/admin/`, y el SQL del panel no vive ahí
+
+**Qué afirmaba, y por qué era razonable.** «Ningún módulo de `src/admin/`
+contiene `update` ni `delete` sobre `observations`, `decisions`, `matches` ni
+`alerts`», con su residuo textual **ya declarado**. Cuando se escribió, el
+criterio nombraba su alcance —`src/admin/`— y sonaba completo porque el sujeto de
+la spec es `src/admin/`.
+
+**Qué lo invalida.** El GREEN (F-SPEC-017-15, punto 1): `src/admin/` **no
+contiene ni una plantilla `sql\``**. El SQL del panel vive en **`src/db/admin.ts`**,
+fuera del alcance del escaneo. El mecanismo sí muerde dentro de su dominio
+—probado rojo con `sql\`update observations\`` en `src/admin/alerts.ts`—; lo que
+no hace es mirar donde está el SQL.
+
+**Declaración.** CA-2.4 cubre **`src/admin/` y nada más**. **No alcanza a
+`src/db/admin.ts`**, que es donde vive todo el SQL del panel. Lo que sostiene la
+prohibición allí, hoy, son **dos hechos medidos y ningún test**: ese fichero no
+tiene ningún `update` ni `delete` (medido por el verificador el 2026-09-03) y las
+cuatro tablas son **append-only con `reject_amendment`** (CA-6.1, y `alerts`,
+`calendar_loads` e `ingest_attempts` desde antes). El trigger es la red de
+verdad; el escaneo es una red sobre el sitio equivocado.
+
+**La red que queda es menor de lo que la letra sugería**, pero **no es más fina
+que la del dominio**: un `update` en `src/db/admin.ts` lo rechazaría Postgres en
+ejecución, no un test en verde.
+
+**Qué lo despierta.** La primera spec que ensanche `src/db/admin.ts`, o
+cualquiera que ya vaya a tocar `tests/admin/frontier.test.ts`. El arreglo es
+añadir `src/db/admin.ts` al conjunto escaneado, que es una línea.
+
+### 4. CA-2.5 — «ningún miembro es un almacén» es más ancho que la verdad
+
+**Qué afirmaba, y por qué era razonable.** «El motor entra en el panel **como
+función inyectada**, nunca como almacén. Un caso lo afirma sobre el tipo que
+publica el compilador para los puertos del panel: **ningún miembro de ese tipo es
+un almacén**.» Lo que se estaba decidiendo —y lo que ADR-024 §5 y RN-08
+protegen— es que el panel **no pueda escribir una `Decision`**. Escrito de un
+tirón, «almacén» se generalizó de más.
+
+**Qué lo invalida.** El GREEN (F-SPEC-017-15, punto 2): `AdminPorts` **sí expone
+`store: RawStore` y `observations: ObservationStore`**, y tiene que exponerlos —
+RN-10 obliga a archivar y CA-2.1 obliga a escribir la `Observation`—. Y el
+`tests/types/spec017-admin.test-d.ts` es una **lista negra de tres nombres
+inventados**, no la enumeración que publica el compilador: un miembro nuevo
+`decisionStore: DecisionStore` **no rompería ese fichero**.
+
+**Con qué se sustituye la letra.** Lo que CA-2.5 quiere decir, y lo único que
+está afirmado, es: **ningún miembro de `AdminPorts` es un almacén de
+`Decision`**. Y **el mecanismo que lo sostiene no es el `.test-d.ts`**: es
+`tests/admin/frontier.test.ts`, con `DECISION_NAMES_FORBIDDEN_IN_ADMIN` sobre
+`src/admin/ports.ts`, que el verificador **puso rojo**. El `.test-d.ts` es una
+red complementaria y débil, y así queda anotado.
+
+**El veredicto sigue en pie** precisamente por eso: la prohibición que CA-2.5
+existe para imponer está probada por otro mecanismo del mismo criterio, y
+`DECISION_WRITERS` sigue teniendo dos entradas (CA-2.2, sin tocar una aserción).
+
+**Qué lo despierta.** El día que `AdminPorts` gane un miembro nuevo. El cierre
+limpio es sustituir la lista negra por la **enumeración de los miembros que el
+compilador publica**, contrastada contra una lista cerrada con su motivo por
+entrada (ADR-016 §3.2) — la misma forma que `ENTRY_POINTS` y `ALLOWED_PACKAGES`.
+**Destino: EPIC-MEJORA con las otras dos.**
+
+### 5. CA-10.1 — la letra nombra cuatro categorías y el caso mide dos (F-SPEC-017-18, nuevo)
+
+**Este lo abro yo al revisar el residuo que el verificador corrigió en CA-10.1, y
+es el que más consecuencia tiene de los cinco.**
+
+**Qué afirmaba.** «El panel **no declara ni un color, ni una familia
+tipográfica, ni un radio, ni un valor de escala por su cuenta**: los toma de
+ahí. Un caso recorre la hoja del panel y afirma que **todo valor de color y de
+familia es una referencia a un token**.» Las dos frases no dicen lo mismo: la
+primera nombra **cuatro** categorías, la segunda mide **dos**.
+
+**Qué lo invalida.** El GREEN, en su corrección del motivo de la salvedad ⚠️ de
+CA-10.1: la hoja escribe cinco valores de escala propios —`h1{font-size:20px}`,
+`line-height:1.45`, `max-width:22rem`, `min-height:5rem`,
+`main{max-width:60rem}`— y el caso los deja pasar, porque no son ni color ni
+familia. Y **`h1` interpola el rol `team` y lo pisa con un `20` que el propio
+módulo ya exporta como `ROLES.score.px`**.
+
+**Declaración.** CA-10.1 mide que **todo valor de color y de familia tipográfica**
+de la hoja del panel es una referencia a un token. **No alcanza a los radios ni a
+los valores de escala**, que la letra también nombra. Es un residuo del
+**mecanismo**, no de la regla.
+
+**Y la corrección de destino, que es lo importante: esto NO es de EPIC-004 y NO
+espera al deshielo.** El verificador tiene razón en que el motivo escrito por el
+implementador era falso —alojar esos cinco valores en `src/design/` **no** choca
+con CA-10.2 ni CA-10.3, porque la tabla de correspondencia y las divergencias son
+sobre las propiedades de `_tokens.css`, y `TOUCH_TARGET_PX`, `INPUT_FONT_PX`,
+`SPACING` y `RADIUS` ya viven ahí sin ser divergencia de nada—. Con el motivo
+corregido, el destino cambia:
+
+- **ADR-026 §3.1 ya prohíbe exactamente esto**, con estas palabras: «Ninguna
+  interfaz declara un color, una familia tipográfica, **un radio o un valor de
+  escala** por su cuenta: los toma de ahí». No hay nada que decidir.
+- **ADR-026 §3.2, punto 3, ya da el remedio y su motivo**: los tres colores en
+  uso sin token «se nombran al entrar en el código, **porque un valor sin nombre
+  se copia y un token se reutiliza**». Cinco medidas de escala sin nombre están
+  en esa misma situación.
+- **`src/design/` es propiedad de EPIC-002** desde ADR-026 §6, que sacó de
+  EPIC-004 «los tokens como código». **Nombrarlos ahí no toca `docs/diseno/` y no
+  necesita ningún deshielo.**
+
+**Qué NO cambia, y conviene no confundirlo:** **F-SPEC-017-10 sigue siendo de
+EPIC-004 y sigue esperando al deshielo**, porque ése es otro residuo — que la
+**adherencia a la escala no se puede comprobar contra nada**, ya que el sistema no
+tiene tokens de espaciado, radio ni tamaño con los que comparar. Los dos se
+estaban leyendo como uno solo y son distintos: uno es «no hay contra qué
+comparar» (EPIC-004, deshielo) y el otro es «hay cinco valores fuera de su único
+domicilio» (EPIC-002, ya).
+
+**Qué lo despierta.** **Destino: EPIC-MEJORA; disparador: la primera spec que
+toque `src/admin/view/styles.ts` o `src/design/`** — que es la del **snapshot**,
+la siguiente, y que además va a necesitar esos mismos roles tipográficos. El
+arreglo es nombrar los cinco en `src/design/`, usar `ROLES.score.px` en `h1` en
+vez de repetir el `20`, y ensanchar el caso de CA-10.1 para que mida también
+radios y escala.
+
+**Y lo que este punto NO obliga: ADR-026 §3.3 no cambia, y no hay ADR nuevo.**
+§3.3 solo afirmó que **la prueba de paridad** no puede cubrir espaciado, radios,
+escala ni densidad, porque en `_tokens.css` no hay nada con qué compararlos. Eso
+sigue siendo cierto palabra por palabra. §3.3 nunca dijo que esos valores puedan
+vivir fuera de `src/design/`; §3.1 dice lo contrario. **La corrección del
+verificador confirma ADR-026 en vez de contradecirlo**, así que no hay nada que
+superseder: basta esta enmienda y el destino de arriba.
+
+## Destino de los residuos que el GREEN dejó al arquitecto — 2026-09-03
+
+Escrito por `sdd-arquitecto` en la misma vuelta. **Los cinco cerrados; ninguno
+queda sin dueño ni sin disparador.**
+
+- **F-SPEC-017-V5 — CERRADO, y no por enmienda.** `docs/fundacion/dominio.md` no
+  es una spec cerrada: es la **fuente de verdad viva** del dominio, y ADR-015 no
+  la gobierna. Se **corrige en su sitio**, que es lo que corresponde cuando un
+  documento canónico dice algo que un ADR aprobado ya decidió al revés. Cambia
+  la tabla de cualificadores y el párrafo que la cerraba:
+  - La nota de `provisional` deja de prescribir «marcador en gris» y dice lo que
+    ADR-026 §2 decidió: **hoy es el caso normal**, y **no se apaga**.
+  - Se añade bajo la tabla el invariante entero de ADR-026 §2 en cuatro puntos
+    —ninguno se apaga, `--fg-prov` no existe en el código, `confirmado` no lleva
+    el acento de marca, y los otros dos llevan color **con etiqueta** y ≥ 4.5:1—
+    con el motivo en una línea.
+  - El párrafo que daba por **abierta** la pregunta de «cuál va apagado» dice
+    ahora que **ADR-026 §2 la contestó y cerró la entrada 1 del inventario de
+    EPIC-004 para todas las interfaces**, y que lo hizo enseñando que la pregunta
+    estaba mal planteada: **ninguno de los dos va apagado**. Queda dicho también
+    lo que sigue sin decidirse —cómo se ve la etiqueta, dónde va, y si
+    `confirmado` lleva además una marca—, que es de la spec que dibuje cada
+    pantalla.
+  - **Lo que la tabla del 2026-09-03 tenía a medias, además de eso**, y que se
+    arregla en la misma pasada: prescribía apariencia **solo** para
+    `provisional` y callaba sobre los otros tres; las notas de `pendente de
+    confirmar` y `sen sinal` decían «va a i18n en las dos lenguas» cuando ya
+    están (SPEC-017 CA-9.6); y la de `confirmado` no advertía de que su segunda
+    vía de RN-02 **no se dispara hoy con ninguna fuente real** —cosa que sí
+    estaba escrita más abajo, en *Independencia entre fuentes*—.
+  - **Lo que NO se tocó:** la **entrada 1 del inventario de EPIC-004** en
+    `_epica.md`. Cerrarla ahí es de `sdd-producto`, con el resto del cambio de
+    alcance de ADR-026 §6.
+- **F-SPEC-017-13 y F-SPEC-017-15 — CERRADOS por la enmienda de arriba**, cada
+  uno con su declaración, su red real y su disparador. **Ningún CA se
+  reescribió.**
+- **F-SPEC-017-16 — CERRADO por rutado: EPIC-MEJORA**, con entrada en su
+  inventario. Es cobertura, no defecto: el verificador comprobó los cuatro
+  comportamientos a mano. **No es enmienda de ADR-015**, porque no invalida
+  ninguna letra: CA-12.1, CA-12.2, CA-6.5 y CA-2.1 **dicen la verdad**; lo que
+  falta es la aserción que la sostenga sola. **Disparador: la primera spec que
+  toque `src/admin/view/` o la bandeja.**
+- **F-SPEC-017-17 — CERRADO por rutado: EPIC-MEJORA**, junto a **F-SPEC-005-V3**,
+  que es **la misma limitación vista por segunda vez** y ya estaba inventariada.
+  **Tampoco es enmienda**: CA-10.14 se cumple literalmente —dice «comprobado a
+  mano y con captura … **lo hace una persona**», y una persona lo hizo, con las
+  capturas en `_qa/SPEC-017/`—, y su residuo **ya está declarado dentro del
+  criterio**. Lo que el finding aporta es un hecho nuevo sobre el **método de
+  verificación**, no sobre la spec: en este entorno **Chrome por MCP no alcanza
+  `localhost`** (`ERR_CONNECTION_REFUSED` contra `localhost:3117` y
+  `127.0.0.1:3117`), así que la mitad de navegador de un CA de interfaz **no
+  puede ser nunca una sesión del verificador**, sólo evidencia archivada que él
+  coteja. El cotejo que hizo esta vez —`servido-gl-admin-acceso.html` **byte a
+  byte idéntico** a lo que el build sirve— es la mitigación correcta y **queda
+  como el procedimiento**, no como un apaño de una vuelta.
+  **Es residuo permanente del método mientras no haya navegador automatizado**, y
+  tiene **dos disparadores, no uno**:
+  1. el que ADR-025 §5 ya escribió —**la primera spec que construya la interfaz
+     del marcador**, que es cuando la comprobación a mano deja de escalar—, y
+  2. uno nuevo y más barato: **el día que exista un entorno con navegador que
+     alcance `localhost`**, que es el que convierte esto en un arreglo de
+     configuración en vez de en una spec.
+- **F-SPEC-017-1 — RATIFICADO.** No estaba en la lista de cinco, pero su destino
+  escrito era «ratificación de `sdd-arquitecto`» y dejarlo abierto sería dejar un
+  destino desatendido. **`src/decide/read-entry.ts` se queda como está.** El §1
+  de la spec decía que `src/decide/` no se edita, y la frontera de SPEC-013 CA-13
+  hace imposible leer el log de decisiones desde fuera; un fichero nuevo dentro
+  de `src/decide/` que devuelve **valores** y ningún almacén es la salida
+  correcta, y tiene **precedente exacto** en `engine-entry.ts` (SPEC-015).
+  `DECISION_WRITERS` sigue con dos entradas y el caso 1 de
+  `tests/decide/rn08-frontier.test.ts` no se tocó, que es lo que había que
+  proteger. **No pido otra forma.**
