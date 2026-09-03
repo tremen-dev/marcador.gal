@@ -34,10 +34,25 @@ Catálogo de operadores con sus digests. Es un objeto JSON que declara quién pu
 **Formato:**
 ```json
 {
-  "operador-01": "9f3a8e7d4b2c1a0f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a",
-  "operador-02": "a1f2e3d4c5b6a7f8e9d0c1b2a3f4e5d6c7b8a9f0e1d2c3b4a5f6e7d8c9b0a"
+  "operador-01": "c34e11b210262552aa1e027677382c081fbfc6564e977d05393735681cbdfd51",
+  "operador-02": "19aeef20ab79e28666853c71e90fb81d7591a62d1c3be926af200b3fb960d216"
 }
 ```
+
+> **Cuenta los caracteres.** El digest son **exactamente 64** dígitos
+> hexadecimales en minúscula: el esquema es `/^[0-9a-f]{64}$/`
+> (`src/admin/session.ts`). Y el catálogo es **todo o nada** (ADR-018 §3, tomado
+> prestado): si **una sola** entrada no casa la forma, se rechaza el **objeto
+> entero**, **no entra nadie** y el módulo **no lanza ningún error** —porque un
+> panel apagado y un panel roto no pueden confundirse (CA-1.2)—. Un digest al que
+> le falte un carácter no da un fallo que se pueda leer: da un panel que no deja
+> pasar a nadie y no dice por qué. Es el error más caro de diagnosticar de este
+> procedimiento, así que **genera los digests con el comando de abajo y no los
+> escribas a mano**.
+>
+> Los dos valores de arriba son digests reales de `exemplo-non-usar-01` y
+> `exemplo-non-usar-02`: sirven para comprobar la forma, **no para dar acceso a
+> nadie**.
 
 Donde:
 - Cada clave es un `operator_id` en forma `operador-\d+` (p. ej. `operador-01`, `operador-02`). **`operador-alberto` se rechaza** porque en un repositorio público, cruzado con el calendario declarado, un id con nombre identifica a una persona (ADR-024 §2, misma razón que `corresponsal-\d+` en ADR-022 §2).
@@ -68,7 +83,7 @@ echo '{"operador-01": "'$DIGEST'"}'
 
 **Orden operativo:**
 1. Generar ambos comandos arriba para cada operador que vaya a usar el panel.
-2. Guardar los **secretos** en un lugar seguro (último pass, 1Password, etc.); en Vercel **solo va el JSON de digests**.
+2. Guardar los **secretos** en un gestor de contraseñas; en Vercel **solo va el JSON de digests**. El secreto no se puede recuperar del digest: si se pierde, se genera otro y se sustituye su entrada en el catálogo.
 3. Verificar que el JSON es válido: `echo '{"operador-01": "..."}' | jq '.'`
 4. Copiar el JSON completo a `ADMIN_OPERATORS` en Vercel (Settings > Environment Variables).
 5. Cada operador recibe su secreto por un canal seguro (mensajería privada, correo cifrado, presencial). El secreto se teclea UNA sola vez en el panel y se obtiene una cookie de 8 horas; no se repite hasta que la sesión caduca.
@@ -143,11 +158,16 @@ En Settings > Environment Variables de tu proyecto Vercel:
 
 ### Paso 3: Desplegar
 
-```bash
-git push origin ft/SPEC-017-…
-```
+**Es al revés de lo que parece: cambiar una variable en Vercel NO la aplica.** Las
+variables de entorno se leen **en el arranque del despliegue**, así que después de
+tocarlas hace falta un **despliegue nuevo** para que surtan efecto. Si entras al
+panel y sigue devolviendo 401 justo después de rellenarlas, es esto y no un
+secreto mal copiado.
 
-Una vez desplegado, Vercel actualiza las variables de entorno automáticamente.
+Producción sale de **`main`**, así que el despliegue lo dispara el merge del PR,
+no un `push` a una rama de trabajo. Si ya está mergeado y solo has cambiado
+variables, vale con redesplegar el último commit desde el panel de Vercel
+(*Deployments → Redeploy*).
 
 ### Paso 4: Primera entrada
 
@@ -159,10 +179,11 @@ Se obtiene una cookie de 8 horas y acceso al panel para esa jornada.
 
 ## Nota: sincronización con jornada-de-medicion.md
 
-El panel y el cron de ingesta viven en despliegues separados:
+El panel y el cron de ingesta viven en **el mismo despliegue** —hay uno solo para
+todo el proyecto (ADR-010)— y leen **la misma lista**:
 
-- **Cron:** declarado en `src/ingest/measurement.ts` en `MEASUREMENT_WINDOWS`. Se enciende cuando se declara una ventana (SPEC-012, ADR-019 §3).
-- **Panel:** entra en servicio en el mismo despliegue. Ambos leen de `MEASUREMENT_WINDOWS` y ven la misma lista.
+- **Cron:** se enciende cuando se declara una ventana en `MEASUREMENT_WINDOWS` (SPEC-012, ADR-019 §3).
+- **Panel:** lee esa misma lista. Por eso no hay nada que sincronizar entre los dos.
 
 Cuando se abre una nueva jornada de medición (paso 1 de `jornada-de-medicion.md`), el panel **y el cron se despiertan a la vez**. Ambos leen la lista versionada de `src/ingest/measurement.ts`, así que la coordinación es estructural, no manual: no hay un paso adicional de "activar el panel".
 
