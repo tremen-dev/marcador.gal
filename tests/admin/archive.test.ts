@@ -46,6 +46,7 @@ import {
 import type { Scene } from './support/doubles';
 import type { AdminAction } from '@/admin/archive';
 import type { MatchDecisions } from '@/admin/ports';
+import type { Alert } from '@/decide/alert';
 
 const TARGET = SCENE_MATCH.id;
 
@@ -132,7 +133,7 @@ async function traces(built: Scene, needles: readonly string[]): Promise<readonl
   return offences;
 }
 
-const SCENE_ALERT = {
+const SCENE_ALERT: Alert = {
   id: 1,
   match_id: TARGET,
   rule: 'RN-05' as const,
@@ -245,10 +246,10 @@ describe('CA-3.2 — ni cabeceras, ni IP, ni user-agent, ni cookie, ni sesión',
       });
 
       // El mecanismo mide algo: la acción se aceptó y HAY archivo que recorrer.
-      expect(answer.status, envio.action).toBe(200);
-      expect((await envio.built.store.archived()).length, envio.action).toBeGreaterThan(0);
+      expect(answer.status, `${envio.action}`).toBe(200);
+      expect((await envio.built.store.archived()).length, `${envio.action}`).toBeGreaterThan(0);
 
-      expect(await traces(envio.built, MARKERS), envio.action).toEqual([]);
+      expect(await traces(envio.built, MARKERS), `${envio.action}`).toEqual([]);
     }
   });
 

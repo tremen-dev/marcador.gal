@@ -31,7 +31,7 @@ import {
   newSession,
   signSession,
 } from '@/admin/session';
-import { CEROACERO, OPERATOR } from '@/decide/roles';
+import { CEROACERO, CORRESPONDENT, OPERATOR } from '@/decide/roles';
 import { RN01_WEIGHTS } from '@/ingest/sources';
 import { observationId } from '@/ingest/observations';
 import { ObservationSchema } from '@/model/observation';
@@ -62,6 +62,10 @@ const WINDOW = {
 
 const RAW_REF_CEROACERO =
   'ceroacero/futgal-preferente-g1/2026-03-21/2026-03-21t17-30-00.000z-a1b2c3d4e5f6.html';
+
+/** El archivo de un mensaje del corresponsal, con la forma de `rawKey()`. */
+const RAW_REF_CORRESPONSAL =
+  'corresponsal/mensaxe/2026-03-21/2026-03-21t17-30-00.000z-0f1e2d3c4b5a.json';
 
 let store: RecordingRawStore;
 let clockNow: Instant = '2026-03-21T17:45:00.000Z';
@@ -178,6 +182,35 @@ async function fromCeroacero(
 
   await new PostgresObservationStore(sql).append(observation);
   await runEngineForMatch({ sql, matchId: MATCH_ID, now: at });
+  return observation;
+}
+
+/**
+ * Una observación del CORRESPONSAL (peso 0.8), sin correr el motor. La necesita
+ * CA-6.8: la alerta de RN-05 exige DOS fuentes de peso ≥ 0.7 que discrepen y
+ * que ninguna sea oficial ni el operador, así que con `ceroacero` sola no hay
+ * conflicto que el motor pueda levantar.
+ */
+async function fromCorrespondent(
+  status: 'live' | 'finished',
+  home: number,
+  away: number,
+  at: Instant,
+): Promise<Observation> {
+  const rawRef = RAW_REF_CORRESPONSAL;
+  const observation = ObservationSchema.parse({
+    id: observationId(rawRef, `${at}-${home}-${away}`),
+    match_id: MATCH_ID,
+    source: CORRESPONDENT,
+    observed_at: at,
+    confidence: RN01_WEIGHTS.correspondent,
+    raw_ref: rawRef,
+    status,
+    home_score: home,
+    away_score: away,
+  });
+
+  await new PostgresObservationStore(sql).append(observation);
   return observation;
 }
 
@@ -502,26 +535,73 @@ describe('CA-6.7 y CA-6.8 — el acuse: idempotente, y de UNA FILA', () => {
     expect(await countOf('operator_actions')).toBe(2);
   });
 
-  test('19. el acuse es de una FILA: la condición vuelve con otro motivo y aparece ABIERTA', async () => {
-    const first = await raiseAlert('ceroacero 1-0 vs operador 2-0', '2026-03-21T17:40:00.000Z');
-    await acknowledge(first);
-
+  /**
+   * REESCRITO EL 2026-09-03. La versión anterior sembraba las DOS filas de
+   * `alerts` con `raiseAlert`, un `insert` del propio test, así que la frase
+   * del criterio —«el motor escribe otra fila»— quedaba SIMULADA: el caso
+   * afirmaba el acuse, no el mecanismo que lo hace necesario.
+   *
+   * Aquí las dos filas las escribe **el motor real**, por la vía de RN-05: dos
+   * fuentes de peso ≥ 0.7 —`ceroacero` a 0.7 y `corresponsal` a 0.8—, ninguna
+   * oficial y ninguna el operador, discrepando más allá de `CONFLICT_GRACE`.
+   * Y la segunda nace porque cambia SU HUELLA, que es lo que el criterio dice
+   * que la distingue.
+   */
+  test('19. el acuse es de una FILA: EL MOTOR levanta otra y aparece ABIERTA', async () => {
     const reader = new PostgresAdminAlertReader(sql);
     const acks = new PostgresAlertAckStore(sql);
 
-    const afterFirst = await reader.listByMatches([MATCH_ID]);
-    const ackedFirst = await acks.ackedAt(afterFirst.map((alert) => alert.id));
+    // Dos fuentes automáticas que discrepan, y el motor corriendo pasada la
+    // gracia de RN-05.
+    await fromCeroacero('live', 1, 0, '2026-03-21T17:30:00.000Z');
+    await fromCorrespondent('live', 2, 0, '2026-03-21T17:30:00.000Z');
+    clockNow = '2026-03-21T17:36:00.000Z';
+    await runEngineForMatch({ sql, matchId: MATCH_ID, now: clockNow });
+
+    const raised = await reader.listByMatches([MATCH_ID]);
+    expect(raised).toHaveLength(1);
+    expect(raised[0]?.rule).toBe('RN-05');
+    const first = raised[0]?.id ?? 0;
+
+    await acknowledge(first);
+    const ackedFirst = await acks.ackedAt(raised.map((alert) => alert.id));
     expect([...ackedFirst.keys()]).toEqual([first]);
 
-    // El motor escribe otra fila porque el motivo —su huella— cambió.
-    const second = await raiseAlert('ceroacero 1-0 vs operador 3-0', '2026-03-21T17:55:00.000Z');
+    // La condición vuelve CON OTRO MOTIVO: otro marcador de una de las dos.
+    await fromCorrespondent('live', 3, 0, '2026-03-21T17:40:00.000Z');
+    clockNow = '2026-03-21T17:46:00.000Z';
+    await runEngineForMatch({ sql, matchId: MATCH_ID, now: clockNow });
 
     const afterSecond = await reader.listByMatches([MATCH_ID]);
     const ackedSecond = await acks.ackedAt(afterSecond.map((alert) => alert.id));
+    const second = afterSecond.find((alert) => alert.id !== first)?.id ?? 0;
 
     expect(afterSecond).toHaveLength(2);
+    // Y la huella CAMBIÓ: es lo que hace que sea otra fila y no la misma.
+    expect(afterSecond.find((alert) => alert.id === second)?.reason).not.toBe(
+      afterSecond.find((alert) => alert.id === first)?.reason,
+    );
     expect(ackedSecond.has(second)).toBe(false);
     expect(ackedSecond.has(first)).toBe(true);
+  });
+
+  /**
+   * CONTROL POSITIVO del mecanismo de arriba (ADR-016 §3.4): el motor NO
+   * escribe una fila nueva mientras la condición dice lo mismo. Sin esto,
+   * «aparece otra» podría estar siendo cierto porque el motor escribe una fila
+   * por vuelta, que es justo lo que ADR-021 §5 prohíbe.
+   */
+  test('19 bis. y mientras la huella no cambia, el motor NO escribe otra fila', async () => {
+    const reader = new PostgresAdminAlertReader(sql);
+
+    await fromCeroacero('live', 1, 0, '2026-03-21T17:30:00.000Z');
+    await fromCorrespondent('live', 2, 0, '2026-03-21T17:30:00.000Z');
+
+    for (const at of ['2026-03-21T17:36:00.000Z', '2026-03-21T17:37:00.000Z'] as Instant[]) {
+      await runEngineForMatch({ sql, matchId: MATCH_ID, now: at });
+    }
+
+    expect(await reader.listByMatches([MATCH_ID])).toHaveLength(1);
   });
 });
 

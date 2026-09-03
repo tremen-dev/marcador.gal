@@ -247,7 +247,7 @@ describe('CA-1.3 — comparación en tiempo constante, sin `===` sobre el secret
         /\bObject\.is\s*\(/.test(evasion) ||
         /\.localeCompare\s*\(/.test(evasion) ||
         /(?<![=!<>])==(?!=)|(?<!!)!=(?!=)/.test(evasion);
-      expect(caught, evasion).toBe(true);
+      expect(caught, `${evasion}`).toBe(true);
     }
   });
 
