@@ -2,10 +2,11 @@
 id: SPEC-016
 tipo: spec
 epica: EPIC-002
-estado: borrador
-aprobada-por:
+estado: aprobada
+aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-09-03, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-03, por: Alberto Fojo}
 ---
 # SPEC-016 — El catálogo de corresponsales se resuelve en compilación, y `npm run build` pasa a ser gate
 
