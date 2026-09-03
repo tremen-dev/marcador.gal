@@ -199,7 +199,8 @@ src/i18n/     bundles de i18n con paridad galego/castellano (SPEC-004 CA-4, EPIC
               titles-bundle.ts, titles.ts (títulos de página)
               El bundle para la interfaz del marcador vive aquí también; cada spec aporta su espacio de nombres
 tests/        model/ raw/ db/ alias/ calendar/ config/ stores/ types/ mirror/ site/ decide/ bot/ admin/ design/ · fixtures/ SOLO sintéticos
-public/fonts/ fuentes Geist en formato .woff2 bajo licencia ISC (SPEC-017)
+public/fonts/ fuentes Geist en .woff2, autoalojadas bajo SIL Open Font License 1.1
+              (ADR-026 §3.5 prohíbe pedir una fuente a un tercero en carga; SPEC-017)
 corresponsais/ catálogo declarado de correspondent_id por temporada (SPEC-015);
               mapeo telegram_user_id → correspondent_id NO se versiona, va en TELEGRAM_CORRESPONDENTS (ADR-022 §2)
 raw/          raíz de DiskRawStore en local; NO versionado
