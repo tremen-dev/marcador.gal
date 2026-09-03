@@ -4,7 +4,7 @@
 > Se actualiza al cambiar el rumbo; el estado fino spec a spec vive en
 > `docs/tablero.md` (generado, no editar), la intención y secuencia en
 > `docs/roadmap.md`, y la historia fina en ADRs y specs.
-> Última actualización: 2026-09-03 (SPEC-015 y SPEC-016 entregadas y verificadas GREEN: el bot y el gate del build; veinticuatro ADRs).
+> Última actualización: 2026-09-03 (SPEC-015 y SPEC-016 entregadas y verificadas GREEN: el bot y el gate del build; veintitrés ADRs).
 > corresponsal existe; veintitrés ADRs).
 
 ## Qué es y en qué punto está
@@ -14,7 +14,7 @@ femenino) y de las divisiones nacionales, en directo, en una sola pantalla y en
 galego. Relevo con nombre e imagen propios de la desaparecida marcadorgalego.gal
 — **inspiración, no sucesión** (D-1).
 
-**Punto actual: quince specs `hecho` y verificadas GREEN, veinticuatro ADRs
+**Punto actual: quince specs `hecho` y verificadas GREEN, veintitrés ADRs
 `aprobada` e inmutables.** Hay código en `src/model/`, `src/raw/` y `src/db/`
 (SPEC-001); en `src/mirror/`, con sus dos fases `capture/` y `analysis/` que no
 se importan entre sí (SPEC-002, SPEC-003); en `src/app/`, `src/site/` e

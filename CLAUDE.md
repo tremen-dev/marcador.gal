@@ -42,7 +42,7 @@ bloqueada hasta su veredicto y `EPIC-003` ya está **cerrada**.
 que la fuente oficial **no es capturable** (ADR-008). SPEC-002 queda a la espera de
 que lo sea; SPEC-003 mide lo que sí se puede medir sin ella. EPIC-002 **tiene ya el tick de ingesta y el motor de decisiones funcionando, y falta colegir las cuatro cifras tras abrir la ventana**.
 
-Hay **veinticuatro ADRs**, todos **aprobados e inmutables**. Para cambiar uno
+Hay **veintitrés ADRs**, todos **aprobados e inmutables**. Para cambiar uno
 aprobado, escribe otro ADR que lo supersede; no lo edites. ADR-008 y ADR-009
 superseden **parcialmente** a ADR-002 y ADR-005: lee siempre el que supersede
 antes de apoyarte en el viejo. **ADR-013 fija la semántica visual del marcador**
