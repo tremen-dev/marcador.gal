@@ -25,9 +25,19 @@ tipo: roadmap
 
 - **EPIC-002 — Instrumentación de las cuatro cifras.** Latencia, cobertura,
   conflictos y operación, que salieron de EPIC-001 el 2026-08-31 porque exigen el
-  motor, los adaptadores y el cron: ocho specs ya entregadas (SPEC-008 a SPEC-013, SPEC-015 y SPEC-016). Sus cifras nacen **sin
+  motor, los adaptadores y el cron: **nueve specs ya entregadas** (SPEC-008 a
+  SPEC-013, SPEC-015, SPEC-016 y SPEC-017). Sus cifras nacen **sin
   referencia oficial**, y la épica obliga a declarar junto a cada una qué la
   degrada.
+
+  **Las dos vías humanas están construidas (2026-09-03).** Era la reordenación
+  que este apartado llama «lo que sube de rango», y ya no es plan: **SPEC-015**
+  entregó el bot del corresponsal y **SPEC-017** el panel del operador, las dos
+  `hecho` y verificadas GREEN. Con ellas existe por fin **una ruta a un marcador
+  *confirmado***, que con una sola fuente automática de peso 0.7 no existía. Lo
+  que queda de la épica es **el snapshot con su página mínima por polling y la
+  instrumentación de las cuatro cifras**, y la cifra de operación manual —la del
+  corte duro de los 30 min— ya se puede medir, porque ya hay sobre qué medirla.
 
   **Sube a *Ahora* el 2026-09-01, y no por decisión de prioridad sino porque es
   donde está el trabajo.** EPIC-003 se cerró ese mismo día y EPIC-001 no puede
@@ -36,11 +46,10 @@ tipo: roadmap
   épica que produce las cuatro cifras del go/no-go**. Su primera spec está
   **entregada**: **SPEC-008** —adaptador de `ceroacero.es` y cortesía RN-11 con
   una sola implementación—, `hecho` y verificada GREEN el 2026-09-01 tras siete
-  vueltas, junto con **ADR-014**. Descomposición orientativa del resto (propuesta 2026-09-01):
-  pendientes las de snapshot y cifras, con el bot del corresponsal y el panel del
-  operador **antes** que el snapshot y las cifras: es lo que este mismo apartado
-  llama «lo que sube de rango», ya convertido en orden. Y hay una décima que
-  nadie planificó: **SPEC-009** (`aprobada`, 2026-09-02, en implementación en otro checkout), la frontera de capacidad de RN-11,
+  vueltas, junto con **ADR-014**. De la descomposición orientativa del 2026-09-01
+  **quedan solo el snapshot y las cifras**: el bot y el panel iban **antes**, y ya
+  están. Y hubo una que nadie planificó:
+  **SPEC-009** (`hecho`, 2026-09-02), la frontera de capacidad de RN-11,
   que salió de SPEC-008 porque su criterio no terminaba — nueve evasiones
   medidas tumbaron cuatro mecanismos seguidos. No compite con el bot ni con el
   panel: su fecha es **antes de que el cron despliegue algo que pida a un
@@ -166,13 +175,35 @@ vía de RN-02 queda cerrada para todo lo que no sea una persona.
   `aprobada`. Se derivan de D-8 y de RN-01..RN-13, que están locked, y no
   cambiarían con el informe en la mano.
 
-  **Y algo que la épica hereda como deuda, no como diseño:** el sistema pinta
-  `provisional` en gris y como excepción, y la mayoría de sus pantallas salen
-  `confirmado`. Este roadmap ya dice que con una sola fuente automática **nada se
-  publica confirmado sin una persona**. Si eso se sostiene, el diseño apaga el
-  estado dominante y destaca el raro, y eso no se arregla cambiando un color:
-  cambia cuál es la fila por defecto. Es la primera entrada de su inventario, y
-  su disparador ya tiene fecha: el **2026-09-08**.
+  **Lo que la épica heredó como deuda, y que ya está contestado (2026-09-03).**
+  Decía que el sistema pinta `provisional` en gris y como excepción mientras este
+  roadmap sostiene que **nada se publica confirmado sin una persona**, y que eso
+  no se arreglaba cambiando un color porque cambiaba cuál es la fila por defecto.
+  Su disparador era el **2026-09-08**; **se disparó antes y por otra vía**: al
+  hacerse vinculante el sistema de diseño, **ADR-026 §2** tuvo que contestarlo
+  antes de escribir la primera línea de CSS del panel. Y la respuesta fue que la
+  pregunta estaba mal planteada: **no se apaga ninguno de los dos**. Los dos con
+  el color de texto principal y los dos con etiqueta. **Entrada 1 cerrada**, para
+  todas las interfaces.
+
+  **Y un cambio de alcance, que no es un deshielo (2026-09-03).** El sistema de
+  diseño de `docs/diseno/` pasa a ser **vinculante para toda interfaz del
+  producto** —decisión de Alberto Fojo, recogida en **ADR-026**, que supersede
+  parcialmente a ADR-025 §4—. Eso saca de EPIC-004 dos cosas que su alcance
+  reservaba para el deshielo: **el panel del operador**, que ya salió con
+  SPEC-017 (`hecho`, GREEN), y **los tokens como código** (`src/design/`), ambos
+  a EPIC-002. Se queda, congelada, la custodia del sistema, la interfaz
+  definitiva del marcador, los activos de marca —bloqueados por OEPM— y una
+  responsabilidad nueva: **reparar el propio artefacto**, porque adoptarlo obligó
+  a inventariarlo y el inventario destapó que **el sistema no cumple lo que él
+  mismo declara**. **La épica sigue CONGELADA y el criterio de corte intacto:**
+  cambia qué custodia, no cuándo empieza.
+
+  **La consecuencia visible, dicha aquí y no escondida:** el sistema es
+  oscuro-only y el sitio público de EPIC-003 sigue claro por defecto, así que
+  `marcador.gal` va a servir **dos temas opuestos en el mismo dominio**. No es un
+  descuido: repintar el sitio exige una spec que lo motive (ADR-013 punto 3), y
+  esa spec tiene dueño y disparador en la entrada 6 del inventario.
 
 ## Más adelante (idea, sin compromiso)
 
