@@ -9,7 +9,15 @@
  */
 import { describe, expect, test } from 'vitest';
 import { readFile } from 'node:fs/promises';
+import { existsSync, rmSync, writeFileSync } from 'node:fs';
 import { ENTRY_POINTS, syntheticFile, versionedSources } from '../polite/support/capability';
+import {
+  ID_SCAN_EXCLUSIONS,
+  TELEGRAM_ID,
+  excludedFromIdScan,
+  telegramIdOffences,
+  versionedTree,
+} from './support/telegram-ids';
 import { reachableModules } from '../mirror/support/imports';
 import {
   BOT_DOMAIN,
@@ -315,40 +323,86 @@ describe('CA-9.3 — el bot importa la puerta estrecha POR NOMBRE', () => {
 });
 
 describe('CA-10.4 — ningún fichero del repositorio contiene un `telegram_user_id`', () => {
-  const TELEGRAM_ID = /\b\d{9,12}\b/;
+  // LA CARGA ÚTIL DE LA SONDA SE COMPONE, NO SE ESCRIBE. Este fichero está
+  // DENTRO del escaneo —`tests/` no se excluye, y por eso `tests/fixtures/`,
+  // que el CA nombra, queda cubierto—, así que un literal de diez cifras aquí
+  // convertiría al guardián en su propia ofensa. Se compone, y queda dicho.
+  const PROBE_ID = '7'.repeat(10);
+  const PROBE_PATH = 'src/bot/notes-p14-probe.md';
+  const PROBE_TEXT = `El corresponsal de A Estrada es ${PROBE_ID} en Telegram.\n`;
 
-  test('27. ni el catálogo declarado, ni los fixtures, ni `.env.example`', async () => {
-    const suspects = [
-      'corresponsais/2026-27.json',
-      '.env.example',
-      ...versionedSources().filter((path) => path.startsWith('tests/fixtures/')),
-    ];
+  test('27. el escaneo cubre el ÁRBOL VERSIONADO ENTERO, no tres sospechosos', () => {
+    const tree = versionedTree();
 
-    const offenders: string[] = [];
-    for (const path of suspects) {
-      const text = await readFile(path, 'utf8');
-      if (TELEGRAM_ID.test(text)) offenders.push(path);
-    }
-    expect(offenders).toEqual([]);
+    // Los tres sitios que el CA nombra, y el sitio donde la sonda P14 escribió.
+    expect(tree).toContain('corresponsais/2026-27.json');
+    expect(tree).toContain('.env.example');
+    expect(tree).toContain('src/bot/webhook.ts');
+    expect(tree.filter((path) => path.startsWith('tests/fixtures/')).length).toBeGreaterThan(0);
+    expect(tree.filter((path) => path.startsWith('migrations/')).length).toBeGreaterThan(0);
+    expect(tree.length).toBeGreaterThan(400);
+
+    // Y CONTIENE ENTERA la lista de código de SPEC-009 CA-2: lo que aquel
+    // recorrido lee es un subconjunto de lo que éste lee, nunca al revés.
+    const scanned = new Set(tree);
+    const missing = versionedSources().filter((path) => !scanned.has(path));
+    expect(missing).toEqual([]);
   });
 
-  test('28. `.env.example` declara la variable SIN VALOR', async () => {
+  test('28. y no hay NINGUNA ofensa en él', () => {
+    expect(telegramIdOffences()).toEqual([]);
+  });
+
+  test('29. `.env.example` declara la variable SIN VALOR', async () => {
     const example = await readFile('.env.example', 'utf8');
     expect(example).toContain(`${CORRESPONDENT_MAP_VARIABLE}=`);
     expect(example).not.toMatch(new RegExp(`${CORRESPONDENT_MAP_VARIABLE}=\\S`));
   });
 
-  test('29. control positivo: uno de ejemplo en el catálogo pone ROJO el caso', () => {
-    const withId = '{"season":"2026/27","correspondents":[{"telegram":123456789}]}';
-    expect(TELEGRAM_ID.test(withId)).toBe(true);
+  test('30. control positivo: un fichero escrito bajo `src/bot/` pone ROJO EL MISMO escaneo', () => {
+    // La reproducción de la sonda P14, dentro de la suite y con el escaneo
+    // real: se escribe, se mide, se borra. La extensión es `.md` y no `.ts`
+    // A PROPÓSITO — un módulo huérfano bajo `src/` pondría rojo el caso de
+    // cobertura de `tests/polite/architecture.test.ts`, que corre en otro
+    // worker (F-SPEC-013-10) —, y no debilita nada: este mecanismo no mira la
+    // extensión, y que alcanza a los `.ts` de `src/` lo afirma el caso 27.
+    writeFileSync(PROBE_PATH, PROBE_TEXT, 'utf8');
+    try {
+      const offences = telegramIdOffences();
+      expect(offences).toEqual([`${PROBE_PATH}: looks like a telegram_user_id — ${PROBE_ID}`]);
+    } finally {
+      rmSync(PROBE_PATH, { force: true });
+    }
   });
 
-  test('30. residuo declarado: esto mira el ÁRBOL DE TRABAJO, no la historia de git', () => {
-    // Si un identificador entrara alguna vez en un commit, quitarlo del árbol
-    // no lo quita del repositorio — ésa es la razón entera de la regla
-    // (ADR-009 §3). El mecanismo PREVIENE, NO REPARA, y se declara para que
-    // nadie lea el criterio como si prometiera más.
-    expect(true).toBe(true);
+  test('31. residuo declarado: mira el ÁRBOL DE TRABAJO, no la historia de git', () => {
+    // Los MISMOS bytes que el caso 30 acaba de ver en rojo son ahora
+    // invisibles, solo porque el fichero salió del árbol. Eso es exactamente
+    // el residuo: si un identificador entrara alguna vez en un commit,
+    // quitarlo del árbol no lo quitaría del repositorio —ésa es la razón
+    // entera de la regla (ADR-009 §3)—. EL MECANISMO PREVIENE, NO REPARA, y
+    // aquí está medido en vez de prometido.
+    expect(existsSync(PROBE_PATH)).toBe(false);
+    expect(telegramIdOffences()).toEqual([]);
+    expect(TELEGRAM_ID.test(PROBE_TEXT)).toBe(true);
+  });
+
+  test('32. control del propio detector: ninguna exclusión es decorativa', () => {
+    // Con la lista de exclusiones VACÍA el escaneo tiene que encontrar algo:
+    // si no, el conjunto vacío del caso 28 sería vacío porque el mecanismo no
+    // lee bytes. Y todo lo que encuentra cae bajo una exclusión DECLARADA con
+    // su motivo — el complemento es vacío, que es la forma de ADR-016.
+    const withoutExclusions = telegramIdOffences(versionedTree(), []);
+    expect(withoutExclusions.length).toBeGreaterThan(0);
+
+    const undeclared = withoutExclusions.filter(
+      (offence) => !excludedFromIdScan(offence.slice(0, offence.indexOf(': '))),
+    );
+    expect(undeclared).toEqual([]);
+
+    for (const exclusion of ID_SCAN_EXCLUSIONS) {
+      expect(exclusion.motive.length).toBeGreaterThan(60);
+    }
   });
 });
 
