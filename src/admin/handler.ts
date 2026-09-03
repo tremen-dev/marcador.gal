@@ -87,7 +87,7 @@ import { FIELDS, accessPage, boardPage, detailPage, pathsOf } from './view/pages
 import type { AdminAction } from './archive';
 import type { AdminPorts, OperatorActionOutcome, OperatorActionRecord } from './ports';
 import type { BoardRow } from './board';
-import type { OperatorId } from './session';
+import type { OperatorCatalog, OperatorId } from './session';
 import type { AdminLocale, AdminText } from '@/i18n/admin';
 import type { Instant, MatchId } from '@/model/ids';
 import type { Match, MatchStatus } from '@/model/match';
@@ -204,7 +204,7 @@ async function readForm(request: Request): Promise<URLSearchParams | null> {
 async function onAccess(
   options: AdminOptions,
   secret: string,
-  catalog: ReadonlyMap<OperatorId, string>,
+  catalog: OperatorCatalog,
   submitted: URLSearchParams,
   now: Instant,
 ): Promise<Response> {

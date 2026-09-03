@@ -27,8 +27,8 @@
  * AND THE FLOOR OF ADR-025 §2 AND §3, WHICH IS A FLOOR AND NOT A DESIGN:
  *
  *   * `:focus-visible` with an outline of at least `FOCUS_RING_PX` and a
- *     contrast of at least 3:1 against the surface it is drawn on. There is NO
- *     `outline: none` anywhere below without a replacement that satisfies it;
+ *     contrast of at least 3:1 against the surface it is drawn on, and the
+ *     browser's own ring is never switched off without one;
  *   * every interactive control is at least `TOUCH_TARGET_PX` square;
  *   * text inputs are at least `INPUT_FONT_PX`, because below 16 px Safari on
  *     iOS zooms on focus and throws the screen out — on a phone, on the touch
@@ -151,8 +151,8 @@ textarea { min-height: 5rem; }
 
 /*
  * ADR-025 §2.1 — the focus ring: a real outline on the perimeter, never a
- * change of background or of text colour. There is no \`outline: none\`
- * anywhere in this sheet, with or without a replacement.
+ * change of background or of text colour. The browser's own ring is never
+ * switched off anywhere in this sheet, with or without a replacement.
  */
 :focus-visible {
   outline: ${FOCUS_RING_PX}px solid ${PANEL_COLORS.focus};
