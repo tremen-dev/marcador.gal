@@ -241,6 +241,51 @@ export function textOffences(
   return found.sort().map((needle) => `${file.path}: names \`${needle}\``);
 }
 
+/**
+ * CA-5.4 — QUIÉN IMPORTA UN ADAPTADOR DE PROVEEDOR, resuelto por el lector.
+ *
+ * Vive aquí, y no dentro de un caso, porque el control positivo TIENE QUE
+ * EJERCITAR ESTE MISMO PREDICADO. En la primera vuelta el control miraba
+ * `specifier.text.includes('/bot/models/')` —una comprobación de texto que el
+ * caso real no hace— y por tanto no demostraba que el mecanismo mordiera.
+ */
+export async function modelAdapterOffences(
+  files: readonly ScannedFile[],
+  holders: readonly CapabilityHolder[],
+): Promise<readonly string[]> {
+  const offences: string[] = [];
+
+  for (const file of files) {
+    if (holds(file.path, holders)) continue;
+    for (const specifier of file.specifiers) {
+      if (specifier.text === null) continue;
+      const target = await moduleOf(specifier.text, file.path);
+      if (target !== null && target.startsWith('src/bot/models/')) {
+        offences.push(`${file.path}: imports the model adapter ${target}`);
+      }
+    }
+  }
+
+  return offences;
+}
+
+/**
+ * CA-12.2, SEGUNDO MECANISMO — un literal de `src/bot/` con un carácter no
+ * ASCII es prosa visible que no salió del bundle.
+ *
+ * También vive aquí por la misma razón: los controles de la primera vuelta
+ * afirmaban sobre cadenas escritas dentro del propio caso, sin llamar a esto.
+ */
+export function visibleLiteralOffences(file: ScannedFile): readonly string[] {
+  const offences: string[] = [];
+  for (const [, literal] of file.code.matchAll(/'([^'\\\n]*)'/g)) {
+    if (literal !== undefined && /[^ -~]/.test(literal)) {
+      offences.push(`${file.path}: «${literal}»`);
+    }
+  }
+  return offences;
+}
+
 /** La ruta de este repositorio que nombra un especificador, o `null`. */
 export async function moduleOf(specifier: string, fromFile: string): Promise<string | null> {
   const resolved = await resolveModule(specifier, fromFile);

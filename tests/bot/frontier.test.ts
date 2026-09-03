@@ -28,11 +28,13 @@ import {
   LLM_CALLERS,
   PROPRIETARY_NAMES,
   holds,
+  modelAdapterOffences,
   moduleOf,
   nameOffences,
   reachableSpecifiers,
   scanned,
   textOffences,
+  visibleLiteralOffences,
 } from './support/frontier';
 import { CORRESPONDENT_MAP_VARIABLE } from '@/bot/correspondents';
 import { CORRESPONDENT_PRE_KICKOFF_MS, CORRESPONDENT_POST_KICKOFF_MS } from '@/bot/windows';
@@ -181,30 +183,27 @@ describe('CA-5.4 — quién puede llamar al proveedor del modelo', () => {
   });
 
   test('15. el complemento es VACÍO: nada fuera de la lista importa un cliente', async () => {
-    const offences: string[] = [];
-    for (const file of SCANNED) {
-      if (holds(file.path, LLM_CALLERS)) continue;
-      for (const specifier of file.specifiers) {
-        if (specifier.text === null) continue;
-        const target = await moduleOf(specifier.text, file.path);
-        if (target !== null && target.startsWith('src/bot/models/')) {
-          offences.push(`${file.path}: imports the model adapter ${target}`);
-        }
-      }
-    }
-    expect(offences).toEqual([]);
+    expect(await modelAdapterOffences(SCANNED, LLM_CALLERS)).toEqual([]);
   });
 
-  test('16. control positivo: un fichero fuera de la lista que lo importe es ROJO', () => {
+  test('16. control positivo: un fichero fuera de la lista que lo importe es ROJO', async () => {
+    // EJERCITA EL MISMO PREDICADO QUE EL CASO 15 —resolver el especificador con
+    // el lector y mirar a dónde apunta—, no un `includes` escrito aquí. Para
+    // que haya adaptador que resolver se declara uno sintético: el directorio
+    // real está vacío hasta que haya proveedor y DPA (ADR-023 §6.4).
+    syntheticFile('src/bot/models/probe.ts', 'export const call = (): string => "x";');
     const evasion = syntheticFile(
       'src/probe/llm-caller.ts',
-      "import { call } from '@/bot/models/whatever';\nexport const x = call;",
+      "import { call } from '@/bot/models/probe';\nexport const x = call;",
     );
-    const targets = evasion.specifiers
-      .map((specifier) => specifier.text)
-      .filter((text): text is string => text !== null && text.includes('/bot/models/'));
-    expect(targets).toEqual(['@/bot/models/whatever']);
-    expect(holds('src/probe/llm-caller.ts', LLM_CALLERS)).toBe(false);
+
+    expect(await modelAdapterOffences([evasion], LLM_CALLERS)).toEqual([
+      'src/probe/llm-caller.ts: imports the model adapter src/bot/models/probe.ts',
+    ]);
+    // Y el mismo fichero, DENTRO de la lista, no es ofensa: el veredicto sale
+    // de lo declarado y de nada más.
+    expect(await modelAdapterOffences([evasion], [{ paths: ['src/probe/'], motive: 'control' }]))
+      .toEqual([]);
   });
 
   test('17. y vaciar la lista de módulos vigilados deja el mecanismo sin medir nada', () => {
@@ -458,28 +457,31 @@ describe('CA-12.2 — nadie fuera de `src/i18n/` fabrica texto visible', () => {
     // El galego y el castellano visibles llevan acentos, «», comillas y «—».
     // No los cazan todos —«Confirmar» no lleva ninguno— y por eso el mecanismo
     // principal es el tipo; éste cierra el descuido más probable.
-    const offenders: string[] = [];
-    for (const file of BOT_FILES) {
-      for (const [, literal] of file.code.matchAll(/'([^'\\\n]*)'/g)) {
-        if (literal !== undefined && /[^ -~]/.test(literal)) {
-          offenders.push(`${file.path}: «${literal}»`);
-        }
-      }
-    }
-    expect(offenders).toEqual([]);
+    expect(BOT_FILES.flatMap((file) => visibleLiteralOffences(file))).toEqual([]);
   });
 
-  test('38. control positivo del segundo mecanismo', () => {
-    const evasion = "export const hint = 'Se algo non cadra, descarta';";
-    expect(/[^ -~]/.test('Aínda non está publicado')).toBe(true);
-    expect(/[^ -~]/.test(evasion)).toBe(false);
+  test('38. control positivo del segundo mecanismo, sobre EL MISMO escaneo', () => {
+    // La primera vuelta afirmaba `/[^ -~]/.test('Aínda non está publicado')`
+    // sobre una cadena escrita aquí: eso mide la expresión regular, no el
+    // escaneo de literales. Ahora se escribe un fichero de `src/bot/` y se
+    // pasa por la misma función que juzga al módulo real.
+    const evasion = syntheticFile(
+      'src/bot/hardcoded.ts',
+      "export const hint = 'Aínda non está publicado';",
+    );
+    expect(visibleLiteralOffences(evasion)).toEqual([
+      'src/bot/hardcoded.ts: «Aínda non está publicado»',
+    ]);
   });
 
   test('39. residuo declarado: un literal ASCII sin espacios NO lo ve el segundo mecanismo', () => {
-    // «Confirmar» pasa el escaneo de prosa y es incumplimiento de D-2 igual.
-    // Lo cierra el TIPO (`tests/types/spec015-bot.test-d.ts`), que es el
-    // mecanismo principal y por eso está declarado como tal.
-    expect(/[^ -~]/.test('Confirmar')).toBe(false);
+    // «Confirmar» pasa el escaneo de prosa y es incumplimiento de D-2 igual, y
+    // se mide con el escaneo, no con la regex: el mismo fichero sintético del
+    // caso 38 con un literal ASCII sale LIMPIO. Lo cierra el TIPO
+    // (`tests/types/spec015-bot.test-d.ts`), que es el mecanismo principal y
+    // por eso está declarado como tal.
+    const ascii = syntheticFile('src/bot/ascii-label.ts', "export const label = 'Confirmar';");
+    expect(visibleLiteralOffences(ascii)).toEqual([]);
   });
 });
 

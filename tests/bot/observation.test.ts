@@ -94,8 +94,11 @@ describe('CA-9.1 — `src/bot/` NO está en `DECISION_WRITERS`', () => {
   });
 
   test('8. y la puerta estrecha SÍ la tiene, porque vive dentro de `src/decide/`', () => {
-    // No ensancha la frontera: `src/decide/` ya estaba dentro, así que el
-    // fichero nuevo no obliga a tocar ningún fichero de SPEC-013.
+    // No ensancha la frontera: `src/decide/` YA ESTABA dentro, así que el
+    // fichero nuevo entra por una entrada que ya existía y `DECISION_WRITERS`
+    // no crece (enmienda de CA-9.1, ledger, 2026-09-03). Lo que sí crece es la
+    // ENUMERACIÓN DERIVADA del caso 10 de `tests/decide/rn08-frontier.test.ts`,
+    // que no es la frontera sino el control positivo del propio detector.
     expect(holdsDecisionCapability('src/decide/engine-entry.ts')).toBe(true);
   });
 });
@@ -113,12 +116,27 @@ describe('CA-9.6 — el residuo declarado: esto CONTESTA a F-SPEC-013-11, no lo 
     expect(cycle).toContain('decisions: new PostgresDecisionStore');
   });
 
-  test('8c. y esta spec NO ha tocado ningún fichero de SPEC-013', async () => {
-    // La puerta estrecha es un fichero NUEVO. `src/decide/` ya estaba dentro de
-    // `DECISION_WRITERS`, así que la frontera no se ensancha.
-    const entry = await readFile('src/decide/engine-entry.ts', 'utf8');
-    expect(entry).toContain('F-SPEC-013-11');
-    expect(entry).toContain('EPIC-MEJORA');
+  test('8c. la frontera de SPEC-013 no se ensancha: no nombra ni al bot ni a la puerta', async () => {
+    // ESTE CASO SUSTITUYE A UNO QUE MENTÍA. Se llamaba «y esta spec NO ha
+    // tocado ningún fichero de SPEC-013» y afirmaba que
+    // `src/decide/engine-entry.ts` contiene las cadenas `F-SPEC-013-11` y
+    // `EPIC-MEJORA`: ni medía lo que anunciaba, ni lo que anunciaba era cierto
+    // —el caso 10 de `tests/decide/rn08-frontier.test.ts` SÍ creció, y está
+    // declarado como desviación admisible en el ledger y en la enmienda de
+    // CA-9.1 y CA-15.3 del 2026-09-03—.
+    //
+    // Lo que sí es cierto, y es lo que CA-9.1 protege, es que LA FRONTERA no se
+    // ensancha: las listas de `tests/decide/support/rn08.ts` no saben que esta
+    // spec existe. Eso se mide aquí, sobre el fichero de la frontera.
+    const frontier = await readFile('tests/decide/support/rn08.ts', 'utf8');
+    expect(frontier).not.toContain('src/bot');
+    expect(frontier).not.toContain('engine-entry');
+
+    // Y las dos entradas declaradas siguen siendo exactamente las de SPEC-013.
+    expect(DECISION_WRITERS.map((writer) => [...writer.paths].sort())).toEqual([
+      ['src/decide/'],
+      ['src/db/alerts.ts', 'src/db/decisions.ts'],
+    ]);
   });
 });
 
