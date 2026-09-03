@@ -38,7 +38,14 @@ import {
   TEST_MAP,
   jsonAnswer,
 } from '../bot/support/doubles';
-import { telegramCallbackUpdate, telegramMessageUpdate } from '../fixtures/telegram';
+import {
+  FIXTURE_FIRST_NAME,
+  FIXTURE_LAST_NAME,
+  FIXTURE_USERNAME,
+  telegramCallbackUpdate,
+  telegramMessageUpdate,
+} from '../fixtures/telegram';
+import { FORBIDDEN_FIELDS } from '../bot/support/frontier';
 import type { BotPorts } from '@/bot/webhook';
 import type { ModelAnswer, ModelPort } from '@/bot/llm';
 import type { Outbound } from '@/bot/telegram';
@@ -282,6 +289,103 @@ describe('CA-9 — el bot no publica: escribe `Observation` y llama al motor', (
     expect(textOf(ack)).toContain('Rexistrado: UD Ourense 2 - 1 Celta B.');
     expect(textOf(ack)).toContain(GL.ackNotPublication);
     expect(textOf(ack).toLowerCase()).not.toContain('motor');
+  });
+});
+
+describe('CA-3.2 — las seis claves prohibidas no aparecen en NINGUNA fila persistida', () => {
+  /**
+   * `select *` sobre las cuatro tablas, y el juicio es sobre LOS BYTES DE LAS
+   * FILAS —no sobre las claves de un objeto que construya el test—, que es la
+   * diferencia entre medir la base y medir nuestro propio código. Las claves
+   * prohibidas se buscan como columnas Y como contenido, y sus tres valores del
+   * fixture como contenido.
+   */
+  const PERSISTED = ['bot_proposals', 'correspondent_state', 'bot_rejections', 'observations'];
+  const FORBIDDEN_VALUES = [FIXTURE_FIRST_NAME, FIXTURE_LAST_NAME, FIXTURE_USERNAME];
+
+  async function personalDataOffences(): Promise<readonly string[]> {
+    const offences: string[] = [];
+
+    for (const table of PERSISTED) {
+      const rows = await sql.unsafe<Record<string, unknown>[]>(`select * from ${table}`);
+      // Una tabla vacía no prueba nada: es la mitad del mecanismo.
+      if (rows.length === 0) {
+        offences.push(`${table}: no rows, so this table proves nothing`);
+        continue;
+      }
+
+      const bytes = JSON.stringify(rows);
+      for (const field of FORBIDDEN_FIELDS) {
+        if (bytes.includes(field)) offences.push(`${table}: carries \`${field}\``);
+      }
+      for (const value of FORBIDDEN_VALUES) {
+        if (bytes.includes(value)) offences.push(`${table}: carries the value \`${value}\``);
+      }
+      for (const row of rows) {
+        for (const column of Object.keys(row)) {
+          if (FORBIDDEN_FIELDS.includes(column)) offences.push(`${table}: column \`${column}\``);
+        }
+      }
+    }
+
+    return offences;
+  }
+
+  /** La jornada sintética que deja las CUATRO tablas con filas a la vez. */
+  async function syntheticMatchday(): Promise<void> {
+    // Un rechazo: `bot_rejections`.
+    await handleUpdate(telegramMessageUpdate({ senderId: 9999, updateId: 11 }), ports);
+
+    // Un mensaje confirmado: `observations` (y `decisions`, que no es de CA-3).
+    await handleUpdate(telegramMessageUpdate({ updateId: 12 }), ports);
+    const [confirmed] = await sql<{ id: string }[]>`select id from bot_proposals`;
+    if (confirmed === undefined) throw new Error('no pending proposal');
+    await handleUpdate(telegramCallbackUpdate(confirmData(confirmed.id), { updateId: 13 }), ports);
+
+    // Y una propuesta VIVA, para que `bot_proposals` no esté vacía al mirar.
+    model.answerWith(
+      jsonAnswer({ match_id: MATCH_ID, status: 'live', home_score: 3, away_score: 1, minute: 80 }),
+    );
+    await handleUpdate(telegramMessageUpdate({ text: '3-1 no 80', updateId: 14 }), ports);
+    // `correspondent_state` ya tiene su fila desde `beforeEach`.
+  }
+
+  test('14. tras la jornada sintética, las cuatro tablas están llenas y limpias', async () => {
+    await syntheticMatchday();
+
+    for (const table of PERSISTED) {
+      expect(`${table}: ${await countOf(table)} rows`).not.toContain(': 0 rows');
+    }
+    expect(await personalDataOffences()).toEqual([]);
+  });
+
+  test('15. control positivo: un valor prohibido en una columna pone ROJO el mismo escaneo', async () => {
+    // El fixture trae las seis rellenas y el nombre civil viaja en el update.
+    // Si algo del camino lo copiase a una columna, esto es lo que se vería.
+    await syntheticMatchday();
+    await sql`
+      insert into bot_proposals
+        (id, correspondent_id, match_id, status, home_score, away_score, minute,
+         message_raw_ref, proposal_raw_ref, created_at, expires_at)
+      values ('p-leak', ${CORRESPONDENT_ID}, ${MATCH_ID}, 'live', 1, 1, 20,
+              ${`corresponsal/mensaxe/${FIXTURE_FIRST_NAME}.json`}, ${EXPIRED_PROPOSAL_REF},
+              '2026-03-21T17:00:00Z', '2026-03-21T17:05:00Z')
+    `;
+
+    expect(await personalDataOffences()).toEqual([
+      `bot_proposals: carries the value \`${FIXTURE_FIRST_NAME}\``,
+    ]);
+
+    await sql`delete from bot_proposals where id = 'p-leak'`;
+    expect(await personalDataOffences()).toEqual([]);
+  });
+
+  test('16. y el propio mecanismo se mide: una tabla vacía NO cuenta como limpia', async () => {
+    // Sin la jornada, `observations` está vacía. Una tabla sin filas no puede
+    // ser prueba de nada, y el escaneo lo dice en vez de callarse: es el
+    // control del detector, no una tolerancia.
+    const offences = await personalDataOffences();
+    expect(offences).toContain('observations: no rows, so this table proves nothing');
   });
 });
 
