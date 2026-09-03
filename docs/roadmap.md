@@ -25,7 +25,7 @@ tipo: roadmap
 
 - **EPIC-002 — Instrumentación de las cuatro cifras.** Latencia, cobertura,
   conflictos y operación, que salieron de EPIC-001 el 2026-08-31 porque exigen el
-  motor, los adaptadores y el cron: siete specs ya entregadas (SPEC-008 a SPEC-013, SPEC-015). Sus cifras nacen **sin
+  motor, los adaptadores y el cron: ocho specs ya entregadas (SPEC-008 a SPEC-013, SPEC-015 y SPEC-016). Sus cifras nacen **sin
   referencia oficial**, y la épica obliga a declarar junto a cada una qué la
   degrada.
 

@@ -22,6 +22,7 @@ Actualizado: 2026-09-03
 | SPEC-012 — cron-de-ingesta-el-tick-que-abre-ventanas-por-partido-y-persiste-observation | hecho | 2026-09-02 (sdd-verificador) |
 | SPEC-013 — motor-de-decisiones-el-reducer-puro-de-rn-01-rn-07-y-el-ciclo-que-lo-ejecuta | hecho | 2026-09-02 (sdd-verificador) |
 | SPEC-015 — bot-de-telegram-del-corresponsal-el-llm-propone-dentro-de-una-lista-cerrada-y-la-persona-confirma | hecho | 2026-09-03 (sdd-verificador) |
+| SPEC-016 — el-catalogo-de-corresponsales-se-resuelve-en-compilacion-y-npm-run-build-pasa-a-ser-gate | hecho | 2026-09-03 (sdd-verificador) |
 
 ## EPIC-003 — paxina-de-proxecto-e-respaldo-publico-da-carta (hecho)
 
@@ -72,4 +73,4 @@ Actualizado: 2026-09-03
 
 ## Resumen
 
-- hecho: 14
+- hecho: 15

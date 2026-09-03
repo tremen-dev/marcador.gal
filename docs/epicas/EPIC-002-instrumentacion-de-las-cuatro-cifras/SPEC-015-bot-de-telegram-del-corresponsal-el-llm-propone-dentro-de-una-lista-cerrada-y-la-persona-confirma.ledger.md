@@ -922,7 +922,7 @@ Abiertas al implementar (2026-09-03):
   principal. Comprobar `ps aux | grep vitest` antes de correr `npm run test:db`;
   un `ENOTFOUND` del *pooler* es el de F-SPEC-013-6 y se resuelve con el endpoint
   directo.
-- **F-SPEC-015-14 — El escaneo de `telegram_user_id` de CA-10.4 no mira dentro
+- **F-SPEC-015-20 — El escaneo de `telegram_user_id` de CA-10.4 no mira dentro
   de los ledgers.** Abierta en la segunda vuelta (2026-09-03). `*.ledger.md` es
   exclusión declarada con su motivo: el registro de verificación cita la carga
   útil de sus propias sondas —el RED de esta spec escribe el identificador de
@@ -1447,7 +1447,7 @@ declaradas siguen siendo tres, y ninguna es de esta vuelta.
 
 ### Follow-up nuevo
 
-- **F-SPEC-015-14 — El escaneo de `telegram_user_id` no mira dentro de los
+- **F-SPEC-015-20 — El escaneo de `telegram_user_id` no mira dentro de los
   ledgers.** `*.ledger.md` es exclusión declarada con su motivo: el registro de
   verificación cita la carga útil de sus propias sondas, y un guardián que hace
   del acto de documentarlas una ofensa no se puede documentar. **El precio es
@@ -1541,10 +1541,10 @@ spec**. La forma es la de ADR-015 §2 y §3, y quien la registra es
    `src/mirror/cli/node-resolve.ts:27` inventariados.
 
 5. **Corrección de numeración: había dos `F-SPEC-015-14`.** El implementador usó
-   ese id para el catálogo en disco; el verificador lo reutilizó, en la segunda
+   ese id para el catálogo en disco; el implementador lo reutilizó, en la segunda
    vuelta del mismo día, para «el escaneo de `telegram_user_id` de CA-10.4 no
    mira dentro de los ledgers». Dos entradas distintas con el mismo id no son
-   citables. **La segunda pasa a ser `F-SPEC-015-16`**, con el mismo texto,
+   citables. **La segunda pasa a ser `F-SPEC-015-20`**, con el mismo texto,
    el mismo destino (EPIC-MEJORA) y el mismo disparador; `F-SPEC-015-14` designa
    desde hoy, y sólo, el catálogo leído del disco. No se ha borrado nada: las dos
    entradas siguen donde estaban y esta enmienda es su desempate.
