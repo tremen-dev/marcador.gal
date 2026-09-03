@@ -8,14 +8,19 @@ epica: EPIC-002
 ## Resumen
 - Fase: **`en-revision`** — escrita por `sdd-arquitecto` el 2026-09-03, firmada
   por Alberto Fojo el 2026-09-03, implementada por `sdd-implementador` el
-  2026-09-03. La fuente de verdad es el frontmatter de la spec. **Doce de los
-  trece criterios entregados; CA-10 CONGELADO por el cambio de rumbo del mismo
-  día (ver más abajo). Lista para `sdd-verificador`.**
+  2026-09-03. La fuente de verdad es el frontmatter de la spec. **LOS TRECE
+  CRITERIOS ENTREGADOS.** CA-10 estuvo congelado unas horas por el cambio de
+  rumbo del mismo día, se reescribió de 7 a 15 subpuntos con **ADR-026**, y se
+  implementó entero (ver *CA-10 descongelado*). **Lista para `sdd-verificador`.**
 - Rama: `ft/SPEC-017-panel-do-operador`
 - ADRs que trae, los dos **aprobados por Alberto Fojo el 2026-09-03**. CA-1,
-  CA-7, CA-8, CA-10 y CA-11 los ejecutan literalmente. **ADR-025 §4 va a ser
-  superseded parcialmente por ADR-026**, en curso: es el motivo por el que CA-10
-  está congelado.
+  CA-7, CA-8, CA-10 y CA-11 los ejecutan literalmente. **ADR-025 §4 quedó
+  superseded parcialmente por ADR-026** (`2278cb1`, aprobado el mismo día), que
+  hace vinculante `docs/diseno/` y es la letra bajo la que CA-10 se implementó.
+  De ADR-025 **sobreviven enteros §2, §3, §4.1 y §5**, y ahora son permanentes:
+  el sistema de diseño **no tiene foco, ni teclado, ni componentes de
+  formulario, ni suelo de toque**, así que no supersede nada de lo que ellos
+  cubren.
   - **ADR-024** — el panel: sesión declarada sin sistema de usuarios, el vale de
     acción, toda operación como `Observation` por la puerta estrecha, la bandeja,
     el registro de operación y la llave de la jornada.
@@ -83,20 +88,30 @@ centros y uno de ellos no se parece a los anteriores:**
    *finding* con destino `sdd-arquitecto`, no una corrección del test. El caso de
    SPEC-013 que afirma que `DECISION_WRITERS` tiene **exactamente dos entradas**
    tiene que pasar sin que nadie lo toque — si alguien lo tocó, ése es el hallazgo.
-2. **CA-10 ENTERO ESTÁ CONGELADO desde el 2026-09-03, y CA-10.7 con él.** No
-   busques la hoja de estilos ni las capturas de `_qa/SPEC-017/`: no existen, y no
-   deben existir todavía. El motivo, con fecha y con lo que se retiró, está en la
-   sección **Cambio de rumbo** de este ledger. **Un CA-10 sin implementar no es un
-   CA-10 incumplido: es un CA-10 aplazado por decisión del humano**, y lo que hay
-   que verificar de él hoy es exactamente eso — que no hay hoja de estilos, que el
-   panel emite marcado semántico sin apariencia decidida, y que no queda ninguna
-   aserción diciendo lo contrario de lo que ADR-026 va a decir.
+2. **CA-10 ESTÁ IMPLEMENTADO ENTERO, en la letra NUEVA de quince subpuntos.**
+   Lee la sección *CA-10 descongelado — evidencia subpunto a subpunto* antes de
+   empezar: dice qué caso sostiene cada uno. Tres cosas que conviene mirar con
+   lupa porque son las que decidirían un RED:
+   - **la paridad de tokens** (`tests/design/parity.test.ts`) es una lista
+     cerrada en la forma de ADR-016: apaga sus cuatro controles positivos uno a
+     uno y mira el rojo, y **lee la lista de divergencias**: son tres, motivadas
+     en ADR-026 §3.4, y una cuarta sin ADR detrás sería el hallazgo;
+   - **`docs/diseno/` y `src/app/globals.css` siguen intactos** en el diff;
+   - **`_qa/SPEC-017/` es la mitad manual y está hecha**, con Chrome real y las
+     medidas sin retocar. Si algo de ahí no te cuadra, el `README.md` de ese
+     directorio dice cómo reproducirlo.
+   **Y hay una asimetría honesta que declarar**: los subpuntos 1 a 13 son
+   estáticos y no ven un diseño calculado; el 14 lo vio un navegador y el 15 es
+   un residuo declarado, no una promesa.
 3. **`npm run gates`** (typecheck → lint → build → test, SPEC-016) **y**
    `npm run test:db` aparte. Sin `DATABASE_URL_TEST` los criterios con base son
    **UNMET, no *skipped*** (gate del 2026-08-29). CA-4, CA-5 y CA-6 son de base.
 4. **Comprueba en el diff que `src/app/globals.css` y `docs/diseno/` siguen
-   intactos.** Es la clase de regla que solo se incumple sin querer, y sigue
-   valiendo con CA-10 congelado: ninguno de los dos se ha tocado.
+   intactos.** Es la clase de regla que solo se incumple sin querer, y con
+   CA-10 implementado es MÁS necesaria, no menos: ahora el panel **deriva** del
+   sistema, y la tentación de «arreglar» el artefacto para que el panel salga
+   bien es real. ADR-026 §3.7 lo prohíbe; lo que se mueve, se mueve en la lista
+   de divergencias.
 5. **Mira con lupa `src/decide/read-entry.ts` (F-SPEC-017-1)**, que es la única
    desviación estructural de la spec, y las cuatro entradas nuevas de
    `tests/polite/support/capability.ts` (F-SPEC-017-4).
@@ -460,63 +475,51 @@ verdad: que `qualifiers` **no entra en la paridad del sitio**.
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
 
-**Estado al 2026-09-03, al terminar `sdd-implementador`.** En
-`ft/SPEC-017-panel-do-operador`, cuatro commits sobre `81a10f5`:
+**Estado al 2026-09-03, al terminar `sdd-implementador`. LOS TRECE CRITERIOS
+ESTÁN ENTREGADOS.** En `ft/SPEC-017-panel-do-operador`, sobre `81a10f5`:
 
-1. `ba0be1c` — el esqueleto de `src/admin/`, `migrations/0008`, `src/db/admin.ts`,
-   `src/decide/read-entry.ts`, las dos rutas y la enmienda de ADR-015 en el
-   ledger de SPEC-004.
-2. `6263f27` — las suites sin base (sesión, vale, archivo, bandeja, tablero,
-   i18n, fronteras) y la edición del runbook de purga.
-3. `81f0cd5` — las suites contra Postgres: el esquema de `0008` y la jornada
-   sintética del panel con el motor real.
-4. `62c8da5` — el congelado de CA-10: se retiran la hoja de estilos y sus
-   aserciones (ver *Cambio de rumbo*).
+| Commit | Qué trae |
+|---|---|
+| `ba0be1c` | El esqueleto de `src/admin/`, `migrations/0008`, `src/db/admin.ts`, `src/decide/read-entry.ts`, las dos rutas, y la enmienda de ADR-015 en el ledger de SPEC-004 |
+| `6263f27` | Las suites sin base: sesión, vale, archivo, bandeja, tablero, i18n y fronteras, más la edición del runbook de purga |
+| `81f0cd5` | Las suites contra Postgres: el esquema de `0008` y la jornada del panel con el motor real |
+| `62c8da5` | El congelado de CA-10: se retiran la hoja de estilos y sus aserciones |
+| `1c9dd45` | **CA-10 descongelado**: `src/design/`, la hoja derivada del sistema, las fuentes autoalojadas, y la comprobación manual con navegador |
+| `2de2b9f` · `571b643` · `212fc85` | El ledger: evidencia visual, los quince subpuntos de CA-10, y los hallazgos |
 
-**Gates, medidos:**
+**Gates, medidos sobre `1c9dd45`, con el CSS de CA-10 dentro:**
 
-- `npm run gates` (typecheck → lint → build → test): **135 ficheros, 1466 casos,
-  typecheck sin errores, `oxlint --type-aware` a exit 0, `next build` con
-  `ƒ /admin` y `ƒ /es/admin` en la tabla de rutas.**
-- `npm run test:db` aparte: **26 ficheros, 339 casos.**
+- `npm run gates` (typecheck → lint → build → test): **137 ficheros, 1515 casos,
+  todos verdes**; `Type Errors: no errors`; `next build` con `ƒ /admin` y
+  `ƒ /es/admin` en la tabla de rutas.
+- `npm run test:db` aparte: **26 ficheros, 339 casos, todos verdes**.
 
-**Lo que falta, y es exactamente una cosa: CA-10.** Está congelado a la espera
-de **ADR-026**, que va a superseder parcialmente ADR-025 §4 para que el panel
-siga `docs/diseno/`. Cuando esté firmado, lo que hay que hacer es:
+**Lo que NO queda pendiente de esta spec.** No hay ningún criterio a medias y no
+hay ningún trozo de CA-10 aplazado: la hoja está escrita, la paridad se
+comprueba, las fuentes se sirven de nuestro origen y la mitad manual está hecha
+con capturas. Lo que queda son **hallazgos con destino escrito** —F-SPEC-017-1,
+3, 5, 6, 7, 9, 10, 11 y 12— y los residuos que el cuerpo de la spec ya declaraba.
 
-1. Escribir la hoja del panel **derivando del sistema** —y ojo: **de tres
-   fuentes, no solo de `_tokens.css`**, que no lo usa ningún artboard; ver la
-   corrección al paso 1 en *Contestado* y ADR-026 §3.2— —paleta
-   oscura, Geist / Geist Mono, `tabular-nums`— en vez de declarar valores
-   propios, y engancharla desde `src/admin/view/markup.ts` (`document`), que hoy
-   emite el documento **sin ninguna hoja**. Los enganches ya están en el marcado:
-   `score`, `instant`, `num`, `scroller`, `soft`, `notice`, `row`, `data-cancel`.
-2. Reponer el suelo de ADR-025 §2 y §3 —foco visible ≥ 2 px y ≥ 3:1, toque de
-   44 px como constante nombrada en un solo sitio, campos ≥ 16 px, `Escape` que
-   cancela y devuelve el foco— **comprobando que ADR-026 no lo baja**: §2 y §3
-   son suelo y un sistema de diseño puede subirlos, no bajarlos (ADR-025 §1).
-3. Rehacer la suite de CA-10.1 a CA-10.6. **El fichero anterior está en el
-   historial** (`tests/admin/view.test.ts`, commit `6263f27`) y buena parte se
-   reaprovecha tal cual: el cálculo de contraste por luminancia relativa, el
-   control positivo que apaga el contorno, el conteo del `44`, y las aserciones
-   de dígitos tabulares y de cero imágenes. **Lo que NO se reaprovecha son las
-   dos aserciones que separaban el panel de `docs/diseno/`**: bajo ADR-026 dicen
-   lo contrario.
-4. Hacer la mitad manual de CA-10.7 con navegador y dejar las tres capturas en
-   `_qa/SPEC-017/`.
-5. Resolver, con `sdd-arquitecto`, el punto abierto que ADR-026 arrastra: el
-   sistema pinta `provisional` como excepción y aquí es el estado **normal**.
+**Lo que sigue esperando a alguien que no soy yo:**
 
-**Lo que NO hay que rehacer:** los otros doce criterios están implementados y
-probados, y `src/admin/` está entero salvo `view/styles.ts`. El orden de
-peldaños del arquitecto se siguió con dos desviaciones, las dos escritas arriba:
-`src/decide/read-entry.ts` (F-SPEC-017-1) y el peldaño 6, que se hizo **sin la
-mitad de estilos** por el cambio de rumbo.
+- **`sdd-verificador`**: el veredicto. Empieza por las tres fronteras de ADR-016
+  (CA-1, CA-2, CA-13), por la paridad de tokens de CA-10.2, y por el diff de
+  `docs/diseno/` y `globals.css`.
+- **`sdd-producto`**: el **cambio de alcance de EPIC-004** (ADR-026 §6) en su
+  `_epica.md` y en el roadmap. **No es trabajo de esta spec y sin él el ADR y la
+  épica se contradicen desde el día uno.**
+- **`sdd-documentalista`**, tras el GREEN: `src/admin/`, `src/design/` y
+  `public/fonts/` son estructura nueva en `CLAUDE.md`; `migrations/0008`, una
+  migración más; y **F-SPEC-017-3** —cómo se generan `ADMIN_OPERATORS` (el
+  **digest** SHA-256 hex, nunca el secreto) y `ADMIN_SESSION_SECRET`— sigue sin
+  runbook.
 
-**Y una advertencia para quien retome:** el panel **entrega apagado y hay que
-dejarlo así**. `MEASUREMENT_WINDOWS` sigue vacía, `ADMIN_OPERATORS` no existe y
-`ADMIN_SESSION_SECRET` tampoco. Encenderlo es un acto posterior con su propia
-ceremonia (F-SPEC-017-3).
+**Y una advertencia para quien retome, que es la misma de antes y no ha
+cambiado:** el panel **entrega apagado y hay que dejarlo así**.
+`MEASUREMENT_WINDOWS` sigue vacía —se declaró una jornada temporal para la
+comprobación manual y **se revirtió antes de commitear**, verificado en el
+diff—, `ADMIN_OPERATORS` no existe y `ADMIN_SESSION_SECRET` tampoco. Encenderlo
+es un acto posterior con su propia ceremonia.
 
 ---
 
