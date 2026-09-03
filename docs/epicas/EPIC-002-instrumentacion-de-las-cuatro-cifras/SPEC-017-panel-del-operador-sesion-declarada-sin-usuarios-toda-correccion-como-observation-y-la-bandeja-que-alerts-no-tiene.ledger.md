@@ -63,7 +63,7 @@ Las tres preguntas que la spec llevaba al gate, contestadas:
 | CA-7 — el vale de acción: CSRF y cronómetro | `src/admin/ticket.ts` · `src/admin/view/markup.ts` (`ticketField`, `hidden`) | `tests/admin/ticket.test.ts` casos 1-9 | | |
 | CA-8 — la cuarta cifra medible, declarada como cota inferior | `src/admin/ports.ts` (`OperatorActionRecord`) · `src/db/admin.ts` (`PostgresOperatorActionLog`) · `src/admin/handler.ts` (`record`) | `tests/admin/flow.test.ts` casos 6-9 · `tests/db/admin-flow.test.ts` caso 20 (CA-8.3 contra la base) | | |
 | CA-9 — galego por defecto, castellano con paridad, cero literales | `src/i18n/admin-bundle.ts` · `src/i18n/admin.ts` · `src/i18n/gl.ts` y `es.ts` (espacios `admin` y `qualifiers`) | `tests/admin/i18n.test.ts` casos 1-16 · `tests/types/spec017-admin.test-d.ts` (CA-9.1, 9.3, 9.7) · `tests/admin/frontier.test.ts` casos 20-23 (CA-9.2, 9.5) · `tests/site/i18n.test.ts` caso 4 (enmendado) | | |
-| CA-10 — el suelo de interfaz de ADR-025, cumplido y comprobado | **CONGELADO el 2026-09-03** — ver *Cambio de rumbo*. No hay hoja de estilos y el panel entrega marcado semántico sin apariencia decidida | **Ninguno, a propósito.** `tests/admin/view.test.ts` se retiró porque afirmaba lo contrario de lo que ADR-026 va a decir | | ❌ |
+| CA-10 — **REESCRITO 2026-09-03 (ADR-026)**: el sistema de diseño, sobre el suelo de ADR-025, sin heredar lo que el sistema no cumple | **CONGELADO el 2026-09-03** — ver *Cambio de rumbo*. No hay hoja de estilos y el panel entrega marcado semántico sin apariencia decidida | **Ninguno, a propósito.** `tests/admin/view.test.ts` se retiró porque afirmaba lo contrario de lo que ADR-026 va a decir | | ❌ |
 | CA-11 — nace apagado, y la llave es el partido, no el reloj | `src/admin/handler.ts` (`declaredMatches`, el paso 6) · `src/ingest/measurement.ts` (sin tocar: nace vacía) | `tests/admin/flow.test.ts` casos 10-13 | | |
 | CA-12 — lo que el operador ve para poder arbitrar | `src/admin/board.ts` · `src/admin/view/pages.ts` · `src/decide/read-entry.ts` | `tests/admin/board.test.ts` casos 5-10 · `tests/admin/document.test.ts` casos 8-10 | | |
 | CA-13 — puntos de entrada declarados; el panel no le pide nada a nadie | `src/app/(gl)/admin/route.ts` · `src/app/(es)/es/admin/route.ts` · `tests/polite/support/capability.ts` (`ENTRY_POINTS`) | `tests/admin/frontier.test.ts` casos 24-28 | | |
@@ -112,9 +112,9 @@ hacerlas después.
 
 | CA | Captura esperada | Estado |
 |---|---|---|
-| CA-10.7 | Tablero a 360 × 640, con el foco visible sobre el primer control | **CONGELADA** (ADR-026) |
-| CA-10.7 | Formulario de corrección a 360 × 640, con el foco visible y sin scroll horizontal | **CONGELADA** (ADR-026) |
-| CA-10.7 | El paso de confirmación, y la vuelta del foco tras `Escape` | **CONGELADA** (ADR-026) |
+| CA-10.14 | Tablero a 360 × 640, con el foco visible sobre el primer control | **CONGELADA** (ADR-026) |
+| CA-10.14 | Formulario de corrección a 360 × 640, con el foco visible y sin scroll horizontal | **CONGELADA** (ADR-026) |
+| CA-10.14 | El paso de confirmación, y la vuelta del foco tras `Escape` | **CONGELADA** (ADR-026) |
 | CA-12 | El tablero con una alerta abierta arriba y el orden de la cola | Pendiente del verificador |
 
 ## Cambio de rumbo — 2026-09-03: CA-10 queda CONGELADO a la espera de ADR-026
@@ -166,6 +166,58 @@ pinta `provisional` como excepción y en este proyecto `provisional` es el estad
 está construido **sin** apoyarse en esa decisión —se ordena por lo que necesita
 a una persona, no por cualificador (CA-12.3)—, así que la resolución de ADR-026
 no debería obligar a reescribirlo.
+
+### Contestado — ADR-026 escrito, y qué cambia en CA-10 (`sdd-arquitecto`, 2026-09-03)
+
+**Tu punto abierto era el correcto y era el que bloqueaba.** Lo resuelve
+**ADR-026 §2**, en la dirección que suponías: **ninguno de los dos cualificadores
+se apaga**. Los dos van con el color de texto principal, **los dos llevan
+etiqueta** —también `confirmado`, que el sistema deja mudo porque «el normal no se
+anuncia»— y lo que los distingue es el texto, no la falta de color. **Tu tablero
+no se reescribe**: ordenar por lo que necesita a una persona era lo correcto y
+CA-12.3 no cambia. Y **retirar `tests/admin/view.test.ts` fue el juicio correcto**:
+su aserción decía lo contrario de ADR-026 §3.
+
+**CA-10 pasa de 7 a 15 subpuntos**, y lo demás de la spec no cambia. Se pudo
+reescribir porque **la spec no está cerrada** (ADR-015 gobierna las cerradas).
+
+**Corrección al paso 1 de tu plan de retomada, y es importante: `src/design/` NO
+se construye solo de `_tokens.css`.** Al inventariar el artefacto entero
+aparecieron seis hechos que no se sabían, y dos de ellos cambian el trabajo:
+
+1. **`_tokens.css` no lo usa ningún artboard.** Los seis `.dc.html` duplican su
+   `<style>` y escriben hexadecimales en línea. Es un **documento de referencia**,
+   no la definición ejecutable. Por eso ADR-026 §3.2 construye `src/design/` de
+   **tres** fuentes: los 13 colores y 2 familias de `_tokens.css`, **las escalas
+   declaradas en prosa en `Main.dc.html`** (paso de 4 px, radios 8·10·14·999, los
+   cinco roles tipográficos) y **los tres colores en uso sin token** —`#131211`,
+   `#1E1A16`, `#1D1A16`—.
+2. **El sistema no tiene tokens de espaciado, radio, sombra, tamaño ni peso**, y
+   **incumple sus propias escalas** (huecos de 3, 5, 6, 7, 10, 14, 28; radios 7,
+   12, 6). **Se adopta lo declarado, no lo practicado**, y **CA-10.4 declara que
+   esa mitad ningún test la puede comprobar**: ahí la adherencia la sostiene la
+   revisión humana.
+3. **Cero foco, cero teclado, cero componentes de formulario** en los diez
+   ficheros. Tu paso 2 acertaba: **ADR-025 §2 y §3 sobreviven enteros** porque el
+   sistema no cubre nada de lo que ellos cubren. Y **CA-10.15 declara** que los
+   controles del panel **hay que inventarlos dentro del lenguaje del sistema**,
+   que no es lo mismo que aplicarlo.
+4. **`provisional` va solo por color en Móvil y en Global**: el sistema incumple
+   **ADR-013 §2** dentro de sí mismo. **No se hereda** (ADR-026 §4.1) — la
+   etiqueta va siempre, en todas las anchuras.
+5. **`?` y `!` como etiquetas, y `FIN`/`APR`/`DESC` como estados**: intraducibles
+   y fuera de `dominio.md`. **No se heredan** (§4.2, §4.3). Y **`Directo` aparece
+   en siete ficheros** donde `dominio.md` dice *En xogo* (§4.4).
+6. **El botón primario del sistema sale a ≈43 px y la fila compacta a ≈34 px**,
+   con la concesión declarada en voz alta. **Gana ADR-025 §3** (§4.5).
+
+**El `@import` de Google Fonts no llega al código** (§3.5): fuentes autoalojadas,
+solo los pesos que se usan, y **ninguna petición a un tercero desde el navegador
+de quien abre el panel**. Es CA-10.6, y la spec que elija el mecanismo declara la
+dependencia nueva.
+
+**Sigue todo congelado hasta que Alberto Fojo firme ADR-026**, que está en
+`borrador`.
 
 ## Salvedades / follow-ups
 <!-- IDs F-SPEC-017-1, F-SPEC-017-2… con destino (spec futura o EPIC-MEJORA). -->
@@ -291,7 +343,9 @@ verdad: que `qualifiers` **no entra en la paridad del sitio**.
 de **ADR-026**, que va a superseder parcialmente ADR-025 §4 para que el panel
 siga `docs/diseno/`. Cuando esté firmado, lo que hay que hacer es:
 
-1. Escribir la hoja del panel **derivando de `docs/diseno/_tokens.css`** —paleta
+1. Escribir la hoja del panel **derivando del sistema** —y ojo: **de tres
+   fuentes, no solo de `_tokens.css`**, que no lo usa ningún artboard; ver la
+   corrección al paso 1 en *Contestado* y ADR-026 §3.2— —paleta
    oscura, Geist / Geist Mono, `tabular-nums`— en vez de declarar valores
    propios, y engancharla desde `src/admin/view/markup.ts` (`document`), que hoy
    emite el documento **sin ninguna hoja**. Los enganches ya están en el marcado:
@@ -322,3 +376,17 @@ mitad de estilos** por el cambio de rumbo.
 dejarlo así**. `MEASUREMENT_WINDOWS` sigue vacía, `ADMIN_OPERATORS` no existe y
 `ADMIN_SESSION_SECRET` tampoco. Encenderlo es un acto posterior con su propia
 ceremonia (F-SPEC-017-3).
+
+---
+
+**Follow-up que no es de esta spec pero nace de su ADR, anotado aquí para que no
+se pierda:** `sdd-producto` tiene que escribir el **cambio de alcance de
+EPIC-004** en su `_epica.md` y en `docs/roadmap.md` (ADR-026 §6) — salen de ella
+el panel del operador y los tokens como código, **entra** la reparación del
+propio artefacto (escalas como tokens, foco, componentes de formulario, la
+etiqueta de `provisional` en las tres vistas, el vocabulario alineado con
+`dominio.md`), y su **entrada 1 queda cerrada** por ADR-026 §2 mientras la 2, 3,
+4 y 6 siguen abiertas. **Si esa edición no ocurre, el ADR y la épica se
+contradicen desde el día uno**, que es exactamente la patología que hizo nacer a
+EPIC-004. **No es trabajo de `sdd-arquitecto`: las épicas y el roadmap son de
+`sdd-producto`.**
