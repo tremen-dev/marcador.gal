@@ -602,36 +602,93 @@ o se quedan en galego como vocabulario de marca?— la firma el gate (nota §3).
   7. **La paridad se impone con un tipo, no con un test de longitud**: un caso
      afirma que quitar una clave de `es.ts` **no compila**.
 
-- **CA-10 — El suelo de interfaz de ADR-025, cumplido y comprobado (ADR-025,
-  ADR-013 §2, §3, §4, §5, §6, EPIC-004 entrada 3).**
+- **CA-10 — El panel se dibuja con el sistema de diseño, sobre el suelo de
+  ADR-025 (ADR-026, ADR-025 §2, §3, §4.1 y §5, ADR-013 §1..§6, EPIC-004 entradas
+  1, 3 y 5).**
+
+  > **Reescrito el 2026-09-03 por ADR-026**, que supersede parcialmente a
+  > ADR-025 §4. La letra anterior decía que la hoja del panel «no comparte una
+  > línea con `docs/diseno/`»; ahora **deriva de él**. Se puede reescribir porque
+  > **esta spec no está cerrada** — ADR-015 gobierna las cerradas—. Lo que **no**
+  > cambia es el suelo: ADR-025 §2 y §3 siguen enteros, y el sistema de diseño
+  > **no los cubre**, así que no los supersede.
+
   Dado el marcado y la hoja de estilos del panel, entonces:
-  1. **Foco visible**: la hoja declara `:focus-visible` con indicador de ≥ 2 px y
-     contraste ≥ 3:1 contra su fondo, calculado en el test y **no estimado**; y no
-     existe ningún `outline: none` sin sustituto. Control positivo: quitar el
-     sustituto pone rojo un caso.
-  2. **Toque ≥ 44 × 44 px** en todo control interactivo, con el valor como
-     **constante nombrada en un solo sitio**, y campos de texto con fuente ≥ 16 px.
-  3. **Ningún estado ni cualificador se distingue solo por color** (ADR-013 §2): un
+  1. **Los tokens son código y tienen un solo domicilio** (ADR-026 §3.1). Existe
+     `src/design/` con la definición única, y **el panel no declara ni un color,
+     ni una familia tipográfica, ni un radio, ni un valor de escala por su
+     cuenta**: los toma de ahí. Un caso recorre la hoja del panel y afirma que
+     **todo valor de color y de familia es una referencia a un token**, no un
+     literal. Control positivo: escribir un `#rrggbb` en la hoja pone rojo un caso
+     nombrado.
+  2. **Paridad comprobada con el sistema, y divergencias declaradas**
+     (ADR-026 §3.2). Un caso afirma, **token a token**, que el valor del código es
+     el valor de `docs/diseno/_tokens.css`, contra una **tabla de correspondencia
+     declarada** (nombre en código → nombre en el sistema) y una **lista cerrada de
+     divergencias, cada una con su motivo al lado** —la forma de
+     `MEASUREMENT_WINDOWS` y `ALLOWED_PACKAGES`—. **Un token del sistema que no
+     esté ni copiado ni declarado como divergencia es rojo.** Controles positivos:
+     cambiar un valor en el código sin declararlo pone rojo un caso; vaciar la
+     tabla de correspondencia pone rojo otro.
+  3. **Las divergencias son exactamente las tres que ADR-026 §3.3 motiva, y
+     ninguna más**: `--fg-prov` no existe en el código, no hay `@import` de
+     fuentes, y los nombres de token están **en inglés** —`CLAUDE.md` §Lenguas, y
+     porque `--directo` perpetuaría la etiqueta que `dominio.md` retiró el
+     2026-09-03—. Un caso afirma la lista entera.
+  4. **`docs/diseno/` no se edita** (ADR-026 §3.6): sigue siendo artefacto de
+     EPIC-004, que está congelada. El verificador lo comprueba en el diff.
+  5. **Las fuentes se autoalojan; el panel no le pide nada a ningún tercero**
+     (ADR-026 §3.4). Un caso afirma que **ni la hoja ni el marcado nombran
+     `fonts.googleapis.com`, `fonts.gstatic.com` ni ningún otro host externo**, y
+     que no hay ningún `@import` de una URL. Es la misma afirmación que CA-13.2
+     hace sobre el grafo, en la otra capa: **el panel no genera ninguna petición a
+     un tercero, ni desde el servidor ni desde el navegador de quien lo abre.**
+  6. **Ningún cualificador se distingue apagándolo** (ADR-026 §2, ADR-013 §6). Un
+     caso afirma que `provisional` y `confirmado` se sirven **con el mismo color de
+     texto** —el principal— y que lo que los distingue es **la etiqueta**, siempre
+     presente. Y afirma que **ningún color que porte un dato o un cualificador baja
+     de 4.5:1** sobre su fondo, **calculado en el test y no estimado**. Control
+     positivo: apagar uno de los dos pone rojo un caso nombrado. **Es la entrada 1
+     del inventario de EPIC-004, contestada antes de escribir la primera línea de
+     CSS.**
+  7. **Foco visible** (ADR-025 §2, que **el sistema de diseño no cubre** — entrada
+     3 del inventario): la hoja declara `:focus-visible` con indicador de ≥ 2 px y
+     contraste ≥ 3:1 contra su fondo, calculado en el test y **no estimado**; no
+     existe ningún `outline: none` sin sustituto; ningún `tabindex` positivo; y
+     `Escape` sale del paso de confirmación devolviendo el foco al control que lo
+     abrió. Control positivo: quitar el sustituto pone rojo un caso.
+  8. **Toque ≥ 44 × 44 px** en todo control interactivo, con el valor como
+     **constante nombrada en un solo sitio**, y campos de texto con fuente ≥ 16 px
+     (ADR-025 §3, que el sistema tampoco cubre).
+  9. **Ningún estado ni cualificador se distingue solo por color** (ADR-013 §2): un
      caso recorre el árbol renderizado y afirma que para **cada** estado y **cada**
-     cualificador presente hay un nodo de texto que lo nombra.
-  4. **Dígitos tabulares** en marcador, hora y minuto (ADR-013 §3).
-  5. **Ninguna imagen**: el panel no renderiza ningún `<img>` ni ningún fondo de
-     imagen (ADR-013 §4 y §5, y `FOUNDATION.md`, no-negociable).
-  6. **La hoja del panel no comparte una línea con `src/app/globals.css` ni con
-     `docs/diseno/`** (ADR-025 §4): vive en un fichero propio, se alcanza solo desde
-     las rutas del panel, declara sus propios valores, y **`src/app/globals.css` y
-     `docs/diseno/` no se editan** — un caso afirma que ningún módulo de
-     `src/admin/` importa CSS de fuera de sí mismo, y el verificador comprueba en el
-     diff que los dos siguen intactos.
-  7. **La mitad que ningún test ve, comprobada a mano y con captura**
-     (ADR-025 §5): a **360 × 640**, el tablero y una corrección se recorren **solo
-     con teclado** —llegar, activar, escribir, enviar, cancelar con `Escape`—, con
-     **el foco visible en cada parada**, sin desplazamiento horizontal del cuerpo, y
-     las capturas van a `_qa/SPEC-017/`. **Declarado dentro del criterio
-     (ADR-016 §6): los subpuntos 1–6 son estáticos y no ven un diseño calculado;
-     éste es el único que ve el navegador, y lo hace una persona.** Automatizarlo es
-     una spec propia. **Destino: spec futura; disparador: la primera spec que
-     construya la interfaz del marcador** (ADR-025 §5).
+     cualificador presente hay un nodo de texto que lo nombra. **Dígitos
+     tabulares** en marcador, hora y minuto (ADR-013 §3). **Ninguna imagen**: el
+     panel no renderiza ningún `<img>` ni ningún fondo de imagen (ADR-013 §4 y §5,
+     y `FOUNDATION.md`, no-negociable).
+  10. **La hoja es propia y `src/app/globals.css` no se edita** (ADR-025 §4.1
+      **intacto**, y lo que sobrevive de §4.2): la hoja del panel vive en un
+      fichero suyo, se alcanza **solo** desde las rutas del panel, y **no deriva de
+      `globals.css`**. Un caso afirma que ningún módulo de `src/admin/` importa CSS
+      de `src/app/` ni de `src/site/`; el verificador comprueba en el diff que
+      `globals.css` sigue intacto.
+  11. **La mitad que ningún test ve, comprobada a mano y con captura**
+      (ADR-025 §5, **intacto**): a **360 × 640**, el tablero y una corrección se
+      recorren **solo con teclado** —llegar, activar, escribir, enviar, cancelar
+      con `Escape`—, con **el foco visible en cada parada**, sin desplazamiento
+      horizontal del cuerpo, y las capturas van a `_qa/SPEC-017/`. **Declarado
+      dentro del criterio (ADR-016 §6): los subpuntos 1–10 son estáticos y no ven
+      un diseño calculado; éste es el único que ve el navegador, y lo hace una
+      persona.** **Destino: spec futura; disparador: la primera spec que construya
+      la interfaz del marcador** (ADR-025 §5).
+  12. **Residuo declarado dentro del criterio** (ADR-016 §6, obligatorio): **el
+      sistema de diseño no trae componentes de formulario ni estados de foco**, y
+      el panel es todo formularios. Lo que se hereda es el **lenguaje** —paleta,
+      tipografía, escala, densidad—; **los controles hay que inventarlos dentro de
+      ese lenguaje, y eso no es aplicar un sistema, es extenderlo**. Este criterio
+      **no promete** que el panel salga dibujado del sistema, solo que no se aparte
+      de él. **Destino: EPIC-004**, cuya entrada 3 sigue abierta sobre el
+      artefacto; **disparador: el deshielo.**
 
 - **CA-11 — El panel nace apagado, y la llave es el partido, no el reloj
   (ADR-024 §9, ADR-019 §3, ADR-020 §2).**

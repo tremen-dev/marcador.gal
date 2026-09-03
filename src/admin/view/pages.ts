@@ -1,24 +1,24 @@
 /**
- * The four screens of the panel (SPEC-017 CA-9, CA-10, CA-12; ADR-025).
+ * The four screens of the panel (SPEC-017 CA-9, CA-12; ADR-013).
  *
  * The panel is a WORK QUEUE, so it is ordered by what needs a person and not
- * by qualifier (CA-12.3), and it is dense: everything on one screen, tabular
- * digits, readable on a phone with bad coverage (D-8, ADR-013 §3).
+ * by qualifier (CA-12.3), and it is dense: everything on one screen (D-8).
  *
- * EVERY STATE AND EVERY QUALIFIER IS A TEXT NODE THAT NAMES IT (ADR-013 §2,
- * CA-10.3). Nothing here is told apart by colour; there is no colour to tell
- * anything apart by.
+ * EVERY STATE AND EVERY QUALIFIER IS A TEXT NODE THAT NAMES IT (ADR-013 §2).
+ * Nothing here is told apart by colour; there is no colour to tell anything
+ * apart by.
  *
- * THE ONLY SCRIPT OF THIS PROJECT LIVES HERE, AND IT IS EIGHT LINES OF
- * PROGRESSIVE ENHANCEMENT. ADR-025 §2.5 asks that, if there is a step of
- * confirmation, `Escape` leaves it and gives the focus back to the control
- * that opened it. Every form of this panel WORKS WITH NO JAVASCRIPT AT ALL —
- * it is a plain `POST` form with a visible cancel link — and the script only
- * adds the `Escape` gesture on top: it clears the form being written and moves
- * the focus to that form's own cancel link. With the script off, the cancel
- * link is still there, still reachable with the keyboard, and still visible on
- * focus. Nothing here traps the focus, because there is nothing modal to trap
- * it in.
+ * APPEARANCE IS NOT DECIDED HERE, AND THAT IS THE COURSE CORRECTION OF
+ * 2026-09-03: `docs/diseno/` becomes the design system of the panel too
+ * (Alberto Fojo), ADR-025 §4.2 and §4.3 are going to be superseded in part by
+ * ADR-026, and CA-10 of SPEC-017 is FROZEN until that ADR is signed. So this
+ * module emits SEMANTIC MARKUP AND NOTHING ELSE: no stylesheet, no script, no
+ * colour, no typography, no invented token.
+ *
+ * Every form works with NO JAVASCRIPT AT ALL — a plain `POST` form with a
+ * visible cancel link — and nothing here traps the focus, because there is
+ * nothing modal to trap it in. The `Escape` gesture of ADR-025 §2.5 travels
+ * with CA-10 and is frozen with it.
  */
 import { MATCH_STATUSES } from '@/model/match';
 import {
@@ -83,28 +83,6 @@ export type TicketFor = (action: AdminAction, target: string) => string;
 export interface PanelPaths {
   /** The panel's own address: `/admin` or `/es/admin` (CA-9.2). */
   readonly root: string;
-}
-
-/**
- * `Escape` cancels what is being written and returns the focus to the cancel
- * link of the same form (ADR-025 §2.5). Enhancement only: everything works
- * without it.
- */
-const ESCAPE_SCRIPT = `
-document.addEventListener('keydown', function (event) {
-  if (event.key !== 'Escape') return;
-  var target = event.target;
-  if (!target || !target.closest) return;
-  var owner = target.closest('form');
-  if (!owner) return;
-  owner.reset();
-  var back = owner.querySelector('[data-cancel]');
-  if (back) back.focus();
-});
-`;
-
-function scriptTag(): string {
-  return `<script>${ESCAPE_SCRIPT}</script>`;
 }
 
 /** The way in. NOTHING of the database is read to render this (CA-1). */
@@ -205,7 +183,6 @@ export function boardPage(locale: AdminLocale, view: BoardView): string {
       view.notice === null ? '' : noticeBlock(view.notice),
       board,
       trayBlock(locale, view.tray, view.ticketFor),
-      scriptTag(),
     ].join(''),
   );
 }
@@ -260,7 +237,7 @@ function trayBlock(locale: AdminLocale, tray: AlertTray, ticketFor: TicketFor): 
   ]);
 }
 
-/** The keyboard cancel of ADR-025 §2.3 and §2.5. Always present, never modal. */
+/** The cancel of a form: a plain link, always present and never modal. */
 function cancelLink(locale: AdminLocale): string {
   return cancel(pathsOf(locale).root, adminBundle(locale).formCancel);
 }
@@ -418,7 +395,6 @@ export function detailPage(locale: AdminLocale, view: DetailView): string {
       heading(2, bundle.detailDecisions),
       decisions,
       link(paths.root, bundle.detailBack),
-      scriptTag(),
     ].join(''),
   );
 }

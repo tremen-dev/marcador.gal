@@ -40,7 +40,10 @@ describe('CA-1.7 — el secreto y el catálogo solo los nombra el módulo declar
     expect(paths.length).toBeGreaterThan(8);
     expect(paths).toContain('src/admin/session.ts');
     expect(paths).toContain('src/admin/handler.ts');
-    expect(paths).toContain('src/admin/view/styles.ts');
+    expect(paths).toContain('src/admin/view/markup.ts');
+    // `src/admin/view/styles.ts` NO está, y es una decisión del 2026-09-03:
+    // CA-10 quedó CONGELADO a la espera de ADR-026, que va a superseder
+    // parcialmente ADR-025 §4 para que el panel siga `docs/diseno/`.
   });
 
   test('2. los nombres vigilados salen del MÓDULO, nunca de una copia del test', () => {

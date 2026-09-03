@@ -280,7 +280,7 @@ describe('CA-6.3 — ninguna columna puede albergar un identificador de PERSONA'
         .map((entry) => entry.column)
         .sort();
 
-      expect(actual, table).toEqual(declared);
+      expect(actual, `${table}`).toEqual(declared);
     }
   });
 
@@ -397,7 +397,9 @@ describe('CA-4.3 — `migrations/0008` NO añade ninguna columna al modelo canó
     };
 
     for (const [table, columns] of Object.entries(expected)) {
-      expect((await columnsOf(table)).map((column) => column.name), table).toEqual([...columns]);
+      expect((await columnsOf(table)).map((column) => column.name), `${table}`).toEqual([
+        ...columns,
+      ]);
     }
   });
 

@@ -1,5 +1,5 @@
 /**
- * The panel's markup (ADR-025, ADR-013, SPEC-017 CA-10, CA-9).
+ * The panel's markup (SPEC-017 CA-9, CA-12; ADR-013).
  *
  * EVERY VISIBLE STRING THAT ENTERS HERE IS AN `AdminText`, and the only
  * producer of an `AdminText` is `src/i18n/admin.ts` (CA-9.3). A literal in
@@ -17,19 +17,29 @@
  *
  * NOTHING IS TOLD APART BY COLOUR (ADR-013 §2), and here in its strongest
  * form: no state and no qualifier is painted at all. Every one of them is a
- * TEXT NODE that names it, out of the shared bundles — and a case walks the
- * rendered tree and asserts exactly that (CA-10.3).
+ * TEXT NODE that names it, out of the shared bundles.
  *
  * NO IMAGE IS RENDERED (ADR-013 §4 and §5, FOUNDATION.md, non-negotiable):
- * there is no `<img>` and no background image in this module or in the sheet.
+ * there is no `<img>` in this module.
  *
- * AND THE STYLESHEET GOES INLINE. It is the strictest reading of «alcanzable
- * solo desde sus propias rutas» (ADR-025 §4.2): there is no URL that serves
- * it, so nothing outside the panel can reach it even by accident. It also
- * means the panel's document loads NOTHING — no font, no script, no
- * stylesheet, no image — which is D-8 in the place where D-8 was written for.
+ * THERE IS NO STYLESHEET HERE, AND THAT IS A DECISION OF 2026-09-03, NOT AN
+ * OVERSIGHT. The panel ships SEMANTIC MARKUP WITH NO APPEARANCE DECIDED — no
+ * colour, no typography, no invented token — because Alberto Fojo ruled that
+ * `docs/diseno/` is the design system of the project and that the operator's
+ * panel follows it too. That contradicts ADR-025 §4.2 and §4.3, which forbade
+ * a measurement interface from deriving or copying anything of
+ * `docs/diseno/`, and `sdd-arquitecto` is writing **ADR-026** to supersede
+ * that point in part. CA-10 of SPEC-017 IS FROZEN until it is signed: writing
+ * a palette now would be writing a palette to throw away, and — worse — it
+ * would leave assertions in the suite saying the OPPOSITE of what ADR-026 is
+ * going to say.
+ *
+ * What survives untouched is everything that is rule and not style: ADR-013
+ * entire (no state told apart by colour alone, tabular digits, no crest, no
+ * club palette, ≥ 4.5:1), and the markup below already satisfies the part of
+ * it that markup can satisfy — every state and every qualifier is a TEXT NODE
+ * that names it, and no `<img>` is rendered anywhere.
  */
-import { PANEL_STYLESHEET } from './styles';
 import { TICKET_FIELD } from '../ticket';
 import type { AdminText } from '@/i18n/admin';
 
@@ -48,7 +58,7 @@ export function text(value: AdminText): string {
   return escape(value);
 }
 
-/** The panel's document. It loads nothing from anywhere. */
+/** The panel's document. It loads NOTHING: no stylesheet, no script, no font. */
 export function document(locale: string, title: AdminText, body: string): string {
   return [
     '<!doctype html>',
@@ -58,7 +68,6 @@ export function document(locale: string, title: AdminText, body: string): string
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
     '<meta name="robots" content="noindex, nofollow">',
     `<title>${text(title)}</title>`,
-    `<style>${PANEL_STYLESHEET}</style>`,
     '</head>',
     '<body>',
     '<main>',
@@ -97,7 +106,7 @@ export function row(cells: readonly string[]): string {
   return `<tr>${cells.join('')}</tr>`;
 }
 
-/** The one wide element of the panel, inside its own horizontal scroller. */
+/** The one wide element of the panel. `scroller` is a hook, not an appearance. */
 export function table(head: string, body: readonly string[]): string {
   return `<div class="scroller"><table><thead>${head}</thead><tbody>${body.join(
     '',
@@ -109,9 +118,9 @@ export function link(href: string, value: AdminText): string {
 }
 
 /**
- * The cancel of a form: a plain link, ALWAYS PRESENT and always reachable with
- * the keyboard (ADR-025 §2.3). `data-cancel` is what the `Escape` enhancement
- * gives the focus back to; without the script it is still a link that leaves.
+ * The cancel of a form: a plain link, ALWAYS PRESENT and reachable with the
+ * keyboard because it is a link and nothing else. `data-cancel` marks it for
+ * whatever CA-10 decides once ADR-026 is signed; today it decides nothing.
  */
 export function cancel(href: string, value: AdminText): string {
   return `<a href="${escape(href)}" data-cancel>${text(value)}</a>`;

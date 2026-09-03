@@ -456,7 +456,7 @@ describe('CA-4.1 — RN-12: la cadena llega hasta el operador Y SU MOTIVO', () =
 
     for (const table of ['observations', 'decisions', 'alert_acks', 'operator_actions']) {
       const rows = await sql.unsafe<Record<string, unknown>[]>(`select * from ${table}`);
-      expect(JSON.stringify(rows), table).not.toContain(OPERATOR_ONE);
+      expect(JSON.stringify(rows), `${table}`).not.toContain(OPERATOR_ONE);
     }
   });
 });
