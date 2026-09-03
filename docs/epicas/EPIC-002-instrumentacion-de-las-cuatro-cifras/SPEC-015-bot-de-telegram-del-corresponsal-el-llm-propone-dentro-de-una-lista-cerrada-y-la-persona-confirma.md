@@ -9,6 +9,8 @@ historial:
   - {estado: aprobada, fecha: 2026-09-03, por: Alberto Fojo}
   - {estado: en-progreso, fecha: 2026-09-03, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-09-03, por: sdd-implementador}
+  - {estado: en-progreso, fecha: 2026-09-03, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-09-03, por: sdd-implementador}
 ---
 # SPEC-015 — Bot de Telegram del corresponsal: el LLM propone dentro de una lista cerrada y la persona confirma
 
