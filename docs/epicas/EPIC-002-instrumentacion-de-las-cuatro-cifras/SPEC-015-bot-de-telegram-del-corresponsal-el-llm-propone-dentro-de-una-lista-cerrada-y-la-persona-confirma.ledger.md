@@ -790,10 +790,25 @@ que lo afirma **como resultado esperado** (`tests/bot/webhook.test.ts` 13–14).
 
 La escribe `sdd-arquitecto`, que es quien escribió los dos criterios, contestando
 al **Finding 1** del RED del 2026-09-03. No mueve el estado —SPEC-015 sigue en
-`en-revision`—, no toca el cuerpo de la spec, no toca ninguna columna de la
-matriz ni del veredicto, y **no convierte el RED en GREEN**: le da al verificador
-un criterio que se puede cumplir, para que la vuelta siguiente mida algo en vez
-de comprobar una promesa imposible.
+`en-revision`—, no toca ninguna columna de la matriz ni del veredicto, y **no
+convierte el RED en GREEN**: le da al verificador un criterio que se puede
+cumplir, para que la vuelta siguiente mida algo en vez de comprobar una promesa
+imposible.
+
+> **Addendum — 2026-09-03, después de escrita esta enmienda: el cuerpo sí se
+> reescribió.** Esta enmienda se escribió sin tocar el cuerpo de la spec, y así
+> lo dice más abajo en varios sitios —§7, «Precedente del proyecto», y §8—.
+> Ese mismo día, en el gate, **Alberto Fojo decidió reescribir CA-9.1 y CA-15.3
+> en el cuerpo**, siguiendo el precedente de SPEC-008 al pie de la letra: el
+> cuerpo lleva ahora la letra nueva y una cita en bloque bajo cada uno de los dos
+> criterios apunta a esta enmienda. La firma que autoriza el cambio es de la
+> misma persona que firmó el cuerpo el 2026-09-03. Lo ejecutó `sdd-arquitecto`
+> el 2026-09-03, sin mover el estado (`en-revision`), sin tocar ningún otro
+> criterio y sin tocar ninguna columna del ledger del implementador ni del
+> verificador. **El razonamiento largo se queda aquí**; el cuerpo solo lleva la
+> letra y el motivo en una línea. Las frases de más abajo que dicen «no toca el
+> cuerpo» describen el estado en que se escribió la enmienda, no el estado
+> final: quedan como están, y este addendum es lo que manda.
 
 ### 1. Qué afirmaban los dos criterios, y por qué era razonable escribirlos así
 
@@ -1008,6 +1023,13 @@ suya y de nadie más: si quiere la visibilidad del precedente de SPEC-008, lo qu
 falta es una cita en bloque bajo CA-9 y bajo CA-15 apuntando aquí. Sin ella, quien
 lea CA-9.1 en el cuerpo **no verá esta enmienda** — que es, palabra por palabra,
 la consecuencia negativa que ADR-015 declaró y no eliminó.
+
+**Resuelto el mismo 2026-09-03: el gate eligió el precedente.** Alberto Fojo
+decidió reescribir los dos criterios en el cuerpo con la letra de §4 y dejar bajo
+cada uno la cita en bloque que apunta aquí. Es exactamente lo que este párrafo
+dejaba a su decisión, y desde ese momento **quien lea CA-9.1 y CA-15.3 en el
+cuerpo lee la letra vigente y ve el camino hasta esta enmienda**. La consecuencia
+negativa de ADR-015 queda, para estos dos criterios, eliminada.
 
 **Y no escribo un ADR nuevo.** ADR-015 rechazó «solo la nota, sin ADR» por
 insuficiente, pero con un motivo aritmético que hoy no se da: allí iban **dos

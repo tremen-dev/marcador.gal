@@ -580,9 +580,29 @@ sostiene el plazo de ADR-023.
   F-SPEC-013-11).**
   Dado el fichero nuevo de `src/decide/` con la entrada estrecha,
   entonces:
-  1. `src/bot/` **no está** en `DECISION_WRITERS`, y la suite cerrada
-     `tests/decide/rn08-frontier.test.ts` (SPEC-013 CA-13) pasa **sin tocar una
-     aserción**. El verificador lo comprueba en el diff.
+  1. **La frontera de RN-08 no se ensancha, y se mide con una sonda, no con el
+     diff.** `src/bot/` **no está** en `DECISION_WRITERS`;
+     `tests/decide/support/rn08.ts` —donde viven `DECISION_WRITERS`,
+     `DECISION_CAPABILITY_NAMES` y los tres mecanismos— **no cambia ni una
+     línea**; y la suite cerrada `tests/decide/rn08-frontier.test.ts` (SPEC-013
+     CA-13) pasa entera **sin más cambio que el crecimiento de un censo
+     derivado**: la enumeración del caso 10, con su motivo escrito en el mismo
+     diff (ADR-016 §3.2). Y el verificador **no lo comprueba solo en el diff**:
+     lo comprueba con una **sonda, que no es opcional** —un fichero de `src/bot/`
+     que importe `PostgresDecisionStore` tiene que poner **rojos los casos 3 y
+     10**—.
+
+     > *Sustituye, el 2026-09-03, al CA-9.1 que Alberto Fojo firmó esa misma
+     > mañana; el cuerpo se reescribe por decisión suya en el gate de ese día,
+     > siguiendo el precedente de SPEC-008. Motivo en una línea: el texto
+     > anterior exigía que la suite pasara «sin tocar una aserción», y el §5 de
+     > esta misma spec —el fichero nuevo bajo `src/decide/` que compone el
+     > `EnginePorts`— obliga al censo derivado del caso 10 a crecer, así que
+     > pedía dos cosas incompatibles. El texto anterior, la demostración de no
+     > satisfacibilidad, las alternativas rechazadas y la medición están en el
+     > ledger: «Enmienda — 2026-09-03: CA-9.1 y CA-15.3 piden algo que el §5 de
+     > esta misma spec no puede dar» §2, §3 y §4. **CA-9.2..CA-9.6 no se
+     > tocan.***
   2. El tipo de retorno de la entrada estrecha **no contiene ningún almacén**:
      ni `DecisionStore`, ni `AlertStore`, ni `EnginePorts`, ni `CyclePorts`. Un
      caso lo afirma sobre el **tipo** publicado por el compilador.
@@ -731,12 +751,33 @@ sostiene el plazo de ADR-023.
   2. `npm test` y `npm run test:db` pasan enteros. Sin `DATABASE_URL_TEST`, los
      criterios con base son **UNMET, no *skipped***.
   3. **Las suites cerradas de SPEC-008, SPEC-009, SPEC-010, SPEC-011, SPEC-012 y
-     SPEC-013 pasan sin tocar una sola aserción**, con **una** excepción prevista y
-     acotada: la entrada nueva en la lista de lo permitido de salida (CA-5.5) y la
-     entrada de `migrations/0007` en las aserciones que enumeran migraciones. Las
-     dos son **crecimiento con motivo escrito en el mismo diff** (ADR-016 §3.2), no
-     relajación de forma. Cualquier otra desviación es RED, y el precedente de
+     SPEC-013 pasan sin tocar una sola aserción**, salvo desviación admisible. Y
+     una desviación es admisible si, y solo si, se cumplen **las cuatro**
+     condiciones a la vez: (a) es el crecimiento de un **censo derivado** —una
+     lista cuyo valor esperado es función de lo que hay en el repositorio y
+     podría recalcularse en vez de escribirse: las migraciones en disco, las
+     rutas de `src/app/`, los ficheros que cruzan un nombre vigilado—; (b)
+     **ninguna lista de frontera se toca** —`DECISION_WRITERS`,
+     `DECISION_CAPABILITY_NAMES`, `ALLOWED_*`, `LLM_CALLERS`,
+     `CORRESPONDENT_MAP_READERS`—; (c) **ninguna aserción se debilita, se borra
+     ni se vuelve condicional**; y (d) **el motivo está escrito en el mismo
+     diff** (ADR-016 §3.2). Cualquier otra desviación es RED, y el precedente de
      cómo se enmienda una aserción derivada está en F-SPEC-011-1.
+
+     > *Sustituye, el 2026-09-03, al CA-15.3 que Alberto Fojo firmó esa misma
+     > mañana; el cuerpo se reescribe por decisión suya en el gate de ese día,
+     > siguiendo el precedente de SPEC-008. Motivo en una línea: el texto
+     > anterior **enumeraba** dos desviaciones previstas y esa lista nació
+     > incompleta —falta `src/decide/engine-entry.ts` en el censo del caso 10,
+     > que el §5 hace inevitable, y falta el punto de entrada del webhook en
+     > `ENTRY_POINTS`—, de modo que se sustituye la enumeración por la **regla**
+     > que la enumeración quería decir. El texto anterior, las tres desviaciones
+     > que esta entrega sí declara y la corrección de hecho —**la desviación de
+     > CA-5.5 no ha ocurrido**, y no se cuente como hecha— están en el ledger:
+     > «Enmienda — 2026-09-03: CA-9.1 y CA-15.3 piden algo que el §5 de esta
+     > misma spec no puede dar» §4. **CA-15.1, CA-15.2 y CA-15.4 no se tocan**, y
+     > la barra no baja: (b) y (c) prohíben hoy, escrito, lo que antes solo
+     > estaba implícito.*
   4. `migrations/0007` se aplica en orden sobre una base con 0001..0006, y sus
      tres tablas quedan con los `CHECK` que los criterios afirman.
 
