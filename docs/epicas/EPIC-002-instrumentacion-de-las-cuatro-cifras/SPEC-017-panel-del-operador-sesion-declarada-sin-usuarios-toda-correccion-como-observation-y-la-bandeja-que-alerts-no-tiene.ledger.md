@@ -6,20 +6,45 @@ epica: EPIC-002
 # Ledger — SPEC-017 Panel del operador: sesión declarada sin usuarios, toda corrección como `Observation`, y la bandeja que `alerts` no tiene
 
 ## Resumen
-- Fase: **`borrador`** — escrita por `sdd-arquitecto` el 2026-09-03, **pendiente
-  del gate humano**. La fuente de verdad es el frontmatter de la spec.
+- Fase: **`aprobada`** — escrita por `sdd-arquitecto` el 2026-09-03 y **firmada
+  por Alberto Fojo el 2026-09-03**. La fuente de verdad es el frontmatter de la
+  spec. **Lista para `sdd-implementador`.**
 - Rama: `ft/SPEC-017-panel-do-operador`
-- ADRs que trae, los dos en `borrador`:
+- ADRs que trae, los dos **todavía en `borrador`**: su firma se pide aparte y
+  **no bloquea** que la implementación empiece por los criterios que no dependen
+  de ellos — pero **CA-1, CA-7, CA-8, CA-10 y CA-11 los ejecutan literalmente**,
+  así que conviene tenerlos firmados antes de escribirlos.
   - **ADR-024** — el panel: sesión declarada sin sistema de usuarios, el vale de
     acción, toda operación como `Observation` por la puerta estrecha, la bandeja,
     el registro de operación y la llave de la jornada.
   - **ADR-025** — el suelo de interfaz mientras EPIC-004 está congelada: foco
     visible, teclado, toque de 44 px, y estilos que no comparten una línea con
     `globals.css`.
-- **Precondición de una sola parte:** CA-9.6 (los cuatro cualificadores en
-  castellano) **no se implementa hasta que el gate firme la nota §3 de la spec** y
-  `sdd-arquitecto` escriba la fila en `docs/fundacion/dominio.md`. Los otros doce
-  criterios avanzan sin eso.
+- **Precondición de CA-9.6 — CUMPLIDA el 2026-09-03.** El gate firmó la nota §3
+  de la spec: **los cuatro cualificadores se traducen al castellano**, descartando
+  dejarlos en galego como vocabulario de marca. `sdd-arquitecto` escribió ese
+  mismo día la tabla en `docs/fundacion/dominio.md` —dos columnas nuevas, *Literal
+  galego* y *Literal castellano*, con la forma de la tabla de estados— y la nota
+  fechada que la explica. **CA-9.6 deja de estar bloqueado y el cuerpo de la spec
+  no cambia**: el criterio ya rutaba al glosario, que es donde ahora está la
+  respuesta.
+
+## Respuestas del gate humano — 2026-09-03 (Alberto Fojo)
+
+Las tres preguntas que la spec llevaba al gate, contestadas:
+
+1. **¿Se traducen los cuatro cualificadores al castellano? → SÍ.** Ver arriba.
+   *Provisional* y *Confirmado* quedan idénticos en las dos lenguas; *Pendente de
+   confirmar* → **Pendiente de confirmar**; *Sen sinal* → **Sin señal**. Los
+   **identificadores** de `MATCH_QUALIFIERS` **siguen en galego** (SPEC-001 CA-8):
+   lo que gana forma castellana es el literal, nunca la clave.
+2. **¿El hallazgo del runbook sale a EPIC-MEJORA o se cierra aquí? → Se cierra
+   aquí, en CA-3.8.** La misma línea cubre `corresponsal/` y `operador/`, y así la
+   purga del archivo del bot deja de depender de que alguien recuerde un prefijo
+   que no está escrito en ninguna parte.
+3. **La sesión de ADR-024 §3 y partir la decisión en dos ADR → sin objeción.** El
+   juicio de `sdd-arquitecto` queda en pie en los dos casos. El disparador de
+   reapertura de la sesión sigue escrito y sin cambios: **el segundo operador**.
 
 ## Matriz de criterios de aceptación
 <!-- Escritores: sdd-implementador rellena Implementado y Test; sdd-verificador rellena Verif. y Estado. Nunca al revés. -->
@@ -108,31 +133,28 @@ cuerpo de la spec** y no es un hallazgo sino una decisión con disparador escrit
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
 
-**Estado al 2026-09-03.** Escritos y commiteados en `ft/SPEC-017-panel-do-operador`:
-la spec, este ledger, **ADR-024** y **ADR-025**. Los tres frontmatter están en
-`borrador`. **No se ha tocado ni una línea de `src/` ni de `tests/`**, y no debe
-tocarse hasta que el gate firme.
+**Estado al 2026-09-03, después del gate.** En `ft/SPEC-017-panel-do-operador`:
+la spec (**`aprobada`**), este ledger, **ADR-024** y **ADR-025** (los dos en
+`borrador`, firma pedida aparte), y la tabla de cualificadores en
+`docs/fundacion/dominio.md`. **No se ha tocado ni una línea de `src/` ni de
+`tests/`**: eso es del implementador.
 
-**Lo que espera al humano (Alberto Fojo), por orden de lo que bloquea:**
+**Lo que sigue esperando al humano, y ya no bloquea la implementación entera:**
+la firma de **ADR-024 y ADR-025**. CA-1, CA-7, CA-8, CA-10 y CA-11 los ejecutan
+literalmente, así que el implementador debería empezar por los peldaños 1, 3 y 4
+del orden de abajo si los ADR siguen sin firmar.
 
-1. **Firmar o tumbar la spec y los dos ADR.** Sin eso no empieza nada.
-2. **Contestar la pregunta de lengua de la nota §3**: ¿los cuatro cualificadores se
-   traducen al castellano, o se quedan en galego? **Bloquea solo CA-9.6.** Si la
-   respuesta es «traducir», `sdd-arquitecto` escribe la fila en
-   `docs/fundacion/dominio.md` **antes** de que la implementación empiece.
-3. **Mirar la sesión con lupa** (nota §2). Es lo más débil del proyecto delante de
-   la superficie con más poder, y las tres alternativas están rechazadas con motivo
-   en ADR-024. Si el juicio no te convence, el cambio es de ADR-024 §3 y de CA-1.
-
-**Si el gate firma, el orden de implementación que propongo** —y el motivo es que
-cada peldaño se pueda verificar solo—:
+**El orden de implementación que propongo** —y el motivo es que cada peldaño se
+pueda verificar solo—:
 
 1. `migrations/0008` y `src/db/admin.ts` (CA-6.1, CA-6.2, CA-6.3).
 2. `src/admin/session.ts` y `ticket.ts`, con sus fronteras (CA-1, CA-7).
 3. `redact.ts`, `archive.ts`, `observation.ts`, `actions.ts` (CA-2, CA-3, CA-4).
 4. El motor por la puerta estrecha y los escenarios contra la base (CA-5).
 5. La bandeja (CA-6.4 a CA-6.8) y el tablero (CA-12).
-6. i18n (CA-9, salvo 9.6 hasta que haya firma), vista y estilos (CA-10.1 a 10.6).
+6. i18n **entero, CA-9.6 incluido** —los literales castellanos ya están en
+   `dominio.md` y se copian de ahí, no se inventan—, vista y estilos (CA-10.1 a
+   10.6).
 7. `ENTRY_POINTS` y la contención (CA-13), la llave de la jornada (CA-11), el
    registro de operación (CA-8).
 8. La comprobación manual con navegador (CA-10.7) y las capturas.

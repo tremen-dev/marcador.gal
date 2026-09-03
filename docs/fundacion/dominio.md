@@ -74,14 +74,56 @@ Nota de norma, del mismo dictamen: **`aprazar`/`Aprazado`**, no *adiar*
 puerta—, así que el estado se muestra **siempre con su etiqueta** («Estado:
 Rematado») y nunca como frase suelta.
 
-## Cualificadores del marcador (visibles en UI, en galego)
+## Cualificadores del marcador (visibles en UI, en las dos lenguas)
 
-| Término | Significado | Notas |
-|---|---|---|
-| **provisional** | Publicado con una sola fuente de peso < 0.9 (RN-03). Califica la `Decision` entera: el marcador en las ramas que lo tienen, el **estado** en `scheduled` y `postponed`, que no lo tienen. | La interfaz lo distingue (p. ej. marcador en gris; sin marcador, el estado). Mejor provisional a tiempo que confirmado tarde. |
-| **confirmado** | Publicado con fuente de peso ≥ 0.9, o dos fuentes independientes ≥ 0.7 coincidentes (RN-02). | Qué cuenta como **independientes** no se presume: se mide. Ver *Independencia entre fuentes*. |
-| **pendente de confirmar** | `finished` alcanzado por timeout, sin fuente que lo cierre. | Literal en galego, va a i18n. **Se deriva, no se guarda** (SPEC-013, ADR-021 §6): la `Decision` vigente es `finished` y **ninguna** de sus observaciones de apoyo dice `finished`. |
-| **sen sinal** | Partido `live` sin observación nueva en 15 min (RN-07). | Literal en galego, va a i18n. Genera alerta en el panel. **Se deriva, no se guarda** (SPEC-013, ADR-021 §6): la `Decision` vigente tiene `rule: 'RN-07'`. Entrar en *sen sinal* **emite `Decision`** —cambia lo que ve el usuario, y nada llega al usuario sin pasar por el motor (RN-08)— con el mismo estado y el mismo marcador; salir de él emite otra, con la regla que corresponda (RN-12, escalón 5: «la `Decision` solo mueve el marcador **o su cualificador**»). |
+| Término | Significado | Notas | Literal galego | Literal castellano |
+|---|---|---|---|---|
+| **provisional** | Publicado con una sola fuente de peso < 0.9 (RN-03). Califica la `Decision` entera: el marcador en las ramas que lo tienen, el **estado** en `scheduled` y `postponed`, que no lo tienen. | La interfaz lo distingue (p. ej. marcador en gris; sin marcador, el estado). Mejor provisional a tiempo que confirmado tarde. | Provisional | Provisional |
+| **confirmado** | Publicado con fuente de peso ≥ 0.9, o dos fuentes independientes ≥ 0.7 coincidentes (RN-02). | Qué cuenta como **independientes** no se presume: se mide. Ver *Independencia entre fuentes*. | Confirmado | Confirmado |
+| **pendente de confirmar** | `finished` alcanzado por timeout, sin fuente que lo cierre. | Va a i18n en las dos lenguas. **Se deriva, no se guarda** (SPEC-013, ADR-021 §6): la `Decision` vigente es `finished` y **ninguna** de sus observaciones de apoyo dice `finished`. | Pendente de confirmar | Pendiente de confirmar |
+| **sen sinal** | Partido `live` sin observación nueva en 15 min (RN-07). | Va a i18n en las dos lenguas. Genera alerta en el panel. **Se deriva, no se guarda** (SPEC-013, ADR-021 §6): la `Decision` vigente tiene `rule: 'RN-07'`. Entrar en *sen sinal* **emite `Decision`** —cambia lo que ve el usuario, y nada llega al usuario sin pasar por el motor (RN-08)— con el mismo estado y el mismo marcador; salir de él emite otra, con la regla que corresponda (RN-12, escalón 5: «la `Decision` solo mueve el marcador **o su cualificador**»). | Sen sinal | Sin señal |
+
+**Los literales castellanos se añaden el 2026-09-03** (SPEC-017, el panel del
+operador). Hasta hoy esta tabla registraba **solo la forma galega**, y
+`src/i18n/es.ts` no tenía espacio de nombres `qualifiers` en absoluto: su propia
+cabecera decía que eso era «de la spec que construya el marcador». **El panel es
+el primer sitio del sistema real donde una persona ve un cualificador** —el
+tablero enseña uno por partido—, así que es el disparador que SPEC-015 dejó
+escrito: «el primer artefacto que enseñe un cualificador a una persona en
+castellano».
+
+**Se traducen. Decidido por Alberto Fojo el 2026-09-03** en el gate de SPEC-017,
+descartando expresamente la lectura contraria —dejarlos en galego como
+vocabulario de marca, que era defendible porque el título de esta sección decía
+«en galego»—. El motivo es el que ya había recomendado `sdd-lingua` el 2026-09-02
+(`docs/epicas/EPIC-002-instrumentacion-de-las-cuatro-cifras/dictamenes-SPEC-015.md`):
+**no son nombres propios**, y **D-2** exige que el castellano exista completo, no
+a trozos.
+
+**El identificador NO se traduce, y esto es lo que más fácil se lee mal.** Los
+cuatro valores de `MATCH_QUALIFIERS` (`src/model/qualifier.ts`, SPEC-001 CA-8)
+siguen siendo `provisional`, `confirmado`, `pendente_de_confirmar` y `sen_sinal`,
+**en galego**, que es la excepción deliberada a «los identificadores van en
+inglés» ya registrada en la cabecera de este glosario y en `CLAUDE.md` §Lenguas.
+Lo que gana forma castellana es **el literal que ve una persona**, nunca la
+clave: es la misma separación que los cinco estados hacen entre `live` y *En
+xogo*, con el identificador en otra lengua.
+
+**Dos de los cuatro son idénticos en las dos lenguas, y no es un descuido.**
+*Provisional* y *Confirmado* se escriben igual en galego y en castellano; que
+`gl.ts` y `es.ts` tengan la misma cadena en esas dos claves es **correcto** y no
+hay que «arreglarlo». Las que sí cambian son las otras dos: *Pendente de
+confirmar* → **Pendiente de confirmar**, y *Sen sinal* → **Sin señal**.
+
+**Y lo que esta entrada NO decide, porque no le toca:** cuál de los dos
+cualificadores es el estado **normal** y cuál va apagado en la pantalla. Eso
+sigue siendo la **entrada 1 del inventario de EPIC-004** y el punto 2 del *Fuera
+de alcance* de **ADR-013**, que lo dejó abierto a propósito. Registrar cómo se
+dice un cualificador no decide cuánto pesa: ADR-013 §2 sigue exigiendo que los
+dos se distingan siempre con texto o forma además de color, y ADR-013 §6 que
+ninguno baje de 4.5:1 — apagar un cualificador nunca puede significar hacerlo
+ilegible.
+
 
 ## Fuentes y organismos
 
