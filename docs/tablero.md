@@ -23,6 +23,7 @@ Actualizado: 2026-09-03
 | SPEC-013 — motor-de-decisiones-el-reducer-puro-de-rn-01-rn-07-y-el-ciclo-que-lo-ejecuta | hecho | 2026-09-02 (sdd-verificador) |
 | SPEC-015 — bot-de-telegram-del-corresponsal-el-llm-propone-dentro-de-una-lista-cerrada-y-la-persona-confirma | hecho | 2026-09-03 (sdd-verificador) |
 | SPEC-016 — el-catalogo-de-corresponsales-se-resuelve-en-compilacion-y-npm-run-build-pasa-a-ser-gate | hecho | 2026-09-03 (sdd-verificador) |
+| SPEC-017 — panel-del-operador-sesion-declarada-sin-usuarios-toda-correccion-como-observation-y-la-bandeja-que-alerts-no-tiene | hecho | 2026-09-03 (sdd-verificador) |
 
 ## EPIC-003 — paxina-de-proxecto-e-respaldo-publico-da-carta (hecho)
 
@@ -71,7 +72,10 @@ Actualizado: 2026-09-03
 | ADR-021 | aprobada | el-motor-de-decisiones-reducer-puro-sobre-los-dos-logs-ejecutado-dentro-del-tick-con-la-alerta-como-tabla-y-el-cualificador-derivado | 2026-09-02 (Alberto Fojo) |
 | ADR-022 | aprobada | el-bot-del-corresponsal-es-un-webhook-sin-conversacion-viva-identidad-seudonima-declarada-update-redactado-y-un-llm-que-propone-dentro-de-una-lista-cerrada | 2026-09-03 (Alberto Fojo) |
 | ADR-023 | aprobada | retencion-y-regimen-de-datos-personales-del-archivo-del-corresponsal-el-regimen-b-extendido-y-el-borrado-del-mapeo-como-remedio | 2026-09-03 (Alberto Fojo) |
+| ADR-024 | aprobada | el-panel-del-operador-sesion-declarada-sin-sistema-de-usuarios-el-vale-de-accion-y-toda-operacion-como-observation-por-la-puerta-estrecha | 2026-09-03 (Alberto Fojo) |
+| ADR-025 | aprobada | el-suelo-de-interfaz-mientras-epic-004-esta-congelada-foco-visible-teclado-toque-de-44-px-y-estilos-que-no-comparten-una-linea-con-globals-css | 2026-09-03 (Alberto Fojo) |
+| ADR-026 | aprobada | el-sistema-de-diseno-de-docs-diseno-es-vinculante-para-toda-interfaz-tokens-como-codigo-enfasis-del-cualificador-invertido-y-supersede-parcialmente-a-adr-025 | 2026-09-03 (Alberto Fojo (por delegación) |
 
 ## Resumen
 
-- hecho: 16
+- hecho: 17
