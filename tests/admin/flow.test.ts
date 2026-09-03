@@ -7,6 +7,12 @@
  * ledger: sin `DATABASE_URL_TEST` esos criterios son UNMET, no *skipped*.
  */
 import { describe, expect, test } from 'vitest';
+import {
+  ADMIN_SESSION_COOKIE,
+  SESSION_TTL_MS,
+  readOperators,
+  readSession,
+} from '@/admin/session';
 import { TICKET_FIELD } from '@/admin/ticket';
 import { OPERATOR } from '@/decide/roles';
 import { RN01_WEIGHTS } from '@/ingest/sources';
@@ -16,13 +22,17 @@ import { epochMsOf, instantOf } from '@/polite/clock';
 import {
   KICKOFF,
   NOW,
+  OPERATOR_ONE,
+  OPERATOR_ONE_SECRET,
   OUTSIDE_MATCH,
   SCENE_MATCH,
+  SCENE_SECRET,
   SCENE_WINDOW,
   getPanel,
   liveDecision,
   postToPanel,
   scene,
+  sceneEnv,
   sessionTokenOf,
   ticketOf,
 } from './support/doubles';
@@ -282,5 +292,86 @@ describe('CA-11 — nace apagado, y la llave es EL PARTIDO, no el reloj', () => 
     expect(built.observations.rows).toHaveLength(1);
     expect(built.engineCalls).toEqual([{ match_id: TARGET, now: monday }]);
     expect(built.actions.rows[0]?.outcome).toBe('accepted');
+  });
+
+  /**
+   * CA-11.1, PRIMERA MITAD — AÑADIDO EL 2026-09-03 (F-SPEC-017-V2).
+   *
+   * El único intercambio del proyecto que convierte un secreto en una sesión
+   * —la entrada a la superficie de peso 1.0 con precedencia sobre la RFGF— no
+   * lo ejercía NINGUNA suite: `readOperators` y `authenticate` se probaban
+   * aisladas y `onAccess` no lo tocaba nadie. Estos dos casos son el
+   * intercambio entero por el handler, y entre los dos son también el control
+   * positivo el uno del otro: sin el caso 15, «con el catálogo vacío no entra
+   * nadie» podría estar siendo cierto porque el envío está roto.
+   */
+  test('14. con `ADMIN_OPERATORS` como nace —SIN DECLARAR— no entra nadie', async () => {
+    // La lista de producción es la ausencia: `ADMIN_OPERATORS` no existe en
+    // ninguna parte versionada, y leerla no lanza, devuelve el catálogo vacío
+    // (CA-1.2). Las cuatro formas de «vacía» dan la misma respuesta.
+    const empties: readonly (string | undefined)[] = [undefined, '', '   ', '{}', 'non-e-json'];
+
+    for (const value of empties) {
+      const built = scene();
+      const env = { ADMIN_SESSION_SECRET: SCENE_SECRET, ADMIN_OPERATORS: value };
+      expect(readOperators(env).size, `${value}`).toBe(0);
+
+      const answer = await postToPanel(built, {
+        token: '',
+        env,
+        fields: {
+          intento: 'acceso',
+          operador: OPERATOR_ONE,
+          clave: OPERATOR_ONE_SECRET,
+        },
+      });
+
+      expect(answer.status, `${value}`).toBe(401);
+      expect(answer.headers.get('set-cookie'), `${value}`).toBeNull();
+      expect(built.log.calls, `${value}`).toEqual([]);
+      expect(built.store.size, `${value}`).toBe(0);
+      expect(built.actions.rows, `${value}`).toEqual([]);
+    }
+  });
+
+  test('15. y con el catálogo declarado, el secreto correcto SÍ abre una sesión', async () => {
+    const built = scene();
+
+    const answer = await postToPanel(built, {
+      token: '',
+      fields: {
+        intento: 'acceso',
+        operador: OPERATOR_ONE,
+        clave: OPERATOR_ONE_SECRET,
+      },
+    });
+
+    expect(answer.status).toBe(303);
+    expect(answer.headers.get('location')).toBe('/admin');
+
+    // La cookie que EMITE EL HANDLER, no la que devuelve la función suelta
+    // (CA-1.5): los cuatro atributos, y la caducidad DENTRO de la firma.
+    const setCookie = answer.headers.get('set-cookie') ?? '';
+    expect(setCookie).toContain(`${ADMIN_SESSION_COOKIE}=`);
+    expect(setCookie).toContain('Path=/');
+    expect(setCookie).toContain('HttpOnly');
+    expect(setCookie).toContain('Secure');
+    expect(setCookie).toContain('SameSite=Strict');
+    expect(setCookie).toContain(`Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}`);
+
+    // Y no es una cookie cualquiera: es UNA SESIÓN, y el handler no tocó ni un
+    // puerto para emitirla.
+    const token = (setCookie.split(';')[0] ?? '').slice(`${ADMIN_SESSION_COOKIE}=`.length);
+    expect(readSession(SCENE_SECRET, readOperators(sceneEnv()), token, NOW)).toBe(OPERATOR_ONE);
+    expect(built.log.calls).toEqual([]);
+
+    // Con la clave equivocada, la misma puerta y la misma respuesta del caso 14.
+    const refused = await postToPanel(scene(), {
+      token: '',
+      fields: { intento: 'acceso', operador: OPERATOR_ONE, clave: 'unha clave que non é' },
+    });
+
+    expect(refused.status).toBe(401);
+    expect(refused.headers.get('set-cookie')).toBeNull();
   });
 });
