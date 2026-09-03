@@ -124,12 +124,21 @@ describe('CA-2.5 — el cargador del mapeo no alcanza `node:fs` por su GRAFO', (
     expect([...reachable]).toContain('node:fs');
   });
 
-  test('10. y el mecanismo mide el GRAFO, no el texto: `catalog.ts` SÍ lee ficheros', async () => {
-    // La otra mitad del criterio: leer el catálogo versionado es legítimo, y
-    // por eso vive en otro módulo. Si los dos estuviesen juntos, el caso 8
-    // sería imposible de satisfacer sin renunciar al catálogo.
-    const reachable = await reachableSpecifiers('src/bot/catalog.ts');
+  test('10. y el mecanismo mide el GRAFO, no el texto: `src/db/migrate.ts` SÍ lee ficheros', async () => {
+    // El sujeto de este control positivo era `src/bot/catalog.ts` hasta
+    // SPEC-016 (2026-09-03), porque leía el catálogo versionado con `readFile`.
+    // Ya no lee nada: lo importa en compilación, y `node:fs` no le queda
+    // alcanzable por ningún camino. El control se muda a un módulo de
+    // producción que sí lo alcanza — el caso 9 hace lo mismo con un fichero
+    // sintético, y este lo hace sobre el árbol real.
+    const reachable = await reachableSpecifiers('src/db/migrate.ts');
     expect([...reachable]).toContain('node:fs/promises');
+
+    // Y la mitad que SPEC-016 añade, medida sobre el GRAFO y no sobre el texto:
+    // el cargador del catálogo tampoco alcanza `node:fs` ya.
+    const catalog = await reachableSpecifiers('src/bot/catalog.ts');
+    expect([...catalog]).not.toContain('node:fs/promises');
+    expect([...catalog]).not.toContain('node:fs');
   });
 });
 

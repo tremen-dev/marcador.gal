@@ -106,9 +106,20 @@ Node 22 · TypeScript estricto · Next.js (App Router) · cheerio · zod · gram
 Postgres · vitest. Linter: **oxlint** con reglas type-aware (`.oxlintrc.json`,
 ADR-007). Desplegado en **Vercel Pro**.
 
-Gate de calidad: `npm run lint` → `oxlint --type-aware`. Lo exige `.sdd.json`
-(`gates.calidad`) y lo ejecuta el Verificador. **No hay CI todavía**: hoy solo
-corre en local, así que nadie lo pasa por ti.
+Gate de calidad: **`npm run gates`**, que encadena, en este orden y parando en
+el primer fallo, `npm run typecheck` → `npm run lint` → `npm run build` →
+`npm test`. El orden es de coste creciente y diagnóstico decreciente. Lo exige
+`.sdd.json` (`gates.calidad`) y lo ejecuta el Verificador. `npm run test:db`
+queda **fuera** y sigue siendo un comando aparte —necesita `DATABASE_URL_TEST` y
+una rama de Neon compartida entre worktrees—, pero es igual de obligatorio.
+
+**`npm test` no puede ver lo que sólo ve el empaquetador**: el build entró en el
+gate porque SPEC-015 dejó en `src/bot/catalog.ts` un `new URL(x, import.meta.url)`
+que bajo Node es un cálculo de ruta normal —suite entera en verde— y que
+Turbopack lee como recurso a resolver en compilación. El despliegue falló y
+ningún gate lo vio (SPEC-016). **No hay CI todavía**: `npm run gates` hace que el
+gate sea *un* comando, no que alguien lo corra; hoy solo corre en local, así que
+nadie lo pasa por ti.
 
 Consecuencias que se olvidan y rompen cosas:
 - **No hay scheduler en proceso.** La ingesta va en Vercel Cron a 1/minuto, que

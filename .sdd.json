@@ -2,5 +2,5 @@
   "idioma": "es",
   "rutasVigiladas": ["src/", "tests/"],
   "linter": "auto",
-  "gates": { "requireSpec": true, "protegeVerdad": true, "calidad": true }
+  "gates": { "requireSpec": true, "protegeVerdad": true, "calidad": "npm run gates" }
 }

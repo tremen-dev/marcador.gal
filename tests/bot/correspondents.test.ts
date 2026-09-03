@@ -68,8 +68,8 @@ describe('CA-2.8 — la forma del `correspondent_id`', () => {
 });
 
 describe('CA-2 — el catálogo REAL nace vacío, y el bot con él', () => {
-  test('5. `corresponsais/2026-27.json` existe, es válido y no tiene a nadie', async () => {
-    const catalog = await loadCatalog(ACTIVE_SEASON);
+  test('5. `corresponsais/2026-27.json` existe, es válido y no tiene a nadie', () => {
+    const catalog = loadCatalog(ACTIVE_SEASON);
     expect(catalog.season).toBe(ACTIVE_SEASON);
     expect(catalog.correspondents).toEqual([]);
   });

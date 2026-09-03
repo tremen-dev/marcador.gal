@@ -687,7 +687,7 @@ export async function productionBotPorts(): Promise<BotPorts> {
     // has no adapter: the bot answers `errServiceDown` and writes nothing.
     model: unconfiguredModel(),
     clock: systemClock,
-    catalog: await loadCatalog(ACTIVE_SEASON),
+    catalog: loadCatalog(ACTIVE_SEASON),
     map: readCorrespondentMap(process.env),
     // BORN EMPTY (ADR-019 §3): with nothing declared the bot recollects nothing.
     windows: MEASUREMENT_WINDOWS,
