@@ -452,6 +452,15 @@ centros y uno de ellos no se parece a los anteriores:**
 capturas de CA-10.7 se hacen sobre una pantalla con estilos, y CA-10 quedó
 congelado el 2026-09-03 a la espera de ADR-026.~~
 
+> **Cerrado por `sdd-implementador` (2026-09-03), F-SPEC-017-V4 nº 3.** El
+> párrafo tachado es mío y era el tercer resto de la versión congelada de
+> CA-10. Lo vigente es la tabla de abajo: `_qa/SPEC-017/` tiene **cuatro
+> capturas**, `CA-10.14-medidas.json` y `README.md`. Los otros dos restos —el
+> comentario de `tests/admin/frontier.test.ts` y la cabecera de
+> `tests/admin/document.test.ts`— están corregidos en el código, y el primero
+> **dejó de ser un comentario para ser una aserción**: el escaneo de la
+> frontera afirma que `src/admin/view/styles.ts` está dentro.
+
 | CA | Captura | Fichero |
 |---|---|---|
 | CA-10.14 | Acceso a 360 × 640, con el foco visible sobre el primer campo | `CA-10.14-gl-360x640-acceso-foco.png` |

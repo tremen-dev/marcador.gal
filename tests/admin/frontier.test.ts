@@ -41,9 +41,13 @@ describe('CA-1.7 — el secreto y el catálogo solo los nombra el módulo declar
     expect(paths).toContain('src/admin/session.ts');
     expect(paths).toContain('src/admin/handler.ts');
     expect(paths).toContain('src/admin/view/markup.ts');
-    // `src/admin/view/styles.ts` NO está, y es una decisión del 2026-09-03:
-    // CA-10 quedó CONGELADO a la espera de ADR-026, que va a superseder
-    // parcialmente ADR-025 §4 para que el panel siga `docs/diseno/`.
+    // Y LA HOJA DE ESTILOS TAMBIÉN ENTRA. El comentario que estuvo aquí decía
+    // lo contrario —«`src/admin/view/styles.ts` NO está»—, resto de las horas
+    // en que CA-10 estuvo congelado a la espera de ADR-026 (F-SPEC-017-V4).
+    // Con ADR-026 firmado la hoja volvió, y no está exenta de nada: se afirma
+    // en vez de comentarse, porque de esto depende que las fronteras de
+    // CA-2.3, CA-2.4 y CA-9.5 no tengan un fichero de `src/admin/` fuera.
+    expect(paths).toContain('src/admin/view/styles.ts');
   });
 
   test('2. los nombres vigilados salen del MÓDULO, nunca de una copia del test', () => {

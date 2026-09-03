@@ -8,18 +8,19 @@
  * estilo volvió, y vive donde le toca: `tests/admin/style.test.ts` (CA-10.1 y
  * CA-10.6 a CA-10.13) y `tests/design/parity.test.ts` (CA-10.2 a CA-10.5).
  *
- * **CA-10 ESTÁ CONGELADO DESDE EL 2026-09-03.** Alberto Fojo decidió que
+ * **CA-10 YA NO ESTÁ CONGELADO, y este párrafo decía lo contrario hasta el
+ * 2026-09-03 (F-SPEC-017-V4).** Lo estuvo unas horas: Alberto Fojo decidió que
  * `docs/diseno/` es el sistema de diseño del proyecto y que el panel del
- * operador lo sigue también, lo que contradice **ADR-025 §4.2 y §4.3** —«una
- * interfaz de medición no importa ni deriva los tokens de `docs/diseno/`», «ni
- * un valor de `docs/diseno/` se copia»—. `sdd-arquitecto` está escribiendo
- * **ADR-026** para superseder parcialmente ese punto.
+ * operador lo sigue también, lo que contradecía **ADR-025 §4.2 y §4.3**.
+ * **ADR-026 quedó aprobada (`2278cb1`)**, lo supersedió parcialmente, y
+ * CA-10 se reescribió de 7 a 15 subpuntos y está implementado entero.
  *
  * La versión anterior de este fichero afirmaba, entre otras cosas, que NINGÚN
- * color de `docs/diseno/` aparecía en la hoja del panel. Bajo ADR-026 eso será
- * exactamente lo contrario de lo que hay que afirmar, así que se retira: una
- * aserción que dice lo opuesto de la regla que viene no es cobertura, es una
- * trampa para quien la lea después. La hoja de estilos se retira con ella.
+ * color de `docs/diseno/` aparecía en la hoja del panel. Bajo ADR-026 eso es
+ * exactamente lo contrario de lo que hay que afirmar, así que se retiró: una
+ * aserción que dice lo opuesto de la regla vigente no es cobertura, es una
+ * trampa para quien la lea después. La hoja de estilos volvió con ADR-026,
+ * derivada del sistema, y sus aserciones viven en `tests/admin/style.test.ts`.
  *
  * LO QUE SOBREVIVE ES LO QUE NO ES ESTILO: que el panel no se anuncia
  * (ADR-024, no ADR-025), que su documento no carga nada de fuera, y que cada
