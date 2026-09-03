@@ -145,21 +145,21 @@ texto):
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 | `src/bot/webhook.ts` (`telegramWebhookHandler`, `constantTimeEquals`), `src/bot/telegram.ts` (`webhookBody`), `src/app/api/telegram/webhook/route.ts` | `tests/bot/webhook.test.ts` 1–8; `tests/bot/frontier.test.ts` 40–42; `tests/bot/observation.test.ts` 14–16 | Los 8 casos corridos y leídos. 401 con secreto ausente y vacío deja **todos** los dobles sin llamar (`log.calls` vacío, `store.size` 0, `rejections.total` 0). La comparación es de tiempo constante escrita a mano y el caso 40 la afirma tras neutralizar `typeof secret`. `route.ts` resuelve a **un solo** módulo (`src/bot/webhook.ts`), verificado con el lector del compilador (caso 41). Sin `console.*` en `src/bot/`: comprobado con `grep`. | ✅ |
-| CA-2 | `src/bot/correspondents.ts`, `src/bot/catalog.ts`, `corresponsais/2026-27.json`, `migrations/0007` (`bot_rejections`), `src/db/bot.ts` (`PostgresRejectionCounter`) | `tests/bot/frontier.test.ts` 1–13; `tests/bot/correspondents.test.ts` 1–12; `tests/bot/webhook.test.ts` 9–12; `tests/db/bot-schema.test.ts` 4–7, 10 | Los siete puntos leídos uno a uno. **Sonda propia P1**: `src/probe/map-reader.ts` con `process.env['TELEGRAM_CORRESPONDENTS']` → casos 3 y 6 en ROJO. El complemento se mide sobre el escaneo real (SCAN_ROOTS del compilador), no sobre una copia; el nombre vigilado sale del módulo (caso 2). Grafo de `correspondents.ts` = `['zod']`, y `catalog.ts` sí alcanza `node:fs/promises`: el mecanismo mide el grafo, no el texto. Esquema de `bot_rejections` leído de `information_schema`: tres columnas, `reason` atada a lista cerrada, sin `timestamptz`. | ✅ |
-| CA-3 | `src/bot/redact.ts` (`ARCHIVED_KEYS`, `redact`, `keyPaths`) | `tests/bot/redact.test.ts` 1–13; **`tests/db/bot-flow.test.ts` 14–16** (la mitad contra la base, segunda vuelta); `tests/fixtures/telegram.ts` | Lista blanca **total** verificada: el objeto se construye copiando `ARCHIVED_KEYS`, no borrando. Control positivo real (caso 7: ensancha la lista y el nombre civil aparece). `message.text` verbatim con emoji, acentos y salto de línea. **PERO CA-3.2 está a medias**: no hay ningún caso que recorra `bot_proposals`, `correspondent_state`, `bot_rejections` y `observations` buscando las seis claves prohibidas. `FORBIDDEN_FIELDS` solo se usa en `tests/bot/redact.test.ts` 5, sobre el objeto archivado. Finding 2. | ⚠️ |
-| CA-4 | `src/bot/archive.ts` (`ARCHIVE_EVENT_KINDS`, `archiveThenParse`), `src/bot/webhook.ts` | `tests/bot/webhook.test.ts` 16–22; `tests/db/bot-flow.test.ts` 5 | Orden verificado sobre el log de los dobles: `['put:mensaxe','model','put:proposta']`, exacto. Las tres claves bajo `corresponsal/` con segundo segmento de la lista cerrada y nunca un `competition_id`. Los dos colgantes se afirman como resultado esperado (`dangling.length === 2`, con su prefijo). Un LLM que devuelve basura deja igualmente el objeto del mensaje archivado y cero filas. | ✅ |
-| CA-5 | `src/bot/llm.ts` (puerto), `src/bot/prompt.ts`, `src/bot/proposal.ts`. **`src/bot/models/` NO existe** (precondición ADR-023 §6.4) | `tests/bot/webhook.test.ts` 23–28; `tests/bot/frontier.test.ts` 14–20; `tests/bot/observation.test.ts` 9–10; `tests/types/spec015-bot.test-d.ts` | **Salvedad pre-aceptada por el gate (2026-09-03, ADR-023 §6.4): no hay proveedor ni DPA, así que `src/bot/models/` no existe.** Verificado lo que sí está: el tipo `PromptInput` cierra la puerta a la identidad (prueba invertida en `tests/types/spec015-bot.test-d.ts`, cubierta por `tsc --noEmit` y por el typecheck de vitest); fuga sobre el prompt renderizado; las cinco formas de rechazo, cada una con su caso y todas terminando en cero filas; el puerto sin adaptador falla cerrado. **Sonda propia P12**: al crear `src/bot/models/fake.ts` y un llamante fuera de la lista, los casos 14 y 15 pasan a ROJO — la frontera `LLM_CALLERS` sí muerde cuando hay algo que medir. **Residuo**: 5.5 (entrada en la lista de salida) y 5.7 en su forma literal quedan sin hacer, y con el directorio vacío el «complemento vacío» de 5.4 es hoy vacuo. Escrito dentro del criterio y en ADR-023 §6.4. | ⚠️ |
-| CA-6 | `src/bot/candidates.ts`, `src/bot/windows.ts`, `src/bot/proposal.ts`, `src/bot/card.ts` | `tests/bot/candidates.test.ts` 1–12; `tests/bot/webhook.test.ts` 29–32; `tests/bot/frontier.test.ts` 21–23 | Los cuatro filtros afirmados por separado, cada uno con su partido que entra y el que no. Ventanas del corresponsal (180/240 min) distintas de las del tick y no importadas. **Sonda propia P2**: `src/bot/alias-leak.ts` importando `@/alias/resolver` → caso 23 en ROJO. Un `match_id` real de otra competición se rechaza; la tarjeta dice «UD Ourense - Celta B» y no lo que escribió la persona. | ✅ |
-| CA-7 | `src/bot/webhook.ts` (`onCallback`), `src/bot/card.ts`, `src/bot/ports.ts`, `src/db/bot.ts` | **`tests/db/bot-flow.test.ts` 1** (contra Postgres); `tests/bot/webhook.test.ts` 33–39 | **El criterio central, verificado contra Postgres real** (`tests/db/bot-flow.test.ts` 1: tarjeta emitida, `bot_proposals`=1, `observations`=0, `decisions`=0). **Sonda propia P9**: inyecté un `observations.append` en `onContent`, justo tras crear la propuesta pendiente → caso 1 de `bot-flow` en ROJO contra la base y casos 33/34/36 en rojo en la suite de unidad. Descartar, caducar, confirmar algo ajeno y repetir el callback: ninguno escribe. Tarjeta con las cuatro etiquetas y estado con texto, sin un solo pictográfico. | ✅ |
-| CA-8 | `src/bot/observation.ts` | `tests/bot/observation.test.ts` 1–6; `tests/db/bot-flow.test.ts` 2–7; `tests/bot/candidates.test.ts` 11–12 | `source` es exactamente `'corresponsal'` leído en la fila de Postgres, y `roleOf` no lanza; el caso hermano mide que `'corresponsal:01'` **sí** lanza. `confidence` = `RN01_WEIGHTS.correspondent` y el módulo no escribe `0.8` en ninguna parte fuera de comentarios. `raw_ref` es el del mensaje y el objeto existe en el store. Idempotencia comprobada con dos confirmaciones. Las cinco ramas, una por valor de `MATCH_STATUSES`. La mitad de esquema de 8.5 está en `bot-schema` 8, leyendo `information_schema`. | ✅ |
-| CA-9 | `src/decide/engine-entry.ts` (`runEngineForMatch`), `src/bot/webhook.ts` (`runEngine`) | `tests/bot/observation.test.ts` 7–8, 8b–8c; `tests/bot/frontier.test.ts` 24–26; `tests/db/bot-flow.test.ts` 8–10; `tests/types/spec015-bot.test-d.ts`; `tests/decide/rn08-frontier.test.ts` (suite cerrada, pasa) | 9.2–9.6 verificados: el tipo de retorno no lleva almacén (prueba invertida), importación por nombre, `Decision` provisional escrita por el motor con la observación en `supporting_observation_ids`, y nada del texto en `decisions`. **Sondas propias**: P3 (`import * as` sobre `@/decide/engine-entry` en `src/bot/`) → caso 24 ROJO; P13 (`src/bot/decide-leak.ts` importando `PostgresDecisionStore`) → `tests/decide/rn08-frontier.test.ts` casos 3 y 10 ROJO: la frontera de RN-08 sigue mordiendo para `src/bot/`. **PERO 9.1 incumple su segunda mitad**: `tests/decide/rn08-frontier.test.ts` **sí** cambia una aserción en el diff (caso 10, la enumeración de quién cruza gana `src/decide/engine-entry.ts`). El criterio dice literalmente «pasa sin tocar una aserción. El verificador lo comprueba en el diff». Finding 1. | ❌ |
-| CA-10 | `migrations/0007`, `src/db/bot.ts`, `.env.example` | `tests/db/bot-schema.test.ts` 8–11; `tests/db/bot-flow.test.ts` 11–13; **`tests/bot/frontier.test.ts` 27–32** y **`tests/bot/support/telegram-ids.ts`** (el árbol versionado entero, segunda vuelta) | 10.1–10.3 verificados contra la base: columnas enumeradas desde `information_schema`, `bot_proposals` vacía tras la jornada sintética (confirmada, descartada y caducada), y la cadena de RN-12 recorrida entera hasta el seudónimo dentro del objeto crudo. **Escaneo propio del árbol versionado entero** (`git ls-files`, regex de 9–12 dígitos): no hay ningún identificador de Telegram en el repositorio — la propiedad **es cierta**. **Pero el mecanismo es más estrecho que el criterio**: el caso 27 solo lee `corresponsais/2026-27.json`, `.env.example` y `tests/fixtures/`. **Sonda propia P14**: un id de 10 cifras escrito en `src/bot/notes.ts` versionado deja la suite en VERDE. Y el control positivo (caso 29) afirma sobre una constante del propio test, no sobre el escaneo. Finding 3. | ⚠️ |
-| CA-11 | `src/i18n/bot.ts` (`DEFAULT_BOT_LOCALE`), `src/bot/webhook.ts`, `migrations/0007` (`correspondent_state.locale`) | `tests/bot/webhook.test.ts` 40–43; `tests/bot/frontier.test.ts` 31–33; `tests/bot/i18n.test.ts` 19 | Un update con `language_code: 'es'` recibe galego: el caso lleva la intención en el nombre. **Sonda propia P4**: `src/bot/lang-leak.ts` nombrando `language_code` → caso 31 ROJO. `/lingua` persiste en `correspondent_state` y el siguiente mensaje la sigue, ida y vuelta. Sin fila, `gl`. | ✅ |
-| CA-12 | `src/i18n/bot-bundle.ts`, `src/i18n/bot.ts`, `src/i18n/statuses-bundle.ts`, `src/i18n/statuses.ts`, `src/i18n/gl.ts`, `src/i18n/es.ts`, `src/bot/commands.ts`, `src/bot/telegram.ts` | `tests/bot/i18n.test.ts` 1–18; `tests/bot/frontier.test.ts` 34–39; `tests/bot/observation.test.ts` 11–13; `tests/types/spec015-bot.test-d.ts` | **Sonda propia P6**: `src/bot/text-leak.ts` con `text: 'Confirmar'` → `npm run typecheck` falla con TS2322 (`string` no asignable a `BotText`). El mecanismo principal es el tipo y muerde. Paridad exacta de claves, ninguna vacía, y un caso que caza el bundle copiado. Comandos: los ocho del dictamen, sin acentos, sin `/estado`. Estados desde el espacio compartido, con los literales de `dominio.md`. Galego contrastado contra el dictamen §5: `estar a + infinitivo`, pronombre proclítico tras negación, `atopar`, `gol`, `ao`, `coma`/`como`, `a mensaxe` femenino, marcador `2-1`. **Salvedad**: 12.3 pide que las descripciones estén «registradas» en Telegram; hoy solo se construye el payload desde el bundle, porque el adaptador de grammY está diferido (F-SPEC-015-13) y el bot nace apagado. | ⚠️ |
-| CA-13 | `src/bot/candidates.ts` (`matchdayIsOpen`), `src/ingest/measurement.ts` (lista vacía, sin tocar) | `tests/bot/webhook.test.ts` 13–15; `tests/bot/candidates.test.ts` 7–9, 9b–9c | **Sonda propia P8**: neutralicé la puerta de la jornada en `onContent` → casos 13 y 14 en ROJO. Con la lista de producción vacía: frase neutra, `list('')` vacío, cero propuestas, cero observaciones y `model.calls === 0`. Con jornada inyectada, el camino entero. `inMeasurementWindow` es la función heredada y no hay una segunda aritmética de intervalo en `src/bot/`. Nota: fuera de jornada sí crece el contador agregado `bot_rejections`, que es el mismo agregado sin persona que CA-2.1 sanciona. | ✅ |
-| CA-14 | `src/i18n/bot-bundle.ts` (claves `notice*`), `src/bot/webhook.ts` (`noticeText`, `/baixa`), `migrations/0007` (`notice_sent_at`, `opted_out_at`) | `tests/bot/webhook.test.ts` 44–51 | Los nueve elementos del art. 13 comprobados clave a clave sobre el texto emitido; proveedor de IA, 30 y 90 días y el enlace a `/privacidade`. Un mensaje de contenido de quien nunca recibió el aviso no se procesa: cero archivo, cero propuestas, cero observaciones, cero llamadas al modelo. `/baixa` corta en el acto y el acuse dice lo que no se borra. Ningún teclado lleva botón de consentimiento. | ✅ |
-| CA-15 | `migrations/0007` | Salidas literales abajo, y **las de la segunda vuelta al final del ledger**; `tests/db/bot-schema.test.ts` 1–3 | 15.1, 15.2 y 15.4 verificados por mí con salidas literales (abajo) y contraste fichero a fichero contra `eaae265`: **ningún fichero de test previo cambia de recuento y ninguno desaparece**, ni en `npm test` ni en `npm run test:db`. **15.3 incumplido**: hay **tres** desviaciones en suites cerradas y el criterio prevé **dos**. La tercera —la aserción del caso 10 de `tests/decide/rn08-frontier.test.ts`— no es relajación y está declarada en el ledger, pero el criterio dice «cualquier otra desviación es RED». Finding 1. | ❌ |
+| CA-1 | `src/bot/webhook.ts` (`telegramWebhookHandler`, `constantTimeEquals`), `src/bot/telegram.ts` (`webhookBody`), `src/app/api/telegram/webhook/route.ts` | `tests/bot/webhook.test.ts` 1–8; `tests/bot/frontier.test.ts` 40–42; `tests/bot/observation.test.ts` 14–16 | **2ª vuelta.** El producto no ha cambiado ni un byte desde mi RED (`git diff eff961a..HEAD -- src/` vacío), así que la verificación de la 1ª vuelta se mantiene y la he reconfirmado con la suite entera: 401 con secreto ausente y vacío deja **todos** los dobles sin llamar; comparación de tiempo constante; la ruta resuelve a un solo módulo. Sin `console.*` en `src/bot/`. | ✅ |
+| CA-2 | `src/bot/correspondents.ts`, `src/bot/catalog.ts`, `corresponsais/2026-27.json`, `migrations/0007` (`bot_rejections`), `src/db/bot.ts` (`PostgresRejectionCounter`) | `tests/bot/frontier.test.ts` 1–13; `tests/bot/correspondents.test.ts` 1–12; `tests/bot/webhook.test.ts` 9–12; `tests/db/bot-schema.test.ts` 4–7, 10 | **2ª vuelta.** Sondas Q1 (lector no declarado del mapeo) → casos 3 y 6 ROJOS. Grafo de `correspondents.ts` = `['zod']`; `catalog.ts` sí alcanza `node:fs/promises`. Esquema de `bot_rejections` leído de `information_schema`. Sin cambios respecto a la 1ª vuelta. | ✅ |
+| CA-3 | `src/bot/redact.ts` (`ARCHIVED_KEYS`, `redact`, `keyPaths`) | `tests/bot/redact.test.ts` 1–13; **`tests/db/bot-flow.test.ts` 14–16** (la mitad contra la base, segunda vuelta); `tests/fixtures/telegram.ts` | **Finding 2 CERRADO.** Ahora existe la mitad que faltaba: `tests/db/bot-flow.test.ts` 14–16 hace `select *` sobre las cuatro tablas y juzga **los bytes de las filas**, buscando las seis claves como columna y como contenido más los tres valores del fixture. Y trae dos controles que sí controlan: el 15 mete un valor prohibido en una columna y el mismo escaneo se pone rojo; el 16 afirma que **una tabla vacía no cuenta como limpia** (`observations: no rows, so this table proves nothing`). Sonda propia Q18: metí `message.from.first_name` en `ARCHIVED_KEYS` y los casos 1, 2, 5 y 6 de `redact.test.ts` se pusieron ROJOS. | ✅ |
+| CA-4 | `src/bot/archive.ts` (`ARCHIVE_EVENT_KINDS`, `archiveThenParse`), `src/bot/webhook.ts` | `tests/bot/webhook.test.ts` 16–22; `tests/db/bot-flow.test.ts` 5 | **2ª vuelta.** Reconfirmado: orden `['put:mensaxe','model','put:proposta']` exacto, tres claves bajo `corresponsal/` con el segundo segmento de la lista cerrada, los dos colgantes como resultado esperado, y el mensaje archivado aunque la propuesta no llegue. | ✅ |
+| CA-5 | `src/bot/llm.ts` (puerto), `src/bot/prompt.ts`, `src/bot/proposal.ts`. **`src/bot/models/` NO existe** (precondición ADR-023 §6.4) | `tests/bot/webhook.test.ts` 23–28; `tests/bot/frontier.test.ts` 14–20; `tests/bot/observation.test.ts` 9–10; `tests/types/spec015-bot.test-d.ts` | **Salvedad pre-aceptada por el gate** (2026-09-03, ADR-023 §6.4): sin proveedor ni DPA, `src/bot/models/` no existe. **Y he comprobado la corrección de hecho del arquitecto: la desviación de CA-5.5 NO ha ocurrido** — `git diff eaae265..HEAD -- tests/polite/support/capability.ts` no toca ninguna lista `ALLOWED_*`, así que no la cuento como hecha. El control positivo de 5.4 ya ejercita el **mismo predicado** que el caso 15 (`modelAdapterOffences`), no un `includes` escrito en el test: **Finding 5 cerrado en su parte de CA-5**. Sonda Q12 (adaptador real en `src/bot/models/` + llamante fuera de la lista) → casos 14 y 15 ROJOS. **Residuo**: 5.5 y 5.7 en su forma literal siguen sin hacer, y con el directorio vacío el «complemento vacío» de 5.4 sigue siendo hoy vacuo. Escrito dentro del criterio y en ADR-023 §6.4. | ⚠️ |
+| CA-6 | `src/bot/candidates.ts`, `src/bot/windows.ts`, `src/bot/proposal.ts`, `src/bot/card.ts` | `tests/bot/candidates.test.ts` 1–12; `tests/bot/webhook.test.ts` 29–32; `tests/bot/frontier.test.ts` 21–23 | **2ª vuelta.** Cuatro filtros por separado; ventanas propias no importadas del tick. Sonda Q2 (`src/bot/` importa `@/alias/resolver`) → caso 23 ROJO. | ✅ |
+| CA-7 | `src/bot/webhook.ts` (`onCallback`), `src/bot/card.ts`, `src/bot/ports.ts`, `src/db/bot.ts` | **`tests/db/bot-flow.test.ts` 1** (contra Postgres); `tests/bot/webhook.test.ts` 33–39 | **El criterio central, revalidado contra Postgres real.** Sonda Q9: reinyecté el `observations.append` antes del botón en `onContent` → `tests/db/bot-flow.test.ts` caso 1 ROJO contra la base (1 failed | 302 passed). Descartar, caducar, confirmar algo ajeno y repetir el callback siguen sin escribir nada. | ✅ |
+| CA-8 | `src/bot/observation.ts` | `tests/bot/observation.test.ts` 1–6; `tests/db/bot-flow.test.ts` 2–7; `tests/bot/candidates.test.ts` 11–12 | **2ª vuelta.** Reconfirmado: `source` exactamente `'corresponsal'` leído en la fila, `roleOf` no lanza y sí lanza con `'corresponsal:01'`, peso leído de `RN01_WEIGHTS`, `raw_ref` del mensaje, idempotencia, las cinco ramas y la mitad de esquema de 8.5. | ✅ |
+| CA-9 | `src/decide/engine-entry.ts` (`runEngineForMatch`), `src/bot/webhook.ts` (`runEngine`) | `tests/bot/observation.test.ts` 7–8, 8b–8c; `tests/bot/frontier.test.ts` 24–26; `tests/db/bot-flow.test.ts` 8–10; `tests/types/spec015-bot.test-d.ts`; `tests/decide/rn08-frontier.test.ts` (suite cerrada, pasa) | **Finding 1 CERRADO por la letra nueva, y verificado con las CUATRO medidas que ahora pide el criterio.** (1) `DECISION_WRITERS` tiene exactamente las dos entradas de SPEC-013 y `tests/decide/support/rn08.ts` no contiene la cadena `src/bot`. (2) `git diff main -- tests/decide/support/rn08.ts` = **0 líneas** (también contra `eaae265`). (3) El diff entero de `tests/decide/rn08-frontier.test.ts` contra `eaae265` es **un solo hunk**: el censo derivado del caso 10 gana un elemento y un comentario con el motivo; ninguna otra aserción se toca, ninguna se debilita ni se vuelve condicional. (4) **La sonda, que ya no es opcional**: Q13 (`src/bot/decide-leak.ts` importando `PostgresDecisionStore`) pone **ROJOS los casos 3 y 10** — el guardián muerde. Y 9.2–9.6 reconfirmados, con el caso 8c ahora midiendo la frontera de verdad (Finding 4). | ✅ |
+| CA-10 | `migrations/0007`, `src/db/bot.ts`, `.env.example` | `tests/db/bot-schema.test.ts` 8–11; `tests/db/bot-flow.test.ts` 11–13; **`tests/bot/frontier.test.ts` 27–32** y **`tests/bot/support/telegram-ids.ts`** (el árbol versionado entero, segunda vuelta) | **Finding 3 CERRADO en lo que importa, con salvedad medida.** El escaneo recorre ahora el **árbol versionado entero** —466 ficheros, sin filtro de extensión, leídos en `latin1`, con fallo cerrado ante un fichero ilegible— en vez de tres sospechosos. Lo he atacado en **cuatro sitios nuevos**, no en el de mi sonda anterior: `migrations/0008_sonda.sql`, un *append* a `README.md` ya versionado, un **binario** `docs/sonda.png`, y el propio `src/`. **Los cuatro ROJOS.** Y el control positivo del caso 30 ya escribe un fichero real y mide el mismo escaneo. **SALVEDAD (residuo medido por mí)**: dos evasiones quedan, y solo una está declarada. (i) La exclusión `*.ledger.md` **hoy solo la sostiene el número de diez cifras que escribió mi propio veredicto RED de la 1ª vuelta** — medido: con la lista vacía el árbol entero tiene **exactamente dos** aciertos, `docs/diseno/…html` (`1073741823`, constante de máscara de bits) y este ledger (`1234567890`); un id escrito en un ledger ajeno evade (sonda Q14e). (ii) `\b\d{9,12}\b` no ve un id pegado a un carácter de palabra: `tg9876543210` en `src/bot/` evade (sonda Q14f), y **eso no está declarado en ninguna parte**. La propiedad de fondo **se cumple**: no hay ningún identificador real en el árbol, medido por mí con un patrón más laxo que el del test. | ⚠️ |
+| CA-11 | `src/i18n/bot.ts` (`DEFAULT_BOT_LOCALE`), `src/bot/webhook.ts`, `migrations/0007` (`correspondent_state.locale`) | `tests/bot/webhook.test.ts` 40–43; `tests/bot/frontier.test.ts` 31–33; `tests/bot/i18n.test.ts` 19 | **2ª vuelta.** Sonda Q4 (`language_code` en `src/bot/`) → caso 31 ROJO. Galego por defecto con `language_code: 'es'`; `/lingua` persiste, ida y vuelta; sin fila, `gl`. | ✅ |
+| CA-12 | `src/i18n/bot-bundle.ts`, `src/i18n/bot.ts`, `src/i18n/statuses-bundle.ts`, `src/i18n/statuses.ts`, `src/i18n/gl.ts`, `src/i18n/es.ts`, `src/bot/commands.ts`, `src/bot/telegram.ts` | `tests/bot/i18n.test.ts` 1–18; `tests/bot/frontier.test.ts` 34–39; `tests/bot/observation.test.ts` 11–13; `tests/types/spec015-bot.test-d.ts` | **Finding 5 CERRADO en su parte de CA-12**: los casos 38 y 39 ya no afirman sobre cadenas escritas en el test — pasan un fichero sintético por `visibleLiteralOffences`, la misma función que juzga a los módulos reales. Sonda Q6 (`text: 'Confirmar'` en `src/bot/`) → `npm run typecheck` falla con TS2322: el mecanismo principal es el tipo y muerde. Galego reconfirmado contra el dictamen §5. **Salvedad**: 12.3 pide las descripciones «registradas» en Telegram y hoy solo se construye el payload desde el bundle, porque el adaptador de grammY está diferido (F-SPEC-015-13) y el bot nace apagado. | ⚠️ |
+| CA-13 | `src/bot/candidates.ts` (`matchdayIsOpen`), `src/ingest/measurement.ts` (lista vacía, sin tocar) | `tests/bot/webhook.test.ts` 13–15; `tests/bot/candidates.test.ts` 7–9, 9b–9c | **2ª vuelta.** Sonda Q8 (puerta de la jornada neutralizada) → casos 13 y 14 ROJOS. Con la lista de producción vacía: frase neutra, cero archivo, cero filas y `model.calls === 0`. | ✅ |
+| CA-14 | `src/i18n/bot-bundle.ts` (claves `notice*`), `src/bot/webhook.ts` (`noticeText`, `/baixa`), `migrations/0007` (`notice_sent_at`, `opted_out_at`) | `tests/bot/webhook.test.ts` 44–51 | **2ª vuelta.** Reconfirmado: los nueve elementos del art. 13 clave a clave, el primer mensaje sin aviso no se procesa, `/baixa` corta en el acto y ningún teclado lleva botón de consentimiento. | ✅ |
+| CA-15 | `migrations/0007` | Salidas literales abajo, y **las de la segunda vuelta al final del ledger**; `tests/db/bot-schema.test.ts` 1–3 | 15.1, 15.2 y 15.4 verdes con salidas literales corridas por mí (abajo), y el contraste fichero a fichero contra `eaae265` da **cero discrepancias**: ningún fichero de test previo cambia de recuento, ninguno desaparece, y los deltas cuadran exactamente (+179 unidad, +27 base). **15.3 con la letra nueva: las TRES desviaciones cumplen LAS CUATRO condiciones**, verificadas una a una (tabla abajo), y **la de CA-5.5 no ha ocurrido**. **SALVEDAD**: la suite nueva introduce una carrera propia — el caso 27 llama a `git ls-files` **dos veces** y otro worker puede crear un fichero bajo `src/` entre las dos. Medido: 1 fallo de esa clase en 14 pasadas de `npm test`, y **reproducido a mano de forma determinista**. Es la misma clase que F-SPEC-013-10, no la misma instancia, y `scanned()` no la cubre porque el caso 27 no pasa por ahí. | ⚠️ |
 
 ## CA-5: qué quedó hecho, qué falta, y por qué
 
@@ -367,7 +367,228 @@ Lo que se hizo, y lo que no:
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
 
-### RED — 2026-09-03, `sdd-verificador`
+### GREEN — 2026-09-03, `sdd-verificador` (segunda vuelta)
+
+**Los cuatro findings del RED están cerrados y los he vuelto a medir yo, no
+leído.** Quedan tres salvedades con su residuo escrito —CA-5 por la precondición
+que el gate firmó, CA-10 por dos evasiones que mido abajo, CA-12 por el
+registro en Telegram que exige encender el bot— y ninguna de las tres bloquea:
+el producto no ha cambiado ni un byte desde mi RED (`git diff eff961a..HEAD --
+src/ migrations/ corresponsais/ .env.example` **vacío**), los tres gates salen
+limpios y el contraste fichero a fichero contra `eaae265` da cero discrepancias.
+
+**Lo que cambió mi juicio sobre el Finding 1 no fue un argumento: fue la letra.**
+El gate reescribió CA-9.1 y CA-15.3 en el **cuerpo** de la spec, y la letra nueva
+no baja la barra, la sube: donde antes había una prohibición sobre el diff
+—incumplible con el §5 de la propia spec— ahora hay cuatro medidas, una de ellas
+**una sonda obligatoria** que antes era iniciativa mía; y donde CA-15.3
+enumeraba dos desviaciones, ahora hay cuatro condiciones que toda desviación
+tiene que cumplir. He verificado las cuatro medidas y las cuatro condiciones,
+una a una.
+
+#### CA-9.1 — las cuatro medidas de la letra nueva
+
+| # | Qué pide | Cómo lo medí | Resultado |
+|---|---|---|---|
+| 1 | `src/bot/` no está en `DECISION_WRITERS` | `DECISION_WRITERS` tiene exactamente las dos entradas de SPEC-013; `tests/decide/support/rn08.ts` no contiene la cadena `src/bot` | ✔ |
+| 2 | `tests/decide/support/rn08.ts` no cambia ni una línea | `git diff main -- tests/decide/support/rn08.ts` → **0 líneas** (idem contra `eaae265`) | ✔ |
+| 3 | El único cambio de la suite es el censo derivado del caso 10 | El diff entero contra `eaae265` es **un solo hunk**: un elemento en el `toEqual` y el comentario con el motivo. Ninguna otra aserción tocada, ninguna debilitada, borrada ni condicional | ✔ |
+| 4 | **La sonda, que ya no es opcional** | Q13: `src/bot/decide-leak.ts` importando `PostgresDecisionStore` → casos **3 y 10 ROJOS** (`2 failed | 23 passed`) | ✔ |
+
+#### CA-15.3 — las tres desviaciones contra las cuatro condiciones
+
+Son tres, y son exactamente tres: `git diff --name-status eaae265..HEAD -- tests/`
+da tres `M` y catorce `A`.
+
+| Desviación | (a) censo derivado | (b) ninguna lista de frontera | (c) ninguna aserción debilitada | (d) motivo en el mismo diff |
+|---|---|---|---|---|
+| `tests/db/decide-cycle.test.ts` — migraciones en disco | ✔ | ✔ | ✔ `toEqual` exacto, un elemento más | ✔ |
+| `tests/decide/rn08-frontier.test.ts` caso 10 — quién cruza | ✔ | ✔ `rn08.ts` con 0 líneas de diff | ✔ | ✔ |
+| `tests/polite/support/capability.ts` — `ENTRY_POINTS` | ✔ (la letra nueva nombra «las rutas de `src/app/`») | ✔ ninguna `ALLOWED_*` tocada; y `architecture.test.ts` 17 la **obliga** | ✔ ninguna aserción cambia | ✔ |
+
+**Y la corrección de hecho, comprobada: la desviación de CA-5.5 NO ha ocurrido.**
+`git diff eaae265..HEAD -- tests/polite/support/capability.ts` no toca ninguna
+lista `ALLOWED_*`. No la cuento como hecha.
+
+### Las sondas de la segunda vuelta
+
+Ficheros reales, medidos y borrados; `git status` limpio tras cada bloque.
+**Las de CA-10.4 van a propósito en sitios distintos de los de la primera
+vuelta**, para medir la clase de evasión y no mi sonda concreta.
+
+| # | Sonda | Guardián | Resultado |
+|---|---|---|---|
+| Q13 | `src/bot/decide-leak.ts` importa `PostgresDecisionStore` | `rn08-frontier` 3, 10 | **ROJO** ✔ *(exigida por CA-9.1.4)* |
+| Q14a | id en `migrations/0008_sonda.sql` | `frontier` 28, 30, 31, 32 | **ROJO** ✔ |
+| Q14b | id **appendeado** a `README.md`, ya versionado | `frontier` 28, 30, 31, 32 | **ROJO** ✔ |
+| Q14c | id dentro de un **binario** `docs/sonda.png` | `frontier` 28, 30, 31, 32 | **ROJO** ✔ |
+| Q14d | id bajo `docs/diseno/` | `frontier` | **VERDE — evade** (exclusión declarada y sostenida por un falso positivo real) |
+| Q14e | id dentro del ledger de **SPEC-013** | `frontier` | **VERDE — evade** (exclusión declarada; ver salvedad) |
+| Q14f | `tg9876543210` en `src/bot/` | `frontier` | **VERDE — evade, y no está declarado** (ver salvedad) |
+| Q1 | lector no declarado del mapeo | `frontier` 3, 6 | **ROJO** ✔ |
+| Q2 | `src/bot/` importa `@/alias/resolver` | `frontier` 23 | **ROJO** ✔ |
+| Q3 | `import * as` sobre `@/decide/engine-entry` | `frontier` 24 | **ROJO** ✔ |
+| Q4 | `language_code` en `src/bot/` | `frontier` 31 | **ROJO** ✔ |
+| Q5 | `stop_reason`/`max_tokens`/`x-api-key` en `src/bot/` | `frontier` 18 | **ROJO** ✔ |
+| Q6 | `text: 'Confirmar'` en `src/bot/` | `npm run typecheck` | **ROJO** ✔ (TS2322) |
+| Q8 | puerta de la jornada neutralizada | `webhook` 13, 14 | **ROJO** ✔ |
+| Q9 | `observations.append` **antes** del botón | `bot-flow` 1 (Postgres) | **ROJO** ✔ |
+| Q12 | adaptador real en `src/bot/models/` + llamante fuera | `frontier` 14, 15 | **ROJO** ✔ |
+| Q18 | `message.from.first_name` colado en `ARCHIVED_KEYS` | `redact` 1, 2, 5, 6 | **ROJO** ✔ |
+
+Quince de dieciocho enrojecen. Las tres que evaden son las dos exclusiones
+declaradas y el límite de la frontera de palabra, y están abajo.
+
+### La salvedad de CA-10.4, medida en vez de argumentada
+
+El escaneo pasó de tres ficheros a **466**, sin filtro de extensión, en `latin1`
+y con fallo cerrado ante un ilegible. Eso es lo que pedía el Finding 3 y está
+hecho. Lo que queda, y lo dejo escrito para que nadie lea el criterio como si
+prometiera más:
+
+**(i) La exclusión `*.ledger.md` es hoy circular.** Corrí la regex real del test
+sobre el árbol entero **sin exclusiones**: hay **exactamente dos** aciertos.
+
+```
+1073741823  <--  docs/diseno/sistema-de-deseno-marcador-gal.html
+1234567890  <--  docs/epicas/EPIC-002-.../SPEC-015-...ledger.md
+```
+
+El primero es una constante de máscara de bits: falso positivo real, exclusión
+estructural con precedente ya declarado en `SCAN_EXCLUSIONS` y en
+`.oxlintrc.json`. **El segundo es el número que escribió mi propio veredicto RED
+de la primera vuelta**, describiendo la sonda P14. Es decir: la exclusión que
+abre un agujero en toda una clase de documentos la sostiene, hoy, un dato que
+puso el verificador. El caso 32 comprueba que **el conjunto** de exclusiones no
+es decorativo, pero no que **cada una** lo sea, así que si ese número
+desapareciese nadie se enteraría de que la exclusión sobra. La sonda Q14e lo
+confirma: un id escrito en el ledger de SPEC-013 evade el guardián.
+
+**(ii) `\b\d{9,12}\b` no ve un id pegado a un carácter de palabra.**
+`tg9876543210` en un fichero versionado de `src/bot/` deja la suite en verde
+(Q14f). Las formas realistas —número desnudo en JSON, clave entrecomillada,
+`id: …`, prosa, bytes de un binario— sí se cazan, y lo he medido en cuatro
+sitios. Pero este límite **no está declarado en ninguna parte**: ni en el
+criterio, ni en `tests/bot/support/telegram-ids.ts`, ni en la lista de
+exclusiones.
+
+**Por qué esto es salvedad y no RED.** La propiedad de fondo se cumple, y no lo
+tomo del ledger: la medí yo con un patrón **más laxo** que el del test sobre los
+466 ficheros, y no hay ningún identificador real en el repositorio. El guardián
+cubre ahora la clase de evasión, no una instancia. Las dos vías que quedan
+exigen que alguien escriba un id real dentro de un ledger o pegado a una letra,
+y el único domicilio durable del mapeo sigue siendo el entorno (ADR-023 §4). Es
+un límite del mecanismo, no un agujero del producto.
+
+### La carrera nueva, reproducida a mano
+
+`npm test` corrido **14 veces**: 9 limpias, 5 con un fallo. Cuatro de los cinco
+son la carrera previa de F-SPEC-013-10, en suites cerradas
+(`tests/site/contact.test.ts`, `tests/site/title-source.test.ts`,
+`tests/site/identity.test.ts`, `tests/mirror/user-agent.test.ts`). **El quinto es
+nuevo y es de esta spec**: `tests/bot/frontier.test.ts` caso 27.
+
+La causa no es azar y no la dejo en «vuelve a correrlo». El caso 27 llama a
+`git ls-files` **dos veces** —`versionedTree()` primero, `versionedSources()`
+después— y otro worker puede crear un fichero real bajo `src/` entre las dos.
+Reproducido de forma determinista, sin esperar a la suerte:
+
+```
+$ node -e "… t = versionedTree(); writeFileSync('src/probe/otro-worker.ts', …); s = versionedSources(); …"
+missing = ["src/probe/otro-worker.ts"]
+caso 27 ROJO  <-- la carrera, reproducida a mano
+```
+
+Es la **misma clase** que F-SPEC-013-10, no la misma instancia, y el endurecimiento
+de `scanned()` no la cubre porque el caso 27 no pasa por ahí. Se cierra tomando
+las dos listas de una sola vez, o reintentando el par como hace `scanned()`.
+Queda como **F-SPEC-015-16** y no bloquea: el gate salió limpio las dos veces que
+lo corrí como gate, y 9 de 14 en la tanda de estrés.
+
+### Los tres gates, corridos por mí — segunda vuelta, 2026-09-03
+
+```
+$ npm run lint
+> oxlint --type-aware
+EXIT=0
+
+$ npm run typecheck
+> tsc --noEmit
+EXIT=0
+
+$ npm test
+ Test Files  122 passed (122)
+      Tests  1296 passed (1296)
+Type Errors  no errors
+ Duration  5.70s
+EXIT=0
+
+$ npm run test:db
+ Test Files  24 passed (24)
+      Tests  303 passed (303)
+EXIT=0
+```
+
+**Contraste fichero a fichero contra `eaae265`**, reportero JSON de vitest, árbol
+de la base materializado aparte:
+
+| | Ficheros | Casos |
+|---|---|---|
+| `npm test` en `eaae265` | 114 | 1117 |
+| `npm test` en `HEAD` | 122 | **1296** |
+| `npm run test:db` en `eaae265` | 22 | 276 |
+| `npm run test:db` en `HEAD` | 24 | **303** |
+
+- **Ficheros previos con recuento cambiado: NINGUNO**, ni en unidad ni en base.
+- **Ficheros previos desaparecidos: NINGUNO.**
+- Los ocho ficheros nuevos de unidad suman **179**, que es exactamente
+  1296 − 1117; los dos de base suman **27**, que es 303 − 276. Cuadra sin
+  residuo, así que no hay ningún caso escondido ni ninguno perdido.
+
+### Findings de la segunda vuelta — ninguno bloquea
+
+1. **F-SPEC-015-16 — la carrera del caso 27**, arriba, con su reproducción
+   determinista. **Destino: EPIC-MEJORA**, junto a F-SPEC-013-10;
+   **disparador: la primera spec que toque `tests/bot/frontier.test.ts` o
+   `tests/polite/architecture.test.ts` por otro motivo.**
+2. **F-SPEC-015-17 — el residuo de las dos exclusiones de CA-10.4 no está
+   declarado dentro del criterio**, como ADR-016 §6 obliga. El motivo de cada
+   exclusión está escrito en `tests/bot/support/telegram-ids.ts`, y el de
+   `*.ledger.md` incluso declara su residuo ahí; pero CA-10.5 del cuerpo solo
+   declara el límite «árbol de trabajo, no historia de git». **Destino:
+   `sdd-arquitecto`**, una línea en CA-10.5; **disparador: inmediato, y no
+   bloquea porque el límite está medido y escrito aquí.**
+3. **F-SPEC-015-18 — la frontera de palabra de `TELEGRAM_ID` no está declarada
+   en ningún sitio** (sonda Q14f). O se declara como residuo, o el patrón
+   admite el caso pegado a letra. **Destino: EPIC-MEJORA**; **disparador: el
+   segundo corresponsal**, que es cuando el mapeo deja de tener una sola
+   entrada.
+4. **F-SPEC-015-19 — la circularidad de `*.ledger.md`.** El caso 32 mide que el
+   **conjunto** de exclusiones no es decorativo, no que cada una lo sea. Hoy
+   `*.ledger.md` la sostiene un número que puso el verificador. **Destino:
+   EPIC-MEJORA**; **disparador: el día que se toque
+   `tests/bot/support/telegram-ids.ts`** — y la salida limpia sería la que el
+   propio caso 30 ya usa: **componer** la carga útil (`'7'.repeat(10)`) en vez
+   de escribirla, también en los ledgers, y entonces la exclusión sobra.
+
+### Lo que sigo sin poder ver, y sigo sin dar por visto
+
+**No hay evidencia visual de una conversación real**, por lo mismo que en la
+primera vuelta: verla exigiría encender el bot, y encenderlo tiene seis
+precondiciones fuera del código (ADR-023 §6, F-SPEC-015-5), ninguna cumplida.
+Playwright no aplica: no hay interfaz web. Toda la evidencia de comportamiento
+sale de dobles y de Postgres real. Tampoco he verificado CA-5 contra un
+proveedor, ni la entrega real de mensajes (F-SPEC-015-13), ni que
+`corresponsais/<temporada>.json` llegue al bundle de Vercel (F-SPEC-015-14).
+
+---
+
+### RED — 2026-09-03, `sdd-verificador` (primera vuelta, superado)
+
+> *Lo que sigue es el veredicto de la primera vuelta, conservado entero porque
+> es donde vive lo que se midió y por qué. Sus cuatro findings están cerrados;
+> el primero por reescritura del cuerpo de la spec bajo firma del gate, los
+> otros tres por el implementador.*
 
 **Trece de los quince criterios en verde, uno con la salvedad que el gate ya
 firmó (CA-5) y dos incumplidos por su letra (CA-9 y CA-15).** El trabajo es
