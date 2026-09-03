@@ -63,7 +63,7 @@ Las tres preguntas que la spec llevaba al gate, contestadas:
 | CA-7 — el vale de acción: CSRF y cronómetro | `src/admin/ticket.ts` · `src/admin/view/markup.ts` (`ticketField`, `hidden`) | `tests/admin/ticket.test.ts` casos 1-9 | | |
 | CA-8 — la cuarta cifra medible, declarada como cota inferior | `src/admin/ports.ts` (`OperatorActionRecord`) · `src/db/admin.ts` (`PostgresOperatorActionLog`) · `src/admin/handler.ts` (`record`) | `tests/admin/flow.test.ts` casos 6-9 · `tests/db/admin-flow.test.ts` caso 20 (CA-8.3 contra la base) | | |
 | CA-9 — galego por defecto, castellano con paridad, cero literales | `src/i18n/admin-bundle.ts` · `src/i18n/admin.ts` · `src/i18n/gl.ts` y `es.ts` (espacios `admin` y `qualifiers`) | `tests/admin/i18n.test.ts` casos 1-16 · `tests/types/spec017-admin.test-d.ts` (CA-9.1, 9.3, 9.7) · `tests/admin/frontier.test.ts` casos 20-23 (CA-9.2, 9.5) · `tests/site/i18n.test.ts` caso 4 (enmendado) | | |
-| CA-10 — **REESCRITO 2026-09-03 (ADR-026)**: el sistema de diseño, sobre el suelo de ADR-025, sin heredar lo que el sistema no cumple | **CONGELADO el 2026-09-03** — ver *Cambio de rumbo*. No hay hoja de estilos y el panel entrega marcado semántico sin apariencia decidida | **Ninguno, a propósito.** `tests/admin/view.test.ts` se retiró porque afirmaba lo contrario de lo que ADR-026 va a decir | | ❌ |
+| CA-10 — **REESCRITO 2026-09-03 (ADR-026)**: el sistema de diseño, sobre el suelo de ADR-025, sin heredar lo que el sistema no cumple | `src/design/tokens.ts` y `system.ts` (dueño único, tabla y divergencias) · `src/admin/view/styles.ts` (la hoja, sin un valor propio) · `src/admin/view/markup.ts` y `pages.ts` (clases de estado y cualificador, gesto de `Escape`) · `public/fonts/` (cinco caras de Geist autoalojadas + OFL) | `tests/design/parity.test.ts` casos 1-17 (CA-10.2..10.6) · `tests/admin/style.test.ts` casos 1-32 (CA-10.1, 10.6..10.13) · **CA-10.14 A MANO**: `_qa/SPEC-017/` — cuatro capturas a 360 × 640, `CA-10.14-medidas.json` y `README.md` | | |
 | CA-11 — nace apagado, y la llave es el partido, no el reloj | `src/admin/handler.ts` (`declaredMatches`, el paso 6) · `src/ingest/measurement.ts` (sin tocar: nace vacía) | `tests/admin/flow.test.ts` casos 10-13 | | |
 | CA-12 — lo que el operador ve para poder arbitrar | `src/admin/board.ts` · `src/admin/view/pages.ts` · `src/decide/read-entry.ts` | `tests/admin/board.test.ts` casos 5-10 · `tests/admin/document.test.ts` casos 8-10 | | |
 | CA-13 — puntos de entrada declarados; el panel no le pide nada a nadie | `src/app/(gl)/admin/route.ts` · `src/app/(es)/es/admin/route.ts` · `tests/polite/support/capability.ts` (`ENTRY_POINTS`) | `tests/admin/frontier.test.ts` casos 24-28 | | |
@@ -110,12 +110,20 @@ congelado el 2026-09-03** a la espera de ADR-026 (ver *Cambio de rumbo*). Hacer
 las capturas ahora sería fotografiar un panel sin apariencia decidida y volver a
 hacerlas después.
 
-| CA | Captura esperada | Estado |
+| CA | Captura | Fichero |
 |---|---|---|
-| CA-10.14 | Tablero a 360 × 640, con el foco visible sobre el primer control | **CONGELADA** (ADR-026) |
-| CA-10.14 | Formulario de corrección a 360 × 640, con el foco visible y sin scroll horizontal | **CONGELADA** (ADR-026) |
-| CA-10.14 | El paso de confirmación, y la vuelta del foco tras `Escape` | **CONGELADA** (ADR-026) |
-| CA-12 | El tablero con una alerta abierta arriba y el orden de la cola | Pendiente del verificador |
+| CA-10.14 | Acceso a 360 × 640, con el foco visible sobre el primer campo | `CA-10.14-gl-360x640-acceso-foco.png` |
+| CA-10.14 | Tablero a 360 × 640, con el foco visible sobre el primer control y **la alerta abierta arriba** | `CA-10.14-gl-360x640-taboleiro-foco.png` |
+| CA-10.14 | Formulario de corrección a 360 × 640, foco visible, sin scroll horizontal | `CA-10.14-gl-360x640-correccion-foco.png` |
+| CA-10.14 | La vuelta del foco tras `Escape`, con el motivo ya vaciado | `CA-10.14-gl-360x640-escape-foco-devolto.png` |
+| CA-10.14 | Las medidas que devolvió el navegador, sin retocar | `CA-10.14-medidas.json` |
+| CA-12 | El tablero con la alerta abierta primero — es la misma captura del tablero | `CA-10.14-gl-360x640-taboleiro-foco.png` |
+
+**Cómo se hizo y qué encontró: `_qa/SPEC-017/README.md`.** Se hizo con **Chrome
+real**, conducido por CDP desde un guion que vive en `_qa/` y **no en `tests/`**,
+porque la spec decidió no meter un navegador automatizado en el proyecto
+(ADR-025 §5) y esto no es una suite: es el instrumento de una comprobación
+manual, y no lo corre ningún gate.
 
 ## Cambio de rumbo — 2026-09-03: CA-10 queda CONGELADO a la espera de ADR-026
 
