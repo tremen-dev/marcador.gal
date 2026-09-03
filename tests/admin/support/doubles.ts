@@ -80,6 +80,26 @@ export class RecordingRawStore extends MemoryRawStore {
     return key;
   }
 
+  /**
+   * Todo lo archivado, con su CLAVE y su META además del cuerpo. CA-3.2 dice
+   * «ni un byte», y un byte también cabe en el nombre del objeto o en sus
+   * metadatos, así que el recorrido no puede quedarse en el cuerpo.
+   */
+  async archived(): Promise<readonly { key: string; meta: string; body: string }[]> {
+    const out: { key: string; meta: string; body: string }[] = [];
+    for (const key of await this.list('')) {
+      const object = await this.get(key);
+      if (object !== null) {
+        out.push({
+          key,
+          meta: JSON.stringify(object.meta),
+          body: new TextDecoder().decode(object.body),
+        });
+      }
+    }
+    return out;
+  }
+
   /** Todo lo archivado, decodificado. Lo que CA-3.2 recorre byte a byte. */
   async bodies(): Promise<readonly string[]> {
     const out: string[] = [];
@@ -398,25 +418,39 @@ export interface PostOptions {
   readonly token?: string | undefined;
   readonly locale?: 'gl' | 'es' | undefined;
   readonly env?: Readonly<Record<string, string | undefined>> | undefined;
+  /**
+   * Las cabeceras que un navegador manda de verdad —`user-agent`, la IP que
+   * pone el proxy, el `referer`— y que CA-3.2 exige que NO aparezcan en ningún
+   * byte de lo archivado. Sin esto, los `not.toContain` de ese criterio son
+   * vacuos: no se puede afirmar que no aparece algo que nunca entró
+   * (F-SPEC-017-V1).
+   */
+  readonly headers?: Readonly<Record<string, string>> | undefined;
+  /** La URL del envío. CA-7.4 la necesita para mandar el vale EN LA QUERY. */
+  readonly url?: string | undefined;
+}
+
+/** La petición tal y como la construye un navegador, cabeceras incluidas. */
+export function panelRequest(options: PostOptions): Request {
+  const token = options.token ?? sessionTokenOf();
+  const headers = new Headers({ 'content-type': 'application/x-www-form-urlencoded' });
+  if (token.length > 0) headers.set('cookie', cookieHeader(token));
+  for (const [name, value] of Object.entries(options.headers ?? {})) headers.set(name, value);
+
+  return new Request(options.url ?? 'https://marcador.gal/admin', {
+    method: 'POST',
+    headers,
+    body: new URLSearchParams(options.fields).toString(),
+  });
 }
 
 /** Un envío del panel: `POST` con formulario, y la cookie que trae el navegador. */
 export async function postToPanel(built: Scene, options: PostOptions): Promise<Response> {
-  const token = options.token ?? sessionTokenOf();
-  const headers = new Headers({ 'content-type': 'application/x-www-form-urlencoded' });
-  if (token.length > 0) headers.set('cookie', cookieHeader(token));
-
   return await adminHandler({
     ports: built.ports,
     env: options.env ?? sceneEnv(),
     locale: options.locale ?? 'gl',
-  })(
-    new Request('https://marcador.gal/admin', {
-      method: 'POST',
-      headers,
-      body: new URLSearchParams(options.fields).toString(),
-    }),
-  );
+  })(panelRequest(options));
 }
 
 /** Un `GET` del panel con sesión. Lo que sirve el tablero y sus vales. */
