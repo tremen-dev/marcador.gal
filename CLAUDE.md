@@ -190,7 +190,8 @@ src/i18n/     bundles de i18n con paridad galego/castellano (SPEC-004 CA-4, EPIC
               crawler-bundle.ts, crawler.ts (bundle del mirror, SPEC-002/003)
               statuses-bundle.ts, statuses.ts (estados de marcador)
               titles-bundle.ts, titles.ts (títulos de página)
-tests/        model/ raw/ db/ alias/ calendar/ stores/ types/ mirror/ site/ decide/ bot/ · fixtures/ SOLO sintéticos
+              El bundle para la interfaz del marcador vive aquí también; cada spec aporta su espacio de nombres
+tests/        model/ raw/ db/ alias/ calendar/ config/ stores/ types/ mirror/ site/ decide/ bot/ · fixtures/ SOLO sintéticos
 corresponsais/ catálogo declarado de correspondent_id por temporada (SPEC-015);
               mapeo telegram_user_id → correspondent_id NO se versiona, va en TELEGRAM_CORRESPONDENTS (ADR-022 §2)
 raw/          raíz de DiskRawStore en local; NO versionado

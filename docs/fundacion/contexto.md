@@ -14,7 +14,7 @@ femenino) y de las divisiones nacionales, en directo, en una sola pantalla y en
 galego. Relevo con nombre e imagen propios de la desaparecida marcadorgalego.gal
 — **inspiración, no sucesión** (D-1).
 
-**Punto actual: quince specs `hecho` y verificadas GREEN, veintitrés ADRs
+**Punto actual: dieciséis specs `hecho` y verificadas GREEN, veintitrés ADRs
 `aprobada` e inmutables.** Hay código en `src/model/`, `src/raw/` y `src/db/`
 (SPEC-001); en `src/mirror/`, con sus dos fases `capture/` y `analysis/` que no
 se importan entre sí (SPEC-002, SPEC-003); en `src/app/`, `src/site/` e
