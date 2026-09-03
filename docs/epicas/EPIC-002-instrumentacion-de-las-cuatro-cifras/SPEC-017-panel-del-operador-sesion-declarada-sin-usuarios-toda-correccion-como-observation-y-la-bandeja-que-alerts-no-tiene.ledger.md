@@ -6,7 +6,8 @@ epica: EPIC-002
 # Ledger — SPEC-017 Panel del operador: sesión declarada sin usuarios, toda corrección como `Observation`, y la bandeja que `alerts` no tiene
 
 ## Resumen
-- Fase: **`en-progreso`** (RED de `sdd-verificador`, 2026-09-03) — escrita por `sdd-arquitecto` el 2026-09-03, firmada
+- Fase: **`en-revision`** (segunda vuelta: los cuatro findings del RED que eran
+  del implementador, cerrados el 2026-09-03 — ver *Segunda vuelta*) — escrita por `sdd-arquitecto` el 2026-09-03, firmada
   por Alberto Fojo el 2026-09-03, implementada por `sdd-implementador` el
   2026-09-03. La fuente de verdad es el frontmatter de la spec. **LOS TRECE
   CRITERIOS ENTREGADOS.** CA-10 estuvo congelado unas horas por el cambio de
@@ -59,17 +60,17 @@ Las tres preguntas que la spec llevaba al gate, contestadas:
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 — sesión, fallo cerrado, frontera del secreto, sin anunciarse | `src/admin/session.ts` · `src/admin/handler.ts` (`adminHandler`, `unauthorized`) · `src/admin/view/markup.ts` (`document`, la `meta`) | `tests/admin/session.test.ts` casos 1-18 · `tests/admin/frontier.test.ts` casos 1-11 (CA-1.7, 1.8, 1.9, 1.11) · `tests/admin/document.test.ts` casos 1-3 (CA-1.10) | Evasión probada y ROJA: un módulo fuera de `ADMIN_SECRET_READERS` que nombra `ADMIN_SESSION_SECRET` (caso 3 rojo). Sonda propia: sin secreto y con secreto corto ⇒ 401 y `log.calls === []`; catálogo vacío/ilegible ⇒ 401 sin `Set-Cookie`. Cookie emitida por el handler comprobada por sonda: `Path=/; HttpOnly; Secure; SameSite=Strict`. **Salvedades**: (a) cuatro métodos de los dobles no registran en el `CallLog`, así que «todos sin llamar» no es exhaustivo; (b) el detector de CA-1.3 es textual sobre `===`/`!==` y no declara ese residuo. | ⚠️ |
+| CA-1 — sesión, fallo cerrado, frontera del secreto, sin anunciarse | `src/admin/session.ts` · `src/admin/handler.ts` (`adminHandler`, `unauthorized`) · `src/admin/view/markup.ts` (`document`, la `meta`) | `tests/admin/session.test.ts` casos 1-20 (19: el `CallLog` es exhaustivo; 20: ni `==`, ni `Object.is`, ni `localeCompare`) · `tests/admin/frontier.test.ts` casos 1-11 (CA-1.7, 1.8, 1.9, 1.11; el caso 1 afirma ahora que `view/styles.ts` entra) · `tests/admin/document.test.ts` casos 1-3 (CA-1.10) · `tests/admin/flow.test.ts` caso 15 (la cabecera `Set-Cookie` que EMITE el handler, CA-1.5) | Evasión probada y ROJA: un módulo fuera de `ADMIN_SECRET_READERS` que nombra `ADMIN_SESSION_SECRET` (caso 3 rojo). Sonda propia: sin secreto y con secreto corto ⇒ 401 y `log.calls === []`; catálogo vacío/ilegible ⇒ 401 sin `Set-Cookie`. Cookie emitida por el handler comprobada por sonda: `Path=/; HttpOnly; Secure; SameSite=Strict`. **Salvedades**: (a) cuatro métodos de los dobles no registran en el `CallLog`, así que «todos sin llamar» no es exhaustivo; (b) el detector de CA-1.3 es textual sobre `===`/`!==` y no declara ese residuo. | ⚠️ |
 | CA-2 — toda operación es `Observation`; `DECISION_WRITERS` no crece | `src/admin/observation.ts` · `src/admin/actions.ts` · `src/admin/handler.ts` (`onAction`) · `src/admin/ports.ts` (`AdminPorts`) | `tests/admin/flow.test.ts` casos 1-3 · `tests/admin/frontier.test.ts` casos 12-19 · `tests/types/spec017-admin.test-d.ts` (CA-2.5) | `DECISION_WRITERS` sigue con DOS entradas y el caso de SPEC-013 que lo afirma NO se tocó (verificado en `git diff cd2870c..HEAD -- tests/decide/rn08-frontier.test.ts`: lo único que crece es la enumeración derivada de quién cruza, que gana `src/decide/read-entry.ts` con motivo en el mismo diff, igual que SPEC-015 hizo con `engine-entry.ts`). `src/decide/read-entry.ts` leído: solo lectura, devuelve `Decision[]` y ningún almacén. Evasiones probadas y ROJAS: `PostgresDecisionStore` importado desde `src/admin/view/styles.ts`. Los 13 ficheros de `src/admin/` entran en el escaneo (medido). | ✅ |
-| CA-3 — RN-10: archivo antes de parsear, lista blanca, motivo verbatim | `src/admin/redact.ts` · `src/admin/archive.ts` · `docs/procedimientos/jornada-de-medicion.md` (paso 2 bis y paso 3) | `tests/admin/archive.test.ts` casos 1-15 · `tests/docs/purga.test.ts` casos 1-4 (CA-3.8) | **CA-3.2 NO CUMPLE.** El caso 4 declara `marker` en `tests/admin/archive.test.ts:99` y **nunca lo envía**; `postToPanel` (`tests/admin/support/doubles.ts:396`) no admite cabeceras, así que ninguna petición de la suite lleva `user-agent`, IP ni cabecera reconocible alguna, y los `not.toContain` son vacuos. **Fuga reproducida**: archivando UA + `X-Forwarded-For` + la cookie de sesión entera en el objeto crudo de la acción `estado`, `npm run gates` da 1515/1515 y `npm run test:db` 339/339, todos verdes. 3.1, 3.3-3.9 sí cumplen (runbook y prefijo verificados). | ❌ |
+| CA-3 — RN-10: archivo antes de parsear, lista blanca, motivo verbatim | `src/admin/redact.ts` · `src/admin/archive.ts` · `docs/procedimientos/jornada-de-medicion.md` (paso 2 bis y paso 3) | `tests/admin/archive.test.ts` casos 1-17 (**CA-3.2 reescrito**: caso 4, las cuatro acciones con cabeceras enviadas de verdad; caso 5, el vale y el token; caso 6, el control positivo con la fuga montada en el test) · `tests/docs/purga.test.ts` casos 1-4 (CA-3.8) | **CA-3.2 NO CUMPLE.** El caso 4 declara `marker` en `tests/admin/archive.test.ts:99` y **nunca lo envía**; `postToPanel` (`tests/admin/support/doubles.ts:396`) no admite cabeceras, así que ninguna petición de la suite lleva `user-agent`, IP ni cabecera reconocible alguna, y los `not.toContain` son vacuos. **Fuga reproducida**: archivando UA + `X-Forwarded-For` + la cookie de sesión entera en el objeto crudo de la acción `estado`, `npm run gates` da 1515/1515 y `npm run test:db` 339/339, todos verdes. 3.1, 3.3-3.9 sí cumplen (runbook y prefijo verificados). | ❌ |
 | CA-4 — RN-12: la cadena llega al operador y su motivo; modelo intacto | `src/admin/handler.ts` (paso 7 y 9) · `migrations/0008_admin.sql` | `tests/db/admin-flow.test.ts` casos 12-16 · `tests/db/admin-schema.test.ts` casos 15-16 (CA-4.3) · `tests/admin/flow.test.ts` casos 4-5 (CA-4.2) | Recorrido de punta a punta en sonda propia contra Postgres: `Decision.supporting_observation_ids` → `Observation(operador, 1.0)` → `raw_ref` → objeto crudo → `operator_id` **y** motivo, los dos presentes. `migrations/` solo añade `0008_admin.sql`, sin `alter table`; `src/model/` intacto en el diff. RN-13 comprobado en vivo: `update observations` y `update decisions` reciben «table … is append-only (RN-13)». | ✅ |
 | CA-5 — lo que el operador puede hacer y cómo lo trata el motor | `src/admin/actions.ts` (`proposalFor`) · `src/admin/observation.ts` · `src/decide/read-entry.ts` | `tests/db/admin-flow.test.ts` casos 1-13 (los siete subpuntos, contra Postgres y con el motor real) | Los siete subpuntos con caso contra Postgres y el motor real (casos 1-14). Reverificado por sonda propia: ratificar una `Decision` provisional de `ceroacero` (2-0, v1) emite **`Decision` v2, `rule: RN-02`, `provisional=false`**, sin escribir ningún marcador — CA-5.6, la operación que hace verdadera la frase central de la spec. | ✅ |
-| CA-6 — la bandeja, el acuse trazable, `alerts` intacta, `migrations/0008` | `migrations/0008_admin.sql` · `src/db/admin.ts` · `src/admin/alerts.ts` · `src/admin/handler.ts` (`onAcknowledge`) | `tests/db/admin-schema.test.ts` casos 1-14 · `tests/db/admin-flow.test.ts` casos 17-19 · `tests/admin/board.test.ts` casos 1-4 · `tests/admin/flow.test.ts` caso 3 (CA-6.6) | `alerts` intacta (diff de `migrations/` y lectura del esquema). Las dos tablas nuevas append-only con su trigger; ninguna columna capaz de albergar una persona; «abierta» derivada. Acuse idempotente y sin publicar nada, contra la base. **Salvedad (6.8)**: la segunda fila de `alerts` la siembra un helper del test, no el motor, así que «el motor escribe otra fila» queda simulado. | ⚠️ |
-| CA-7 — el vale de acción: CSRF y cronómetro | `src/admin/ticket.ts` · `src/admin/view/markup.ts` (`ticketField`, `hidden`) | `tests/admin/ticket.test.ts` casos 1-9 | 7.1, 7.2, 7.3 y 7.5 cumplen. **7.4 primera mitad sin ejercitar**: el caso 6 (`tests/admin/ticket.test.ts:168`) dice en su comentario «El mismo vale, en la query en vez de en el cuerpo» y su `Request` **no lleva ninguna query**: es el caso 1 repetido. El comportamiento es correcto (sonda: `POST /admin?vale=<válido>` con cuerpo sin vale ⇒ 400, cero crudos, cero filas), pero ningún caso afirma lo que el CA pide. La segunda mitad (ningún `href`) sí, caso 7. | ⚠️ |
+| CA-6 — la bandeja, el acuse trazable, `alerts` intacta, `migrations/0008` | `migrations/0008_admin.sql` · `src/db/admin.ts` · `src/admin/alerts.ts` · `src/admin/handler.ts` (`onAcknowledge`) | `tests/db/admin-schema.test.ts` casos 1-14 · `tests/db/admin-flow.test.ts` casos 17-19 y **19 bis** (CA-6.8: las dos alertas las levanta EL MOTOR, y el 19 bis es su control positivo) · `tests/admin/board.test.ts` casos 1-4 · `tests/admin/flow.test.ts` caso 3 (CA-6.6) | `alerts` intacta (diff de `migrations/` y lectura del esquema). Las dos tablas nuevas append-only con su trigger; ninguna columna capaz de albergar una persona; «abierta» derivada. Acuse idempotente y sin publicar nada, contra la base. **Salvedad (6.8)**: la segunda fila de `alerts` la siembra un helper del test, no el motor, así que «el motor escribe otra fila» queda simulado. | ⚠️ |
+| CA-7 — el vale de acción: CSRF y cronómetro | `src/admin/ticket.ts` · `src/admin/view/markup.ts` (`ticketField`, `hidden`) | `tests/admin/ticket.test.ts` casos 1-9 (**caso 6 reescrito**: el vale viaja EN LA QUERY, con el mismo vale en el cuerpo como control positivo) | 7.1, 7.2, 7.3 y 7.5 cumplen. **7.4 primera mitad sin ejercitar**: el caso 6 (`tests/admin/ticket.test.ts:168`) dice en su comentario «El mismo vale, en la query en vez de en el cuerpo» y su `Request` **no lleva ninguna query**: es el caso 1 repetido. El comportamiento es correcto (sonda: `POST /admin?vale=<válido>` con cuerpo sin vale ⇒ 400, cero crudos, cero filas), pero ningún caso afirma lo que el CA pide. La segunda mitad (ningún `href`) sí, caso 7. | ⚠️ |
 | CA-8 — la cuarta cifra medible, declarada como cota inferior | `src/admin/ports.ts` (`OperatorActionRecord`) · `src/db/admin.ts` (`PostgresOperatorActionLog`) · `src/admin/handler.ts` (`record`) | `tests/admin/flow.test.ts` casos 6-9 · `tests/db/admin-flow.test.ts` caso 20 (CA-8.3 contra la base) | Los cuatro subpuntos con caso. Comprobado en vivo: una corrección aceptada deja **una** fila con `started_at = issued_at` del vale y `submitted_at = ahora`; un rechazo por razón de dominio deja fila con su desenlace; un rechazo antes de sesión o de vale no deja ninguna. La cota inferior está declarada dentro del criterio y ejercida (dos cargas del tablero ⇒ cero filas). | ✅ |
 | CA-9 — galego por defecto, castellano con paridad, cero literales | `src/i18n/admin-bundle.ts` · `src/i18n/admin.ts` · `src/i18n/gl.ts` y `es.ts` (espacios `admin` y `qualifiers`) | `tests/admin/i18n.test.ts` casos 1-16 · `tests/types/spec017-admin.test-d.ts` (CA-9.1, 9.3, 9.7) · `tests/admin/frontier.test.ts` casos 20-23 (CA-9.2, 9.5) · `tests/site/i18n.test.ts` caso 4 (enmendado) | Paridad impuesta por tipo (`const castelan: AdminBundle = es.admin`), `asAdminText` sin exportar y sin ninguna escapatoria por cast, cuatro cualificadores en las dos lenguas con la tabla escrita en `dominio.md` **antes** del código (`456038f` < `ba0be1c`). `no-hardcoded-literals.test.ts` sin tocar y sin excepciones nuevas. Notas ya declaradas por el implementador (F-SPEC-017-7) y una menor: la directiva `@ts-expect-error` etiquetada CA-9.7 prueba otra cosa. | ✅ |
 | CA-10 — **REESCRITO 2026-09-03 (ADR-026)**: el sistema de diseño, sobre el suelo de ADR-025, sin heredar lo que el sistema no cumple | `src/design/tokens.ts` y `system.ts` (dueño único, tabla y divergencias) · `src/admin/view/styles.ts` (la hoja, sin un valor propio) · `src/admin/view/markup.ts` y `pages.ts` (clases de estado y cualificador, gesto de `Escape`) · `public/fonts/` (cinco caras de Geist autoalojadas + OFL) | `tests/design/parity.test.ts` casos 1-17 (CA-10.2..10.6) · `tests/admin/style.test.ts` casos 1-32 (CA-10.1, 10.6..10.13) · **CA-10.14 A MANO**: `_qa/SPEC-017/` — cuatro capturas a 360 × 640, `CA-10.14-medidas.json` y `README.md` | `docs/diseno/` y `src/app/globals.css` **intactos en el diff**. Evasiones probadas UNA A UNA y todas ROJAS: `#rrggbb` en la hoja · apagar `provisional` con `--fg-muted` · enmudecer el cualificador en el tablero **y** en el detalle · `confirmado` con `--brand` · `@import` de Google Fonts · `TOUCH_TARGET_PX = 43`. La paridad de tokens cierra: las tres divergencias, ni una más, y el complemento vacío. `_qa/SPEC-017/` revisado captura a captura: es evidencia real de Chrome a 360 × 640 y sostiene lo que 10.14 afirma. **Salvedades**: (a) la letra de 10.1 dice «ni un radio, ni un valor de escala por su cuenta» y la hoja sí escribe algunos (`h1{font-size:20px}`, `line-height:1.45`, `max-width:22rem`, `min-height:5rem`, `main{max-width:60rem}`); el mecanismo del propio subpunto solo cubre color y familia y 10.4 declara el residuo de la escala; (b) quedan **tres restos de la versión congelada** que dicen lo contrario de lo vigente (ver findings V4). | ⚠️ |
-| CA-11 — nace apagado, y la llave es el partido, no el reloj | `src/admin/handler.ts` (`declaredMatches`, el paso 6) · `src/ingest/measurement.ts` (sin tocar: nace vacía) | `tests/admin/flow.test.ts` casos 10-13 | 11.2, 11.3 y 11.4 cumplen, y 11.3 está bien hecho (reloj el lunes, jornada del sábado, la corrección funciona). **11.1 primera mitad sin caso**: `MEASUREMENT_WINDOWS` sí se afirma con la lista de producción (casos 10-11), pero **no hay ni un test que ejercite el camino de acceso** (`intento=acceso`) por el handler, ni el éxito ni el fallo, así que «con `ADMIN_OPERATORS` vacía no entra nadie» no lo afirma ningún caso. Comportamiento verificado por sonda propia (401, sin `Set-Cookie`, cero puertos); lo que falta es la aserción. | ⚠️ |
+| CA-11 — nace apagado, y la llave es el partido, no el reloj | `src/admin/handler.ts` (`declaredMatches`, el paso 6) · `src/ingest/measurement.ts` (sin tocar: nace vacía) | `tests/admin/flow.test.ts` casos 10-15 (**14 y 15 nuevos**: el intercambio de acceso, con el catálogo como nace y con el catálogo declarado) | 11.2, 11.3 y 11.4 cumplen, y 11.3 está bien hecho (reloj el lunes, jornada del sábado, la corrección funciona). **11.1 primera mitad sin caso**: `MEASUREMENT_WINDOWS` sí se afirma con la lista de producción (casos 10-11), pero **no hay ni un test que ejercite el camino de acceso** (`intento=acceso`) por el handler, ni el éxito ni el fallo, así que «con `ADMIN_OPERATORS` vacía no entra nadie» no lo afirma ningún caso. Comportamiento verificado por sonda propia (401, sin `Set-Cookie`, cero puertos); lo que falta es la aserción. | ⚠️ |
 | CA-12 — lo que el operador ve para poder arbitrar | `src/admin/board.ts` · `src/admin/view/pages.ts` · `src/decide/read-entry.ts` | `tests/admin/board.test.ts` casos 5-10 · `tests/admin/document.test.ts` casos 8-10 | Nombres canónicos RFGF, estado, marcador, cualificador con `qualifierOf`, instante y alertas abiertas, comprobados sobre el árbol renderizado y en el navegador. El detalle enseña las `Observation` de cada fuente y el log de `Decision` con `version`, `rule` y apoyos. El orden (alerta → *sen sinal* → `live` → resto) tiene caso, con el contra-caso de que `confirmado` no adelanta a nadie. | ✅ |
 | CA-13 — puntos de entrada declarados; el panel no le pide nada a nadie | `src/app/(gl)/admin/route.ts` · `src/app/(es)/es/admin/route.ts` · `tests/polite/support/capability.ts` (`ENTRY_POINTS`) | `tests/admin/frontier.test.ts` casos 24-28 | Las dos rutas en `ENTRY_POINTS` con motivo; la suite cerrada de SPEC-009 pasa sin tocar aserciones. Evasión probada y ROJA: `politeFetch` importado en `src/admin/handler.ts` mete `src/polite/http.ts` en el grafo. Las cuatro entradas nuevas de `capability.ts` (`createHmac`, `Array.isArray`, `URLSearchParams`, `encodeURIComponent`) revisadas una a una: **ninguna abre la puerta a pedir bytes a un tercero**. Rutas sin lógica: su único destino resuelto es `src/admin/handler.ts`. | ✅ |
 
@@ -438,6 +439,138 @@ centros y uno de ellos no se parece a los anteriores:**
    desviación estructural de la spec, y las cuatro entradas nuevas de
    `tests/polite/support/capability.ts` (F-SPEC-017-4).
 
+## Segunda vuelta — los findings del RED, cerrados (`sdd-implementador`, 2026-09-03)
+
+**Los cuatro findings que eran míos están cerrados, y ninguno tocó una línea de
+código de producción**: los cuatro eran tests que no medían lo que decían y
+prosa que decía lo contrario de lo vigente. **`src/` no cambia en esta vuelta**
+—`git diff` sobre `src/` y `migrations/` está vacío—, que es exactamente lo que
+el veredicto anticipaba: «no hay fuga en el código entregado; lo que falta es el
+mecanismo».
+
+**Gates de esta vuelta, medidos por mí:**
+
+- `npm run gates` → **137 ficheros, 1521 casos, todos verdes**,
+  `Type Errors: no errors`, `next build` con `ƒ /admin` y `ƒ /es/admin`.
+  Referencia anterior: 1515. **+6.**
+- `npm run test:db` → **26 ficheros, 340 casos, todos verdes**. Referencia
+  anterior: 339. **+1.**
+
+*(Aviso a quien repita esto: correr las dos suites de base a la vez contra la
+misma `DATABASE_URL_TEST` se pisan entre ellas —`dropEverything` de una tira la
+otra— y el resultado es un rojo falso. Se corren de una en una.)*
+
+### F-SPEC-017-V1 — CA-3.2, el mecanismo que no existía. CERRADO
+
+**Qué faltaba:** el marcador se declaraba y no se enviaba nunca, porque
+`postToPanel` no admitía cabeceras. Con eso, los tres `not.toContain` afirmaban
+que no aparece algo que jamás entró.
+
+**Qué hay ahora**, en `tests/admin/support/doubles.ts` y
+`tests/admin/archive.test.ts`:
+
+- `PostOptions` gana `headers`, y el transporte se parte en `panelRequest()`
+  —la petición tal y como la construye un navegador— y `postToPanel()`.
+- `RecordingRawStore.archived()` devuelve **clave, meta y cuerpo**: «ni un
+  byte» también cabe en el nombre del objeto y en sus metadatos, y el recorrido
+  no podía quedarse en el cuerpo.
+- **Caso 4**: las **cuatro** acciones —`correccion`, `estado`, `ratificacion` y
+  `acuse`, cada una en su escena— se envían con cinco cabeceras reales
+  (`user-agent`, `x-forwarded-for`, `x-real-ip`, `referer`, `accept-language`),
+  todas con el marcador `CABECERA-RECOÑECIBLE-9f3a` dentro del valor. El
+  recorrido `traces()` busca los valores, los nombres, las dos IP y
+  `marcador_operador` en **el archivo (clave + meta + cuerpo) y en las filas**
+  de `observations`, `operator_actions` y `alert_acks`. Y afirma antes que hay
+  algo que recorrer: 200 y al menos un objeto archivado por acción.
+- **Caso 5**: lo mismo para el **vale** y el **token de sesión**.
+- **Caso 6 — CONTROL POSITIVO (ADR-016 §3.4)**: la fuga que reprodujo el
+  verificador, montada **dentro del test** —el `handler` de producción no se
+  toca—, recorrida con el **mismo** `traces()` y los **mismos** marcadores. Se
+  pone **rojo** y nombra qué cruzó y por dónde; y además comprueba que **la
+  mitad de «filas» del recorrido no está apagada**, con un dato que sí vive en
+  ellas.
+
+**Control positivo sobre el código de producción, hecho y revertido:** metí en
+`src/admin/handler.ts` la fuga exacta del veredicto —UA + `X-Forwarded-For` +
+la cookie de sesión al motivo de la acción `estado`— y el **caso 4 se puso
+rojo**, listando cinco rastros. `git diff src/admin/handler.ts` vacío después.
+
+### F-SPEC-017-V2 — CA-11.1, el intercambio de acceso. CERRADO
+
+`tests/admin/flow.test.ts`, casos **14 y 15**, sobre el handler:
+
+- **14** — con `ADMIN_OPERATORS` **como nace en producción, sin declarar**, y
+  en sus cinco formas de vacío (ausente, `''`, `'   '`, `'{}'`, `'non-e-json'`):
+  **401**, **sin `Set-Cookie`**, `log.calls === []`, cero archivo y cero filas.
+  Y `readOperators` devolviendo catálogo vacío en vez de lanzar (CA-1.2).
+- **15** — con el catálogo declarado y la clave correcta: **303**,
+  `Location: /admin`, y **la cookie que emite el handler** con sus cuatro
+  atributos y su `Max-Age`; el token se lee de vuelta y **es una sesión** de
+  `operador-01`; `log.calls === []`. Con la clave equivocada, la misma
+  respuesta que el 14. Esto cierra también la mitad de CA-1.5 que el veredicto
+  señaló: hasta ahora se afirmaba la función `sessionSetCookie`, no la cabecera.
+
+**Los dos son el control positivo el uno del otro**, y además se probaron dos
+evasiones: dejar entrar con catálogo vacío pone rojo el 14; quitar `HttpOnly`
+de la cookie pone rojo el 15. Las dos revertidas.
+
+### F-SPEC-017-V3 — CA-7.4, el caso 6 que era el caso 1. CERRADO
+
+`tests/admin/ticket.test.ts` caso 6: el vale —válido y del operador de la
+sesión— **viaja en la URL** (`?vale=…`) con el cuerpo sin él. 400, cero crudos,
+cero `Observation`, cero filas y cero llamadas al motor. **Control positivo**:
+el **mismo** vale, en el cuerpo, **sí abre** (200, una `Observation`,
+`accepted`), así que lo que el caso afirma es dónde viaja y no que el vale
+estuviera roto. Comprobado poniendo al handler a leer el vale de la query: el
+caso se pone rojo. Revertido.
+
+### F-SPEC-017-V4 — los tres restos de la versión congelada. CERRADO
+
+1. `tests/admin/frontier.test.ts` caso 1: el comentario que decía que
+   `src/admin/view/styles.ts` **no** se escanea **deja de ser comentario y pasa
+   a ser aserción** —`expect(paths).toContain('src/admin/view/styles.ts')`—,
+   porque de eso depende que ningún fichero de `src/admin/` quede fuera de
+   CA-2.3, CA-2.4 y CA-9.5.
+2. `tests/admin/document.test.ts`: la cabecera decía «CA-10 ESTÁ CONGELADO».
+   Ahora dice lo que pasó y lo que hay.
+3. Este ledger: el párrafo tachado de *Evidencia visual* queda cerrado con una
+   nota bajo él.
+
+### Las dos salvedades ⚠️ que se pudieron cerrar sin generosidad
+
+- **CA-1.1** — los métodos mudos de los dobles (`MemoryAckStore.ackedAt`,
+  `MemoryObservationStore.getById`, `MemoryMatchStore.listByRound`,
+  `listByTeams` y, de paso, `MemoryActionLog.listBetween`) **ya registran**, así
+  que «TODOS los dobles registran, y TODOS están sin llamar» deja de ser cierto
+  solo de los que registraban. El **caso 19** de `session.test.ts` lo comprueba
+  llamando a los **diecisiete** métodos de puerto uno a uno y afirmando la lista
+  exacta. Control positivo: enmudecer `acks.ackedAt` lo pone rojo.
+- **CA-1.3** — el **caso 20** cierra las tres evasiones que el veredicto
+  nombró: `Object.is`, `==`/`!=` no estrictos y `localeCompare`. Control
+  positivo: un `Object.is` metido en `src/admin/session.ts` lo pone rojo
+  (revertido), y el propio caso ejercita sus tres detectores contra tres
+  evasiones sintéticas. **Lo que queda es F-SPEC-017-13** (abajo).
+- **CA-6.8** — las dos filas de `alerts` las levanta ahora **el motor real**
+  (RN-05: `ceroacero` a 0.7 y `corresponsal` a 0.8 discrepando pasada
+  `CONFLICT_GRACE`), y la segunda nace porque **cambia su huella**. Caso
+  **19 bis** como control positivo: mientras la huella no cambia, el motor **no**
+  escribe otra fila (ADR-021 §5). Comprobado que el caso depende del motor y no
+  del helper: repitiendo el mismo marcador, el caso 19 se pone rojo.
+
+### Lo que NO se tocó, a propósito
+
+- **`src/` entero, `migrations/`, `docs/diseno/` y `src/app/globals.css`**: ni
+  una línea. Esta vuelta es de tests y de prosa.
+- **F-SPEC-017-V5** (`docs/fundacion/dominio.md` contradiciendo a ADR-026 §2):
+  **no es mío**. El glosario es documento de verdad y su destino escrito es
+  `sdd-arquitecto`. **Sigue abierto.**
+- **CA-10.1**, la mitad de escala: la hoja sigue escribiendo `font-size:20px`,
+  `line-height:1.45`, `max-width:22rem`, `min-height:5rem` y `max-width:60rem`.
+  Meterlos en `src/design/` sería inventar tokens que el sistema no tiene, y eso
+  choca de frente con CA-10.2 y CA-10.3 —«las divergencias son exactamente las
+  tres»—. **Se queda con el residuo que el verificador escribió: destino
+  EPIC-004, disparador el deshielo.**
+
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-017/. Informe HTML opcional: _qa/SPEC-017/informe.html -->
 
@@ -798,6 +931,31 @@ Y lo que la implementación de CA-10 abre:
   spec que automatice la comprobación** (ADR-025 §5, disparador ya escrito: la
   primera spec que construya la interfaz del marcador).
 
+Y lo que abre la segunda vuelta (2026-09-03, cierre del RED):
+
+- **F-SPEC-017-13 — el detector de CA-1.3 es TEXTUAL, y eso no lo arregla
+  ampliarlo.** El caso 20 cierra `Object.is`, `==`/`!=` y `localeCompare`, que
+  son las tres que el verificador nombró, pero un mecanismo que lee el fichero
+  como texto **no puede enumerar todas las formas de comparar dos cadenas** —
+  `a.startsWith(b) && b.startsWith(a)`, por ejemplo, sigue pasando. La letra de
+  CA-1.3 dice «con `===`» y **se cumple**; lo que falta es que el criterio
+  **declare ese residuo dentro de sí mismo**, que es lo que ADR-016 §6 pide y
+  lo que ningún subpunto de CA-1 escribe hoy. **Editar el cuerpo de la spec no
+  es del implementador. Destino: `sdd-arquitecto`; disparador: ya, en la misma
+  vuelta que F-SPEC-017-V5.**
+- **F-SPEC-017-14 — la numeración de los casos de `tests/admin/archive.test.ts`
+  se corrió, y el veredicto del verificador cita los viejos.** El fichero pasó
+  de 15 a 17 casos y se renumeró entero para que el orden del fichero y el de
+  los números coincidan. La correspondencia, para quien lea el RED de arriba:
+  el viejo **caso 4** (CA-3.2) es el **4** de ahora, reescrito; el viejo **5**
+  es el **7**; el **6** → **8**; el **7** → **9**; el **8** (motivo verbatim) →
+  **10**; el **9** → **11**; el **10** → **12**; los **11-14** → **13-16**; y el
+  **15** (residuo del motivo) → **17**. Los casos **5** y **6** son nuevos. En
+  `session.test.ts` y `flow.test.ts` no se renumeró nada: los casos nuevos van
+  al final (19, 20 y 14, 15). En `tests/db/admin-flow.test.ts` el caso nuevo se
+  llama **19 bis** para no ocupar el número 21, que iría después del 20.
+  **Destino: nadie; es información para el verificador de esta vuelta.**
+
 ### Enmienda escrita fuera de esta spec (ADR-015)
 
 El gate decidió traducir los cualificadores, así que `src/i18n/es.ts` gana el
@@ -810,6 +968,29 @@ verdad: que `qualifiers` **no entra en la paridad del sitio**.
 
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
+
+> **AL DÍA AL 2026-09-03, SEGUNDA VUELTA (cierre del RED).** Sobre
+> `7413742` van cinco commits más, **todos de `tests/` y de este ledger**:
+>
+> | Commit | Qué trae |
+> |---|---|
+> | `7cf1f0d` | **F-SPEC-017-V1**: CA-3.2 manda las cabeceras de verdad sobre las cuatro acciones, y su control positivo |
+> | `2955f73` | **F-SPEC-017-V3**: CA-7.4 manda el vale en la query, con el mismo vale en el cuerpo como control |
+> | `404b951` | **F-SPEC-017-V2**: CA-11.1 ejerce el intercambio de acceso, éxito y fallo |
+> | `674b51b` | **F-SPEC-017-V4**: los tres restos de la versión congelada de CA-10 |
+> | `e0caadc` · `e8bb694` | Las salvedades de CA-1.1, CA-1.3 y CA-6.8 |
+>
+> **Gates:** `npm run gates` → **137 ficheros, 1521 casos**,
+> `Type Errors: no errors`; `npm run test:db` → **26 ficheros, 340 casos**.
+> **`src/`, `migrations/`, `docs/diseno/` y `globals.css` sin una línea de
+> cambio en esta vuelta**, y `CLAUDE.md` sin el bloque que `next dev` le
+> añade —no se arrancó `next dev`; `next build` no lo toca, comprobado en
+> `git status`—.
+>
+> **Lo que sigue abierto y NO es del implementador: F-SPEC-017-V5**
+> (`docs/fundacion/dominio.md` contradice a ADR-026 §2) y **F-SPEC-017-13**
+> (el residuo textual de CA-1.3 no está declarado dentro del criterio). Los dos
+> son de `sdd-arquitecto`.
 
 **Estado al 2026-09-03, al terminar `sdd-implementador`. LOS TRECE CRITERIOS
 ESTÁN ENTREGADOS.** En `ft/SPEC-017-panel-do-operador`, sobre `81a10f5`:

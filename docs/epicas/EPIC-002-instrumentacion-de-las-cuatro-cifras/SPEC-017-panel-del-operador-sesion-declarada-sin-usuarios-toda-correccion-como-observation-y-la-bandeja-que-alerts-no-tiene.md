@@ -2,7 +2,7 @@
 id: SPEC-017
 tipo: spec
 epica: EPIC-002
-estado: en-progreso
+estado: en-revision
 aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-09-03, por: sdd-arquitecto}
@@ -12,6 +12,7 @@ historial:
   - {estado: en-progreso, fecha: 2026-09-03, por: desconocido}
   - {estado: en-revision, fecha: 2026-09-03, por: sdd-implementador}
   - {estado: en-progreso, fecha: 2026-09-03, por: sdd-verificador}
+  - {estado: en-revision, fecha: 2026-09-03, por: sdd-implementador}
 ---
 # SPEC-017 — Panel del operador: sesión declarada sin usuarios, toda corrección como `Observation`, y la bandeja que `alerts` no tiene
 
