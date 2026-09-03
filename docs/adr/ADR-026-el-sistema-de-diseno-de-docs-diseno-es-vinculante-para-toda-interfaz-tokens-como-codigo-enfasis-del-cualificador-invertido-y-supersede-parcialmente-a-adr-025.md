@@ -1,9 +1,11 @@
 ---
 id: ADR-026
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-03, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-03, por: Alberto Fojo (por delegación, firmado por Claude Opus 5)}
+aprobada-por: Alberto Fojo (por delegación, firmado por Claude Opus 5)
 ---
 # ADR-026: El sistema de diseño de `docs/diseno/` es vinculante para toda interfaz — tokens como código, énfasis del cualificador invertido, y supersede parcialmente a ADR-025 §4
 
