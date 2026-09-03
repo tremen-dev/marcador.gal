@@ -762,3 +762,242 @@ puede encender hoy, y esa es la entrega. Con la lista de jornadas vacía, el
 catálogo vacío y el mapeo inexistente, un mensaje de cualquiera recibe una frase
 neutra y deja cero archivo, cero filas y cero llamadas al modelo — y hay un caso
 que lo afirma **como resultado esperado** (`tests/bot/webhook.test.ts` 13–14).
+
+## Enmienda — 2026-09-03: CA-9.1 y CA-15.3 piden algo que el §5 de esta misma spec no puede dar
+
+La escribe `sdd-arquitecto`, que es quien escribió los dos criterios, contestando
+al **Finding 1** del RED del 2026-09-03. No mueve el estado —SPEC-015 sigue en
+`en-revision`—, no toca el cuerpo de la spec, no toca ninguna columna de la
+matriz ni del veredicto, y **no convierte el RED en GREEN**: le da al verificador
+un criterio que se puede cumplir, para que la vuelta siguiente mida algo en vez
+de comprobar una promesa imposible.
+
+### 1. Qué afirmaban los dos criterios, y por qué era razonable escribirlos así
+
+**CA-9.1** exigía que `src/bot/` no estuviera en `DECISION_WRITERS` y que la
+suite cerrada `tests/decide/rn08-frontier.test.ts` (SPEC-013 CA-13) pasara «**sin
+tocar una aserción**. El verificador lo comprueba en el diff». **CA-15.3**
+enumeraba **dos** desviaciones previstas en suites cerradas —la entrada de salida
+de CA-5.5 y `migrations/0007`— y cerraba con «cualquier otra desviación es RED».
+El **§5** del cuerpo añadía que el fichero nuevo «no obliga a tocar ningún
+fichero de SPEC-013».
+
+Era razonable, y no por descuido. RN-08 y D-3 son la regla de la que cuelga el
+producto entero, la frontera de SPEC-013 ya se había evadido una vez
+(F-SPEC-013-7) y esta spec pone por primera vez a un módulo de fuera a llamar al
+motor: la condición «que el guardián no haya que tocarlo» es la forma más barata
+y más difícil de falsear de decir «no se ha ensanchado nada para dejarme pasar».
+El error no está en querer eso. Está en haber medido **la frontera** con una
+condición sobre **el diff entero de un fichero de test**, que contiene además
+cosas que no son la frontera.
+
+### 2. Qué los invalida, y no es una decisión posterior: es el §5 de esta misma spec
+
+El §5 manda, con estas palabras, un fichero nuevo bajo `src/decide/` con una
+entrada estrecha «cuyo tipo de retorno **no contiene ningún almacén**, del orden
+de `runEngineForMatch({ sql, matchId, now })`». Para correr el motor sobre un
+partido hay que darle un `EnginePorts` (`src/decide/apply.ts:37`), y un
+`EnginePorts` lleva dentro un `DecisionStore`. Alguien tiene que construirlo. Las
+posibilidades son cuatro y están cerradas:
+
+1. **Que lo construya la puerta.** Entonces nombra `PostgresDecisionStore`, y el
+   caso 10 —que enumera, con la lista de módulos con capacidad **vaciada a
+   propósito**, todos los ficheros reales que cruzan un nombre vigilado— tiene que
+   listarla. Es lo que ocurrió.
+2. **Que se lo pase el llamante.** Prohibido por el propio CA-9: el bot no puede
+   tener la capacidad, y ése es el punto entero del criterio.
+3. **Que lo tome de `composeCyclePorts`.** `src/decide/cycle.ts:41` importa
+   `globalFetcher` de `@/polite/http` en el nivel de módulo, así que importar
+   cualquier cosa de ese fichero mete la puerta de salida de RN-11 en el grafo de
+   `src/app/api/telegram/webhook/route.ts`, que es punto de entrada por la regla
+   de SPEC-008 CA-2.5. El bot no le pide nada a nadie y no puede tener esa
+   superficie alcanzable.
+4. **Que lo componga un fichero que ya esté en el censo** —`src/decide/apply.ts`,
+   `src/decide/cycle.ts` o `src/db/decisions.ts`—. Es la única que dejaría la
+   aserción intacta, y la prohíbe el §1 del cuerpo: `src/decide/` no se edita
+   salvo por un fichero nuevo, y `src/db/decisions.ts` es de SPEC-010, cerrada.
+   Además el punto 3 vuelve a matar la variante de `cycle.ts`.
+
+De modo que la spec pide a la vez dos cosas incompatibles: **componer el almacén
+en un fichero nuevo** y **que ningún censo de quién nombra el almacén cambie**.
+La segunda es consecuencia mecánica de la primera. No hay implementación
+correcta que las cumpla las dos, y por eso el implementador no tenía otra salida
+que declarar la desviación —cosa que hizo, en «CA-15.3 — las desviaciones en
+suites cerradas, y son TRES», antes de que nadie se lo pidiera.
+
+**Y hay que decir de dónde viene el defecto**: lo escribió el arquitecto, no el
+implementador, y lo escribió mirando `DECISION_WRITERS` —que efectivamente no se
+toca— y llamando «una aserción» a todo lo que hay en ese fichero.
+
+### 3. La tercera vía que busqué, y por qué ninguna de las dos candidatas vale
+
+Antes de enmendar hay que agotar el rediseño, porque **una enmienda relaja y un
+rediseño no**. Dos caminos parecían prometer, y los dos son peores:
+
+- **Componer en un fichero nuevo bajo `src/db/`** (p. ej. `src/db/engine-ports.ts`)
+  para que el censo creciera «del otro lado». Sería **peor de verdad**:
+  `DECISION_WRITERS` declara `src/db/alerts.ts` y `src/db/decisions.ts` por ruta
+  exacta, no el directorio, así que ese fichero exigiría una **entrada nueva en la
+  frontera**. Eso sí es ensancharla — exactamente lo que CA-9.1 existe para
+  impedir— y encima invierte la dependencia: la composición de puertos viviría
+  dentro de la implementación del puerto.
+- **Obtener la clase sin deletrearla**, con `(await import('@/db/decisions')).PostgresDecisionStore`.
+  El mecanismo del nombre no lo ve —el caso 12 de la misma suite lo prueba— así
+  que el caso 10 no crecería. Es **escribir la evasión de F-SPEC-013-7 a
+  propósito, dentro del motor, para no tocar una línea de un test**. Es la forma
+  pura de lo que ADR-016 §3.5 prohíbe, y la caza además el mecanismo 1 bis. Se
+  rechaza sin matices.
+
+Conclusión: **el verificador tiene razón**. La CA no es satisfacible con el
+diseño que la propia spec manda, y la única alternativa que dejaría la aserción
+intacta ensancha la frontera de verdad.
+
+### 4. Con qué se sustituyen. Y la red no es menor: en el punto que importa es mayor
+
+**CA-9.1, enmendado.** `src/bot/` no está en `DECISION_WRITERS`; **la frontera no
+se ensancha** —`tests/decide/support/rn08.ts` no cambia ni una línea: ni
+`DECISION_WRITERS`, ni `DECISION_CAPABILITY_NAMES`, ni ninguno de sus tres
+mecanismos—; y `tests/decide/rn08-frontier.test.ts` pasa entera **sin más cambio
+que el crecimiento de un censo derivado**: la enumeración del caso 10, con su
+motivo escrito en el mismo diff (ADR-016 §3.2). Y el verificador **no lo
+comprueba solo en el diff**: lo comprueba con una sonda —un fichero de `src/bot/`
+que importe `PostgresDecisionStore` tiene que poner rojos los casos 3 y 10—.
+
+**CA-15.3, enmendado.** Deja de enumerar desviaciones previstas y pasa a fijar
+**cuándo una desviación es admisible**, que es lo que la enumeración quería decir
+y no supo:
+
+> Una desviación en una suite cerrada es admisible si, y solo si, (a) es el
+> crecimiento de un **censo derivado** —una lista cuyo valor esperado es función
+> de lo que hay en el repositorio y podría recalcularse en vez de escribirse: las
+> migraciones en disco, las rutas de `src/app/`, los ficheros que cruzan un
+> nombre vigilado—; (b) **ninguna lista de frontera** se toca
+> —`DECISION_WRITERS`, `DECISION_CAPABILITY_NAMES`, `ALLOWED_*`, `LLM_CALLERS`,
+> `CORRESPONDENT_MAP_READERS`—; (c) ninguna aserción se debilita, se borra ni se
+> vuelve condicional; y (d) el motivo está escrito en el mismo diff. Cualquier
+> otra desviación es RED.
+
+Con esa regla, las **tres** desviaciones de esta entrega son admisibles y quedan
+declaradas —el implementador ya las tenía escritas y la enmienda no le añade
+trabajo—: `migrations/0007` en `tests/db/decide-cycle.test.ts`;
+`src/app/api/telegram/webhook/route.ts` en `ENTRY_POINTS`
+(`tests/polite/support/capability.ts`), que además la exige el caso 17 de
+`tests/polite/architecture.test.ts`; y `src/decide/engine-entry.ts` en el caso 10.
+
+**Y una corrección de hecho que hay que dejar escrita**: de las dos desviaciones
+que CA-15.3 preveía, **la de CA-5.5 no ha ocurrido**. Es la entrada de la llamada
+al proveedor en la lista de lo permitido de salida, y CA-5 está aplazado por el
+gate hasta que haya proveedor y DPA (ADR-023 §6.4). Llegará, será una **cuarta**
+desviación, y es admisible por la misma regla. Que nadie la cuente como hecha.
+
+**¿Es menor la red?** No, y esto es el punto 3 de ADR-015 §3 contestado sin
+suavizar. Lo que CA-9.1 protege es que nadie ensanche la frontera para dejar
+pasar al bot, y eso sigue medido por el **caso 3** —el complemento vacío con la
+lista real— que **no ha cambiado**, y por el **caso 1**, que sigue exigiendo dos
+entradas en `DECISION_WRITERS`. Lo que cambió es el **caso 10**, que no es la
+frontera: es el control positivo del propio detector, y corre a propósito con la
+lista de módulos con capacidad **vacía** para comprobar que el mecanismo mide
+algo. Su poder está en que el conjunto no sea vacío y en que vaciar los nombres
+lo vacíe; la enumeración literal añade precisión, y una precisión que crece con
+los ficheros reales no es poder perdido. El comentario que SPEC-013 dejó escrito
+dentro de ese mismo caso ya lo decía —«aserción derivada, y crece con los
+ficheros reales que tienen la capacidad, no con la frontera, que no se toca»—:
+**la letra de CA-9.1 contradecía a la suite que citaba**.
+
+En la mitad de la sonda, la red es **mayor** que antes: una condición sobre el
+diff se cumple sola cuando nadie cambia nada, y la sonda no.
+
+**Evidencia independiente de esta enmienda**, que es lo que impide leerla como
+una excusa: la escribió el verificador, no el arquitecto. `git diff main --
+tests/decide/support/rn08.ts` es **vacío**; el diff del caso 10 son doce líneas,
+once de comentario y una entrada de array; y su sonda **P13**
+(`src/bot/decide-leak.ts` importando `PostgresDecisionStore`) pone en **rojo** los
+casos 3 y 10. El guardián sigue mordiendo.
+
+### 5. Si el veredicto sigue en pie
+
+**Sí, y no se toca.** El RED del 2026-09-03 fue correcto: el código no cumplía la
+letra escrita, y el verificador hizo exactamente su trabajo al no perdonarla. Esta
+enmienda **no cierra el RED** —lo cierra la vuelta siguiente, con los otros cuatro
+findings resueltos— y no cambia una sola casilla de la matriz. Lo único que hace
+es que CA-9.1 y CA-15.3 dejen de pedir lo imposible, para que la vuelta siguiente
+pueda ponerlos en verde midiendo la propiedad en vez de la promesa.
+
+### 6. Qué despierta esto otra vez
+
+Tres condiciones, cualquiera de ellas:
+
+1. **Que alguien quiera meter una entrada nueva en `DECISION_WRITERS`.** Ahí no
+   hay enmienda que valga: es ensanchar la frontera y necesita spec y gate.
+2. **Que el caso 10 crezca con un fichero de fuera de `src/decide/` y de
+   `src/db/decisions.ts`.** Entonces no es un censo creciendo: es la capacidad
+   saliéndose, y es RED.
+3. **La próxima spec que ya tenga que tocar `tests/decide/rn08-frontier.test.ts`
+   por causa propia.** Ese día el caso 10 debería dejar de llevar una lista
+   literal y derivarse de `DECISION_WRITERS` —«todo fichero que cruce un nombre
+   con los writers vacíos, o tiene capacidad bajo la lista real, o es
+   `src/db/decisions.ts`»—, y esta enmienda no vuelve a hacer falta nunca.
+   Hacerlo **hoy** sería tocar una suite cerrada más de lo que la toca la línea
+   que se enmienda. **Destino: EPIC-MEJORA.**
+
+### 7. Por qué ADR-015 aplica a una spec en revisión, y con qué barra
+
+ADR-015 está escrito para specs **cerradas** y para el caso en que «una decisión
+**posterior**» invalida un CA. Aquí no se cumple ninguna de las dos cosas:
+SPEC-015 está en `en-revision`, y nada posterior la invalidó —**nació
+contradiciéndose**, con el §5 pidiendo lo que CA-9.1 prohibía—. Así que el
+mecanismo **aplica por analogía, no por su letra**, y las dos diferencias van
+dichas en vez de disimuladas:
+
+- **La razón del §1 —el cuerpo no se edita— sí aplica entera.** Este cuerpo lo
+  firmó Alberto Fojo con fecha el 2026-09-03, y el implementador y el verificador
+  trabajaron contra ese texto: reescribirlo dejaría las filas del ledger citando
+  un contrato que ya no está escrito, que es exactamente lo que ADR-015 rechaza en
+  su alternativa (a). La firma no depende de que el artefacto esté cerrado.
+- **La diferencia juega a favor, no en contra.** La objeción de peso de ADR-015
+  —«un ledger de una spec `hecho` se relee todavía menos que la spec»— aquí no
+  muerde: esta enmienda se escribe **antes** del veredicto, y quien la va a leer
+  es el mismo verificador que abrió el finding, en la vuelta siguiente, con el
+  ledger delante.
+
+**Y la barra, que es lo que impide que esto sea una puerta trasera.** Una spec en
+revisión enmendando **sus propios** criterios es más peligroso que el caso de
+ADR-015, porque es el autor corrigiendo el contrato mientras lo juzgan. Solo es
+admisible con las cuatro condiciones a la vez:
+
+1. **No satisfacibilidad demostrada, no alegada**: se enumeran las formas de
+   cumplir el criterio y cada una se mata con una regla citable. §2 y §3 de esta
+   enmienda son esa demostración; si alguna se cae, la enmienda se cae con ella.
+2. **La propiedad protegida sigue protegida, con evidencia que no sale de la letra
+   enmendada** —aquí, las sondas del verificador—.
+3. **Llega antes del veredicto y no lo cambia.** Una enmienda nunca convierte un
+   RED emitido en GREEN: da criterio a la vuelta siguiente.
+4. **La escribe `sdd-arquitecto`.** Ni el implementador, cuyo trabajo se juzga con
+   ella, ni el verificador, que dejaría de ser adversario.
+
+**Precedente del proyecto, y en qué me aparto de él.** SPEC-008 estuvo en
+`en-revision` siete vueltas y **reescribió CA-2.1, CA-2.3 y CA-2.6 en el cuerpo**,
+dejando en cada uno una cita en bloque que apunta a la enmienda del ledger, donde
+viven el texto anterior y la medición. Es la forma más visible, y aquí **no la
+uso**: el encargo de esta pasada prohíbe tocar el cuerpo, y ese es el lado
+correcto en el que equivocarse. **Queda para el gate humano**, y es una decisión
+suya y de nadie más: si quiere la visibilidad del precedente de SPEC-008, lo que
+falta es una cita en bloque bajo CA-9 y bajo CA-15 apuntando aquí. Sin ella, quien
+lea CA-9.1 en el cuerpo **no verá esta enmienda** — que es, palabra por palabra,
+la consecuencia negativa que ADR-015 declaró y no eliminó.
+
+**Y no escribo un ADR nuevo.** ADR-015 rechazó «solo la nota, sin ADR» por
+insuficiente, pero con un motivo aritmético que hoy no se da: allí iban **dos
+ocurrencias en tres días**; aquí va **una**. Decidir la política general del caso
+«spec en revisión enmienda su propio CA» con un solo caso es inventar. Queda el
+disparador escrito: **la segunda vez que ocurra, hace falta un ADR que extienda
+ADR-015 al caso previo al veredicto**, con esta barra dentro o con otra mejor.
+
+### 8. Lo que esta enmienda no hace
+
+No mueve el estado de SPEC-015, que sigue en `en-revision`. No cierra ningún
+finding del verificador —ni siquiera el primero: lo que hace es darle criterio—.
+No perdona ninguna de las otras cuatro observaciones del RED. No autoriza tocar
+`tests/decide/support/rn08.ts` ni ninguna lista de frontera. No añade ni quita
+código, y **no pide una sola línea al implementador**: lo que él escribió, con su
+motivo en el diff, es lo que la CA enmendada pide.
