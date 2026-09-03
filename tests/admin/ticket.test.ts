@@ -166,22 +166,49 @@ describe('CA-7.3 — `issued_at` del vale es el `started_at` que se registra', (
 });
 
 describe('CA-7.4 — el vale NO viaja en la URL', () => {
-  test('6. ninguna ruta lo acepta como parámetro de consulta', async () => {
+  /**
+   * REESCRITO EL 2026-09-03 (F-SPEC-017-V3). La versión anterior decía en su
+   * comentario «el mismo vale, en la query en vez de en el cuerpo» y su
+   * petición NO LLEVABA NINGUNA QUERY: era el caso 1 repetido, y la primera
+   * mitad de CA-7.4 no la ejercía nadie.
+   */
+  test('6. el vale EN LA QUERY no abre nada: ninguna ruta lo acepta ahí', async () => {
     const built = scene();
+    const valid = ticketOf('correccion', TARGET, NOW);
+    const body: Readonly<Record<string, string>> = {
+      intento: 'accion',
+      accion: 'correccion',
+      partido: TARGET,
+      estado: 'live',
+      goles_casa: '2',
+      goles_fora: '1',
+      motivo: 'un motivo escrito de verdad',
+    };
 
-    // El mismo vale, en la query en vez de en el cuerpo. No abre nada.
+    // El vale, válido y del operador de la sesión, VIAJA EN LA URL. El cuerpo
+    // no lo lleva.
     const answer = await postToPanel(built, {
-      fields: {
-        intento: 'accion',
-        accion: 'correccion',
-        partido: TARGET,
-        estado: 'live',
-        motivo: 'un motivo escrito de verdad',
-      },
+      fields: body,
+      url: `https://marcador.gal/admin?${TICKET_FIELD}=${encodeURIComponent(valid)}`,
     });
 
     expect(answer.status).toBe(400);
+    expect(built.store.size).toBe(0);
     expect(built.observations.rows).toEqual([]);
+    expect(built.actions.rows).toEqual([]);
+    expect(built.engineCalls).toEqual([]);
+
+    // CONTROL POSITIVO (ADR-016 §3.4): EL MISMO VALE, en el cuerpo, SÍ abre.
+    // Lo que el caso afirma es DÓNDE viaja, no que el vale estuviera roto —que
+    // es exactamente lo que la versión anterior no podía distinguir.
+    const opened = scene();
+    const accepted = await postToPanel(opened, {
+      fields: { ...body, [TICKET_FIELD]: valid },
+    });
+
+    expect(accepted.status).toBe(200);
+    expect(opened.observations.rows).toHaveLength(1);
+    expect(opened.actions.rows[0]?.outcome).toBe('accepted');
   });
 
   test('7. y ninguna vista lo escribe en un `href`', async () => {
