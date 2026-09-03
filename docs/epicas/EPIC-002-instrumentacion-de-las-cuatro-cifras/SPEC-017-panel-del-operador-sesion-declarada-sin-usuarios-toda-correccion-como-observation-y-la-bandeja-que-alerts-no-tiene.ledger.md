@@ -325,15 +325,32 @@ Lo que la implementación abre, con su id:
   literalmente lo que hizo SPEC-015 con `engine-entry.ts`.
   **Destino: ratificación de `sdd-arquitecto`.** Si prefiere otra forma, es un
   fichero y su test; no toca nada más.
-- **F-SPEC-017-2 — las rutas del panel son `route.ts`, no `page.tsx`, y eso
-  tiene una consecuencia que conviene leer.** Un manejador de ruta **no lo
-  envuelve ningún layout**, así que `src/app/globals.css` —que importan los dos
-  layouts raíz del sitio público— **nunca se carga en el documento del panel**.
-  Con una `page.tsx` bajo `(gl)/` sí se cargaría, y el panel habría heredado la
-  base clara del sitio sin que nadie lo decidiera. Era la lectura correcta bajo
-  ADR-025 §4; con ADR-026 en camino **hay que volver a mirarlo**, porque el
-  enganche de `docs/diseno/` puede querer otra cosa. **Destino: CA-10, cuando se
-  descongele.**
+- **F-SPEC-017-2 — CERRADO el 2026-09-03, revisado con ADR-026 firmado: las
+  rutas siguen siendo `route.ts` y no `page.tsx`.** El motivo está escrito en
+  los dos ficheros de ruta, que es donde se decide, y son **cuatro**:
+  1. **`src/app/globals.css` no se edita NI SE CARGA.** ADR-025 §4.1 sigue
+     INTACTO (ADR-026 §5) y un manejador de ruta **no lo envuelve ningún
+     layout**, así que la hoja del sitio nunca entra en este documento. Con una
+     `page.tsx` bajo `(gl)/` sí entraría.
+  2. **ADR-026 §3.6 hace el panel oscuro-only** y el sitio público sirve claro
+     por defecto. Bajo una página, las **dos bases opuestas** compartirían
+     documento; así **no se tocan por construcción**, que es el estado que la
+     entrada 6 del inventario de EPIC-004 describe como el bueno. Un caso lo
+     afirma (`style.test.ts` 31): el documento del panel no lleva ni `--paper`,
+     ni `--ink`, ni ninguno de los cinco colores de `globals.css`.
+  3. **CA-13.3 y CA-13.4 dejarían de tener sujeto.** Una `page.tsx` no
+     construye ninguna `Response`, así que «se construye con
+     `new Response(JSON.stringify(…))` y nunca con `Response.json`» sería un
+     criterio sobre nada.
+  4. **La fuente se autoaloja igual, y de forma más auditable**: `@font-face`
+     escrito en nuestra propia hoja, con una URL de nuestro origen que un test
+     lee (`style.test.ts` 7).
+  **El precio, dicho en voz alta y no escondido:** se pierde la optimización de
+  `next/font` —el `preload` automático de la cara y las métricas de la fuente de
+  respaldo, que reducen el salto de maquetación al cargar—. Es el coste de la
+  decisión, no un efecto secundario que se descubra después. **Se revisa el día
+  que el panel deje de ser un manejador de ruta**, y si eso pasa, `next/font`
+  vuelve a estar sobre la mesa.
 - **F-SPEC-017-3 — `ADMIN_OPERATORS` y `ADMIN_SESSION_SECRET` no están
   documentadas en ningún runbook ni en `.env.example`.** ADR-024 §Consecuencias
   lo dejó dicho —«van al runbook de configuración»— y esta spec no declara ese
@@ -377,8 +394,58 @@ Lo que la implementación abre, con su id:
   `src/admin/` **no compila**— más el mecanismo de `frontier.test.ts` que
   prohíbe cualquier literal visible de estado o de cualificador. Se dice aquí
   para que nadie lea CA-9.4 como si cubriera más de lo que cubre.
-- **F-SPEC-017-8 — CA-10 congelado.** Ver *Cambio de rumbo* arriba. **Destino:
-  este mismo ledger, en cuanto ADR-026 esté firmado.**
+- **F-SPEC-017-8 — CERRADO el 2026-09-03. CA-10 estaba congelado y ya no lo
+  está.** ADR-026 quedó `aprobada` (`2278cb1`), el arquitecto reescribió el
+  criterio de 7 a 15 subpuntos, y los quince están implementados y probados: ver
+  *CA-10 descongelado — evidencia subpunto a subpunto*. La hoja de estilos
+  volvió, esta vez **derivada del sistema** y sin un valor propio, y la suite de
+  estilo vive en `tests/admin/style.test.ts` y `tests/design/parity.test.ts` —
+  **no** en el `tests/admin/view.test.ts` que se retiró, cuyas aserciones decían
+  lo contrario de lo que ADR-026 acabó diciendo.
+
+Y lo que la implementación de CA-10 abre:
+
+- **F-SPEC-017-9 — el rol `display` del sistema no tiene cara estática vertical
+  en el peso que declara.** El sistema escribe `display: 44 / 800` y Vercel
+  distribuye el 800 de Geist **solo en cursiva**; las verticales son 700
+  (`Bold`) y 900 (`Black`). El panel **no usa `display`**, así que aquí no
+  muerde y su cara no se carga; la ficha de partido del snapshot sí lo va a
+  usar, y tendrá que elegir entre la **cara variable** —un fichero con todos los
+  pesos, que cambia «solo los pesos que se usan» por una sola petición— y
+  desviarse a 700 o 900 **declarándolo como divergencia**. Está escrito en
+  `src/design/tokens.ts`, junto a `LOADED_FACES`. **Destino: la spec del
+  snapshot; disparador: la primera interfaz que use el rol `display`.**
+- **F-SPEC-017-10 — la adherencia a la escala no la comprueba nada, y no es
+  culpa de esta spec.** `_tokens.css` declara **color y familia y nada más**:
+  cero tokens de espaciado, radio, sombra, tamaño, peso o duración (medido,
+  caso 13 de `parity.test.ts`). El espaciado, los radios, la escala tipográfica
+  y la densidad **no se pueden comparar contra nada**, así que ahí la adherencia
+  la sostiene la revisión humana. Lo declara ADR-026 §3.3, lo repite CA-10.4 y
+  lo repite la cabecera de `src/design/tokens.ts`. **Destino: EPIC-004**,
+  convertir sus escalas en tokens; **disparador: el deshielo.**
+- **F-SPEC-017-11 — el guardián de `telegram_user_id` de SPEC-015 CA-10.4 tiene
+  un modo de FALSO POSITIVO sobre datos comprimidos que su criterio no
+  declara.** Una de las capturas de `_qa/SPEC-017/`, tal como Chrome la
+  escribió, llevaba en su flujo de compresión una tirada de once dígitos, y el
+  caso 28 de `tests/bot/frontier.test.ts` la marcó como un identificador de
+  Telegram. **No se tocó el guardián ni su lista de exclusiones**: su premisa
+  —«un identificador escrito dentro de un binario está igual de versionado»— es
+  correcta y es de una spec cerrada. Se **recodificó el PNG** sin pérdida (mismo
+  tamaño, mismos píxeles) y el flujo nuevo ya no lleva la tirada. Lo que queda
+  abierto es que **el mecanismo puede volver a dar rojo por azar** con cualquier
+  captura futura, y su criterio no lo dice. **Destino: `sdd-arquitecto`;
+  disparador: la segunda vez que ocurra** — que con la interfaz del marcador
+  produciendo capturas es cuestión de tiempo.
+- **F-SPEC-017-12 — el guion de la comprobación manual se versiona con
+  extensión `.txt`.** `.mjs` es una extensión de CÓDIGO declarada en
+  `SCAN_EXTENSIONS` (SPEC-008 CA-2.6), y un fichero de código fuera de las
+  raíces del escaneo es **rojo** — con razón, porque así es como F-SPEC-008-V37
+  metió una ruta viva sin auditar. El guion **no es código que el repositorio
+  ejecute**: es el instrumento de una persona haciendo una comprobación manual,
+  y no lo corre ningún gate. Se guarda legible y **fuera del conjunto que la
+  frontera audita, sin ensanchar ninguna lista de exclusiones**. **Destino: la
+  spec que automatice la comprobación** (ADR-025 §5, disparador ya escrito: la
+  primera spec que construya la interfaz del marcador).
 
 ### Enmienda escrita fuera de esta spec (ADR-015)
 
