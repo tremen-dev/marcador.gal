@@ -3,11 +3,20 @@
  * lives under its own URL prefix `/es` rather than in client state.
  *
  * This bundle carries the site namespace (SPEC-004), the crawler namespace of
- * `/es/robot` (SPEC-005) and the document titles of the two castellano routes
- * (SPEC-006). `qualifiers` stays in `gl.ts` and belongs to the spec that builds
- * the scoreboard interface; pulling it in here would make SPEC-004 answer for
- * translations it has no page to show.
+ * `/es/robot` (SPEC-005), the document titles of the two castellano routes
+ * (SPEC-006), the bot namespace (SPEC-015) and, since 2026-09-03, the panel
+ * namespace and the four QUALIFIERS (SPEC-017).
+ *
+ * Until that date this header said that `qualifiers` stayed in `gl.ts` and
+ * belonged «to the spec that builds the scoreboard interface», because pulling
+ * it in would have made SPEC-004 answer for translations it had no page to
+ * show. THAT PAGE NOW EXISTS: the operator's panel is the first artefact of
+ * the real system that shows a person a qualifier, which is the trigger
+ * SPEC-015 wrote down (SPEC-017 CA-9.6). The literals come from
+ * `docs/fundacion/dominio.md`, where the gate of 2026-09-03 wrote them.
  */
+import type { MatchQualifier } from '../model/qualifier';
+import type { AdminBundle } from './admin-bundle';
 import type { BotBundle } from './bot-bundle';
 import type { CrawlerBundle } from './crawler-bundle';
 import type { SiteBundle } from './site-bundle';
@@ -105,6 +114,91 @@ export const es = {
     errNoOpenMatch: 'Ahora mismo no hay ningún partido abierto.',
     errNothingPending: 'No tienes nada pendiente de confirmar.',
   } satisfies BotBundle,
+
+  /**
+   * Los cuatro cualificadores en castellano. SE AÑADEN EL 2026-09-03 (SPEC-017
+   * CA-9.6), y el disparador es el que SPEC-015 dejó escrito: «el primer
+   * artefacto que enseñe un cualificador a una persona en castellano» es el
+   * panel del operador, que enseña uno por partido.
+   *
+   * LOS LITERALES SE COPIAN DE `docs/fundacion/dominio.md`, donde el gate los
+   * escribió el mismo día, y no se inventan aquí. Dos de los cuatro son
+   * IDÉNTICOS a la forma galega —*Provisional* y *Confirmado*— y eso es
+   * correcto, no algo que arreglar. El IDENTIFICADOR no se traduce: las claves
+   * siguen siendo las de `MATCH_QUALIFIERS` (SPEC-001 CA-8), en galego.
+   */
+  qualifiers: {
+    provisional: 'Provisional',
+    confirmado: 'Confirmado',
+    pendente_de_confirmar: 'Pendiente de confirmar',
+    sen_sinal: 'Sin señal',
+  } satisfies Record<MatchQualifier, string>,
+
+  admin: {
+    title: 'Panel del operador — marcador.gal',
+
+    accessHeading: 'Entrar en el panel',
+    accessOperator: 'Operador',
+    accessSecret: 'Clave',
+    accessSubmit: 'Entrar',
+    accessRefused: 'No entras con esos datos.',
+
+    boardHeading: 'Partidos de las jornadas declaradas',
+    boardEmpty: 'No hay ninguna jornada de medición declarada, así que no hay nada que operar.',
+    boardMatch: 'Partido',
+    boardStatus: 'Estado',
+    boardScore: 'Marcador',
+    boardQualifier: 'Cualificador',
+    boardLastSeen: 'Última observación',
+    boardOpenAlerts: 'Alertas abiertas',
+    boardNever: 'Nunca',
+    boardNoDecision: 'Sin decisión publicada',
+    boardDetail: 'Ver el detalle',
+
+    detailHeading: 'Detalle del partido',
+    detailObservations: 'Observaciones por fuente',
+    detailDecisions: 'Registro de decisiones',
+    detailSource: 'Fuente',
+    detailConfidence: 'Peso',
+    detailObservedAt: 'Observado a las',
+    detailVersion: 'Versión',
+    detailRule: 'Regla',
+    detailSupport: 'Apoyos',
+    detailBack: 'Volver al tablero',
+
+    formCorrection: 'Corregir el marcador',
+    formStatusChange: 'Cambiar el estado',
+    formRatify: 'Ratificar lo vigente',
+    formStatus: 'Estado',
+    formHomeScore: 'Goles de casa',
+    formAwayScore: 'Goles de fuera',
+    formReason: 'Motivo',
+    formReasonHint: 'Escribe por qué haces esto. Sin motivo no se publica nada.',
+    formSubmit: 'Publicar',
+    formCancel: 'Cancelar',
+
+    trayHeading: 'Bandeja de alertas',
+    trayOpen: 'Abiertas',
+    trayAcknowledged: 'Reconocidas',
+    trayEmpty: 'No hay ninguna alerta.',
+    trayAcknowledge: 'Reconocer',
+    trayReason: 'Motivo de la alerta',
+    trayRaisedAt: 'Levantada a las',
+    trayNotPublished: 'Reconocer una alerta no publica nada.',
+
+    ackPublished: 'Queda publicado: {home} {homeScore}-{awayScore} {away}, {qualifier}.',
+    ackAcknowledged: 'Alerta reconocida. No se ha publicado nada.',
+    errEmptyReason: 'Falta el motivo. No se ha archivado nada y no se ha publicado nada.',
+    errOutOfMatchday: 'Ese partido no está en ninguna jornada declarada.',
+    errUnknownAlert: 'Esa alerta no existe o no es de un partido de las jornadas declaradas.',
+    errNothingToRatify: 'Todavía no hay nada publicado que ratificar.',
+    errTicketMalformed: 'El formulario ha llegado sin vale. Vuelve a cargar el tablero.',
+    errTicketTampered: 'El vale no cuadra con su firma. Vuelve a cargar el tablero.',
+    errTicketOtherOperator: 'Ese vale es de otro operador.',
+    errTicketExpired: 'El vale ha caducado. Vuelve a cargar el tablero y hazlo otra vez.',
+    errSessionExpired: 'La sesión ha caducado. Entra otra vez.',
+  } satisfies AdminBundle,
+
   titles: {
     project: 'El proyecto — marcador.gal',
     crawler: 'El rastreador — marcador.gal',

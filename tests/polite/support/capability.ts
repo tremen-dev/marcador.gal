@@ -282,7 +282,12 @@ export const ALLOWED_PACKAGES: readonly PackageEntry[] = [
   // through, and it stays outside by not being written here.
   { specifier: 'cheerio', surface: ['load'] },
   { specifier: 'next', surface: [] },
-  { specifier: 'node:crypto', surface: ['createHash'] },
+  {
+    specifier: 'node:crypto',
+    surface: ['createHash', 'createHmac'],
+    motive:
+      "`createHash` derives raw-store keys and observation identifiers. `createHmac` arrives with SPEC-017: the operator's panel signs its session cookie and its action ticket with HMAC-SHA-256 (ADR-024 §3 and §4), because a browser does not put headers and the expiry has to live INSIDE the signature. Neither name asks a third party for bytes, which is the only thing that would have needed a human signature.",
+  },
   { specifier: 'node:fs', surface: ['existsSync'] },
   { specifier: 'node:fs/promises', surface: ['mkdir', 'readFile', 'readdir', 'writeFile'] },
   {
@@ -379,6 +384,22 @@ export const ENTRY_POINTS: readonly string[] = [
   // repositories itself instead of borrowing `composeCyclePorts`, which would
   // drag the platform fetcher in. Case 13 of `containment.test.ts` asserts it.
   'src/app/api/telegram/webhook/route.ts',
+  // The two addresses of the operator's panel (SPEC-017 CA-13.1, ADR-024 §1):
+  // routes of `src/app/`, entry by the rule SPEC-008 CA-2.5 already declared.
+  // Both delegate whole in `src/admin/handler.ts` — the signed session failing
+  // closed, then the ticket, then the operation — and THEIR GRAPH DOES NOT
+  // REACH THE EXIT DOOR: THE PANEL ASKS NOBODY FOR ANYTHING, which is the
+  // reason RN-11 does not reach SPEC-017 at all (CA-13.2). The two doors they
+  // use into `src/decide/` — `engine-entry.ts` to run the engine and
+  // `read-entry.ts` to read the decision log — compose the durable
+  // repositories themselves instead of borrowing `composeCyclePorts`, which
+  // would drag the platform fetcher in.
+  //
+  // They are route HANDLERS and not pages, which is also why no layout of the
+  // public site is on their graph: `src/app/globals.css` never loads on the
+  // panel's document (ADR-025 §4, SPEC-017 CA-10.6).
+  'src/app/(es)/es/admin/route.ts',
+  'src/app/(gl)/admin/route.ts',
   'src/app/robots.txt/route.ts',
   // The commands of `package.json`.
   // `alias:cargar` (SPEC-011 CA-7): loads a declared alias catalogue against
@@ -904,6 +925,13 @@ export interface GlobalEntry {
 
 export const ALLOWED_GLOBALS: readonly GlobalEntry[] = [
   {
+    identifier: 'Array',
+    asValue: false,
+    surface: ['isArray'],
+    motive:
+      "Narrowing an `unknown` that came back from `JSON.parse` before it is read as a list: `src/admin/ticket.ts` decodes the signed body of an action ticket, and a decoder that trusts the shape is a decoder that does not fail closed. The constructor itself is not taken.",
+  },
+  {
     identifier: 'Buffer',
     asValue: false,
     surface: ['from'],
@@ -1014,6 +1042,13 @@ export const ALLOWED_GLOBALS: readonly GlobalEntry[] = [
     motive: 'Parsing and resolving the URLs of targets and of `robots.txt` origins (RN-11).',
   },
   {
+    identifier: 'URLSearchParams',
+    asValue: true,
+    surface: [],
+    motive:
+      "Reading the body of a form the operator submitted (`application/x-www-form-urlencoded`), which is the ONE shape of input the panel accepts (SPEC-017 §2). It parses a string this process already holds; it opens nothing.",
+  },
+  {
     identifier: 'Uint8Array',
     asValue: true,
     surface: [],
@@ -1025,6 +1060,13 @@ export const ALLOWED_GLOBALS: readonly GlobalEntry[] = [
     surface: ['log'],
     motive:
       'The CLIs of `src/mirror/cli/` report to the operator on stdout. Nothing else of the console is taken.',
+  },
+  {
+    identifier: 'encodeURIComponent',
+    asValue: true,
+    surface: [],
+    motive:
+      "Building the panel's own link to the detail of one match (`?partido=<match_id>`): ECMAScript's escaping of a path component, applied to an identifier this repository derived itself (ADR-017). It resolves nothing and it requests nothing.",
   },
   {
     identifier: 'process',

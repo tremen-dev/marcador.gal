@@ -23,6 +23,7 @@
  * it. It is a DATUM each route declares, not markup the document emits.
  */
 import type { MatchQualifier } from '../model/qualifier';
+import type { AdminBundle } from './admin-bundle';
 import type { BotBundle } from './bot-bundle';
 import type { CrawlerBundle } from './crawler-bundle';
 import type { SiteBundle } from './site-bundle';
@@ -125,6 +126,71 @@ export const gl = {
     pendente_de_confirmar: 'Pendente de confirmar',
     sen_sinal: 'Sen sinal',
   } satisfies Record<MatchQualifier, string>,
+
+  admin: {
+    title: 'Panel do operador — marcador.gal',
+
+    accessHeading: 'Entrar no panel',
+    accessOperator: 'Operador',
+    accessSecret: 'Clave',
+    accessSubmit: 'Entrar',
+    accessRefused: 'Non entras con eses datos.',
+
+    boardHeading: 'Partidos das xornadas declaradas',
+    boardEmpty: 'Non hai ningunha xornada de medición declarada, así que non hai nada que operar.',
+    boardMatch: 'Partido',
+    boardStatus: 'Estado',
+    boardScore: 'Marcador',
+    boardQualifier: 'Cualificador',
+    boardLastSeen: 'Última observación',
+    boardOpenAlerts: 'Alertas abertas',
+    boardNever: 'Nunca',
+    boardNoDecision: 'Sen decisión publicada',
+    boardDetail: 'Ver o detalle',
+
+    detailHeading: 'Detalle do partido',
+    detailObservations: 'Observacións por fonte',
+    detailDecisions: 'Rexistro de decisións',
+    detailSource: 'Fonte',
+    detailConfidence: 'Peso',
+    detailObservedAt: 'Observado ás',
+    detailVersion: 'Versión',
+    detailRule: 'Regra',
+    detailSupport: 'Apoios',
+    detailBack: 'Volver ao taboleiro',
+
+    formCorrection: 'Corrixir o marcador',
+    formStatusChange: 'Cambiar o estado',
+    formRatify: 'Ratificar o vixente',
+    formStatus: 'Estado',
+    formHomeScore: 'Goles da casa',
+    formAwayScore: 'Goles de fóra',
+    formReason: 'Motivo',
+    formReasonHint: 'Escribe por que fas isto. Sen motivo non se publica nada.',
+    formSubmit: 'Publicar',
+    formCancel: 'Cancelar',
+
+    trayHeading: 'Bandexa de alertas',
+    trayOpen: 'Abertas',
+    trayAcknowledged: 'Recoñecidas',
+    trayEmpty: 'Non hai ningunha alerta.',
+    trayAcknowledge: 'Recoñecer',
+    trayReason: 'Motivo da alerta',
+    trayRaisedAt: 'Levantada ás',
+    trayNotPublished: 'Recoñecer unha alerta non publica nada.',
+
+    ackPublished: 'Quedou publicado: {home} {homeScore}-{awayScore} {away}, {qualifier}.',
+    ackAcknowledged: 'Alerta recoñecida. Non se publicou nada.',
+    errEmptyReason: 'Falta o motivo. Non se arquivou nada e non se publicou nada.',
+    errOutOfMatchday: 'Ese partido non está en ningunha xornada declarada.',
+    errUnknownAlert: 'Esa alerta non existe ou non é dun partido das xornadas declaradas.',
+    errNothingToRatify: 'Aínda non hai nada publicado que ratificar.',
+    errTicketMalformed: 'O formulario chegou sen vale. Volve cargar o taboleiro.',
+    errTicketTampered: 'O vale non cadra coa súa sinatura. Volve cargar o taboleiro.',
+    errTicketOtherOperator: 'Ese vale é doutro operador.',
+    errTicketExpired: 'O vale caducou. Volve cargar o taboleiro e faino outra vez.',
+    errSessionExpired: 'A sesión caducou. Entra outra vez.',
+  } satisfies AdminBundle,
 
   titles: {
     project: 'O proxecto — marcador.gal',

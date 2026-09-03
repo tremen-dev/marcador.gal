@@ -323,15 +323,25 @@ describe('CA-11.1 — `migrations/0006` se aplica en orden', () => {
   test('3. `migrate` devuelve las seis versiones, y una segunda ejecución `[]`', async () => {
     // Este fichero es, desde SPEC-013, el que ENUMERA las migraciones (enmienda
     // de ADR-015 en el ledger de SPEC-012), y dejó escrito que heredaría la
-    // misma enmienda «el día de `0007`». ESE DÍA ES HOY: **SPEC-015 CA-15.4**
-    // añade `migrations/0007` (las tres tablas del bot del corresponsal,
-    // ADR-022 §4). Es CRECIMIENTO CON MOTIVO ESCRITO EN EL MISMO DIFF
-    // (ADR-016 §3.2), no relajación de forma: la aserción sigue enumerando
-    // TODO lo que hay en disco, y por tanto sigue sin poder pasar descubriendo
-    // nada. Es una de las DOS desviaciones que SPEC-015 CA-15.3 prevé.
+    // misma enmienda «el día de `0007`». Ese día fue el de **SPEC-015 CA-15.4**
+    // (las tres tablas del bot del corresponsal, ADR-022 §4), y el 2026-09-03
+    // llega **SPEC-017 CA-6.1** con `migrations/0008` (`alert_acks` y
+    // `operator_actions`, ADR-024 §7 y §8). Es CRECIMIENTO CON MOTIVO ESCRITO
+    // EN EL MISMO DIFF (ADR-016 §3.2), no relajación de forma: la aserción
+    // sigue enumerando TODO lo que hay en disco, y por tanto sigue sin poder
+    // pasar descubriendo nada.
     const onDisk = (await readMigrations()).map((migration) => migration.version);
 
-    expect(onDisk).toEqual(['0001', '0002', '0003', '0004', '0005', '0006', '0007']);
+    expect(onDisk).toEqual([
+      '0001',
+      '0002',
+      '0003',
+      '0004',
+      '0005',
+      '0006',
+      '0007',
+      '0008',
+    ]);
     expect(await migrate(sql)).toEqual([]);
   });
 

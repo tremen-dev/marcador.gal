@@ -140,6 +140,30 @@ Fecha real de purga: YYYY-MM-DDTHH:MM:SSZ
 
 **La purga solo se ejecuta con este acuse escrito.** Sin él, la siguiente jornada **no se declara**.
 
+#### Paso 2 bis: los prefijos que la purga borra, y son TRES familias
+
+**Escrito el 2026-09-03 (SPEC-017 CA-3.8). Hasta hoy esta ceremonia solo
+nombraba el archivo de las fuentes automáticas, y las dos vías humanas
+dependían de que alguien se acordase de un prefijo que no estaba escrito en
+ninguna parte.** La purga no tiene ejecutor automático (ADR-009 §4), así que un
+prefijo que no está aquí **sobrevive a su jornada sin que ningún test se ponga
+rojo**.
+
+Una jornada de medición deja archivo bajo **tres** familias de prefijo, y las
+tres se purgan con ella:
+
+| Prefijo | Qué guarda | Ancla de retención |
+|---|---|---|
+| `<fuente>/<competition_id>/<día>/` — hoy `ceroacero/…` | Las respuestas crudas de las fuentes automáticas (RN-10), con sus dos raíces `objects/` y `meta/`. | ADR-020 §2 |
+| **`corresponsal/`** | Los mensajes, las propuestas del modelo y las confirmaciones del bot del corresponsal (SPEC-015). Su segundo segmento es el **tipo de evento** —`mensaxe`, `proposta`, `confirmacion`—, no un `competition_id`: **un solo prefijo para la purga**, y es la irregularidad que ADR-023 §2 declara. | ADR-023 §2, ADR-020 §2 |
+| **`operador/`** | Los objetos crudos de cada acción del panel del operador (SPEC-017). Su segundo segmento es el **tipo de acción** —`correccion`, `estado`, `ratificacion`, `acuse`—, por el mismo motivo y con la misma irregularidad declarada (ADR-024 §6). | ADR-024 §6, ADR-020 §2 |
+
+**Las dos familias humanas son las que llevan texto escrito por una persona** —el
+mensaje del corresponsal y el motivo del operador—, así que son justo las que
+peor envejecen si sobreviven a su jornada. Los `Observation` persisten con su
+`raw_ref` apuntando a un objeto borrado, que es estado legítimo declarado
+(ADR-020 §4).
+
 #### Paso 3: Ejecutar la purga en Blob
 
 Con la `@vercel/blob` instalada localmente y credenciales de Blob:
@@ -148,16 +172,36 @@ Con la `@vercel/blob` instalada localmente y credenciales de Blob:
 BLOB_READ_WRITE_TOKEN="vercel_blob_rw_…" node << 'PURGE'
 import { del } from '@vercel/blob';
 
-const prefix1 = "objects/ceroacero/preferent-futgal/2026-09-14/";
-const prefix2 = "meta/ceroacero/preferent-futgal/2026-09-14/";
+// LAS TRES FAMILIAS DEL PASO 2 bis, cada una con sus dos raíces.
+const prefixes = [
+  "objects/ceroacero/preferent-futgal/2026-09-14/",
+  "meta/ceroacero/preferent-futgal/2026-09-14/",
+  // El archivo del bot del corresponsal (SPEC-015, ADR-023 §2).
+  "objects/corresponsal/",
+  "meta/corresponsal/",
+  // El archivo del panel del operador (SPEC-017, ADR-024 §6).
+  "objects/operador/",
+  "meta/operador/",
+];
 
-const deleted1 = await del([{ prefix: prefix1 }]);
-const deleted2 = await del([{ prefix: prefix2 }]);
+let purged = 0;
+for (const prefix of prefixes) {
+  const deleted = await del([{ prefix }]);
+  purged += deleted.deleted.length;
+}
 
-console.log(`Purgadas ${deleted1.deleted.length + deleted2.deleted.length} claves`);
-console.log(`Prefijos: ${prefix1}, ${prefix2}`);
+console.log(`Purgadas ${purged} claves`);
+console.log(`Prefijos: ${prefixes.join(", ")}`);
 PURGE
 ```
+
+**Las dos familias humanas se purgan ENTERAS y no por día**, y hay que saber por
+qué: sus claves llevan el tipo de evento donde toda fuente automática lleva un
+`competition_id`, así que el prefijo no tiene un día por el que cortar más
+arriba. Mientras haya **una** jornada declarada a la vez —que es el régimen que
+ADR-019 §3 entrega— purgar la familia entera y purgar la jornada son lo mismo.
+El día que haya dos jornadas vivas a la vez, esto hay que estrecharlo por día
+dentro de la clave.
 
 Registrar la salida real de claves borradas en el ledger (paso 2).
 

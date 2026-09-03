@@ -134,14 +134,27 @@ describe('CA-4 — paridad de bundles', () => {
     expect(empty).toEqual([]);
   });
 
-  test('4. `qualifiers` sigue siendo de gl.ts y no entra en la paridad del sitio', () => {
-    expect(Object.keys(gl.qualifiers)).toEqual([
-      'provisional',
-      'confirmado',
-      'pendente_de_confirmar',
-      'sen_sinal',
-    ]);
-    expect(es).not.toHaveProperty('qualifiers');
+  test('4. `qualifiers` no entra en la paridad del sitio, y desde SPEC-017 existe en las dos lenguas', () => {
+    // ENMIENDA DEL 2026-09-03 (ADR-015, SPEC-017 CA-9.6). Hasta hoy este caso
+    // afirmaba además `expect(es).not.toHaveProperty('qualifiers')`, porque
+    // `qualifiers` vivía SOLO en `gl.ts` y su cabecera decía que el castellano
+    // era «de la spec que construya el marcador». El gate de SPEC-017 decidió
+    // el 2026-09-03 que los cuatro cualificadores SE TRADUCEN, y el disparador
+    // era el que SPEC-015 dejó escrito: «el primer artefacto que enseñe un
+    // cualificador a una persona en castellano», que es el panel del operador.
+    //
+    // Lo que este caso protege NO CAMBIA y por eso sigue aquí: `qualifiers` es
+    // un espacio de nombres PROPIO y NO entra en la paridad del sitio (SPEC-004
+    // CA-4), que es lo que se afirma abajo comprobando que no aparece entre las
+    // claves de `site`. La enmienda está escrita en el ledger de SPEC-004.
+    const CLAVES = ['provisional', 'confirmado', 'pendente_de_confirmar', 'sen_sinal'];
+
+    expect(Object.keys(gl.qualifiers)).toEqual(CLAVES);
+    expect(Object.keys(es.qualifiers)).toEqual(CLAVES);
+
+    // La paridad del SITIO no las ve: siguen siendo otro espacio de nombres.
+    expect(Object.keys(gl.site)).not.toContain('qualifiers');
+    expect(Object.keys(es.site)).not.toContain('qualifiers');
   });
 });
 

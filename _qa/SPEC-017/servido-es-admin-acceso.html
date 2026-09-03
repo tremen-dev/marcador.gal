@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Panel del operador — marcador.gal</title>
+<style>
+@font-face{font-family:'Geist';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/Geist-Regular.woff2') format('woff2')}
+@font-face{font-family:'Geist';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/Geist-Medium.woff2') format('woff2')}
+@font-face{font-family:'Geist';font-style:normal;font-weight:600;font-display:swap;src:url('/fonts/Geist-SemiBold.woff2') format('woff2')}
+@font-face{font-family:'Geist Mono';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/GeistMono-Medium.woff2') format('woff2')}
+@font-face{font-family:'Geist Mono';font-style:normal;font-weight:600;font-display:swap;src:url('/fonts/GeistMono-SemiBold.woff2') format('woff2')}
+
+:root{--bg:#111110;--bg-elevated:#1A1815;--bg-step:#221F1A;--line:#2A2620;--line-strong:#3D362C;--fg:#F5F1EA;--fg-muted:#A7A5A0;--fg-dim:#716F6C;--brand:#56DB8F;--brand-deep:#35C177;--brand-ink:#04160C;--accent-live:#FF6B00;--amber:#F0B135;--alert:#FF655A;--sans:'Geist',ui-sans-serif,system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;--mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;--bg-subtle:#131211;--bg-live:#1E1A16;--line-row:#1D1A16}
+
+*,*::before,*::after{box-sizing:border-box}
+
+html{-webkit-text-size-adjust:100%;color-scheme:dark}
+
+body{
+  margin:0;
+  padding:12px 8px 48px;
+  background:var(--bg);
+  color:var(--fg);
+  font-family:var(--sans);
+  font-size:16px;
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow-wrap:anywhere;
+}
+
+h1{margin:0 0 12px;font:500 15px/1.2 var(--sans);letter-spacing:-0.01em;font-size:20px}
+h2{margin:24px 0 8px;font:600 11px/1 var(--mono);letter-spacing:0.15em;text-transform:uppercase;color:var(--brand)}
+h3{margin:12px 0 4px;font:600 11px/1 var(--mono);letter-spacing:0.15em;text-transform:uppercase;color:var(--fg-muted)}
+p{margin:0 0 8px}
+
+.soft{color:var(--fg-muted)}
+
+/* ADR-013 §3: every digit of a scoreboard, an hour or a minute is tabular. */
+.num,.score,.instant,td,th,input[type="number"]{
+  font-family:var(--mono);
+  font-variant-numeric:tabular-nums;
+  font-feature-settings:'tnum' 1;
+}
+.score{font:600 20px/1 var(--mono);color:var(--fg)}
+.instant{font:600 13px/1 var(--mono);color:var(--fg-muted)}
+
+/*
+ * THE FOUR QUALIFIERS. provisional and confirmado carry THE SAME colour —
+ * the main one — and both carry their label; the other two carry a colour
+ * because they are conditions and not the normal case, and they carry their
+ * label too (ADR-026 §2, ADR-013 §2 and §6).
+ */
+.q-provisional,.q-confirmado{color:var(--fg)}
+.q-pendente-de-confirmar{color:var(--amber)}
+.q-sen-sinal{color:var(--alert)}
+
+/* The five states. live is the ember of ADR-013 §1, and nothing else is. */
+.s-live{color:var(--accent-live)}
+.s-postponed,.s-suspended{color:var(--amber)}
+.s-scheduled,.s-finished{color:var(--fg-muted)}
+
+/* The one wide element scrolls INSIDE ITS OWN CONTAINER (ADR-025 §3.2). */
+.scroller{overflow-x:auto}
+
+/*
+ * THE TABLE IS AS WIDE AS ITS CONTENT AND SCROLLS INSIDE .scroller. With
+ * width:100% the columns squeezed and a canonical RFGF name broke character by
+ * character at 360 px — measured. The name of a club is not a string to be
+ * chopped (dominio.md: it is never translated, and it is not mangled either),
+ * and D-8 asks for a screen that reads with bad coverage. ADR-025 §3.2 is
+ * satisfied all the same: what scrolls is the container, never the body.
+ */
+table{border-collapse:collapse;width:max-content;min-width:100%}
+th,td{padding:8px;border-bottom:1px solid var(--line-row);text-align:left;white-space:nowrap;overflow-wrap:normal}
+th{font:600 11px/1 var(--mono);letter-spacing:0.15em;text-transform:uppercase;color:var(--fg-dim);background:var(--bg-step);white-space:nowrap}
+td{font:500 15px/1.2 var(--sans);letter-spacing:-0.01em;color:var(--fg)}
+tbody tr:hover{background:var(--bg-elevated)}
+
+/* ADR-025 §3, INTACT: every interactive control is at least 44 x 44 px. */
+a,button,input,select,textarea,summary{min-height:44px}
+
+a{
+  display:inline-flex;
+  align-items:center;
+  min-width:44px;
+  padding:0 4px;
+  color:var(--brand);
+  text-decoration:none;
+}
+a:hover{color:var(--fg);text-decoration:underline}
+
+button{
+  min-width:44px;
+  padding:8px 12px;
+  border:1px solid var(--brand);
+  border-radius:8px;
+  background:var(--brand);
+  color:var(--brand-ink);
+  font:600 16px/1 var(--sans);
+  cursor:pointer;
+}
+button:hover{background:var(--brand-deep);border-color:var(--brand-deep)}
+
+label{display:block;margin:8px 0 4px;font:600 13px/1 var(--mono);color:var(--fg-muted)}
+
+input,select,textarea{
+  width:100%;
+  max-width:22rem;
+  padding:8px;
+  border:1px solid var(--line-strong);
+  border-radius:8px;
+  background:var(--bg-step);
+  color:var(--fg);
+  /* ADR-025 §3.1, and it WINS over the 15 px of the system's team role. */
+  font-size:16px;
+  font-family:var(--sans);
+}
+
+textarea{min-height:5rem}
+
+/*
+ * ADR-025 §2.1, INTACT and now permanent (ADR-026 §5) — the system has NO
+ * focus state at all, so this comes from ADR-025 and not from it. A real
+ * outline on the perimeter, never a change of background or of text colour,
+ * and the browser's own ring is never switched off anywhere in this sheet.
+ *
+ * The ring is --fg and not --brand on purpose: the brand green already
+ * means brand, link, heading and active nav, and ADR-026 §2.3 says a colour
+ * that means six things means none. --fg over --bg is 18.4:1, far above
+ * the 3:1 the rule asks — the test CALCULATES it.
+ */
+:focus-visible{
+  outline:2px solid var(--fg);
+  outline-offset:2px;
+  border-radius:8px;
+}
+
+fieldset{
+  margin:0 0 12px;
+  padding:8px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--bg-elevated);
+}
+legend{padding:0 4px;font:600 11px/1 var(--mono);letter-spacing:0.15em;text-transform:uppercase;color:var(--brand)}
+
+.row{border-top:1px solid var(--line);padding:8px 0}
+.notice{
+  border:1px solid var(--line-strong);
+  border-radius:10px;
+  padding:8px;
+  margin:0 0 12px;
+  background:var(--bg-elevated);
+  color:var(--fg);
+}
+ul{margin:0;padding:0;list-style:none}
+main{max-width:60rem;margin:0 auto}
+</style>
+</head>
+<body>
+<main>
+<h1>Entrar en el panel</h1><form method="post" action="/es/admin"><fieldset><legend>Entrar en el panel</legend><input type="hidden" name="intento" value="acceso"><label for="f-operador">Operador</label><input id="f-operador" name="operador" type="text" required><label for="f-clave">Clave</label><input id="f-clave" name="clave" type="password" required><button type="submit">Entrar</button></fieldset></form>
+</main>
+</body>
+</html>

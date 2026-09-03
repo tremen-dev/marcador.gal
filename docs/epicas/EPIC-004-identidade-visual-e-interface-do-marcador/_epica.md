@@ -116,13 +116,41 @@ descongele.
 
 ## Alcance
 
+> **Alcance revisado el 2026-09-03 por ADR-026 §6. La épica NO se descongela.**
+> El sistema de diseño pasó a ser **vinculante para toda interfaz del producto**
+> —decisión de Alberto Fojo— y eso hizo dos de las cosas que este alcance
+> reservaba para «cuando se descongele». Dejar la épica diciendo una cosa y el
+> ADR otra sería exactamente la patología que la hizo nacer: trabajo real rutado
+> a un sitio que no lo describe. Lo que cambia es **qué custodia**, no **cuándo
+> empieza**: el criterio de corte sigue intacto y el deshielo sigue siendo el
+> go/no-go.
+
 - **Dentro:**
   - Custodia del sistema de diseño v1.0 y de sus fuentes: paleta con contrastes
     medidos, tipografía, las dos densidades de fila (ampla y compacta), las dos
     vistas (Xornada y Global), y las semillas de marca.
   - El inventario de huecos conocidos y su disparador (ver más abajo).
-  - Cuando se descongele: interfaz definitiva del marcador, panel del operador
-    (`src/admin/`), tokens como código, y producción de activos de marca.
+  - **La reparación del propio artefacto** (entra el 2026-09-03). Adoptar el
+    sistema obligó a inventariarlo, y el inventario destapó que **el artefacto no
+    cumple lo que él mismo declara**: `_tokens.css` no lo usa ningún artboard,
+    las escalas viven en prosa y el sistema se las salta, no hay foco ni teclado
+    ni componentes de formulario, `provisional` se codifica **solo por color** en
+    dos vistas —incumpliendo ADR-013 §2 dentro de sí mismo—, y tres artboards no
+    se pueden abrir porque les falta `support.js`. ADR-026 §4 lista seis
+    desviaciones que **se corrigieron en el producto y no aquí**, así que hasta
+    que esta reparación ocurra el sistema y el producto dicen cosas distintas.
+    La lista de divergencias de ADR-026 §3.4 es la agenda de esa reconciliación.
+  - Cuando se descongele: interfaz definitiva del marcador y producción de
+    activos de marca.
+
+  **Lo que sale de aquí el 2026-09-03, y a dónde va:**
+  - **El panel del operador (`src/admin/`) → EPIC-002.** No es una previsión: ya
+    salió. **SPEC-017** está `hecho` y verificada GREEN, con ADR-024 y ADR-025
+    detrás y con el suelo de interfaz —foco, teclado, 44 px— que este alcance no
+    había dado.
+  - **Los tokens como código (`src/design/`) → EPIC-002**, por ADR-026 §3.1, que
+    los convierte en domicilio único y comprobado por test de paridad. No espera
+    al deshielo porque el producto ya los necesita.
 
 - **Fuera (aparcado a propósito, no por descuido):**
   - **Las reglas semánticas del marcador.** Salen a ADR y se mueven ya: pasan el
@@ -146,12 +174,12 @@ disparador es un hallazgo olvidado con mejor conciencia.
 
 | # | Entrada | Qué la despierta |
 |---|---|---|
-| 1 | **`provisional` es el estado normal, no la excepción.** El sistema pinta el marcador provisional en gris y con etiqueta, tratándolo como caso raro, y la mayoría de filas de los mockups salen `confirmado` con traza «2 fontes independentes ≥ 0.7 · RN-02». El roadmap ya registra que esa vía está cerrada por aritmética. Si se sostiene, el sistema apaga el estado dominante y destaca el raro. | **Ya. Adelantado el 2026-09-01**, al descongelarse EPIC-002: su «snapshot y página mínima por polling» no depende de la RFGF y es la primera pantalla que va a existir. El 2026-09-08 sigue siendo la fecha del veredicto de EPIC-001, pero **ya no es el primer disparador**: la pregunta se contesta cuando alguien escriba esa página, no cuando conteste la federación. **Es la entrada que más caro sale ignorar**, porque no se arregla cambiando un color: cambia cuál es la fila por defecto. |
+| 1 | ~~**`provisional` es el estado normal, no la excepción.**~~ **CERRADA el 2026-09-03 por ADR-026 §2**, y para **todas** las interfaces, no solo el panel. Era «la entrada que más caro sale ignorar» y resultó estar **mal planteada**: la pregunta era cuál de los dos se apaga, y la respuesta es que **ninguno**. Los dos van con el color de texto principal y los dos con etiqueta —también `confirmado`, que el sistema deja mudo porque «el normal no se anuncia»—; `--fg-prov` desaparece con ese nombre para que nadie lo reintroduzca, y `confirmado` **no** se pinta con el acento de marca. `docs/fundacion/dominio.md` ya lo afirma. | **Cerrada, no despierta.** Se contestó **antes** de escribir la primera línea de CSS del panel, que era justo lo que esta entrada pedía. Lo que queda es del artefacto, no de la regla: el sistema sigue pintando `provisional` en gris y **solo por color** en Móvil y Global, y eso entra en «la reparación del artefacto». |
 | 2 | **Falta la tabla de clasificación.** Se cayó del sistema al sustituir el panel de detalle por traza + historial de decisiones. Es justamente el componente de tabla densa que motivó el encargo. | Se descongele la épica, o antes si alguna spec necesita el componente. |
-| 3 | **Faltan estados de foco y navegación por teclado.** Se midieron contrastes; no se dibujó ningún anillo de foco. Un marcador denso sin foco visible es inusable con teclado. | Se descongele. Bloquea cualquier spec de interfaz. |
-| 4 | **Faltan estados de carga y de dato viejo.** El snapshot llega por polling (ADR-003) y la promesa es «legible con mala cobertura»: no hay esqueleto de carga ni aspecto de pantalla cuyos datos tienen dos minutos. | Se descongele, o la primera spec de `src/api/`. |
-| 5 | **El panel del operador no tiene ningún diseño.** `src/admin/` es donde viven RN-04 y RN-06 —bajar un marcador, aplazar un partido— desde el móvil, y es donde un error de diseño cuesta un marcador mal publicado. | **Ya, y con colisión.** El disparador escrito era «la cifra de operación manual de EPIC-002», y el 2026-09-01 esa premisa se quedó corta: EPIC-002 se descongeló y lista el **panel de correcciones** entre lo que **no** depende de la RFGF, así que el panel se va a **construir** antes de que exista esa cifra. Y sube de rango por el mismo motivo: sin segunda fuente automática, el panel es la única ruta a un marcador *confirmado*. Deja de ser accesorio. |
-| 6 | **Sin decidir: ¿tema claro?** Y la relación es la **inversa** de lo que se creyó al abrir esta épica: `src/app/globals.css` no «soporta claro», **sirve claro por defecto** (`--paper:#fbfbf9`, `--ink:#14181c`) y solo pasa a oscuro bajo `prefers-color-scheme: dark`. El sistema de diseño del marcador es oscuro-only. Es decir: el sitio público y el marcador no son variante y base, son dos bases opuestas. Hoy no chocan porque no comparten una línea de CSS. Corregido por `/sdd-arquitecto` al escribir ADR-013. | La primera spec que aplique tokens al sitio, que es cuando el conflicto se vuelve real. |
+| 3 | **Faltan estados de foco y navegación por teclado.** Se midieron contrastes; no se dibujó ningún anillo de foco. Un marcador denso sin foco visible es inusable con teclado. | **Sigue abierta sobre el artefacto, y ya no bloquea al producto** (2026-09-03). Lo que decía —«bloquea cualquier spec de interfaz»— lo resolvió **ADR-025 §2**, que da foco visible y teclado como **suelo**, y que ADR-026 §5 dejó **intacto y permanente**: adoptar el sistema **no** cierra esta entrada, porque el sistema no los tiene. Del lado del artefacto entra en «la reparación». |
+| 4 | **Faltan estados de carga y de dato viejo.** El snapshot llega por polling (ADR-003) y la promesa es «legible con mala cobertura»: no hay esqueleto de carga ni aspecto de pantalla cuyos datos tienen dos minutos. | **A punto de dispararse** (2026-09-03). Su disparador escrito era «la primera spec de `src/api/`», y ésa es **la del snapshot**, la siguiente de EPIC-002. Queda avisado aquí para que no la pille por sorpresa: es la entrada que esa spec tendrá que contestar, como SPEC-017 contestó la 1 y la 3. |
+| 5 | **El panel del operador no tiene ningún diseño.** `src/admin/` es donde viven RN-04 y RN-06 —bajar un marcador, aplazar un partido— desde el móvil, y es donde un error de diseño cuesta un marcador mal publicado. | **Cerrada en lenguaje, abierta en controles** (2026-09-03). **SPEC-017 está `hecho`** y el panel ya tiene diseño: sale de `src/design/` por ADR-026 §3.1, con el suelo de ADR-025 §2 y §3 encima. Lo que sigue abierto es del artefacto: **el sistema no trae ningún componente de formulario**, así que los controles del panel se dibujaron sin patrón que seguir. Entra en «la reparación». |
+| 6 | **Sin decidir: ¿tema claro?** Y la relación es la **inversa** de lo que se creyó al abrir esta épica: `src/app/globals.css` no «soporta claro», **sirve claro por defecto** (`--paper:#fbfbf9`, `--ink:#14181c`) y solo pasa a oscuro bajo `prefers-color-scheme: dark`. El sistema de diseño del marcador es oscuro-only. Es decir: el sitio público y el marcador no son variante y base, son dos bases opuestas. Hoy no chocan porque no comparten una línea de CSS. Corregido por `/sdd-arquitecto` al escribir ADR-013. | **No se cierra, y empeora de forma controlada** (2026-09-03). ADR-026 §3.6 hace **oscuras** las interfaces que gobierna y **no** el sitio público, que sigue claro por defecto (§1). El choque pasa de **latente a visible**: `marcador.gal` sirve dos temas opuestos en el mismo dominio para quien navegue entre el producto y `/proxecto`. **Dueño y disparador nuevos: la spec de migración del sitio público**, que ADR-026 §1 nombra sin escribir, con disparador propio —el go/no-go, o antes si comparten navegación—. Sigue sin chocar en el código: ninguna de las tres bases comparte una línea de CSS. |
 
 **Pendiente de comprobación, no de diseño:** no se verificó que los controles de
 los tres artboards interactivos respondan al clic; el navegador dejó de responder
