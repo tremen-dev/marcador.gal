@@ -4,8 +4,8 @@
 > Se actualiza al cambiar el rumbo; el estado fino spec a spec vive en
 > `docs/tablero.md` (generado, no editar), la intención y secuencia en
 > `docs/roadmap.md`, y la historia fina en ADRs y specs.
-> Última actualización: 2026-09-02 (SPEC-013 entregada y verificada GREEN: el
-> motor de decisiones existe y la `Decision` ya se escribe; veintiún ADRs).
+> Última actualización: 2026-09-03 (SPEC-015 entregada y verificada GREEN: el bot del
+> corresponsal existe; veintitrés ADRs).
 
 ## Qué es y en qué punto está
 
@@ -14,14 +14,14 @@ femenino) y de las divisiones nacionales, en directo, en una sola pantalla y en
 galego. Relevo con nombre e imagen propios de la desaparecida marcadorgalego.gal
 — **inspiración, no sucesión** (D-1).
 
-**Punto actual: trece specs `hecho` y verificadas GREEN, veintiún ADRs
+**Punto actual: catorce specs `hecho` y verificadas GREEN, veintitrés ADRs
 `aprobada` e inmutables.** Hay código en `src/model/`, `src/raw/` y `src/db/`
 (SPEC-001); en `src/mirror/`, con sus dos fases `capture/` y `analysis/` que no
 se importan entre sí (SPEC-002, SPEC-003); en `src/app/`, `src/site/` e
 `src/i18n/`, el sitio público de `marcador.gal` (SPEC-004 a SPEC-007); en
 `src/polite/`, `src/ingest/`, `src/calendar/` y `src/alias/`, el camino entero
 de la ingesta (SPEC-008 a SPEC-012); y desde hoy en **`src/decide/`, el motor de
-decisiones** (SPEC-013). `migrations/0001` a `0006`, aplicadas.
+decisiones** (SPEC-013). `migrations/0001` a `0007`, aplicadas. El bot de Telegram del corresponsal (SPEC-015) lleva la proposición del marcador al piso de la confirmación: el LLM propone dentro de una lista cerrada y una persona confirma, con dos ADRs nuevos (ADR-022, ADR-023).
 
 **Lo que cambió hoy y mueve el punto del proyecto: la `Decision` ya se
 escribe.** El motor de RN-01..RN-07 existe, está verificado GREEN y **corre
@@ -43,13 +43,13 @@ Tres épicas en juego, cada una en un punto distinto:
   fuente automática capturable. Veredicto el **2026-09-08**, diga lo que diga la
   RFGF.
 - **EPIC-002 — Instrumentación de las cuatro cifras**, `aprobada`, descongelada
-  el 2026-09-01: **es donde está el trabajo ahora**, y lleva **seis specs en
+  el 2026-09-01: **es donde está el trabajo ahora**, y lleva **siete specs en
   `hecho`**, todas entre el 2026-09-01 y el 2026-09-02 — SPEC-008 (adaptador de
   `ceroacero.es` y la cortesía de RN-11 con un solo dueño, con ADR-014),
   SPEC-009 (esa frontera demostrada sin listas negras, con ADR-016), SPEC-010
   (calendario declarado y repositorios, con ADR-017), SPEC-011 (catálogo de
   alias y resolver, con ADR-018), SPEC-012 (el cron de ingesta, con ADR-019 y
-  ADR-020) y **SPEC-013** (el motor de decisiones, con ADR-021). **Quedan
+  ADR-020) y **SPEC-013 (el motor de decisiones, con ADR-021) y **SPEC-015** (bot de Telegram del corresponsal, con ADR-022 y ADR-023)). **. **Quedan
   cuatro, y el orden no es el obvio:** bot de Telegram · panel del operador ·
   snapshot y página mínima por polling · las cuatro cifras. El bot y el panel
   van **antes** que el snapshot porque con una sola fuente automática son la
@@ -61,12 +61,12 @@ Tres épicas en juego, cada una en un punto distinto:
 **EPIC-004** (sistema de diseño del marcador, `docs/diseno/`) está `aprobada` y
 **congelada a propósito** hasta el go/no-go. **EPIC-MEJORA**, `aprobada` desde el
 2026-09-01, es el bucket de deuda técnica del proyecto: su inventario, al día el
-2026-09-02, tiene **veinticuatro entradas**, cada una con su disparador escrito.
+2026-09-03, tiene **treinta y dos entradas**, cada una con su disparador escrito.
 
 El nombre y dominio **marcador.gal** están decididos y contratados (2026-08-31,
 Dinahosting; expira 2027-08-31).
 
-## Stack y arquitectura (as-built, 2026-09-02)
+## Stack y arquitectura (as-built, 2026-09-03)
 
 - Node 22 · TypeScript · Next.js (App Router) · cheerio · zod · grammY ·
   Postgres · vitest (ADR-001). Desplegado en **Vercel Pro** (ADR-004): sin
@@ -110,7 +110,7 @@ hicieron ejecutable el motor.
 
 ## Decisiones clave hasta hoy
 
-`FOUNDATION.md` fija D-1 a D-8, locked. Los **veintiún ADRs** (`docs/adr/`,
+`FOUNDATION.md` fija D-1 a D-8, locked. Los **veintitrés ADRs** (`docs/adr/`,
 listado completo en `docs/tablero.md`) están **aprobados e inmutables**; dos
 reabren parcialmente a otros dos ya aprobados, sin editarlos:
 [ADR-008](../adr/ADR-008-fuentes-capturables-del-spike-tras-el-dictamen-legal.md)

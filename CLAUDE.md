@@ -42,7 +42,7 @@ bloqueada hasta su veredicto y `EPIC-003` ya está **cerrada**.
 que la fuente oficial **no es capturable** (ADR-008). SPEC-002 queda a la espera de
 que lo sea; SPEC-003 mide lo que sí se puede medir sin ella. EPIC-002 **tiene ya el tick de ingesta y el motor de decisiones funcionando, y falta colegir las cuatro cifras tras abrir la ventana**.
 
-Hay **veintiuno ADRs**, todos **aprobados e inmutables**. Para cambiar uno
+Hay **veintitrés ADRs**, todos **aprobados e inmutables**. Para cambiar uno
 aprobado, escribe otro ADR que lo supersede; no lo edites. ADR-008 y ADR-009
 superseden **parcialmente** a ADR-002 y ADR-005: lee siempre el que supersede
 antes de apoyarte en el viejo. **ADR-013 fija la semántica visual del marcador**
@@ -136,8 +136,9 @@ src/model/    modelo canónico en zod + tipos derivados (SPEC-001)
 src/raw/      puerto RawStore: store.ts, disk.ts, blob.ts, capture.ts (SPEC-001)
 src/db/       cliente postgres.js, runner de migraciones, puertos, rate-limit.ts (SPEC-001, SPEC-008);
               calendar.ts, observations.ts, decisions.ts, matches.ts, arrays.ts (SPEC-010);
-              aliases.ts (SPEC-011); ingest-attempts.ts (SPEC-012); alerts.ts (SPEC-013)
-migrations/   SQL numerado, aplicado en orden (ADR-006); 0001, 0002, 0003, 0004, 0005 y 0006 aplicadas
+              aliases.ts (SPEC-011); ingest-attempts.ts (SPEC-012); alerts.ts (SPEC-013);
+              bot.ts (SPEC-015)
+migrations/   SQL numerado, aplicado en orden (ADR-006); 0001, 0002, 0003, 0004, 0005, 0006 y 0007 aplicadas
 src/polite/   cortesía RN-11 con un solo dueño (ADR-014, SPEC-008): robots.ts,
               http.ts, user-agent.ts, rate-limit.ts, policy.ts, policy-durable.ts, clock.ts.
               src/mirror/ ya no es su domicilio
@@ -155,13 +156,18 @@ src/calendar/ calendario declarado a mano (SPEC-010): schedule.ts, time.ts, ids.
               declared.ts, ports.ts, cli.ts, command.ts
 src/decide/   motor de decisiones (SPEC-013, RN-01..RN-07): rules.ts, roles.ts,
               independence.ts, thresholds.ts, attribution.ts, qualifier.ts, alert.ts,
-              apply.ts, cycle.ts, replay.ts, ports.ts
+              apply.ts, cycle.ts, replay.ts, ports.ts, engine-entry.ts (SPEC-015)
+src/bot/      bot de Telegram del corresponsal (SPEC-015, RN-09): telegram.ts, webhook.ts,
+              correspondents.ts, catalog.ts, archive.ts, candidates.ts, windows.ts,
+              observation.ts, proposal.ts, llm.ts, prompt.ts, redact.ts, commands.ts,
+              card.ts, ports.ts
 src/api/      snapshot (+ stream SSE, fuera de EPIC-001)
 src/admin/    panel mínimo de correcciones y alertas (móvil)
 src/app/      Next.js App Router (ADR-001, ADR-004)
   (gl)/       rutas en galego: /proxecto, /robot (SPEC-004, SPEC-005, EPIC-003)
   (es)/       rutas en castellano: /es/proxecto, /es/robot (SPEC-004, SPEC-005)
   api/cron/   cron de ingesta `/api/cron/ingest` (SPEC-012)
+  api/telegram/webhook/  webhook de Telegram `/api/telegram/webhook` (SPEC-015)
   robots.txt/ ruta dinámica que genera robots.txt (SPEC-004 CA-11)
   globals.css estilos globales, sin dependencias externas (SPEC-004 CA-9)
 src/site/     componentes y utilidades compartidas por el sitio público (EPIC-003)
@@ -169,8 +175,12 @@ src/site/     componentes y utilidades compartidas por el sitio público (EPIC-0
 src/i18n/     bundles de i18n con paridad galego/castellano (SPEC-004 CA-4, EPIC-003)
               gl.ts, es.ts (bundles del sitio público, D-2)
               site-bundle.ts, site.ts (tipos y contrato)
-              El bundle para la interfaz del marcador vive aquí también; cada spec aporta su espacio de nombres
-tests/        model/ raw/ db/ alias/ calendar/ stores/ types/ mirror/ site/ decide/ · fixtures/ SOLO sintéticos
+              bot-bundle.ts, bot.ts (bundle del bot, SPEC-015)
+              crawler-bundle.ts, crawler.ts (bundle del mirror, SPEC-002/003)
+              statuses-bundle.ts, statuses.ts (estados de marcador)
+              titles-bundle.ts, titles.ts (títulos de página)
+tests/        model/ raw/ db/ alias/ calendar/ stores/ types/ mirror/ site/ decide/ bot/ · fixtures/ SOLO sintéticos
+corresponsais/ mapeo declarado de corresponsales por temporada (SPEC-015)
 raw/          raíz de DiskRawStore en local; NO versionado
 
 FOUNDATION.md            constitución (D-1..D-8 locked)
