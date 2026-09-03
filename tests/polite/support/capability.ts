@@ -370,6 +370,15 @@ export const ENTRY_POINTS: readonly string[] = [
   // tick — so its reachable exit surface is exactly the adapter path CA-2.1
   // already drives; the route itself adds no way out.
   'src/app/api/cron/ingest/route.ts',
+  // The correspondent bot's webhook (SPEC-015 CA-1.6, ADR-022 §1): a route of
+  // `src/app/`, entry by the rule SPEC-008 CA-2.5 already declared. It
+  // delegates whole in `src/bot/webhook.ts` — secret with a constant-time
+  // comparison failing closed, then the routing — and ITS GRAPH DOES NOT REACH
+  // THE EXIT DOOR: the bot asks nobody for anything, and the narrow door it
+  // uses to call the engine (`src/decide/engine-entry.ts`) composes the durable
+  // repositories itself instead of borrowing `composeCyclePorts`, which would
+  // drag the platform fetcher in. Case 13 of `containment.test.ts` asserts it.
+  'src/app/api/telegram/webhook/route.ts',
   'src/app/robots.txt/route.ts',
   // The commands of `package.json`.
   // `alias:cargar` (SPEC-011 CA-7): loads a declared alias catalogue against

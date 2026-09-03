@@ -1,7 +1,7 @@
 <!-- GENERADO por tremen-sdd (scripts/tablero.mjs). NO EDITAR A MANO. -->
 # Tablero
 
-Actualizado: 2026-09-02
+Actualizado: 2026-09-03
 
 ## EPIC-001 — spike-ingesta (aprobada)
 
@@ -21,6 +21,8 @@ Actualizado: 2026-09-02
 | SPEC-011 — catalogo-de-alias-declarado-y-resolucion-de-identidad-de-partido | hecho | 2026-09-02 (sdd-verificador) |
 | SPEC-012 — cron-de-ingesta-el-tick-que-abre-ventanas-por-partido-y-persiste-observation | hecho | 2026-09-02 (sdd-verificador) |
 | SPEC-013 — motor-de-decisiones-el-reducer-puro-de-rn-01-rn-07-y-el-ciclo-que-lo-ejecuta | hecho | 2026-09-02 (sdd-verificador) |
+| SPEC-015 — bot-de-telegram-del-corresponsal-el-llm-propone-dentro-de-una-lista-cerrada-y-la-persona-confirma | hecho | 2026-09-03 (sdd-verificador) |
+| SPEC-016 — el-catalogo-de-corresponsales-se-resuelve-en-compilacion-y-npm-run-build-pasa-a-ser-gate | hecho | 2026-09-03 (sdd-verificador) |
 
 ## EPIC-003 — paxina-de-proxecto-e-respaldo-publico-da-carta (hecho)
 
@@ -67,7 +69,9 @@ Actualizado: 2026-09-02
 | ADR-019 | aprobada | el-tick-de-ingesta-sin-proceso-vivo-ventanas-por-partido-medicion-acotada-y-estado-durable | 2026-09-02 (Alberto Fojo) |
 | ADR-020 | aprobada | retencion-del-archivo-de-las-jornadas-de-medicion-de-epic-002-y-el-raw-ref-colgante-como-estado-declarado | 2026-09-02 (Alberto Fojo) |
 | ADR-021 | aprobada | el-motor-de-decisiones-reducer-puro-sobre-los-dos-logs-ejecutado-dentro-del-tick-con-la-alerta-como-tabla-y-el-cualificador-derivado | 2026-09-02 (Alberto Fojo) |
+| ADR-022 | aprobada | el-bot-del-corresponsal-es-un-webhook-sin-conversacion-viva-identidad-seudonima-declarada-update-redactado-y-un-llm-que-propone-dentro-de-una-lista-cerrada | 2026-09-03 (Alberto Fojo) |
+| ADR-023 | aprobada | retencion-y-regimen-de-datos-personales-del-archivo-del-corresponsal-el-regimen-b-extendido-y-el-borrado-del-mapeo-como-remedio | 2026-09-03 (Alberto Fojo) |
 
 ## Resumen
 
-- hecho: 14
+- hecho: 16

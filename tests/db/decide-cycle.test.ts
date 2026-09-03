@@ -321,11 +321,17 @@ describe('CA-11 — el aplicador persiste una fila válida', () => {
 
 describe('CA-11.1 — `migrations/0006` se aplica en orden', () => {
   test('3. `migrate` devuelve las seis versiones, y una segunda ejecución `[]`', async () => {
-    // Este fichero es, desde hoy, el que ENUMERA las migraciones (enmienda de
-    // ADR-015 en el ledger de SPEC-012): heredará la misma el día de `0007`.
+    // Este fichero es, desde SPEC-013, el que ENUMERA las migraciones (enmienda
+    // de ADR-015 en el ledger de SPEC-012), y dejó escrito que heredaría la
+    // misma enmienda «el día de `0007`». ESE DÍA ES HOY: **SPEC-015 CA-15.4**
+    // añade `migrations/0007` (las tres tablas del bot del corresponsal,
+    // ADR-022 §4). Es CRECIMIENTO CON MOTIVO ESCRITO EN EL MISMO DIFF
+    // (ADR-016 §3.2), no relajación de forma: la aserción sigue enumerando
+    // TODO lo que hay en disco, y por tanto sigue sin poder pasar descubriendo
+    // nada. Es una de las DOS desviaciones que SPEC-015 CA-15.3 prevé.
     const onDisk = (await readMigrations()).map((migration) => migration.version);
 
-    expect(onDisk).toEqual(['0001', '0002', '0003', '0004', '0005', '0006']);
+    expect(onDisk).toEqual(['0001', '0002', '0003', '0004', '0005', '0006', '0007']);
     expect(await migrate(sql)).toEqual([]);
   });
 

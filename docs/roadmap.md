@@ -25,7 +25,7 @@ tipo: roadmap
 
 - **EPIC-002 — Instrumentación de las cuatro cifras.** Latencia, cobertura,
   conflictos y operación, que salieron de EPIC-001 el 2026-08-31 porque exigen el
-  motor, los adaptadores y el cron: ocho o nueve specs. Sus cifras nacen **sin
+  motor, los adaptadores y el cron: ocho specs ya entregadas (SPEC-008 a SPEC-013, SPEC-015 y SPEC-016). Sus cifras nacen **sin
   referencia oficial**, y la épica obliga a declarar junto a cada una qué la
   degrada.
 
@@ -36,8 +36,8 @@ tipo: roadmap
   épica que produce las cuatro cifras del go/no-go**. Su primera spec está
   **entregada**: **SPEC-008** —adaptador de `ceroacero.es` y cortesía RN-11 con
   una sola implementación—, `hecho` y verificada GREEN el 2026-09-01 tras siete
-  vueltas, junto con **ADR-014**. El desglose propuesto por `sdd-arquitecto` es
-  de diez specs (008 a 017), con el bot del corresponsal y el panel del
+  vueltas, junto con **ADR-014**. Descomposición orientativa del resto (propuesta 2026-09-01):
+  pendientes las de snapshot y cifras, con el bot del corresponsal y el panel del
   operador **antes** que el snapshot y las cifras: es lo que este mismo apartado
   llama «lo que sube de rango», ya convertido en orden. Y hay una décima que
   nadie planificó: **SPEC-009** (`aprobada`, 2026-09-02, en implementación en otro checkout), la frontera de capacidad de RN-11,

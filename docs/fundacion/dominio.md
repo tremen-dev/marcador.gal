@@ -34,13 +34,45 @@ sobrevive a `JSON.stringify` / `JSON.parse`.
 
 ## Estados de un partido
 
-| Término | Significado | Cómo se entra |
-|---|---|---|
-| `scheduled` | Programado, sin señal de juego. | Estado inicial. |
-| `live` | En juego. | Primera observación de juego después de `kickoff − 2 min` (RN-06). |
-| `finished` | Terminado. | Fuente oficial, dos fuentes coincidentes, o `kickoff + 110 min` sin señal (RN-06). |
-| `postponed` | Aplazado. | **Solo** fuente oficial o humano (RN-06). |
-| `suspended` | Suspendido. | **Solo** fuente oficial o humano (RN-06). |
+El identificador (`scheduled`, `live`, …) es **de código y va en inglés**; el
+literal es lo que ve una persona y **va a i18n en las dos lenguas** (D-2).
+
+| Término | Significado | Cómo se entra | Literal galego | Literal castellano |
+|---|---|---|---|---|
+| `scheduled` | Programado, sin señal de juego. | Estado inicial. | **Programado** | Programado |
+| `live` | En juego. | Primera observación de juego después de `kickoff − 2 min` (RN-06). | **En xogo** | En juego |
+| `finished` | Terminado. | Fuente oficial, dos fuentes coincidentes, o `kickoff + 110 min` sin señal (RN-06). | **Rematado** | Finalizado |
+| `postponed` | Aplazado. | **Solo** fuente oficial o humano (RN-06). | **Aprazado** | Aplazado |
+| `suspended` | Suspendido. | **Solo** fuente oficial o humano (RN-06). | **Suspendido** | Suspendido |
+
+**Los literales se añaden el 2026-09-02** (SPEC-015, el bot del corresponsal),
+porque hasta hoy el glosario definía los cinco estados **solo como
+identificadores en inglés** y la tarjeta de confirmación del bot es **el primer
+sitio del sistema real donde un estado se le enseña a una persona**. Sin
+registrarlos aquí, el marcador y el bot acabarían diciendo cosas distintas del
+mismo estado, que es exactamente lo que este glosario existe para evitar.
+
+**`live` se dice de una sola manera: *En xogo*.** En cualquier posición
+—estado, etiqueta, filtro, cabecera, aviso— y en cualquier superficie del
+producto, `live` es **En xogo**. **Decidido por Alberto Fojo el 2026-09-03** en el
+gate de SPEC-015, descartando expresamente la distinción estado/filtro que
+`sdd-lingua` había recomendado el 2026-09-02
+(`docs/epicas/EPIC-002-instrumentacion-de-las-cuatro-cifras/dictamenes-SPEC-015.md`,
+§4.2). El motivo de la decisión es el que este glosario existe para defender: un
+mismo estado se dice siempre igual, y dos formas registradas son dos formas que
+alguien elegirá mal.
+
+**Consecuencia pendiente, con disparador escrito y sin tocar nada hoy:**
+`docs/diseno/` usa *Directo* como etiqueta de filtro en **siete** ficheros
+—medido el 2026-09-03; algunos los genera su propio `build.mjs`— y **EPIC-004
+está congelada**, así que no se editan. Queda inventariado en
+EPIC-MEJORA con su disparador: **el día que se construya la interfaz del
+marcador**.
+
+Nota de norma, del mismo dictamen: **`aprazar`/`Aprazado`**, no *adiar*
+(portugués). Y *rematar* tiene dos sentidos en fútbol —terminar y disparar a
+puerta—, así que el estado se muestra **siempre con su etiqueta** («Estado:
+Rematado») y nunca como frase suelta.
 
 ## Cualificadores del marcador (visibles en UI, en galego)
 
