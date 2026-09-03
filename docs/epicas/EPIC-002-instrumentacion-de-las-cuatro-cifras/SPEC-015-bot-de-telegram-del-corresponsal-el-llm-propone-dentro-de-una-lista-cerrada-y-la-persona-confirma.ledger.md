@@ -1465,3 +1465,86 @@ declaradas siguen siendo tres, y ninguna es de esta vuelta.
 | `399b505` | Finding 3: `tests/bot/support/telegram-ids.ts` y los casos 27–32; la sonda P14 reproducida |
 | `2795db1` | Finding 2: `tests/db/bot-flow.test.ts` 14–16, la mitad de CA-3.2 contra la base |
 | `e87ab6a` | Findings 4 y 5: el caso 8c sustituido y los tres controles ejercitando su mecanismo |
+
+## Enmienda — 2026-09-03: F-SPEC-015-14 se quedó corto — el catálogo no llega a ejecución, no compila
+
+**Esto es una enmienda, no una reapertura.** SPEC-015 sigue en `hecho`, su
+veredicto sigue siendo GREEN y **no se ha tocado una línea del cuerpo de la
+spec**. La forma es la de ADR-015 §2 y §3, y quien la registra es
+`sdd-arquitecto` al escribir **SPEC-016**, que es la spec que corrige el defecto.
+
+1. **Qué decía F-SPEC-015-14 y por qué era razonable.** Decía que
+   `src/bot/catalog.ts` lee el catálogo del disco en tiempo de ejecución con
+   `readFile` sobre `corresponsais/<temporada>.json`, con el mismo patrón que
+   `src/db/migrate.ts`; que Vercel traza esos ficheros por análisis estático y
+   que `new URL(..., import.meta.url)` **no siempre se traza**; y que no se
+   había comprobado en un despliegue real porque el bot no se puede encender
+   todavía. Destino: la ceremonia de encendido. **Disparador: la primera jornada
+   declarada con el bot encendido.** Era razonable: nombra el mecanismo exacto y
+   nombra la duda exacta.
+
+2. **En qué se quedó corto, medido.** El fallo **no es de rastreo de ficheros y
+   no espera al encendido: es de compilación**, y ocurre en cuanto alguien
+   despliega esta rama. Reproducido en local el 2026-09-03 con `npm run build`:
+
+   ```
+   ./src/bot/catalog.ts:25:42
+   Error: Module not found: Can't resolve '../../corresponsais'
+   Import trace: src/bot/catalog.ts → src/bot/webhook.ts → src/app/api/telegram/webhook/route.ts
+   ```
+
+   El empaquetador de Next trata `new URL(x, import.meta.url)` como una
+   **referencia a un recurso que resuelve en compilación**, no como el cálculo
+   de ruta que es bajo Node: intenta resolver `../../corresponsais` como módulo,
+   y es un directorio fuera de `src/`. `main` compila limpio; la causa es de esta
+   rama. Tres correcciones al follow-up:
+
+   - **No es «no siempre se traza», es «no compila».** El rastreo de ficheros
+     era la segunda capa; nunca se llega a ella.
+   - **El disparador llegaba semanas tarde.** «La primera jornada con el bot
+     encendido» es un evento que ocurre *después* de desplegar, y el despliegue
+     es lo que rompe. El disparador real ya se había cumplido el mismo día en
+     que se escribió el follow-up.
+   - **El fallo cerrado y visible que prometía no existe.** El follow-up decía
+     que si el fichero no llegase al bundle, `loadCatalog` lanzaría y el webhook
+     devolvería 500. No hay 500: **no hay despliegue**. Y con el bot entregado
+     apagado, un catálogo vacío es la configuración normal, así que un vacío por
+     error habría sido indistinguible del funcionamiento correcto — motivo por
+     el que SPEC-016 CA-2.4 prohíbe expresamente devolver vacío al fallar.
+
+3. **Por qué ningún gate lo vio, que es lo que este episodio enseña.** Los gates
+   eran `npm run lint`, `npm test` y `npm run test:db`. **`npm run build` no era
+   gate, y `npm run typecheck` tampoco.** Y `tests/bot/correspondents.test.ts:72`
+   ejerce `loadCatalog` y **pasa en verde**, porque bajo Node la expresión es un
+   cálculo de ruta normal. Sólo el empaquetador la lee como recurso: es el único
+   punto en el que los tests y el build pueden discrepar por construcción. **No
+   es un fallo del implementador ni del verificador**: verificaron contra la
+   letra de la spec, y la letra no incluía compilar.
+
+4. **Con qué se sustituye.** SPEC-016 (`borrador`, 2026-09-03), en esta misma
+   rama y en el mismo PR #23 por decisión de Alberto Fojo, porque el PR no se
+   puede fusionar metiendo en `main` un árbol que no compila. Hace dos cosas:
+
+   - **El arreglo**: el catálogo entra en el paquete por `import` estático del
+     JSON, con un registro cerrado de temporada → catálogo que falla ruidoso
+     ante una temporada no declarada. Eso **restaura la letra de ADR-022 §2**,
+     que ya decía «validado con zod **e importado como módulo**» — la
+     implementación se había desviado del ADR. Por eso SPEC-016 **no** escribe
+     un ADR que lo supersede.
+   - **El gate que faltaba**: `npm run build` y `npm run typecheck` pasan a ser
+     gate, encadenados con `lint` y `test` en un único `npm run gates`.
+
+   **F-SPEC-015-14 queda cerrado por SPEC-016**, no por la ceremonia de
+   encendido. Lo que sí sigue abierto es lo que el gate del build no alcanza —
+   una lectura de disco calculada en ejecución compila perfectamente— y vive
+   como **F-SPEC-016-2**, con `src/db/migrate.ts:14` y
+   `src/mirror/cli/node-resolve.ts:27` inventariados.
+
+5. **Corrección de numeración: había dos `F-SPEC-015-14`.** El implementador usó
+   ese id para el catálogo en disco; el verificador lo reutilizó, en la segunda
+   vuelta del mismo día, para «el escaneo de `telegram_user_id` de CA-10.4 no
+   mira dentro de los ledgers». Dos entradas distintas con el mismo id no son
+   citables. **La segunda pasa a ser `F-SPEC-015-16`**, con el mismo texto,
+   el mismo destino (EPIC-MEJORA) y el mismo disparador; `F-SPEC-015-14` designa
+   desde hoy, y sólo, el catálogo leído del disco. No se ha borrado nada: las dos
+   entradas siguen donde estaban y esta enmienda es su desempate.
