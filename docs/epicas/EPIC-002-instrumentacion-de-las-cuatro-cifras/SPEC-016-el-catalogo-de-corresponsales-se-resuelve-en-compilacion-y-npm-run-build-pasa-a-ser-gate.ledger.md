@@ -29,24 +29,24 @@ epica: EPIC-002
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1.1 — sin lectura de disco, `import` estático con `with { type: 'json' }` | `src/bot/catalog.ts:32` (el `import`); fuera `readFile`, `fileURLToPath`, `join` y `CATALOG_DIR` | `tests/bot/catalog.test.ts:41` caso 1 y `:52` caso 2; y sobre el GRAFO, no el texto, `tests/bot/frontier.test.ts:132` caso 10 | | ❌ |
-| CA-1.2 — sigue pasando por `parseCatalog` (zod, todo-o-nada) | `src/bot/catalog.ts:88` | `tests/bot/catalog.test.ts:62` caso 3 (`corresponsal-xove` tumba el fichero entero) y `:66` caso 4 (clave de más) | | ❌ |
-| CA-1.3 — `loadCatalog` síncrona; los llamantes dejan el `await` | `src/bot/catalog.ts:81`; llamantes `src/bot/webhook.ts:690` y `tests/bot/correspondents.test.ts:72` | `tests/bot/catalog.test.ts:75` caso 5 (`not.toBeInstanceOf(Promise)`) | | ❌ |
-| CA-1.4 — `emptyCatalog` no es el camino de fallo | `src/bot/catalog.ts:92`; el cuerpo de `loadCatalog` (`:81-89`) no lo nombra | `tests/bot/catalog.test.ts:83` caso 6 | | ❌ |
-| CA-2.1 — registro cerrado temporada → catálogo importado | `src/bot/catalog.ts:49` `SEASON_CATALOGS`, un `Map` con una entrada | `tests/bot/catalog.test.ts:95` caso 7 | | ❌ |
-| CA-2.2 — clave del registro ≡ campo `season` del JSON | `src/bot/catalog.ts:49` | `tests/bot/catalog.test.ts:99` caso 8 (recorre el registro entero) | | ❌ |
-| CA-2.3 — `ACTIVE_SEASON` es clave del registro | `src/bot/catalog.ts:49` alineado con `src/ingest/measurement.ts:35` | `tests/bot/catalog.test.ts:108` caso 9 | | ❌ |
-| CA-2.4 — temporada no declarada ⇒ lanza, nunca catálogo vacío | `src/bot/catalog.ts:54` `UndeclaredSeasonError` y `:85-87` | `tests/bot/catalog.test.ts:112` caso 10 (nombra pedida y declaradas) y `:126` caso 11 | | ❌ |
-| CA-2.5 — cada clave tiene su fichero en `corresponsais/` | `src/bot/catalog.ts:68` `catalogFileName`, conservado como convención | `tests/bot/catalog.test.ts:133` caso 12 (las dos direcciones contra el directorio) y `:141` caso 13 | | ❌ |
-| CA-3.1 — `npm run build` en verde | El propio arreglo. Salida literal antes y después en «Evidencia de la implementación» | El empaquetador es el mecanismo; no hay test que lo sustituya (ADR-016 §6) | | ❌ |
-| CA-3.2 — `npm run typecheck` en verde | `tsconfig.json` NO se ha tocado: `resolveJsonModule` ya estaba | Salida literal en «Evidencia de la implementación» | | ❌ |
-| CA-3.3 — `lint`, `test` y `test:db` sin regresión | — | `npm test` 124/1313; `npm run lint` limpio. **`npm run test:db` NO se pudo medir**: ver «Evidencia» | | ❌ |
-| CA-4.1 — script `gates` en `package.json`, los cuatro en orden | `package.json:15` | `tests/docs/gates.test.ts:26` casos 1, 2 y 3 | | ❌ |
-| CA-4.2 — `test:db` queda fuera de `gates`, y se dice por qué | `package.json:15`; el motivo en `CLAUDE.md:109-115` | `tests/docs/gates.test.ts:45` caso 4 | | ❌ |
-| CA-4.3 — `.sdd.json` nombra el comando | `.sdd.json:5` → `"calidad": "npm run gates"` | Sin test: es declaración para quien lee, no mecanismo (lo dice el propio CA-4.3) | | ❌ |
-| CA-4.4 — `CLAUDE.md` dice `npm run gates` y por qué | `CLAUDE.md:109-121`, con los cuatro comandos, la frase «`npm test` no puede ver lo que sólo ve el empaquetador» y la mención de CI reescrita | Sin test: documento de orientación | | ❌ |
-| CA-4.5 — test que afirma que el script contiene los cuatro | `package.json:15` | `tests/docs/gates.test.ts` entero (4 casos), con su modestia declarada en la cabecera | | ❌ |
-| CA-5.1 — declarado lo que el gate del build NO alcanza | Este ledger: «El residuo del gate del build» y F-SPEC-016-2, ahora **medido** | Sin test: es una declaración de alcance | | ❌ |
+| CA-1.1 — sin lectura de disco, `import` estático con `with { type: 'json' }` | `src/bot/catalog.ts:32` (el `import`); fuera `readFile`, `fileURLToPath`, `join` y `CATALOG_DIR` | `tests/bot/catalog.test.ts:41` caso 1 y `:52` caso 2; y sobre el GRAFO, no el texto, `tests/bot/frontier.test.ts:132` caso 10 | Leído el módulo: no quedan `readFile`, `fileURLToPath`, `join`, `node:fs` ni `CATALOG_DIR`, y el JSON entra por `import` estático con `with { type: 'json' }`. **Sonda S1**: reintroduje `fileURLToPath(new URL('../../corresponsais', import.meta.url))` en este mismo módulo y `npm run build` volvió a fallar con el error literal de SPEC-015 —`Can't resolve '../../corresponsais'`, traza `catalog.ts`—. El guardián es el empaquetador y muerde. | ✅ |
+| CA-1.2 — sigue pasando por `parseCatalog` (zod, todo-o-nada) | `src/bot/catalog.ts:88` | `tests/bot/catalog.test.ts:62` caso 3 (`corresponsal-xove` tumba el fichero entero) y `:66` caso 4 (clave de más) | **Sonda S6**: sustituí `parseCatalog(...)` por un `as CorrespondentCatalog` y los casos 3 y 4 se pusieron ROJOS. El todo-o-nada de SPEC-015 CA-2.8 no se ha relajado: un `corresponsal-xove` sigue tumbando el fichero entero, y una clave de más también. | ✅ |
+| CA-1.3 — `loadCatalog` síncrona; los llamantes dejan el `await` | `src/bot/catalog.ts:81`; llamantes `src/bot/webhook.ts:690` y `tests/bot/correspondents.test.ts:72` | `tests/bot/catalog.test.ts:75` caso 5 (`not.toBeInstanceOf(Promise)`) | `loadCatalog` ya no devuelve promesa (caso 5) y los dos llamantes perdieron el `await`: `src/bot/webhook.ts:690` y `tests/bot/correspondents.test.ts:71`. Comprobado en el diff que ese test conserva nombre, aserciones y recuento (12 casos antes y después). | ✅ |
+| CA-1.4 — `emptyCatalog` no es el camino de fallo | `src/bot/catalog.ts:92`; el cuerpo de `loadCatalog` (`:81-89`) no lo nombra | `tests/bot/catalog.test.ts:83` caso 6 | **Sonda S5**: hice que una temporada no declarada devolviese `emptyCatalog(season)` y el caso 6 —que lee el cuerpo de `loadCatalog` y exige que no nombre `emptyCatalog`— se puso ROJO junto con el 10 y el 11. La distinción está guardada por tres casos, no por uno. | ✅ |
+| CA-2.1 — registro cerrado temporada → catálogo importado | `src/bot/catalog.ts:49` `SEASON_CATALOGS`, un `Map` con una entrada | `tests/bot/catalog.test.ts:95` caso 7 | `SEASON_CATALOGS` es un `Map` con una sola entrada, `'2026/27'`. El caso 12 lo comprueba **en las dos direcciones** contra el directorio (`declared` ≡ `onDisk`), así que ni sobra una entrada sin fichero ni sobra un fichero sin entrada. | ✅ |
+| CA-2.2 — clave del registro ≡ campo `season` del JSON | `src/bot/catalog.ts:49` | `tests/bot/catalog.test.ts:99` caso 8 (recorre el registro entero) | El caso 8 recorre el registro y compara la clave con el campo `season` del JSON importado **y** con el que devuelve `loadCatalog`. Es lo que impide servir la temporada del año pasado bajo una clave nueva. | ✅ |
+| CA-2.3 — `ACTIVE_SEASON` es clave del registro | `src/bot/catalog.ts:49` alineado con `src/ingest/measurement.ts:35` | `tests/bot/catalog.test.ts:108` caso 9 | `ACTIVE_SEASON` de `src/ingest/measurement.ts` es clave del registro (caso 9), y `src/ingest/measurement.ts` no se ha tocado: se cita, no se duplica. | ✅ |
+| CA-2.4 — temporada no declarada ⇒ lanza, nunca catálogo vacío | `src/bot/catalog.ts:54` `UndeclaredSeasonError` y `:85-87` | `tests/bot/catalog.test.ts:112` caso 10 (nombra pedida y declaradas) y `:126` caso 11 | **El punto que más ataqué, porque un vacío por error sería indistinguible del bot apagado.** `loadCatalog('2099/00')` lanza `UndeclaredSeasonError` con la temporada pedida y las declaradas en el mensaje; `'2027/28'` y `''` también. Y el `Map` cierra la puerta que un objeto literal dejaría abierta: `'toString'` no puede responder como si fuese una temporada. **Sonda S5** confirma que devolver vacío enrojece tres casos. | ✅ |
+| CA-2.5 — cada clave tiene su fichero en `corresponsais/` | `src/bot/catalog.ts:68` `catalogFileName`, conservado como convención | `tests/bot/catalog.test.ts:133` caso 12 (las dos direcciones contra el directorio) y `:141` caso 13 | El caso 12 lee el directorio bajo Node —legítimo: nunca corre dentro del paquete— y exige la igualdad exacta con `catalogFileName` aplicado a cada clave. `catalogFileName` deja de ser cálculo de ejecución y pasa a ser convención con guardián. | ✅ |
+| CA-3.1 — `npm run build` en verde | El propio arreglo. Salida literal antes y después en «Evidencia de la implementación» | El empaquetador es el mecanismo; no hay test que lo sustituya (ADR-016 §6) | `npm run build` corrido por mí: **EXIT=0**, ocho rutas emitidas, con `ƒ /api/telegram/webhook` entre ellas, y **cero apariciones** de `Can't resolve '../../corresponsais'`. Y no lo doy por bueno solo porque pase: la **sonda S1** demuestra que si el patrón vuelve, el build vuelve a fallar. | ✅ |
+| CA-3.2 — `npm run typecheck` en verde | `tsconfig.json` NO se ha tocado: `resolveJsonModule` ya estaba | Salida literal en «Evidencia de la implementación» | `npm run typecheck` (`tsc --noEmit`): **EXIT=0**. `tsconfig.json` no se ha tocado —`resolveJsonModule` ya estaba—, comprobado en el diff. | ✅ |
+| CA-3.3 — `lint`, `test` y `test:db` sin regresión | — | `npm test` 124/1313; `npm run lint` limpio. **`npm run test:db` NO se pudo medir**: ver «Evidencia» | Sin regresión, medido fichero a fichero con el reportero JSON contra el HEAD de SPEC-015 (`de90ee4`) **y** contra `eaae265`: **cero discrepancias en ficheros previos, ninguno desaparecido**. `npm test` 124/1313 (+17 = 13 de `catalog.test.ts` + 4 de `gates.test.ts`), `npm run test:db` 24/303 —**mismo recuento exacto que antes de SPEC-016**—, `npm run lint` limpio. `tests/bot/frontier.test.ts` sigue en 44 y `tests/bot/correspondents.test.ts` en 12. | ✅ |
+| CA-4.1 — script `gates` en `package.json`, los cuatro en orden | `package.json:15` | `tests/docs/gates.test.ts:26` casos 1, 2 y 3 | `package.json:15` encadena con `&&` en el orden exacto que pide el criterio: `typecheck` → `lint` → `build` → `test`. Corrido por mí como un solo comando: `npm run gates` **EXIT=0**, y las cuatro etapas aparecen en su salida. **Sonda S7bis**: poner `build` delante de `typecheck` enrojece el caso 3. | ✅ |
+| CA-4.2 — `test:db` queda fuera de `gates`, y se dice por qué | `package.json:15`; el motivo en `CLAUDE.md:109-115` | `tests/docs/gates.test.ts:45` caso 4 | `test:db` no aparece en `gates` y sigue existiendo como script propio (caso 4). Lo he corrido aparte: 24/303, verde. El motivo —`DATABASE_URL_TEST` y la rama de Neon compartida, F-SPEC-015-8— está escrito en el criterio, en el test y en `CLAUDE.md`. | ✅ |
+| CA-4.3 — `.sdd.json` nombra el comando | `.sdd.json:5` → `"calidad": "npm run gates"` | Sin test: es declaración para quien lee, no mecanismo (lo dice el propio CA-4.3) | `.sdd.json` pasa de `"calidad": true` a `"calidad": "npm run gates"`. Es declaración y no mecanismo, y el propio criterio lo dice: nada del núcleo tremen-sdd valida ese fichero. Por eso no es el único sitio (CA-4.4). | ✅ |
+| CA-4.4 — `CLAUDE.md` dice `npm run gates` y por qué | `CLAUDE.md:109-121`, con los cuatro comandos, la frase «`npm test` no puede ver lo que sólo ve el empaquetador» y la mención de CI reescrita | Sin test: documento de orientación | `CLAUDE.md:109-121` nombra `npm run gates`, enumera los cuatro comandos en orden, dice que para en el primer fallo, deja `test:db` fuera pero igual de obligatorio, actualiza la mención de que no hay CI y trae la frase del episodio: **«`npm test` no puede ver lo que sólo ve el empaquetador»**. | ✅ |
+| CA-4.5 — test que afirma que el script contiene los cuatro | `package.json:15` | `tests/docs/gates.test.ts` entero (4 casos), con su modestia declarada en la cabecera | El caso 1 afirma que el script existe, el 2 que contiene los cuatro y el 3 el orden. **Sonda S8** (quitarle `build`) enrojece los casos 2 y 3. **SALVEDAD medida**: la mitad de CA-4.1 que dice «parando en el primer fallo» **no está guardada** — **sonda S7**: sustituí `&&` por `;` y la suite quedó en **VERDE 4/4**. El artefacto es correcto (lo he leído: usa `&&`), pero degradarlo no sería una ofensa visible. Cabe dentro de la modestia que CA-4.5 se declara a sí mismo, y por eso es salvedad y no incumplimiento; se cierra con una aserción de una línea. | ⚠️ |
+| CA-5.1 — declarado lo que el gate del build NO alcanza | Este ledger: «El residuo del gate del build» y F-SPEC-016-2, ahora **medido** | Sin test: es una declaración de alcance | El residuo está escrito y **lo he medido en las dos direcciones**. Dentro del grafo de una ruta el gate muerde (**sonda S1**, build ROJO); fuera de él no ve nada (**sonda S2**: el mismo patrón en `src/mirror/sonda-fuera-del-grafo.ts` deja el build en **EXIT=0**). Y recorrí el grafo yo, con el lector del propio repositorio, desde las **10 entradas de `src/app/`**: **104 módulos alcanzables**, con `src/bot/catalog.ts` **dentro** —control positivo: el recorrido llega al módulo que esta spec arregla— y `src/db/migrate.ts` y `src/mirror/cli/node-resolve.ts` **fuera**. Más fuerte aún: **ningún módulo alcanzable nombra `import.meta.url`**, el conjunto es vacío. (El implementador contó 9 entradas y 105 módulos; la diferencia es que yo incluí `src/app/_contract/model-client.tsx`. Las tres conclusiones coinciden.) | ✅ |
 
 ## Evidencia de la implementación
 <!-- La escribe sdd-implementador. El veredicto sigue siendo del verificador. -->
@@ -224,6 +224,180 @@ claves heredadas: `'toString'` no puede responder como si fuese una temporada.
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+
+### GREEN — 2026-09-03, `sdd-verificador`
+
+**El agujero queda cerrado, y lo digo habiéndolo reabierto a mano.** No me basta
+con que `npm run build` pase: la **sonda S1** reintroduce
+`fileURLToPath(new URL('../../corresponsais', import.meta.url))` en el mismo
+módulo y el build vuelve a fallar con el error literal que rompió el despliegue,
+así que el gate nuevo es mecanismo y no rótulo. Los diecisiete subcriterios
+restantes están en verde y hay **una salvedad medida**, CA-4.5, que no bloquea.
+
+**Y hay una cosa que me toca decir en primera persona.** Di GREEN a SPEC-015 y el
+despliegue se rompió. La causa no fue una aserción floja: fue que la letra no
+incluía compilar, y `npm test` **no puede** ver lo que solo ve el empaquetador.
+Lo que arregla eso no es más rigor del verificador, es un gate más — y eso es lo
+que esta spec entrega. Comprobado además que **restaura ADR-022 §2 en vez de
+superseder-lo**: el ADR ya decía «validado con zod **e importado como módulo**»,
+y la implementación de SPEC-015 se había desviado de él.
+
+| Gate | Resultado |
+|---|---|
+| `npm run gates` (comando único) | **EXIT=0** — las cuatro etapas en su salida |
+| `npm run typecheck` | limpio, `tsconfig.json` sin tocar |
+| `npm run lint` | limpio |
+| `npm run build` | **8 rutas emitidas**, `ƒ /api/telegram/webhook` entre ellas, cero `Can't resolve` |
+| `npm test` | 124 ficheros, **1313/1313** |
+| `npm run test:db` | 24 ficheros, **303/303** — mismo recuento exacto que antes de SPEC-016 |
+
+**Contraste fichero a fichero**, reportero JSON, contra el HEAD de SPEC-015
+(`de90ee4`) y contra `eaae265`: **cero discrepancias en ficheros previos,
+ninguno desaparecido**, en unidad y en base. +17 casos, que son exactamente los
+13 de `tests/bot/catalog.test.ts` y los 4 de `tests/docs/gates.test.ts`.
+`tests/bot/frontier.test.ts` sigue en **44** y `tests/bot/correspondents.test.ts`
+en **12**: se reescribieron dentro, no crecieron.
+
+### El caso 10 de `tests/bot/frontier.test.ts`, juzgado con dureza
+
+Es de SPEC-015, que está `hecho`, y yo mismo lo había mirado en su verificación.
+Lo he vuelto a atacar por los dos lados, no leído:
+
+- **Sonda S4** — le quito `node:fs/promises` al sujeto nuevo (`src/db/migrate.ts`):
+  **caso 10 ROJO**. La mitad heredada sigue midiendo el grafo sobre el árbol real.
+- **Sonda S3** — devuelvo `readFile` a `src/bot/catalog.ts`: **caso 10 ROJO**. La
+  mitad que SPEC-016 añade también muerde.
+
+**Veredicto: no se ha debilitado; es estrictamente más fuerte.** La aserción
+positiva original sobrevive con otro sujeto —`src/db/migrate.ts`, código de
+producción cuyo grafo alcanza `node:fs/promises` de verdad— y encima gana dos
+aserciones negativas sobre el grafo, que son más fuertes que la comprobación
+textual del caso 1 de `catalog.test.ts`. El recuento del fichero no se mueve, no
+se borra nada y el motivo está escrito en el mismo diff y en este ledger.
+
+**Y ahora la pregunta incómoda, que contesto para que nadie lea este GREEN como
+un descuido: ¿lo admite la regla de las cuatro condiciones de SPEC-015 CA-15.3?**
+Por su letra, **no**: la condición (a) exige que la desviación sea *el
+crecimiento de un censo derivado*, y esto no es un censo — es un control
+positivo al que se le muda el sujeto. Lo que pasa es que **esa regla no gobierna
+aquí**: CA-15.3 es un criterio de SPEC-015 sobre la entrega de SPEC-015 frente a
+las suites de SPEC-008..013, y **SPEC-016 no tiene ningún criterio equivalente**.
+Tampoco se dispara ADR-015: SPEC-015 CA-2.5 **sigue siendo cierto palabra por
+palabra** —«el cargador del mapeo no alcanza `node:fs` por su grafo», con su
+control positivo en el caso 9, intacto—; el caso 10 era un extra que su
+implementador añadió, no un texto que el criterio exigiera. Así que la
+desviación es legítima, está declarada y la he medido. Que SPEC-016 no tenga la
+regla escrita es, eso sí, un hueco de su propia letra: **finding 3**.
+
+### Las sondas que escribí esta vez
+
+Ficheros y ediciones reales, medidos y revertidos; `git status` limpio tras cada
+bloque.
+
+| # | Sonda | Guardián | Resultado |
+|---|---|---|---|
+| **S1** | `new URL(x, import.meta.url)` **dentro** del grafo de una ruta (`src/bot/catalog.ts`) | `npm run build` | **ROJO** ✔ `Can't resolve '../../corresponsais'` |
+| **S2** | el mismo patrón **fuera** del grafo (`src/mirror/sonda-fuera-del-grafo.ts`) | `npm run build` | **VERDE — evade** (es el residuo declarado de CA-5.1) |
+| S3 | `catalog.ts` vuelve a alcanzar `node:fs` | `frontier` 10 | **ROJO** ✔ |
+| S4 | `src/db/migrate.ts` deja de alcanzar `node:fs` | `frontier` 10 | **ROJO** ✔ |
+| S5 | temporada no declarada devuelve catálogo **vacío** en vez de lanzar | `catalog` 6, 10, 11 | **ROJO** ✔ |
+| S6 | `loadCatalog` deja de pasar por `parseCatalog` | `catalog` 3, 4 | **ROJO** ✔ |
+| S7bis | orden alterado en el script `gates` (`build` primero) | `gates` 3 | **ROJO** ✔ |
+| S8 | `build` fuera del script `gates` | `gates` 2, 3 | **ROJO** ✔ |
+| **S7** | `&&` sustituido por `;` en el script `gates` | `gates` | **VERDE — evade** (finding 1) |
+| S9 | recorrido propio del grafo desde `src/app/` | — | 10 entradas, **104 módulos**, `catalog.ts` dentro, los dos sospechosos fuera |
+
+Ocho de diez enrojecen. De las dos que evaden, una es el residuo que CA-5.1
+declara **y que yo he medido en las dos direcciones**; la otra es el finding 1.
+
+### F-SPEC-016-2, comprobado por mi cuenta
+
+No lo doy por medido porque lo diga el ledger. Recorrí el grafo con el lector del
+propio repositorio (`reachableModules`, el de las fronteras de SPEC-008 y
+SPEC-013) desde las entradas de `src/app/` declaradas en `ENTRY_POINTS`:
+
+```
+rutas: 10   modulos alcanzables: 104
+src/bot/catalog.ts             -> DENTRO   (control positivo: el recorrido no es vacío)
+src/db/migrate.ts              -> FUERA
+src/mirror/cli/node-resolve.ts -> FUERA
+modulos alcanzables que nombran import.meta.url: []   <-- conjunto VACÍO
+```
+
+La última línea es más fuerte que lo que la spec pedía: hoy **ningún** módulo en
+el grafo de ninguna ruta nombra el patrón. La diferencia con el ledger (9
+entradas / 105 módulos) es que yo incluí `src/app/_contract/model-client.tsx`;
+las tres conclusiones coinciden y la discrepancia no es material.
+
+### ¿Entró algo fuera de alcance por la vía del `sh`?
+
+El implementador declara en F-SPEC-016-5 que el hook `require-spec` le denegó
+editar bajo `src/` y `tests/` —deduce la spec del nombre de rama, ve SPEC-015 en
+`hecho` y bloquea— y que escribió los ficheros con `sh`. Lo declaró en vez de
+esconderlo, y he revisado el diff con eso en la cabeza.
+
+**No entró nada fuera de alcance.** Bajo `src/` y `tests/` se tocan **seis
+ficheros**, y los seis los nombra la spec: `src/bot/catalog.ts` (el arreglo),
+`src/bot/webhook.ts` (una línea, el `await` que CA-1.3 pide quitar),
+`tests/bot/catalog.test.ts` y `tests/docs/gates.test.ts` (nuevos),
+`tests/bot/correspondents.test.ts` (dos líneas, el mismo `await`) y
+`tests/bot/frontier.test.ts` (el caso 10). Revisadas **todas** las líneas
+cambiadas con `git diff -U0`: no hay fichero suelto, ni edición oportunista, ni
+cambio de comportamiento del bot. Fuera de esos seis: `package.json`,
+`.sdd.json` y `CLAUDE.md`, que son CA-4.1, CA-4.3 y CA-4.4. El cambio del cuerpo
+de la spec es **solo frontmatter de estado**, que le corresponde.
+
+### Findings — cuatro, ninguno bloquea
+
+1. **F-SPEC-016-6 — el `&&` del gate no lo guarda nadie.** `tests/docs/gates.test.ts`
+   afirma existencia, contenido y orden, pero no que las etapas encadenen
+   parando en el primer fallo, que es lo que CA-4.1 dice con esas palabras.
+   Medido: **sonda S7**, `&&` → `;`, suite en verde 4/4. Se cierra con una
+   aserción de una línea (`expect(gates.split('&&')).toHaveLength(4)` o
+   equivalente). **Destino: EPIC-MEJORA**; **disparador: la próxima vez que se
+   toque `tests/docs/gates.test.ts`.**
+
+2. **F-SPEC-016-7 — la corrección de numeración de la enmienda crea una colisión
+   nueva y atribuye mal la vieja.** La enmienda del ledger de SPEC-015 (§5,
+   línea 1547) renumera «la segunda `F-SPEC-015-14`» como **`F-SPEC-015-16`** —
+   pero `F-SPEC-015-16` **ya está ocupado** por el hallazgo del verificador sobre
+   la carrera del caso 27 (mismo ledger, líneas 505 y 550). Además dice que el
+   duplicado lo escribió «el verificador», y las dos entradas duplicadas
+   (líneas 925 y 1450) están en secciones del **implementador** —«Salvedades /
+   follow-ups» y «Segunda vuelta del implementador»—; el verificador usó 16, 17,
+   18 y 19. Y el renumerado está **declarado pero no aplicado**: las líneas 925 y
+   1450 siguen diciendo `F-SPEC-015-14`. **Destino: `sdd-arquitecto`**;
+   **disparador: inmediato** — es una corrección de una línea en la enmienda, y
+   no bloquea porque ninguna de las dos entradas se ha perdido.
+
+3. **F-SPEC-016-8 — SPEC-016 toca tres ficheros de una spec cerrada y no tiene
+   ningún criterio que gobierne eso.** SPEC-015 tenía CA-15.3 exactamente para
+   esto. La disciplina se aplicó igual y la he medido (sondas S3 y S4), pero la
+   letra de esta spec no la exige, así que la próxima spec correctiva nace sin
+   la regla. **Destino: `sdd-arquitecto`**; **disparador: la próxima spec que
+   tenga que tocar la suite de una spec cerrada.**
+
+4. **F-SPEC-016-4, confirmado con mi propia medición, y es la mayor amenaza al
+   valor que esta spec entrega.** `npm run gates` termina en `npm test`, y
+   `npm test` es inestable: **3 fallos en 8 pasadas** medidas hoy por mí, todos
+   en suites cerradas previas —`tests/mirror/user-agent.test.ts`,
+   `tests/decide/thresholds.test.ts`, `tests/polite/evasions.test.ts`,
+   `tests/site/contact.test.ts`— y ninguno en ficheros de SPEC-016. Es la carrera
+   de F-SPEC-013-10. **El problema no es de esta spec, pero sí la afecta**: un
+   gate que falla un tercio de las veces enseña a volver a correrlo, y así es
+   como un fallo de verdad se pasa por alto. Es el mismo argumento con el que
+   CA-4.2 dejó `test:db` fuera. **Destino: EPIC-MEJORA**; **disparador: antes de
+   la CI (F-SPEC-016-1), o la primera vez que alguien re-corra el gate sin mirar
+   qué falló.**
+
+### Lo que no he podido ver
+
+**No he desplegado en Vercel.** Lo que verifico es que `npm run build` —el mismo
+empaquetador— compila y emite la ruta del webhook. El despliegue real sigue
+dependiendo de la ceremonia de encendido del bot, y la propia spec lo pone fuera
+de alcance con el argumento correcto: ya no hay nada que comprobar sobre el
+rastreo de ficheros, **porque no se rastrea ningún fichero**.
+
 
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-016/. Informe HTML opcional: _qa/SPEC-016/informe.html -->
