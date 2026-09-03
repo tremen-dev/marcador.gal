@@ -1,9 +1,11 @@
 ---
 id: ADR-025
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-03, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-03, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # ADR-025: El suelo de interfaz mientras EPIC-004 está congelada — foco visible, teclado, toque de 44 px, y estilos que no comparten una línea con `globals.css`
 

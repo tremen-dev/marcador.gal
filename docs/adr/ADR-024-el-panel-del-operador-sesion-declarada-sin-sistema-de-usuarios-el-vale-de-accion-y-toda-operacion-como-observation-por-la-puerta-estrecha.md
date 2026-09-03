@@ -1,9 +1,11 @@
 ---
 id: ADR-024
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-03, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-03, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # ADR-024: El panel del operador — sesión declarada sin sistema de usuarios, el vale de acción, y toda operación como `Observation` por la puerta estrecha
 
