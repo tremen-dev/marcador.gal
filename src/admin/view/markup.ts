@@ -22,24 +22,19 @@
  * NO IMAGE IS RENDERED (ADR-013 §4 and §5, FOUNDATION.md, non-negotiable):
  * there is no `<img>` in this module.
  *
- * THERE IS NO STYLESHEET HERE, AND THAT IS A DECISION OF 2026-09-03, NOT AN
- * OVERSIGHT. The panel ships SEMANTIC MARKUP WITH NO APPEARANCE DECIDED — no
- * colour, no typography, no invented token — because Alberto Fojo ruled that
- * `docs/diseno/` is the design system of the project and that the operator's
- * panel follows it too. That contradicts ADR-025 §4.2 and §4.3, which forbade
- * a measurement interface from deriving or copying anything of
- * `docs/diseno/`, and `sdd-arquitecto` is writing **ADR-026** to supersede
- * that point in part. CA-10 of SPEC-017 IS FROZEN until it is signed: writing
- * a palette now would be writing a palette to throw away, and — worse — it
- * would leave assertions in the suite saying the OPPOSITE of what ADR-026 is
- * going to say.
+ * THE STYLESHEET GOES INLINE, AND IT IS THE PANEL'S OWN (ADR-026, and what
+ * survives of ADR-025 §4.2). It is the strictest reading of «alcanzable solo
+ * desde sus propias rutas»: there is no URL that serves it, so nothing outside
+ * the panel can reach it even by accident. Its values come from `src/design/`
+ * and from nowhere else (ADR-026 §3.1), and `src/app/globals.css` is neither
+ * edited nor loaded — a route handler is wrapped by no layout, which is what
+ * makes ADR-025 §4.1 true here by construction and not by discipline.
  *
- * What survives untouched is everything that is rule and not style: ADR-013
- * entire (no state told apart by colour alone, tabular digits, no crest, no
- * club palette, ≥ 4.5:1), and the markup below already satisfies the part of
- * it that markup can satisfy — every state and every qualifier is a TEXT NODE
- * that names it, and no `<img>` is rendered anywhere.
+ * The document loads NOTHING from a third party: the faces are self-hosted
+ * under our own origin (ADR-026 §3.5) and there is no `@import`, no remote
+ * stylesheet and no remote script.
  */
+import { PANEL_STYLESHEET } from './styles';
 import { TICKET_FIELD } from '../ticket';
 import type { AdminText } from '@/i18n/admin';
 
@@ -68,6 +63,7 @@ export function document(locale: string, title: AdminText, body: string): string
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
     '<meta name="robots" content="noindex, nofollow">',
     `<title>${text(title)}</title>`,
+    `<style>${PANEL_STYLESHEET}</style>`,
     '</head>',
     '<body>',
     '<main>',

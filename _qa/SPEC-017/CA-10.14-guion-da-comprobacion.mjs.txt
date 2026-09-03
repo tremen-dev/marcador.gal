@@ -1,0 +1,179 @@
+/* QA manual de SPEC-017 CA-10.14, conducido a mano sobre Chrome real.
+   Vive en /tmp: no es una dependencia del proyecto ni toca la partición del
+   runner de SPEC-014 (la spec decidió no meter un navegador automatizado). */
+import { spawn } from 'node:child_process';
+import { writeFileSync, mkdirSync } from 'node:fs';
+
+const OUT = process.argv[2];
+mkdirSync(OUT, { recursive: true });
+const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const PORT = 9333;
+
+const chrome = spawn(CHROME, [
+  '--headless=new', `--remote-debugging-port=${PORT}`, '--no-first-run',
+  '--user-data-dir=/tmp/qa-chrome-profile', '--window-size=360,640',
+  '--hide-scrollbars', '--force-device-scale-factor=2', 'about:blank',
+], { stdio: 'ignore' });
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let ws, id = 0;
+const pending = new Map();
+
+async function connect() {
+  for (let i = 0; i < 60; i += 1) {
+    try {
+      const list = await fetch(`http://127.0.0.1:${PORT}/json/list`).then((r) => r.json());
+      const page = list.find((t) => t.type === 'page');
+      if (page) {
+        ws = new WebSocket(page.webSocketDebuggerUrl);
+        await new Promise((r) => { ws.onopen = r; });
+        ws.onmessage = (e) => {
+          const msg = JSON.parse(e.data);
+          if (msg.id && pending.has(msg.id)) { pending.get(msg.id)(msg); pending.delete(msg.id); }
+        };
+        return;
+      }
+    } catch { /* keep waiting */ }
+    await sleep(250);
+  }
+  throw new Error('no chrome');
+}
+
+function send(method, params = {}) {
+  id += 1;
+  const mine = id;
+  return new Promise((resolve, reject) => {
+    pending.set(mine, (msg) => (msg.error ? reject(new Error(JSON.stringify(msg.error))) : resolve(msg.result)));
+    ws.send(JSON.stringify({ id: mine, method, params }));
+  });
+}
+
+const evaluate = async (expression) =>
+  (await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })).result.value;
+
+async function shot(name) {
+  const { data } = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+  writeFileSync(`${OUT}/${name}.png`, Buffer.from(data, 'base64'));
+}
+
+async function key(text, code, windowsVirtualKeyCode, modifiers = 0) {
+  for (const type of ['rawKeyDown', 'keyUp']) {
+    await send('Input.dispatchKeyEvent', { type, key: text, code, windowsVirtualKeyCode, nativeVirtualKeyCode: windowsVirtualKeyCode, modifiers });
+  }
+  await sleep(120);
+}
+const tab = () => key('Tab', 'Tab', 9);
+const esc = () => key('Escape', 'Escape', 27);
+
+const report = {};
+
+await connect();
+await send('Page.enable');
+await send('Runtime.enable');
+await send('Emulation.setDeviceMetricsOverride', {
+  width: 360, height: 640, deviceScaleFactor: 2, mobile: true,
+});
+
+const go = async (url) => {
+  await send('Page.navigate', { url });
+  await sleep(1200);
+};
+
+// ── 1. El formulario de acceso, y el recorrido con teclado ──────────────────
+await go('http://127.0.0.1:3117/admin');
+report.access = {
+  title: await evaluate('document.title'),
+  fontLoaded: await evaluate("document.fonts.check('16px Geist')"),
+  horizontal: await evaluate('document.documentElement.scrollWidth > document.documentElement.clientWidth'),
+  viewport: await evaluate('window.innerWidth + "x" + window.innerHeight'),
+};
+await tab();
+report.access.firstFocus = await evaluate(
+  'JSON.stringify({tag: document.activeElement.tagName, name: document.activeElement.name, outline: getComputedStyle(document.activeElement).outline, offset: getComputedStyle(document.activeElement).outlineOffset, rect: document.activeElement.getBoundingClientRect().height})',
+);
+await shot('01-acceso-foco');
+
+// Escribir con el teclado y enviar.
+await evaluate("document.activeElement.value='operador-01'");
+await tab();
+await evaluate("document.activeElement.value='clave-do-operador-de-proba-2026'");
+await tab();
+report.access.submitFocus = await evaluate(
+  'JSON.stringify({tag: document.activeElement.tagName, text: document.activeElement.textContent, h: Math.round(document.activeElement.getBoundingClientRect().height), w: Math.round(document.activeElement.getBoundingClientRect().width), outline: getComputedStyle(document.activeElement).outline})',
+);
+await evaluate("document.querySelector('form').submit()");
+await sleep(1500);
+
+// ── 2. El tablero ───────────────────────────────────────────────────────────
+report.board = {
+  url: await evaluate('location.pathname'),
+  horizontal: await evaluate('document.documentElement.scrollWidth > document.documentElement.clientWidth'),
+  bodyScroll: await evaluate('document.body.scrollWidth + "/" + document.documentElement.clientWidth'),
+  rows: await evaluate("document.querySelectorAll('tbody tr').length"),
+  qualifiers: await evaluate("JSON.stringify([...document.querySelectorAll('[class^=q-]')].map(n=>n.className+'='+n.textContent.trim()+'@'+getComputedStyle(n).color))"),
+  statuses: await evaluate("JSON.stringify([...document.querySelectorAll('[class^=s-]')].map(n=>n.className+'='+n.textContent.trim()+'@'+getComputedStyle(n).color))"),
+  fontLoaded: await evaluate("document.fonts.check('16px Geist') && document.fonts.check('16px \"Geist Mono\"')"),
+  scrollerFits: await evaluate("JSON.stringify([...document.querySelectorAll('.scroller')].map(n=>({scroll:n.scrollWidth,client:n.clientWidth})))"),
+};
+await tab();
+report.board.firstFocus = await evaluate(
+  'JSON.stringify({tag: document.activeElement.tagName, text: document.activeElement.textContent.trim().slice(0,40), outline: getComputedStyle(document.activeElement).outline, h: Math.round(document.activeElement.getBoundingClientRect().height), w: Math.round(document.activeElement.getBoundingClientRect().width)})',
+);
+await shot('02-taboleiro-foco');
+
+// El orden de tabulación completo del tablero.
+const order = [];
+for (let i = 0; i < 12; i += 1) {
+  order.push(await evaluate('document.activeElement.tagName + ":" + document.activeElement.textContent.trim().slice(0,24)'));
+  await tab();
+}
+report.board.tabOrder = order;
+
+// ── 3. El detalle y una corrección ──────────────────────────────────────────
+const detail = await evaluate("document.querySelector('tbody a').href");
+await go(detail);
+report.detail = {
+  horizontal: await evaluate('document.documentElement.scrollWidth > document.documentElement.clientWidth'),
+  forms: await evaluate("document.querySelectorAll('form').length"),
+  cancels: await evaluate("document.querySelectorAll('[data-cancel]').length"),
+  controls: await evaluate("JSON.stringify([...document.querySelectorAll('a,button,input,select,textarea')].map(n=>({t:n.tagName,h:Math.round(n.getBoundingClientRect().height),w:Math.round(n.getBoundingClientRect().width),fs:getComputedStyle(n).fontSize})))"),
+};
+
+// Llegar al textarea del primer formulario SOLO CON TECLADO.
+await evaluate("document.querySelector('form select').focus()");
+let steps = 0;
+for (; steps < 10; steps += 1) {
+  const tag = await evaluate('document.activeElement.tagName');
+  if (tag === 'TEXTAREA') break;
+  await tab();
+}
+report.detail.stepsToTextarea = steps;
+report.detail.textareaFocus = await evaluate(
+  'JSON.stringify({tag: document.activeElement.tagName, outline: getComputedStyle(document.activeElement).outline, offset: getComputedStyle(document.activeElement).outlineOffset, fontSize: getComputedStyle(document.activeElement).fontSize})',
+);
+await send('Input.insertText', { text: 'Baixo o marcador: a fonte contou dúas veces o mesmo gol.' });
+await sleep(200);
+await shot('03-correccion-foco');
+report.detail.typed = await evaluate('document.activeElement.value');
+
+// ── 4. `Escape` cancela y devuelve el foco al control que deja el paso ───────
+await esc();
+report.escape = {
+  activeAfter: await evaluate('JSON.stringify({tag: document.activeElement.tagName, cancel: document.activeElement.hasAttribute("data-cancel"), text: document.activeElement.textContent.trim(), outline: getComputedStyle(document.activeElement).outline})'),
+  textareaCleared: await evaluate("document.querySelector('form textarea').value === ''"),
+};
+await shot('04-escape-foco-devolto');
+
+// ── 5. La anchura, medida de verdad ─────────────────────────────────────────
+report.width = {
+  viewport: await evaluate('window.innerWidth + "x" + window.innerHeight'),
+  boardHorizontal: report.board.horizontal,
+  detailHorizontal: report.detail.horizontal,
+  documentScroll: await evaluate('document.documentElement.scrollWidth + "/" + document.documentElement.clientWidth'),
+};
+
+writeFileSync(`${OUT}/medicion.json`, JSON.stringify(report, null, 2));
+console.log(JSON.stringify(report, null, 2));
+ws.close();
+chrome.kill();
+process.exit(0);

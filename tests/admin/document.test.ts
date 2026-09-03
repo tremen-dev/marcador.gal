@@ -3,7 +3,10 @@
  * operador tiene delante para poder arbitrar.
  *
  * ─────────────────────────────────────────────────────────────────────────────
- * ESTE FICHERO SUSTITUYE A `tests/admin/view.test.ts`, Y HAY QUE DECIR POR QUÉ.
+ * ESTE FICHERO SUSTITUYÓ A `tests/admin/view.test.ts` EL 2026-09-03, Y SIGUE
+ * SIENDO EL SITIO DE LO QUE NO ES ESTILO. Con ADR-026 firmado, la mitad de
+ * estilo volvió, y vive donde le toca: `tests/admin/style.test.ts` (CA-10.1 y
+ * CA-10.6 a CA-10.13) y `tests/design/parity.test.ts` (CA-10.2 a CA-10.5).
  *
  * **CA-10 ESTÁ CONGELADO DESDE EL 2026-09-03.** Alberto Fojo decidió que
  * `docs/diseno/` es el sistema de diseño del proyecto y que el panel del
@@ -77,14 +80,17 @@ describe('CA-1.10 — el panel no se anuncia, y `robots.txt` NO cambia', () => {
 });
 
 describe('El documento del panel no carga NADA de fuera', () => {
-  test('4. ni hoja externa, ni fuente, ni script: hoy tampoco hoja propia', async () => {
+  test('4. ni hoja externa, ni fuente remota, ni script remoto: la hoja va EN LÍNEA', async () => {
     const $ = cheerio.load(await panelHtml());
 
+    // Ni un `<link>`: la hoja no se sirve por ninguna URL, que es la lectura
+    // más estricta de «alcanzable solo desde sus propias rutas» (ADR-025 §4.2,
+    // lo que sobrevive de él).
     expect($('link').length).toBe(0);
-    expect($('script').length).toBe(0);
-    // CONGELADO: la hoja del panel llega con CA-10, cuando ADR-026 esté
-    // firmado y se sepa qué tokens hereda de `docs/diseno/`.
-    expect($('style').length).toBe(0);
+    expect($('style').length).toBe(1);
+    // El único script es el gesto de `Escape` de ADR-025 §2.5, y va en línea:
+    // ninguno tiene `src`, así que no se pide nada a nadie.
+    expect($('script[src]').length).toBe(0);
   });
 
   test('5. y no renderiza NINGUNA imagen (ADR-013 §4 y §5, no negociable)', async () => {

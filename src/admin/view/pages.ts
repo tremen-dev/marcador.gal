@@ -8,19 +8,36 @@
  * Nothing here is told apart by colour; there is no colour to tell anything
  * apart by.
  *
- * APPEARANCE IS NOT DECIDED HERE, AND THAT IS THE COURSE CORRECTION OF
- * 2026-09-03: `docs/diseno/` becomes the design system of the panel too
- * (Alberto Fojo), ADR-025 §4.2 and §4.3 are going to be superseded in part by
- * ADR-026, and CA-10 of SPEC-017 is FROZEN until that ADR is signed. So this
- * module emits SEMANTIC MARKUP AND NOTHING ELSE: no stylesheet, no script, no
- * colour, no typography, no invented token.
+ * THE APPEARANCE COMES FROM `src/design/` AND FROM NOWHERE ELSE (ADR-026 §3.1).
+ * This module writes STRUCTURE and CLASS NAMES; the values live in the tokens
+ * and the sheet is `./styles.ts`.
  *
- * Every form works with NO JAVASCRIPT AT ALL — a plain `POST` form with a
- * visible cancel link — and nothing here traps the focus, because there is
- * nothing modal to trap it in. The `Escape` gesture of ADR-025 §2.5 travels
- * with CA-10 and is frozen with it.
+ * THE CLASS OF A STATE OR OF A QUALIFIER IS ITS MODEL IDENTIFIER, never its
+ * visible form: `s-live`, `q-sen-sinal`. `live` is the identifier of
+ * `MATCH_STATUSES` and `sen_sinal` is one of `MATCH_QUALIFIERS` — English and
+ * galego domain vocabulary respectively, both of them identifiers. The VISIBLE
+ * word always comes out of `src/i18n/`, so `live` reads *En xogo* and never
+ * *Directo* (ADR-026 §4.4), and no state is ever `FIN`, `APR` or `DESC`, nor a
+ * qualifier a `?` or a `!` (ADR-026 §4.2 and §4.3).
+ *
+ * AND THE COLOUR IS NEVER THE ONLY DISTINCTION (ADR-013 §2, ADR-026 §4.1): the
+ * class paints, and the text node beside it names. `provisional` and
+ * `confirmado` get the SAME colour and BOTH get their label — the system
+ * leaves `confirmado` mute («el normal no se anuncia») and here the normal one
+ * is the other; dimming either would be entry 1 of EPIC-004's inventory
+ * repeated with code on top (ADR-026 §2).
+ *
+ * THE ESCAPE STEP (ADR-025 §2.5, INTACT — the system has no focus management
+ * at all, ADR-026 §4.6). Every form of this panel WORKS WITH NO JAVASCRIPT: it
+ * is a plain `POST` form with a visible cancel link, reachable with the
+ * keyboard like any other link. The eight lines below only add the `Escape`
+ * gesture on top — they clear the form being written and move the focus to
+ * that form's own cancel link, which is the control that leaves it. Nothing
+ * here traps the focus, because there is nothing modal to trap it in.
  */
 import { MATCH_STATUSES } from '@/model/match';
+import type { MatchStatus } from '@/model/match';
+import type { MatchQualifier } from '@/model/qualifier';
 import {
   ADMIN_MATCH_LINE,
   ADMIN_SCORE_LINE,
@@ -57,6 +74,28 @@ import type { AlertTray } from '../alerts';
 import type { BoardRow, MatchDetail } from '../board';
 import type { AdminAction } from '../archive';
 import type { AdminLocale, AdminText } from '@/i18n/admin';
+
+/**
+ * `Escape` leaves the step being written and gives the focus back to the
+ * control that leaves it (ADR-025 §2.5). Enhancement only: with the script off
+ * the cancel link is still there, still reachable, still focusable.
+ */
+const ESCAPE_SCRIPT = `
+document.addEventListener('keydown', function (event) {
+  if (event.key !== 'Escape') return;
+  var target = event.target;
+  if (!target || !target.closest) return;
+  var owner = target.closest('form');
+  if (!owner) return;
+  owner.reset();
+  var back = owner.querySelector('[data-cancel]');
+  if (back) back.focus();
+});
+`;
+
+function scriptTag(): string {
+  return `<script>${ESCAPE_SCRIPT}</script>`;
+}
 
 /** The names of the form fields. One place, so no view invents a second. */
 export const FIELDS = {
@@ -131,6 +170,16 @@ function value(raw: string): AdminText {
   return fill(ADMIN_VALUE, { value: raw });
 }
 
+/** The class of a state: its MODEL IDENTIFIER, never its visible form. */
+function statusClass(status: MatchStatus): string {
+  return `s-${status}`;
+}
+
+/** The class of a qualifier, likewise. `sen_sinal` → `q-sen-sinal`. */
+function qualifierClass(qualifier: MatchQualifier): string {
+  return `q-${qualifier.replaceAll('_', '-')}`;
+}
+
 export interface BoardView {
   readonly rows: readonly BoardRow[];
   readonly tray: AlertTray;
@@ -155,12 +204,13 @@ export function boardPage(locale: AdminLocale, view: BoardView): string {
   const body = view.rows.map((entry) =>
     row([
       `<td>${link(`${paths.root}?${FIELDS.match}=${encodeURIComponent(entry.match.id)}`, matchLine(entry))}</td>`,
-      cell(adminStatus(locale, entry.status)),
+      cell(adminStatus(locale, entry.status), statusClass(entry.status)),
       cell(scoreCell(locale, entry), 'score'),
       cell(
         entry.qualifier === null
           ? bundle.boardNoDecision
           : adminQualifier(locale, entry.qualifier),
+        entry.qualifier === null ? '' : qualifierClass(entry.qualifier),
       ),
       cell(
         entry.last_observed_at === null ? bundle.boardNever : value(entry.last_observed_at),
@@ -183,6 +233,7 @@ export function boardPage(locale: AdminLocale, view: BoardView): string {
       view.notice === null ? '' : noticeBlock(view.notice),
       board,
       trayBlock(locale, view.tray, view.ticketFor),
+      scriptTag(),
     ].join(''),
   );
 }
@@ -277,7 +328,7 @@ export function detailPage(locale: AdminLocale, view: DetailView): string {
     view.detail.observations.map((observation) =>
       row([
         cell(value(observation.source)),
-        cell(adminStatus(locale, observation.status)),
+        cell(adminStatus(locale, observation.status), statusClass(observation.status)),
         cell(
           observation.home_score === null || observation.away_score === null
             ? bundle.boardNoDecision
@@ -304,7 +355,7 @@ export function detailPage(locale: AdminLocale, view: DetailView): string {
     view.detail.decisions.map((decision) =>
       row([
         cell(digits(decision.version), 'num'),
-        cell(adminStatus(locale, decision.status)),
+        cell(adminStatus(locale, decision.status), statusClass(decision.status)),
         cell(
           decision.home_score === null || decision.away_score === null
             ? bundle.boardNoDecision
@@ -382,10 +433,11 @@ export function detailPage(locale: AdminLocale, view: DetailView): string {
       heading(1, bundle.detailHeading),
       view.notice === null ? '' : noticeBlock(view.notice),
       paragraph(matchLine(entry)),
-      paragraph(adminStatus(locale, entry.status)),
+      paragraph(adminStatus(locale, entry.status), statusClass(entry.status)),
       paragraph(scoreCell(locale, entry), 'score'),
       paragraph(
         entry.qualifier === null ? bundle.boardNoDecision : adminQualifier(locale, entry.qualifier),
+        entry.qualifier === null ? '' : qualifierClass(entry.qualifier),
       ),
       correction,
       statusChange,
@@ -395,6 +447,7 @@ export function detailPage(locale: AdminLocale, view: DetailView): string {
       heading(2, bundle.detailDecisions),
       decisions,
       link(paths.root, bundle.detailBack),
+      scriptTag(),
     ].join(''),
   );
 }

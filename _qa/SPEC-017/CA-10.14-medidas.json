@@ -1,0 +1,54 @@
+{
+  "access": {
+    "title": "Panel do operador — marcador.gal",
+    "fontLoaded": true,
+    "horizontal": false,
+    "viewport": "360x640",
+    "firstFocus": "{\"tag\":\"INPUT\",\"name\":\"operador\",\"outline\":\"rgb(245, 241, 234) solid 2px\",\"offset\":\"2px\",\"rect\":44}",
+    "submitFocus": "{\"tag\":\"BUTTON\",\"text\":\"Entrar\",\"h\":44,\"w\":74,\"outline\":\"rgb(245, 241, 234) solid 2px\"}"
+  },
+  "board": {
+    "url": "/admin",
+    "horizontal": false,
+    "bodyScroll": "360/360",
+    "rows": 2,
+    "qualifiers": "[\"q-sen-sinal=Sen sinal@rgb(255, 101, 90)\",\"q-provisional=Provisional@rgb(245, 241, 234)\"]",
+    "statuses": "[\"s-live=En xogo@rgb(255, 107, 0)\",\"s-live=En xogo@rgb(255, 107, 0)\"]",
+    "fontLoaded": true,
+    "scrollerFits": "[{\"scroll\":856,\"client\":344}]",
+    "firstFocus": "{\"tag\":\"A\",\"text\":\"Rácing Villalbés - SD Estradense\",\"outline\":\"rgb(245, 241, 234) solid 2px\",\"h\":44,\"w\":232}",
+    "tabOrder": [
+      "A:Rácing Villalbés - SD Es",
+      "A:UD Ourense - RC Celta B",
+      "TEXTAREA:",
+      "BUTTON:Recoñecer",
+      "A:Cancelar",
+      "BODY:Partidos das xornadas de",
+      "A:Rácing Villalbés - SD Es",
+      "A:UD Ourense - RC Celta B",
+      "TEXTAREA:",
+      "BUTTON:Recoñecer",
+      "A:Cancelar",
+      "BODY:Partidos das xornadas de"
+    ]
+  },
+  "detail": {
+    "horizontal": false,
+    "forms": 3,
+    "cancels": 3,
+    "controls": "[{\"t\":\"INPUT\",\"h\":0,\"w\":0,\"fs\":\"16px\"},{\"t\":\"INPUT\",\"h\":0,\"w\":0,\"fs\":\"16px\"},{\"t\":\"INPUT\",\"h\":0,\"w\":0,\"fs\":\"16px\"},{\"t\":\"INPUT\",\"h\":0,\"w\":0,\"fs\":\"16px\"},{\"t\":\"SELECT\",\"h\":44,\"w\":326,\"fs\":\"16px\"},{\"t\":\"INPUT\",\"h\":44,\"w\":326,\"fs\":\"16px\"},{\"t\":\"INPUT\",\"h\":44,\"w\":326,\"fs\":\"16px\"},{\"t\":\"TEXTAREA\",\"h\":80,\"w\":326,\"fs\":\"16px\"},{\"t\":\"BUTTON\",\"h\":44,\"w\":89,\"fs\":\"16px\"},{\"t\":\"A\",\"h\":44,\"w\":74,\"fs\":\"16px\"},{\"t\":\"INPUT\",\"h\":0,\"w\":0,\"fs\":\"16px\"},{\"t\":\"INPUT\",\"h\":0,\"w\":0,\"fs\":\"16px\"},{\"t\":\"INPUT\",\"h\":0,\"w\":0,\"fs\":\"16px\"},{\"t\":\"INPUT\",\"h\":0,\"w\":0,\"fs\":\"16px\"},{\"t\":\"SELECT\",\"h\":44,\"w\":326,\"fs\":\"16px\"},{\"t\":\"TEXTAREA\",\"h\":80,\"w\":326,\"fs\":\"16px\"},{\"t\":\"BUTTON\",\"h\":44,\"w\":89,\"fs\":\"16px\"},{\"t\":\"A\",\"h\":44,\"w\":74,\"fs\":\"16px\"},{\"t\":\"INPUT\",\"h\":0,\"w\":0,\"fs\":\"16px\"},{\"t\":\"INPUT\",\"h\":0,\"w\":0,\"fs\":\"16px\"},{\"t\":\"INPUT\",\"h\":0,\"w\":0,\"fs\":\"16px\"},{\"t\":\"INPUT\",\"h\":0,\"w\":0,\"fs\":\"16px\"},{\"t\":\"TEXTAREA\",\"h\":80,\"w\":326,\"fs\":\"16px\"},{\"t\":\"BUTTON\",\"h\":44,\"w\":89,\"fs\":\"16px\"},{\"t\":\"A\",\"h\":44,\"w\":74,\"fs\":\"16px\"},{\"t\":\"A\",\"h\":44,\"w\":145,\"fs\":\"16px\"}]",
+    "stepsToTextarea": 3,
+    "textareaFocus": "{\"tag\":\"TEXTAREA\",\"outline\":\"rgb(245, 241, 234) solid 2px\",\"offset\":\"2px\",\"fontSize\":\"16px\"}",
+    "typed": "Baixo o marcador: a fonte contou dúas veces o mesmo gol."
+  },
+  "escape": {
+    "activeAfter": "{\"tag\":\"A\",\"cancel\":true,\"text\":\"Cancelar\",\"outline\":\"rgb(245, 241, 234) solid 2px\"}",
+    "textareaCleared": true
+  },
+  "width": {
+    "viewport": "360x640",
+    "boardHorizontal": false,
+    "detailHorizontal": false,
+    "documentScroll": "360/360"
+  }
+}
