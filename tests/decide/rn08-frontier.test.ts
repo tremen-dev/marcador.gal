@@ -196,11 +196,22 @@ describe('CA-13.1 — control positivo de CADA mecanismo, no de la batería', ()
     // que YA ESTÁ en `DECISION_WRITERS`, así que la lista de módulos con
     // capacidad NO SE ENSANCHA: lo que crece es esta enumeración de quién la
     // cruza, que es exactamente lo que este control mide.
+    //
+    // `src/decide/read-entry.ts` llega con **SPEC-017 CA-12**, por el mismo
+    // motivo y con la misma forma: el panel del operador tiene que ENSEÑAR la
+    // `Decision` vigente y su log —«con el contexto de todas las fuentes y del
+    // histórico delante» es la letra de RN-01—, y esta frontera hace eso
+    // imposible desde fuera de `src/decide/` por sus dos mecanismos, que es lo
+    // que la frontera debe decir. Así que la LECTURA también sale por una
+    // puerta de `src/decide/`, que devuelve valores y ningún almacén.
+    // `DECISION_WRITERS` sigue teniendo DOS entradas (caso 1) y no se toca ni
+    // una aserción de la frontera: lo que crece es esta enumeración derivada.
     expect(crossing.map((file) => file.path).sort()).toEqual([
       'src/db/decisions.ts',
       'src/decide/apply.ts',
       'src/decide/cycle.ts',
       'src/decide/engine-entry.ts',
+      'src/decide/read-entry.ts',
     ]);
 
     const withNoNames = SCANNED.filter(

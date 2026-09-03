@@ -954,3 +954,34 @@ al `c7b2cf5`. Sin push, sin PR.
 - La barrera de CA-5 y el escaneo de CA-13.3 **quitan comentarios antes de
   mirar**: la prosa que explica que no hay `@font-face` no puede contar como un
   `@font-face`.
+
+## Enmienda — 2026-09-03: `qualifiers` deja de ser solo galego, y CA-4 lo nota en una aserción
+
+**Qué la invalida.** El gate humano de **SPEC-017** decidió el 2026-09-03, sobre
+la nota §3 de esa spec, que **los cuatro cualificadores se traducen al
+castellano**. `sdd-arquitecto` escribió las dos formas en la tabla de
+`docs/fundacion/dominio.md` el mismo día y **SPEC-017 CA-9.6** obliga a que
+existan en las dos lenguas, porque el panel del operador es «el primer artefacto
+que enseñe un cualificador a una persona en castellano» — el disparador que
+SPEC-015 dejó escrito.
+
+**Qué se toca, y qué NO.** El cuerpo de esta spec **no se edita** (ADR-015). Lo
+que cambia es **una** aserción de `tests/site/i18n.test.ts`, caso 4 de CA-4:
+hasta hoy afirmaba, además de la forma del espacio de nombres,
+`expect(es).not.toHaveProperty('qualifiers')`. Esa mitad era cierta **por una
+ausencia**, no por una regla de SPEC-004: `src/i18n/es.ts` no tenía el espacio
+de nombres porque su propia cabecera decía que era «de la spec que construya el
+marcador».
+
+**Lo que CA-4 protege sigue intacto y sigue afirmado.** `qualifiers` es un
+espacio de nombres PROPIO y **no entra en la paridad del sitio**, que es lo que
+CA-4 dice. El caso lo comprueba ahora de la forma que sí es una regla —que
+`qualifiers` no aparece entre las claves de `site` en ninguna de las dos
+lenguas— y añade que las cuatro claves existen en `gl` y en `es`.
+
+**Ninguna otra aserción de SPEC-004 se toca.** En particular **CA-11 sigue verde
+sin tocar nada**: SPEC-017 **no toca `robots.txt`** —usa `noindex` por cabecera y
+por `meta`, ADR-024 y la nota §5 del gate—, así que «permite el rastreo del sitio
+entero» sigue siendo cierto. Y `tests/site/no-hardcoded-literals.test.ts` sigue
+verde con las rutas del panel dentro de su alcance y **sin ninguna excepción
+nueva** (SPEC-017 CA-9.4).
