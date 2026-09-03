@@ -227,6 +227,72 @@ dependencia nueva.
 **Sigue todo congelado hasta que Alberto Fojo firme ADR-026**, que está en
 `borrador`.
 
+## CA-10 descongelado — evidencia subpunto a subpunto (`sdd-implementador`, 2026-09-03)
+
+**ADR-026 quedó `aprobada` (commit `2278cb1`) y CA-10 se implementó entero**, en
+la letra nueva del arquitecto: quince subpuntos, no siete. Aquí va cada uno con
+lo que lo sostiene, para que el verificador no tenga que reconstruirlo.
+
+**Gates de esta pasada, con el CSS de CA-10 dentro** (medidos sobre `1c9dd45`):
+`npm run gates` → **137 ficheros, 1515 casos, todos verdes**, `Type Errors: no
+errors`, `next build` con `ƒ /admin` y `ƒ /es/admin` en la tabla de rutas;
+`npm run test:db` → **26 ficheros, 339 casos, todos verdes**.
+
+### Los tokens (ADR-026 §3)
+
+| # | Qué pide | Evidencia |
+|---|---|---|
+| **10.1** | Un solo domicilio; el panel no declara ni un color, ni una familia, ni un radio, ni un valor de escala | `src/design/tokens.ts` y `src/design/system.ts`. `tests/admin/style.test.ts` **casos 1-5**: el módulo de la hoja no tiene **ni un** `#rrggbb`, ni `rgb(`, ni `hsl(`; toda `font-family` fuera de un `@font-face` es `var(--sans)` o `var(--mono)`; fuera del `:root` **generado** no queda un solo hexadecimal, y cada `var(--x)` apunta a una fila de la tabla. **Control positivo (caso 5)**: un `#rrggbb` en la hoja pone rojo el mismo mecanismo del caso 1 |
+| **10.2** | Paridad token a token, con tabla de correspondencia y lista cerrada de divergencias; el complemento vacío | `tests/design/parity.test.ts` **casos 1-9**. El mecanismo es **uno solo y parametrizado** (`parityOffences`), así que los controles ejercitan el mismo predicado y no una comprobación escrita dentro del caso. **Cuatro controles positivos**: torcer un valor (caso 5), **vaciar la tabla** (caso 6: quedan huérfanos los 15 tokens que no son divergencia), **vaciar las divergencias** (caso 7: `--fg-prov` queda huérfano, que es exactamente el que falta) y **añadir un token nuevo** al sistema (caso 8: rojo nombrándose, sin que nadie sepa que existe) |
+| **10.3** | Las divergencias son las tres de ADR-026 §3.4 y ninguna más | `tests/design/parity.test.ts` **casos 10-12**: la lista tiene **exactamente tres** entradas, en ese orden, cada una con más de 120 caracteres de motivo; `--fg-prov` no existe en el código **ni por nombre ni por valor**; y ningún nombre emitido contiene `marca`, `directo` ni `alerta`, con la traducción escrita y auditable |
+| **10.4** | Residuo: la paridad solo cubre color y familia | `tests/design/parity.test.ts` **casos 13-15**, y está escrito en la cabecera de `src/design/tokens.ts` y en el propio bloque `describe`. El caso 13 **mide** que el sistema no tiene ni un token de espaciado, radio, sombra o tamaño; el 14 y el 15 comprueban que las escalas del código son las **declaradas en prosa** en `Main.dc.html` (`4 · 8 · 12 · 16 · 24 · 32 · 48`, `Radios 8 · 10 · 14 · 999`) y que los cinco roles son los que el sistema nombra con su par `px / peso`. **Destino: EPIC-004; disparador: el deshielo** |
+| **10.5** | `docs/diseno/` no se edita | `tests/design/parity.test.ts` **caso 16**: `_tokens.css` sigue con su `@import`, su `--fg-prov` y su `--directo` **intactos**. Y en el diff: `docs/diseno/` no aparece |
+| **10.6** | Fuentes autoalojadas; el panel no le pide nada a ningún tercero | `tests/admin/style.test.ts` **casos 6-8** y `tests/design/parity.test.ts` **caso 17**: ni la hoja ni el marcado nombran `fonts.googleapis.com`, `fonts.gstatic.com`, ningún `@import` ni ningún `https?://`; las cinco caras existen en `public/fonts/` con su OFL; y **no se sirve ninguna cara que no esté declarada** (el directorio y `LOADED_FACES` son el mismo conjunto). Comprobado además **en el navegador**: `document.fonts.check('16px Geist')` y `'16px "Geist Mono"'` → `true` |
+
+### Lo que NO se hereda del sistema (ADR-026 §4)
+
+| # | Qué pide | Evidencia |
+|---|---|---|
+| **10.7** | Ningún cualificador se apaga; los dos llevan etiqueta, `confirmado` incluido; nada por debajo de 4.5:1 | `tests/admin/style.test.ts` **casos 9-11 y 13**. El caso 9 afirma la regla `.q-provisional,.q-confirmado{color:var(--fg)}` y que **ninguno de los dos aparece en una segunda regla**. El **caso 10 recorre el árbol renderizado para los CUATRO cualificadores** y afirma que la celda existe y su texto es el literal del bundle — `confirmado` incluido, que es el que el sistema deja mudo. El caso 13 **calcula** el contraste (luminancia relativa de WCAG) de `fg`, `fgMuted`, `amber`, `alert` y `accentLive` contra `--bg` **y** contra `--bg-elevated`: todos ≥ 4.5:1. **Control positivo (caso 11)**: apagar uno o dejarlo mudo rompe la regla que el caso 9 afirma |
+| **10.8** | `confirmado` no se pinta con el acento de marca | `tests/admin/style.test.ts` **caso 12**: ninguna regla `.q-…` **ni ninguna regla `.s-…`** contiene `--brand` |
+| **10.9** | Literales del glosario, nunca un glifo ni una abreviatura; `live` es *En xogo* | `tests/admin/style.test.ts` **casos 14-16**: los cinco estados salen de `statusesBundle`; `live` es **En xogo** / **En juego** y el documento **no contiene `Directo`**; y no aparece `FIN`, `APR` ni `DESC`. Medido también en el navegador: `s-live = "En xogo"` |
+
+### El suelo de ADR-025, que el sistema no cubre
+
+| # | Qué pide | Evidencia |
+|---|---|---|
+| **10.10** | Foco visible ≥ 2 px y ≥ 3:1, sin `outline:none` sin sustituto, sin `tabindex` positivo, `Escape` que devuelve el foco | `tests/admin/style.test.ts` **casos 17-23**. El anillo es `outline:2px solid var(--fg)` con offset; el contraste se **calcula** contra los tres fondos (`bg`, `bg-elevated`, `bg-step`); no hay `outline:none` ni `outline:0`; ningún `tabindex` positivo; nada modal. **Control positivo (caso 20)**: quitar el sustituto pone rojo el caso 17. **`Escape` comprobado en el navegador**: el `textarea` queda vacío y el foco pasa al enlace `[data-cancel]` con su anillo (`04-escape-foco-devolto.png`) |
+| **10.11** | Toque ≥ 44 × 44 px como constante en un solo sitio, y campos ≥ 16 px | `tests/admin/style.test.ts` **casos 24-26**: `TOUCH_TARGET_PX` se declara **una vez** en `src/design/tokens.ts`, la hoja **no escribe el `44` ni una vez** (lo interpola), la regla cubre `a, button, input, select, textarea, summary`, y `INPUT_FONT_PX` es 16 y **gana** sobre el rol `team` del sistema, que es 15. Medido en el navegador: `input`, `select`, `button` y `a` a **44 px** de alto y `font-size: 16px` |
+| **10.12** | Nada solo por color, dígitos tabulares, ninguna imagen | `tests/admin/style.test.ts` **casos 27-29**: **cada** nodo con clase `s-…` o `q-…` del árbol renderizado tiene texto dentro; `tabular-nums` y `'tnum' 1` sobre `.num, .score, .instant`; cero `<img>`, `<svg>` y `<picture>` en las dos pantallas; ni `background-image` ni ningún `url(` que no sea una cara propia |
+| **10.13** | Hoja propia, alcanzable solo desde las rutas del panel, y `globals.css` sin editar ni cargar | `tests/admin/style.test.ts` **casos 30-32**: ningún módulo de `src/admin/` importa CSS ni nada de `@/site/`; el documento del panel **no contiene ni `--paper`, ni `--ink`, ni ninguno de los cinco colores de `globals.css`**; y la hoja **no se sirve por ninguna URL** — va en línea, que es la lectura más estricta de lo que sobrevive de ADR-025 §4.2. En el diff, `src/app/globals.css` intacto |
+
+### Lo que solo ve un navegador
+
+| # | Qué pide | Evidencia |
+|---|---|---|
+| **10.14** | A 360 × 640, teclado solo, foco visible en cada parada, `Escape`, sin scroll horizontal, capturas | **HECHO A MANO** con **Chrome real** a 360 × 640: `_qa/SPEC-017/`, cuatro capturas, `CA-10.14-medidas.json` y `README.md` con el método y los números. `document.scrollWidth / clientWidth = 360 / 360` en las dos pantallas; la tabla ancha scrollea **dentro de `.scroller`** (856 vs 344); del `select` al `textarea` en **3 tabuladores**; el motivo se escribió **con el teclado**. **Encontró un defecto que ningún test estático veía** —la tabla partía los nombres canónicos de la RFGF carácter a carácter a 360 px— y está arreglado (`width:max-content;min-width:100%`), con la captura tomada **después** |
+| **10.15** | Residuo: el sistema no trae ni un componente de formulario ni un estado de foco | Declarado en la cabecera de `src/admin/view/styles.ts`, donde se escribe: los controles del panel **son nuevos y solo su vocabulario es del sistema**. Este criterio **no promete** que el panel salga dibujado del sistema, solo que no se aparte de él. **Destino: EPIC-004, cuya entrada 3 sigue abierta sobre el artefacto; disparador: el deshielo** |
+
+### Lo que la fuente cuesta, dicho entero
+
+Se autoaloja **copiando cinco caras `.woff2` del paquete `geist@1.7.2` de Vercel
+a `public/fonts/`**, con su `LICENSE.txt` (OFL 1.1) al lado. **No se añade
+ninguna dependencia de npm**: nada de `src/` importa el paquete, así que
+`ALLOWED_PACKAGES` no cambia. Los pesos son **exactamente los que los roles
+usados piden**: Geist 400, 500 y 600, y Geist Mono 500 y 600 — 256 KB en total.
+
+**El rol `display` (44 / 800) no se carga, y no es un descuido**: el panel no lo
+usa —no tiene ficha de partido, tiene una cola de trabajo y formularios— y
+cargar su cara sería cargar un peso que nadie usa (ADR-026 §3.5). El rol **queda
+declarado** en `src/design/tokens.ts` porque ése es el domicilio del lenguaje del
+sistema para toda interfaz, y la ficha del snapshot lo va a querer. **Y quien
+llegue ahí tiene una decisión esperándole, escrita en el propio módulo:** Vercel
+distribuye el peso 800 de Geist **solo en cursiva** como cara estática; las
+verticales son 700 y 900. El 800 exacto pide la cara variable, que es un fichero
+con todos los pesos dentro — y eso cambia «solo los pesos que se usan» por una
+sola petición. Es un compromiso real y **es de la spec que primero necesite
+`display`**, no de ésta (F-SPEC-017-10).
+
 ## Salvedades / follow-ups
 <!-- IDs F-SPEC-017-1, F-SPEC-017-2… con destino (spec futura o EPIC-MEJORA). -->
 
