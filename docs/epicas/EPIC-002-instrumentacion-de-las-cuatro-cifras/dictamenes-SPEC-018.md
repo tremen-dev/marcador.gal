@@ -1412,3 +1412,291 @@ Se mantiene, pero **cambia de función**. Bajo (A) era una razón para no public
 **Fuentes normativas citadas:** Directiva 96/9/CE arts. 7.1, 7.2.a/b, 7.5 · TRLPI (RDLeg 1/1996) arts. 10, 14.3, 32, 129 bis, 133-137 · Directiva (UE) 2019/790 art. 4 (transp. RDL 24/2021) · RGPD arts. 4.1, 4.5, 5.1.c, 6.1.f, 13, 15-22, 30, Cdo. 26 · LSSI-CE (Ley 34/2002) arts. 1, 10, 20, 22.2, 38-40 y Anexo a) · Ley 17/2001 de Marcas arts. 34, 37 · Ley 3/1991 de Competencia Desleal art. 5 · TJUE: C-203/02 *BHB/William Hill*, C-46/02 y acumuladas *Fixtures Marketing*, C-202/12 *Innoweb*, C-762/19 *CV-Online Latvia*.
 
 **Fuentes web consultadas hoy (2026-09-04):** `https://www.ceroacero.es/robots.txt` · `https://www.ceroacero.es/.well-known/tdmrep.json` (403) · BOE — Ley 34/2002 consolidada · Régimen sancionador LSSI (Mineco).
+
+---
+
+# Dictamen `sdd-legal-datos` (TERCERO) — la línea de privacidad de `/robot` (F-SPEC-018-V4)
+
+> Emitido el **2026-09-04**, tras el **RED** del verificador, a petición de
+> `sdd-arquitecto`. Tercer dictamen del mismo rol sobre SPEC-018. Se copia
+> literal. No escribió ningún fichero.
+>
+> **Nota del arquitecto:** su **PR3** activa un disparador que **ADR-012 escribió
+> él mismo** —«el día que `/sdd-legal-datos` lo pida»— y que **no es de este
+> repositorio**: publicar la identificación del responsable en `tremen.dev`. Va al
+> informe del gate, no a un CA. Y su **§2.5** corrige una fila del calendario de
+> compromisos que yo mismo escribí ayer.
+
+**Emitido: 2026-09-04.** Rol consultivo. **No soy abogado y esto no es asesoramiento profesional**; marco al final qué necesita revisión profesional.
+
+## Comprobaciones hechas hoy (2026-09-04), porque un dictamen legal sin fecha no vale
+
+| Recurso | Resultado |
+|---|---|
+| `https://vercel.com/docs/logs/runtime` (tabla «Limits», `last_updated: 2026-08-28`) | **Retención de runtime logs por plan: Hobby 1 hora · Pro 1 día · Pro con Observability Plus 30 días · Enterprise 3 días.** El encabezado dice *«Runtime logs are **stored** with the following observability limits»*: es retención, no solo ventana de consulta |
+| `https://vercel.com/legal/dpa` | §13.1: *«Vercel's primary processing facilities are in the United States»*. §13.3 + Schedule 3: SCCs y UK IDTA. §7.2: subencargados. **No fija un plazo propio y separado para log data** |
+| DPF (Data Privacy Framework) | **Vercel, Inc. está certificada** en el EU-U.S. DPF (y extensión UK / Swiss-U.S.). La transferencia a EE. UU. está cubierta por **decisión de adecuación** (Decisión de Ejecución (UE) 2023/1795), no solo por SCCs |
+| Plan del proyecto | **Vercel Pro** (ADR-004). `vercel.json` sólo declara `crons`; **no hay log drain ni Observability Plus en el repositorio**, y `@vercel/analytics` no está en `package.json` ⇒ el plazo por defecto aplicable es **1 día** |
+| Que Vercel es el encargado y que es **observable desde fuera** | Las respuestas de `https://marcador.gal` llevan `x-vercel-id`, `x-vercel-cache`, `x-nextjs-prerender`. **Cualquiera lo ve con un `curl -I`** |
+
+## §1. ¿Hay que nombrar a Vercel? **Sí. Dictamen: se nombra**
+
+**1.1 ¿Un encargado es «destinatario» a efectos del art. 13.1.e? Sí, sin discusión.** El art. 4.9 RGPD define destinatario como «la persona física o jurídica… **al que se comuniquen datos personales, se trate o no de un tercero**». Esa cláusula está puesta exactamente para esto: el encargado no es tercero (art. 4.10) y aun así es destinatario. Criterio pacífico de la AEPD y del EDPB (WP260 rev.01).
+
+**1.2 ¿Basta la categoría? Literalmente sí; aquí no**, por tres razones que se acumulan:
+
+1. **No es una categoría: es una perífrasis de un nombre.** Una categoría agrupa. Aquí hay **un solo encargado y un solo servicio**. WP260 pide ser lo más específico posible; un conjunto de un elemento descrito por su función es el nombre con más palabras y menos información.
+2. **No es comprobable, y en este proyecto ése es el defecto de fondo.** Todo el andamio de `marcador.gal` vale **porque es verificable y cierto**. «O servidor onde está aloxado» no se audita; «Vercel» se audita con `curl -I` en un segundo.
+3. **La ubicación hay que darla igualmente** (art. 13.1.f). «Un proveedor, no te digo cuál, en Estados Unidos» es peor lectura que el nombre.
+
+**1.3 ¿Lo alcanza ADR-012 §1? No.** Ese ADR prohíbe nombrar **persona física**, declarar **cuántas** hay y bajo **qué forma jurídica** — las tres sobre **el titular del proyecto**. Vercel, Inc. es persona jurídica y **un tercero proveedor**. Confirmación mecánica: `tests/site/identity.test.ts` tiene `NO_PERSON = ['alberto','fojo']` y `NO_HEADCOUNT`; ni una entrada alcanza el nombre de una empresa.
+
+**1.4 ¿Crea exposición nueva? No**, y la asimetría con mi **R2** (no nombrar la fuente rastreada) es real y conviene dejarla escrita:
+
+| | Fuente rastreada (R2 / W12) | Plataforma de alojamiento |
+|---|---|---|
+| ¿Es ya público? | **No.** Nombrarla sería primera divulgación | **Sí.** Viaja en las cabeceras HTTP |
+| ¿Qué prueba entrega? | Admisión escrita de reutilización sistemática (art. 7.5) | **Ninguna** |
+| ¿Deber legal de decirlo? | **No** | **Sí**, art. 13.1.e |
+| ¿A quién describe? | A un tercero y a nuestra relación con él | A nosotros |
+
+El único riesgo real es de **veracidad futura**: al migrar de plataforma el literal miente.
+
+## §2. El plazo de conservación de los logs
+
+**2.1 Qué obliga el RGPD.** Art. 5.1.e (limitación del plazo); **art. 13.2.a** («el plazo… o, cuando no sea posible, **los criterios**»), con WP260 diciendo que «el tiempo necesario» es **insuficiente**; arts. 28.3.a y 28.3.g: el encargado sigue instrucciones documentadas, así que **«no lo controlo» no es eximente** — elegir plataforma y plan **es** una decisión del responsable.
+
+**2.2 Retención real en Vercel Pro: 1 día** (tabla de límites, consultada hoy). Tres honestidades que conservar: (i) es el registro de acceso **de la plataforma**, y su DPA no publica plazo separado para log data; (ii) **el proyecto no guarda nada de quien visita ni exporta copia** —no hay log drain, ni analítica, ni cookies, ni base de visitantes—, que es la afirmación más fuerte y más verificable disponible; (iii) **alguien con acceso al panel tiene que confirmar el plan antes del 08**.
+
+**2.3 ¿Vale «el plazo que fija el proveedor»? No, sola.** Comparte el fallo exacto con la fórmula circular: el lector no puede estimar nada. **La forma correcta es atribución + número.**
+
+**2.4 Si no se pudiera confirmar (P4):** se publica la verdad más corta que sí lo esté, con su fecha, y nunca una fórmula circular. **Lo que nunca es admisible es una frase que aparente contestar.**
+
+**2.5 Hallazgo colateral: mi propio W7 se apoya en unos logs que duran 1 día.** Propuse «al día siguiente de cada jornada» y llega **tarde**. Salidas: **(i) mirar el mismo día, al cerrar la jornada** —coste cero, es la buena—; (ii) contratar Observability Plus, **desaconsejada**: multiplica por treinta la retención de datos personales para vigilar un umbral, peor minimización (art. 5.1.c), y cambia el plazo publicado a 30 días justo al lado de los 30 del raw store; (iii) declarar no observable la mitad numérica.
+
+## §3. Los seis elementos, cerrados — y son siete
+
+| # | Elemento | Contenido exigido | Rango | ¿Test? |
+|---|---|---|---|---|
+| **E1** | Cero cookies, almacenamiento, analítica y terceros | En las páginas de este sitio | Vinculante | Sí — ya existe |
+| **E2** | Qué se registra | IP, hora, página pedida **y además navegador (user-agent) y referente** — **hoy el literal se queda corto** | Vinculante (art. 5.1.a) | Sí |
+| **E3** | Quién lo procesa | **Vercel, nombrado**, con su función, sin arrastrar a una persona | Vinculante (art. 13.1.e) | Sí — `toContain('vercel')` |
+| **E4** | Base jurídica **y el interés concreto** | Interés legítimo + mantener el servicio en pie y seguro (art. 13.1.d) | Vinculante | Sí — parcial hoy |
+| **E5** | Cuánto se conserva | (i) el proyecto no guarda nada ni exporta copia; (ii) lo conserva la plataforma, **hoy un día**, con atribución | Vinculante (art. 13.2.a) | Sí — **no existe hoy**, con control negativo de la fórmula circular |
+| **E6** | Derechos | Acceso, rectificación, supresión, **limitación** y oposición, por el buzón. **Portabilidad no aplica** (art. 20) y no se nombra | Vinculante | Sí — parcial |
+| **E7** | **Reclamar ante la AEPD** | Art. 13.2.d, **no está y nadie lo vio** | Vinculante | Sí — no existe |
+| **E8** | Transferencia fuera de la UE | Plataforma estadounidense, amparada por **decisión de adecuación** (EU-US DPF) | Vinculante si se nombra a Vercel (art. 13.1.f) | Sí |
+| **E9** | Alcanzable en un clic | Ya cumplido | Vinculante | Sí — ya existe |
+| **E10** | Que lo que dice sea verdad | Plan confirmado, sin log drain, sin analítica añadida | Vinculante, **(c)** | **No** |
+
+**Nota de proporción, que también es dictamen:** son diez filas pero **no son diez frases**. El objeto es **una línea de privacidad alcanzable, no un aviso legal**. Si crece a una página, se ha implementado otra cosa.
+
+**Advertencia obligatoria por ADR-016 §6:** todas estas aserciones prueban que **unas palabras están escritas**, no que sean ciertas. Que el plazo sea de verdad un día, que no haya log drain y que el plan sea Pro **no lo alcanza ningún test**. Es E10.
+
+## §4. Lo que falta y no estaba en mis seis elementos
+
+**4.1 Autoridad de control — el hueco más claro de todos.** Art. 13.2.d. No está, no estaba en mi C18 y no lo pilló el verificador. **Mi C18 enumeró seis elementos y eran siete.**
+
+**4.2 Responsable del tratamiento.** El art. 13.1.a exige identidad y contacto — **no NIF, ni domicilio, ni forma jurídica**. **P6:** la línea dice **quién responde y por dónde** —el proyecto bajo el paraguas de `tremen.dev`, contacto en el buzón—, sin nombre, sin número y sin forma jurídica, **también por omisión** (nada de «la empresa que lleva el sitio»). **Y no fingimos que eso cierra el art. 13.1.a**: residual que el gate firma con los ojos abiertos. **PR3:** ADR-012 escribió su propio disparador —«el día que `/sdd-legal-datos` lo pida»—; **ese día es hoy y lo pido**: publicar la identificación en `tremen.dev`, que es **otro sitio**, cierra el art. 13.1.a sin tocar un literal de este repositorio. **No bloquea el 08.**
+
+**4.3 Transferencias internacionales — sí, y la noticia es buena.** Vercel está certificada en el **EU-U.S. DPF**: decisión de adecuación, no cláusulas que explicar. **Residual honesto:** la adecuación **está recurrida** ante el TJUE.
+
+**4.4 ¿Precisar más la base? No en la página.** «Interés legítimo» + el interés concreto es lo que piden los arts. 13.1.c y 13.1.d. **Citar «art. 6.1.f» empeoraría el texto** (WP260, lenguaje llano). Lo que falta y **no va en la página**: la ponderación (art. 6.1.f, Cdo. 47) y el registro de actividades (art. 30) — **PR4**, tres párrafos en el runbook.
+
+## §5. Qué NO debe decir — lista cerrada
+
+1. **Ninguna persona física, ningún número de personas, ninguna forma jurídica** — tampoco por implicatura («o meu provedor», «a empresa que contratei»).
+2. **Ninguna primera persona del singular.**
+3. **No se llama «política de privacidad» ni «aviso legal».** El encabezado actual es correcto y se queda.
+4. **Ni banner, ni botón de aceptar, ni cookie de preferencia, ni `localStorage`.** Un aviso de privacidad que escribe estado es la ironía completa.
+5. **No se reutilizan los plazos del raw store.** Los 30/90 son de ADR-009 y ADR-020, de **otra cosa**. Ponerlos aquí sería **falso**.
+6. **No se dice que borramos los logs ni que los borramos si nos lo pides.** No los tenemos y no hay mecanismo. **Un mecanismo que no existe no se promete.**
+7. **No se dice «no recogemos datos personales» ni «los datos son anónimos».** La IP lo es (*Breyer*, C-582/14).
+8. **No se nombra ninguna fuente rastreada.** Están a cuatro claves en el mismo fichero: el riesgo es real.
+9. **Ningún enlace saliente nuevo** — ni a `vercel.com`, ni a su DPA, ni a la AEPD.
+10. **No se cita articulado.**
+11. **Ninguna llamada a la acción.**
+12. **No se crea una página nueva.** R2 se mantiene: dentro de `/robot`.
+
+## §6. Resumen
+
+| # | Dictamen vinculante |
+|---|---|
+| **P1** | **Se nombra a Vercel.** Encargado = destinatario (arts. 4.9 + 13.1.e); la perífrasis no es categoría y **no es auditable** |
+| **P2** | Nombrarlo **no puede arrastrar a una persona por implicatura**. ADR-012 §1 entero |
+| **P3** | **El cambio de plataforma es disparador escrito**: obliga a corregir la línea en el mismo cambio. Es **(c)** |
+| **P4** | **El plazo se da con número.** «El plazo que fija el proveedor», sola, es el mismo defecto circular. **Atribución + número**: hoy **un día** (Vercel Pro) |
+| **P5** | **Falta el derecho a reclamar ante la AEPD** (art. 13.2.d). Mi C18 enumeró seis y eran siete |
+| **P6** | **La línea dice quién responde y por dónde**, sin nombre, número ni forma jurídica. **Y se declara que no cierra del todo el art. 13.1.a** |
+| **P7** | **Se dice que la plataforma es estadounidense y que la transferencia está amparada** (EU-US DPF) |
+| **P8** | **Tercer defecto que el verificador no enumeró:** el literal se queda corto en «qué se registra» — faltan **navegador** y **referente** |
+| **P9** | **Los dos plazos de la página son cosas distintas.** Reutilizar los 30/90 aquí sería falso |
+| **P10** | Las listas de §3 y §5 son **cerradas**. **E10 es (c)** y hay que declararlo dentro del criterio (ADR-016 §6) |
+
+| # | Recomendación |
+|---|---|
+| **PR1** | **Proveedor y plazo se interpolan desde una sola constante**, como `{mailbox}`. Es la forma de W10 y convierte P3 en un cambio de una línea |
+| **PR2** | **La fila del calendario pasa de «al día siguiente» a «el mismo día, al cerrar la jornada»**. **No contratar Observability Plus** |
+| **PR3** | **Publicar la identificación del responsable en `tremen.dev`.** Es el disparador que ADR-012 escribió, y hoy lo pido. **No bloquea el 08** |
+| **PR4** | **Ponderación del interés legítimo y registro de actividades en el runbook**, no en la página |
+| **PR5** | **Cuatro oraciones, no una página.** |
+
+**Requiere revisión profesional:** la identificación del responsable (art. 13.1.a) con ADR-012 §1 vigente —P6 es un mínimo defendible, **no una respuesta completa**—; la ponderación del art. 6.1.f y el registro del art. 30; y la validez futura de la adecuación DPF, hoy recurrida.
+
+**Fuentes normativas:** RGPD arts. 4.1, 4.9, 4.10, 5.1.a, 5.1.c, 5.1.e, 6.1.f, 13.1.a/c/d/e/f, 13.2.a, 13.2.d, 15-18, 20, 28.3.a/g, 30, Cdos. 26, 39, 47 · Decisión de Ejecución (UE) 2023/1795 · WP260 rev.01 · LSSI arts. 10, 22.2 · Ley 3/1991 art. 5 · Ley 17/2001 art. 37 · TJUE C-582/14 *Breyer*.
+
+**Fuentes web consultadas hoy:** Vercel — Runtime Logs (tabla de límites) · Vercel — DPA · Vercel — certificación EU-US DPF · Vercel — 30-day runtime log retention · AEPD — cláusulas para contratos de encargado.
+
+---
+
+# Dictamen `sdd-lingua` (TERCERO) — la línea de privacidad de `/robot` (F-SPEC-018-V4)
+
+> Emitido el **2026-09-04**, tras el RED, a petición de `sdd-arquitecto`. Se copia
+> literal. No escribió ni editó ningún fichero.
+>
+> **Nota del arquitecto:** su **§9** es un hallazgo colateral serio y ajeno a esta
+> línea —`bot.noticeLink` promete una página que no existe—; tiene destino y
+> disparador en el ledger de SPEC-018. Y su **L11** pide nueve términos en
+> `dominio.md`: **escritos**, en el mismo cambio.
+
+**Emitido:** 2026-09-04. **Rol:** consultivo.
+
+> **Aviso previo.** Estoy de acuerdo con el diagnóstico del verificador y quiero precisarlo: el defecto no es que falten dos datos, es que **la frase está construida de una forma que hace que faltar no se note**. «El servidor donde está alojado» y «se conserva el tiempo que ese registro dura» son las dos mitades de la misma técnica: **sujeto elidido y plazo autorreferente**. Eso sí es materia mía, porque **la forma es lo que disfraza**. Lo arreglo abajo con una regla estructural —**una afirmación, una clave**— que hace el disfraz imposible de repetir.
+
+## 1. Registro y tono
+
+**1.1 Vinculante: el tuteo se mantiene, sin excepción.** SPEC-015 §1 ya lo fijó y su argumento era que *vostede* concuerda en 3.ª persona y produce la mezcla; un texto en *vostede* dentro de una página que tutea arriba (`contact`) y abajo (`stop`) **crea esa mezcla en la misma pantalla**. Además la clave que se corrige **ya tutea** («ou opoñerte»). Y la razón de fondo: `/robot` existe para que un tercero audite sin preguntar, y **lo que lo hace creíble es que no parece una nota legal pegada**.
+
+**1.2 Vinculante: el registro lo fija el sujeto de cada frase, no la persona verbal.**
+
+| Voz | Cuándo |
+|---|---|
+| **Tuteo** | Sólo donde **actúa quien lee** |
+| **Impersonal / pasiva refleja** | Los **hechos del sistema** |
+| **Plural institucional (`nós`)** | Sólo donde **el proyecto es el actor real** |
+| **1.ª del singular** | **Nunca** |
+
+**Y de aquí sale el corazón del apartado: en la línea de privacidad el `nós` está prohibido salvo en el buzón.** No por estilo: **porque sería falso y porque confunde**. El registro del servidor **no lo hace marcador.gal**, lo hace el proveedor; y *«gardamos o teu enderezo IP»* **choca de frente con `crawler.storage`**, que empieza literalmente con «Gardamos…» y habla de otra cosa y de otro plazo. **El `nós` es el mecanismo que fundiría los dos bloques.**
+
+**1.3 Corolario vinculante:** *«Non hai cookies…»* se queda **impersonal**. No se «mejora» a *«Non usamos cookies»*: la forma impersonal **afirma más** —que no las hay, de nadie— y evita meter un `nós` donde el actor no somos nosotros.
+
+**1.4 Recomendación: nada de léxico de formulario** —*o interesado*, *o usuario*, *a presente política*, *en cumprimento do disposto*—. Correctas en galego y **rompen D-8 y rompen `/robot`**.
+
+## 2. Vocabulario RGPD en galego
+
+| Concepto | **Galego** | Castellanismo | Lusismo | La trampa |
+|---|---|---|---|---|
+| responsable del tratamiento | **responsable do tratamento** | *del* | *responsável* | **`-ble`, no `-bel`**; plural **responsables** |
+| encargado del tratamiento | **encargado do tratamento** | *tratamiento* | — | **`tratamento` es galego correcto** aunque se lea portugués. Hipercorrección real |
+| interés legítimo | **interese lexítimo** | *interés*, *legítimo* | *interesse* | **`interese`** (masculino) y **`lexítimo` con `x`** |
+| plazo de conservación | **prazo de conservación** | ***plazo*** | — | **`prazo` es correcto** y coincide con el portugués. **La hipercorrección es el error más probable del apartado** |
+| derechos | **dereito de acceso, rectificación, supresión e oposición** | *derecho* | *direito* | **`dereito`**. El nombre del derecho es **supresión**, no *borrado* |
+| oponerse | **opoñerse / opoñerte** | *oponerse* | *oporse* | RAG: **opoñer** |
+| registro de acceso | **rexistro de acceso** | ***registro*** | — | **`rexistro` con `x`** |
+| dirección IP | **enderezo IP** | ***dirección IP*** | *endereço* | **`enderezo`**, masculino. Castellanismo **invisible**: *dirección* existe en galego con otro sentido |
+| proveedor de alojamiento | **provedor de aloxamento** | ***proveedor***, ***alojamiento*** | *fornecedor*, *hospedagem* | **`provedor`, una sola `e`**; **`aloxamento`**, no *hospedaxe* (que es para personas) |
+| transferencia internacional | **transferencia internacional de datos** | — | ***dados*** | **`datos`, nunca `dados`**: en galego son los de jugar. **El lusismo que más caro sale porque se lee bien** |
+
+Y tres más del mismo párrafo, ya bien escritas en el bundle: **`servizo`**, **`terceiros`**, **`compoñente`**. **`cookies`** se queda invariable y **sin artículo** —escribir *«as cookies»* obliga a decidir un género que la norma no ha fijado, y la construcción actual lo esquiva—. **No lo deshagas.**
+
+## 3. Cómo se dice un plazo sin sonar circular
+
+El defecto es **una tautología**: el predicado repite el sujeto. **Regla vinculante: un plazo se dice con tres piezas —cuánto, desde cuándo y qué pasa al final— y si falta la primera se dice el criterio, nunca el hecho de no saberlo.** El molde ya existe: `crawler.storage` lo hace bien.
+
+- **(a) Número.** `Ese rexistro consérvase {retention}, e despois elimínase.` / `Ese registro se conserva {retention}, y después se borra.`
+- **(b) Atribución.** `Ese rexistro gárdao {provider} durante o prazo que fixa na súa propia política —{retention}—, e non o decide marcador.gal.` **Sólo admisible con el número dentro**; sin él es **la misma circularidad con otro sujeto**.
+- **(c) Criterio.** `Ese rexistro consérvase só o tempo que fai falta para manter o servizo en pé, e non se usa para nada máis.`
+
+**«No lo sabemos todavía» no se publica.** Mismo motivo por el que impedí que `errServiceDown` prometiera lo que el sistema no hace y que la pantalla dijera «en directo»: **un literal que declara ignorancia sobre el propio sistema invita a la pregunta que la página existe para evitar.**
+
+**Cuál se lee mejor: (a), sin dudarlo.** Un número es lo único comprobable y lo único que no envejece mal, y **rima con el bloque de al lado**. (b) es aceptable con número y **nace con fecha de caducidad, porque depende de la política de un tercero y nadie se enterará en rojo** → material de `calendario-de-compromisos.md`. (c) es el suelo, y **no se combina con (a) ni con (b)**.
+
+## 4. Cómo se nombra al proveedor sin romper ADR-012 §1
+
+**4.1** La barrera es mecánica: `NO_PERSON = ['alberto','fojo']` y `NO_HEADCOUNT`. **Nombrar a Vercel no dispara nada de eso.**
+
+**4.2 Vinculante, cuatro reglas:**
+
+1. **El proveedor es el sujeto de su propia frase, no el complemento de un posesivo.** **Prohibidas por implicatura:** *«o meu provedor»*, *«a empresa que contratei»*, *«onde teño aloxado o sitio»*, *«quen me alberga»* — las cuatro llevan 1.ª del singular y **ya son RED**. **Desaconsejado** *«o noso provedor»*.
+2. **Nada de escala, precio ni geografía** —*«un provedor pequeno»*, *«unha conta gratuíta»*, *«un plan básico»*—. Ninguna dispara la lista negra y **todas filtran cuánta gente hay detrás por implicatura**, que es lo que ADR-012 §1 protege. **Ésta es la puerta trasera real, no el nombre de la empresa.**
+3. **El nombre se escribe como lo escribe la empresa, en las dos lenguas.** No se traduce, no se acentúa, no se galeguiza.
+4. **Sólo si es persona jurídica.** Si `{provider}` resolviera a un nombre y apellidos, **nombrarlo sería nombrar a una persona física**.
+
+**4.3 Fórmula recomendada:** `O sitio está aloxado en {provider}, que é quen garda ese rexistro por conta de marcador.gal.` **Trampa fina:** *por conta de {provider}* está bien; ***«por conta propia» está en `NO_HEADCOUNT`*** y pondría el test en rojo. Son dos palabras de distancia.
+
+Y hace algo más, que es media respuesta al verificador: **al poner al proveedor como sujeto, la frase deja de poder omitirlo.** La redacción actual tiene el sujeto elidido *y por eso* podía no nombrarlo sin que se notara. Con esta forma, quitar `{provider}` deja la frase **agramatical**.
+
+## 5. Literal completo
+
+**5.1 Vinculante: una afirmación, una clave.** `privacy` no puede seguir siendo **una cadena con seis afirmaciones dentro**. Es la costumbre de `SiteBundle`, es lo que ya hace el bot con `notice*` (ocho claves), y **es la causa raíz del RED**: con seis afirmaciones en una cadena, que falten dos **no se ve ni en el diff ni en un test**. `CrawlerBundle` es contrato de SPEC-018, que está viva: **cambiarlo no es enmienda ADR-015, es su uso previsto.**
+
+**5.3 Los marcadores van en inglés: `{provider}` y `{retention}`**, por la convención de identificadores y por `{mailbox}`. Un `{prazo}` dentro de `es.ts` sería la trampa de copia-pega que ya inventarié. **Y si `{retention}` es un número, `{retention} días` da «1 días»**: o el plazo se escribe con su unidad dentro del marcador, o hay dos claves. **No lo dejes al implementador.**
+
+## 6. Trampas de norma nuevas
+
+| Escribe | No escribas | Por qué |
+|---|---|---|
+| **prazo** | *plazo* | Castellanismo — **y ojo a la hipercorrección inversa** |
+| **datos** | ***dados*** | Lusismo silencioso; el más caro |
+| **tratamento** | *tratamiento* | Idéntico al portugués **y correcto** |
+| **provedor** | *proveedor*, *fornecedor* | Una sola `e` |
+| **aloxamento** | *hospedaxe*, *alojamento* | *Hospedaxe* es para personas |
+| **enderezo** | *dirección* | Castellanismo invisible |
+| **rexistro**, **lexítimo** | *registro*, *legítimo* | `x`, no `g` |
+| **dereito** | *derecho*, *direito* | Los dos calcos del mismo término |
+| **supresión** | *borrado*, *eliminación* | Como **nombre del derecho**, no |
+| **consérvase**, **elimínase** | *se conserva* | Enclisis con tilde; proclisis **sólo** tras negación: *«non se recolle»* |
+| **fai falta** | *hai falta* | ⚠ **Sobrecorrección de mi propio dictamen de SPEC-018 §7**: «hai, nunca fai» ataca **la expresión temporal**, no la perífrasis *facer falta*. `gl.ts` ya lo escribe bien tres veces |
+| **u oposición** *(castellano)* | *o oposición* | `o` → `u` ante palabra que empieza por `o-`. **El único error probable del lado castellano** |
+| **por conta de {provider}** | ***por conta propia*** | Correcto vs. **RED mecánico** |
+| **cookies** sin artículo | *as cookies* | El género no está fijado |
+
+**Concordancias que fallan solas:** **o** enderezo, **o** rexistro, **o** prazo, **o** interese, **o** servizo, **a** hora, **a** páxina, **a** base. *«Ese rexistro»*, nunca *«esa rexistro»*.
+
+## 7. Coherencia con `crawler.storage`
+
+**7.1 El riesgo:** los dos van a decir **un número de días** en la misma página separados por una cabecera. Si el plazo del registro fuera 30, **habría dos «30 días» a seis líneas hablando de cosas distintas**. Es la misma clase de defecto que separé entre *Sen sinal* y «non se puido actualizar».
+
+**7.2 Vinculante: se separan por sujeto y por verbo.**
+
+1. **Sujeto.** `storage` → `nós`. `privacy` → impersonal y `{provider}`. **El `nós` no cruza esa frontera en ninguna dirección.**
+2. **Objeto nombrado.** `storage` dice **arquivo**/**resposta**; `privacy` dice **rexistro**. **Ninguna usa la palabra de la otra**, y eso es una **barrera léxica testable** con la forma de la de `sinal`/`actualizar`.
+3. **Ancla temporal distinta.** `storage` cuenta desde el fin de la ventana; `privacy` **no tiene ancla**, y esa ausencia es lo que los distingue.
+
+**7.3 Vinculante: la clave de desambiguación no es opcional.** Cita el otro bloque **por el texto de su cabecera**, no por su posición —*«o apartado seguinte»* depende de la maquetación—; distingue **por objeto**, no por plazo —si se distinguiera por los números envejecería—; y usa **`aquel`/`este`**, no *«o primeiro»/«o segundo»*.
+
+**7.4 Recomendación:** `storageHeading` → *«Que gardamos do que lemos, e canto tempo»*, **dentro de la enmienda ADR-015 sobre SPEC-005 que CA-18.2 ya abre**. Si no, la frase de 7.3 hace el trabajo sola. **No lo abras por tu cuenta.**
+
+## 8. Nueve términos a `dominio.md` antes de usarse
+
+Con esta línea pasan a estar en **tres superficies** —`bot.notice*`, `/robot`, y la futura `/privacidade`—, que es **exactamente la configuración que produjo *Directo* / *En xogo*** (F-SPEC-015-9). **Vinculante, y es barato: una tabla.**
+
+## 9. Hallazgo colateral, fuera de encargo
+
+**`bot.noticeLink` promete una página que no existe.** `gl.ts:80` sirve *«Tes a información completa en https://marcador.gal/privacidade»* y `es.ts:73` su equivalente; `src/site/routes.ts` declara tres rutas y **`/privacidade` no está**. Es **la misma clase de defecto que el §6.1 de mi dictamen de SPEC-018** —un literal servido y verificado GREEN que afirma algo que no es cierto—, con el agravante de que aquí lo afirma **el aviso de protección de datos**. **Consecuencia vinculante sobre esta línea: el día que `/privacidade` exista, `/robot` la enlaza; no se duplica.**
+
+## 10. Resumen
+
+| # | Dictamen vinculante |
+|---|---|
+| **L1** | **Tuteo, sin excepción** |
+| **L2** | **El registro lo fija el sujeto.** **`nós` prohibido en este bloque salvo en el buzón** — sería falso y fundiría `privacy` con `storage`. **1.ª del singular, nunca** |
+| **L3** | ***«Non hai cookies»* se queda impersonal** |
+| **L4** | **Una afirmación, una clave.** Es **la causa raíz del RED**, no una preferencia de estilo |
+| **L5** | **Marcadores en inglés: `{provider}` y `{retention}`**, con el singular/plural resuelto |
+| **L6** | **El proveedor es el sujeto de su frase.** Prohibidas escala, precio y geografía: **filtran headcount por implicatura** |
+| **L7** | **El nombre se escribe como la empresa lo escribe**, y **sólo si es persona jurídica** |
+| **L8** | **Cuánto + desde cuándo + qué pasa al final.** (b) sólo con número; **(c) nunca como ignorancia** |
+| **L9** | **La clave de desambiguación es obligatoria**, cita por cabecera y distingue por objeto |
+| **L10** | **Barrera léxica testable:** *arquivo* no aparece en `privacy*`; *rexistro* no aparece en `storage` |
+| **L11** | **Nueve filas de vocabulario RGPD a `dominio.md` antes de usarse** |
+| **L12** | **El día que exista `/privacidade`, `/robot` la enlaza y no la duplica** |
+
+| # | Recomendación |
+|---|---|
+| **R1** | **(a), plazo concreto**, es la mejor: comprobable, no envejece y rima con el bloque de al lado |
+| **R2** | **`storageHeading` → «Que gardamos do que lemos, e canto tempo»**, dentro de la enmienda que CA-18.2 ya abre |
+| **R3** | **Nada de léxico de formulario** |
+| **R4** | **Comprobar que `{provider}` no contenga `alberto` ni `fojo`** desacentuados, o `identity.test.ts` se pone rojo por un motivo que nadie adivinará |
+
+**Lo que este rol NO decide:** quién es `{provider}` y cuál es `{retention}`; si el encargado se nombra o basta la categoría; si el responsable se declara como `marcador.gal` o como `tremen.dev`; y `/privacidade`.

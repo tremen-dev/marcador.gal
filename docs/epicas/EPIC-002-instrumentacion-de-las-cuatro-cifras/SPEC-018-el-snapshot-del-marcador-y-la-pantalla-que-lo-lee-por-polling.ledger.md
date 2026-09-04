@@ -672,7 +672,7 @@ las dos**, y la alternativa —`O marcador — marcador.gal`— la descartó el 
 expresamente.
 
 **3. Con qué se sustituye, y si hay menos red.** **CA-18.4 se lee ahora con
-cuatro entradas: SPEC-004, SPEC-005, SPEC-007 y SPEC-006.** La cuarta está escrita
+cuatro entradas: SPEC-004, SPEC-005, SPEC-007 y SPEC-006** — y **cinco desde la tarde del 2026-09-04, con SPEC-015** (F-SPEC-018-N1, abajo).** La cuarta está escrita
 en el ledger de SPEC-006 con sus cinco puntos. **Corregido el 2026-09-04 por la
 tarde, tras F-SPEC-018-V2: son TRES guardianes y no dos, y en uno de los tres el
 predicado SÍ se relaja** — ver la §6 de esa enmienda. Lo que sigue describe la
@@ -1276,3 +1276,244 @@ conveniencia**, y el propio hallazgo V1 lo dice con esas palabras.
 el verificador le escribió. El arreglo está probado y cabe en un diff: `role()`
 emite longhands, y el caso equivalente al 14 puede reusar `tests/board/cascade.ts`
 sin copiar una línea.
+
+### V4 — el texto, listo para escribir
+
+Con **dos dictámenes nuevos** del 2026-09-04, copiados enteros en
+`dictamenes-SPEC-018.md`: el **tercero de `sdd-legal-datos`** (contenido) y el
+**tercero de `sdd-lingua`** (forma). **No escribo yo los literales de i18n**: esto
+es lo que tienen que decir, y lo escribe el implementador.
+
+**Y lo primero, porque cambia la forma del arreglo: `privacy` deja de ser una
+clave.** Es dictamen vinculante de `sdd-lingua` (L4) y **es la causa raíz del
+RED**: con seis afirmaciones dentro de una sola cadena, que falten dos **no se ve
+ni en el diff ni en un test**. Se parte en nueve claves, una por afirmación, como
+ya hace el bot con `notice*`. `CrawlerBundle` es contrato de **SPEC-018, que está
+viva**: partirlo **no es enmienda de ADR-015, es su uso previsto**.
+
+**Y son nueve, no seis, porque el dictamen legal encontró tres elementos más:**
+falta el **derecho a reclamar ante la AEPD** (art. 13.2.d — *«mi C18 enumeró seis
+elementos y eran siete»*), falta la **transferencia fuera de la UE** en cuanto se
+nombra al proveedor (art. 13.1.f), y falta **quién responde** (art. 13.1.a). Y hay
+**un tercer defecto que el verificador no enumeró**: el literal **se queda corto
+en «qué se registra»** — el registro incluye también **navegador** y **referente**,
+que es el mismo `Referer` en el que se apoya el punto 7 del disparador de
+re-dictamen (CA-19.4).
+
+#### Los dos datos que faltaban, cerrados
+
+| | Valor | De dónde sale |
+|---|---|---|
+| **`{provider}`** | **Vercel** | **Se nombra.** Un encargado **es** «destinatario» (arts. 4.9 + 13.1.e RGPD); la perífrasis no es una categoría —hay **un solo encargado**— y sobre todo **no es auditable**, mientras que el nombre se comprueba con `curl -I` (las respuestas llevan `x-vercel-id`). **ADR-012 §1 no lo alcanza**: prohíbe nombrar **persona física**, declarar cuántas y bajo qué forma jurídica, las tres sobre **el titular**; Vercel es persona jurídica y un tercero proveedor, y `NO_PERSON` es `['alberto','fojo']` |
+| **`{retention}`** | **24 horas** | Retención de *runtime logs* en **Vercel Pro = 1 día**, comprobado el 2026-09-04 en la tabla de límites de su documentación. **24 horas** y no «1 día» para no depender de un plural: `{retention} días` daría «1 días» (aviso de `sdd-lingua` L5) |
+
+**Y por qué no vale «el plazo que fija el proveedor» a secas:** es **el mismo
+defecto circular** que el verificador señala, con otra ropa. Ni es plazo (art.
+13.2.a, primera mitad) ni es criterio (segunda mitad). **La forma correcta es
+atribución + número.**
+
+#### Las nueve claves
+
+| # | Clave | **Galego** | **Castellano** |
+|---|---|---|---|
+| 1 | `privacyNoTrackers` | `Non hai cookies, nin analítica, nin ningún compoñente de terceiros nas páxinas deste sitio.` | `No hay cookies, ni analítica, ni ningún componente de terceros en las páginas de este sitio.` |
+| 2 | `privacyLog` | `O servidor deixa un rexistro técnico de cada petición: o enderezo IP, a hora, a páxina pedida, o navegador e de onde vén a ligazón. Non se recolle ningún outro dato de quen visita.` | `El servidor deja un registro técnico de cada petición: la dirección IP, la hora, la página pedida, el navegador y de dónde viene el enlace. No se recoge ningún otro dato de quien visita.` |
+| 3 | `privacyProcessor` | `O sitio está aloxado en {provider}, que é quen garda ese rexistro por conta de marcador.gal. {provider} está nos Estados Unidos, e a transferencia está amparada por unha decisión de adecuación da Comisión Europea.` | `El sitio está alojado en {provider}, que es quien guarda ese registro por cuenta de marcador.gal. {provider} está en Estados Unidos, y la transferencia está amparada por una decisión de adecuación de la Comisión Europea.` |
+| 4 | `privacyBasis` | `A base xurídica é o interese lexítimo de manter o servizo en pé e seguro: sen ese rexistro non se pode saber se algo falla nin frear un abuso.` | `La base jurídica es el interés legítimo de mantener el servicio en pie y seguro: sin ese registro no se puede saber si algo falla ni frenar un abuso.` |
+| 5 | `privacyRetention` | `marcador.gal non garda nada de quen visita nin exporta copia dese rexistro. Consérvao {provider} durante {retention}, que é o prazo que fixa ela.` | `marcador.gal no guarda nada de quien visita ni exporta copia de ese registro. Lo conserva {provider} durante {retention}, que es el plazo que fija ella.` |
+| 6 | `privacyController` | `Do sitio responde o proxecto, baixo o paraugas de tremen.dev.` | `Del sitio responde el proyecto, bajo el paraguas de tremen.dev.` |
+| 7 | `privacyRights` | `Podes pedir acceso, rectificación, supresión, limitación ou oposición: escribe a {mailbox}.` | `Puedes pedir acceso, rectificación, supresión, limitación u oposición: escribe a {mailbox}.` |
+| 8 | `privacyAuthority` | `E podes reclamar ante a Axencia Española de Protección de Datos.` | `Y puedes reclamar ante la Agencia Española de Protección de Datos.` |
+| 9 | `privacyNotTheArchive` | `Ese rexistro non é o arquivo do que fala «Que gardamos e canto tempo»: aquel garda o que se le doutros sitios; este, o rastro que deixa quen visita.` | `Ese registro no es el archivo del que habla «Qué guardamos y cuánto tiempo»: aquel guarda lo que se lee de otros sitios; este, el rastro que deja quien visita.` |
+
+`privacyHeading` **no se toca**: *«Que se rexistra de quen visita»* ya nombra al
+sujeto y ya es media desambiguación. Está bien elegida.
+
+**Reglas de forma que van con los literales, todas de `sdd-lingua` y todas
+vinculantes:**
+
+- **Tuteo, sin excepción** (L1), y **el `nós` está prohibido en este bloque salvo
+  en el buzón** (L2) — no por estilo: **sería falso** —el registro no lo hace
+  marcador.gal— **y fundiría este bloque con `crawler.storage`**, que empieza
+  literalmente con «Gardamos…» y habla de otra cosa y de otro plazo.
+- ***«Non hai cookies»* se queda impersonal** (L3): afirma **más** que «non usamos
+  cookies» y evita meter un `nós` donde el actor no somos nosotros.
+- **El proveedor es el sujeto de su frase** (L6). Prohibidas por implicatura *«o
+  meu provedor»*, *«a empresa que contratei»* —ya RED por la barrera de 1.ª
+  persona— y **prohibidas escala, precio y geografía** (*«un provedor pequeno»*,
+  *«unha conta gratuíta»*), que **filtran cuántas personas hay detrás**: ésa es la
+  puerta trasera de ADR-012 §1, no el nombre de la empresa.
+- **Marcadores en inglés** (L5): `{provider}` y `{retention}`, como `{mailbox}`.
+- **Trampas de norma medidas**: `prazo` (no *plazo*, y **ojo a la hipercorrección
+  inversa**, que es correcto aunque coincida con el portugués), `datos` (nunca
+  *dados*), `provedor` con una sola `e`, `aloxado` (no *hospedaxe*), `enderezo`
+  (no *dirección*), `rexistro` y `lexítimo` con `x`, `consérvase`/`elimínase` con
+  enclisis y tilde pero `non se recolle` con proclisis, **`fai falta`** —que la
+  regla «hai, nunca fai» de mi propio dictamen anterior **no** alcanza—, y en
+  castellano **`u oposición`**, no *o oposición*.
+- **`por conta de {provider}` sí; `por conta propia` es RED mecánico** —está en
+  `NO_HEADCOUNT`—. Son dos palabras de distancia.
+
+#### El CA corregido: qué tiene que afirmar el caso 12 quater
+
+Nueve aserciones positivas, tres negativas de control y una barrera léxica. **Es
+la letra del criterio, que hoy promete tres cosas que no comprueba** — CA-17.2
+**(iii)**, no (i).
+
+| Elemento | Aserción |
+|---|---|
+| E1 | `cookies` · `analitica` · `terceiros\|terceros` *(ya existe)* |
+| E2 | IP, hora y página *(hoy sin aserción)* **más `navegador`** y **`ligazon\|enlace`** |
+| **E3** | **`toContain('vercel')`, en las dos lenguas** |
+| E4 | `interese lexitimo\|interes legitimo` *(ya existe)* **más** `manter o servizo\|mantener el servicio` |
+| **E5** | **`24 horas`** **y** una forma de atribución (`fixa ela\|fija ella`) **y** que el proyecto no guarda copia |
+| E6 | el buzón *(ya existe)* **más las cinco formas de derecho**, `limitación` incluida |
+| **E7** | `proteccion de datos` |
+| **E8** | `estados unidos` **y** `adecuacion` |
+| **P6** | `tremen.dev` |
+
+**Tres negativas, que son las que impiden que el defecto vuelva por donde vino:**
+
+1. **Nada de circularidad**: el texto **no** contiene `o tempo que ese rexistro
+   dura` / `el tiempo que ese registro dura`, ni ninguna fórmula que defina la
+   conservación por sí misma. **Control positivo: reponer esa frase pone rojo un
+   caso nombrado.**
+2. **Nada de rodeos para el encargado**: **no** contiene `o servidor onde está
+   aloxado` / `el servidor donde está alojado` como sujeto del registro. Un
+   servidor no procesa datos: los procesa **quien lo opera**.
+3. **Ninguna persona física** *(ya existe)*, y **ninguna llamada a la acción**
+   —lista cerrada: `patrocina`, `publicidade`, `doar`, `subscri`…—, que es lo que
+   mantiene el art. 10 LSSI fuera.
+
+**Y la barrera léxica de L10, con su excepción declarada, que el propio dictamen
+no vio:** *arquivo*/*archivo* no aparece en ninguna clave `privacy*` y
+*rexistro*/*registro* no aparece en `storage`. **Excepción por identidad de
+clave: `privacyNotTheArchive`**, cuyo trabajo entero es nombrar las dos cosas para
+distinguirlas. Sin esa excepción la barrera pondría roja la clave que existe para
+arreglar el problema.
+
+**Declarado dentro del criterio (ADR-016 §6):** todas estas aserciones prueban que
+**unas palabras están escritas, no que sean ciertas**. Que el plazo sea de verdad
+de 24 horas, que el plan siga siendo Pro, que no haya *log drain* y que no se
+añada analítica **no lo alcanza ningún test**. Es **(c)**, y va al calendario de
+compromisos.
+
+#### Lo que va al calendario de compromisos, no a un test
+
+1. **Confirmar antes del 08 que el plan es Pro y que no hay Observability Plus ni
+   *log drain***. Si lo hubiera, **el plazo publicado nacería falso el primer
+   día**, que es el mismo vector del §0 de la propia spec.
+2. **El cambio de plataforma de alojamiento obliga a corregir la línea en el mismo
+   cambio.** Ningún test lo verá.
+3. **Corrección de una fila que escribí ayer**: el punto de tráfico del disparador
+   decía «al día siguiente de cada jornada», y **los logs de Vercel Pro duran un
+   día**, así que llega tarde. Pasa a **«el mismo día, al cerrar la jornada»**. Y
+   **no se contrata Observability Plus**: multiplicaría por treinta la retención de
+   datos personales para vigilar un umbral —peor minimización, art. 5.1.c— y
+   **cambiaría el plazo publicado a 30 días justo al lado de los 30 del raw
+   store**.
+
+#### Dos cosas que declaro y no resuelvo
+
+- **P6 no cierra del todo el art. 13.1.a.** «Del sitio responde el proyecto, bajo
+  el paraguas de tremen.dev» da contacto pero **no da identidad del responsable**,
+  y ADR-012 §1 impide darla aquí. **Es un residual que el gate firma con los ojos
+  abiertos**, en la misma forma en que ADR-012 firmó el suyo. La salida limpia es
+  **PR3** y va al informe del gate: publicar la identificación **en `tremen.dev`**,
+  que es otro sitio, cierra el art. 13.1.a **sin tocar un literal de este
+  repositorio** — y **es el disparador que ADR-012 escribió él mismo**, «el día que
+  `/sdd-legal-datos` lo pida». **Hoy lo pide. No bloquea el 08.**
+- **Tensión dentro del propio dictamen legal, que resuelvo:** su **PR5** pide
+  «cuatro oraciones, no una página», y sus **P5, P6 y P7** añaden tres deberes
+  nuevos. **Gana el deber, y se paga en brevedad por frase**: nueve claves de una
+  oración corta son dos párrafos, no una página. Si al implementarlo crece más, se
+  ha implementado otra cosa.
+
+## F-SPEC-018-N1 — el guardián de SPEC-015 y las capturas de CA-16. **Resuelto**
+
+**Bloqueaba el GREEN de toda la rama**, no sólo de esta spec. Cuatro casos de
+`tests/bot/frontier.test.ts` en rojo porque una de las diez capturas que **CA-16
+obliga a versionar** lleva, dentro de su flujo comprimido, una tirada de once
+dígitos que el detector de `telegram_user_id` lee como un identificador.
+
+**Decisión: se excluyen `*.png` y `*.woff2` del escaneo, con su motivo, y es
+QUINTA enmienda de ADR-015 — sobre SPEC-015.** Escrita en su ledger con los cinco
+puntos. **CA-18.4 vuelve a moverse: de cuatro enmiendas a cinco.**
+
+**Y el argumento no es el que traía el encargo, así que lo digo con cuidado.** La
+propuesta era «excluir binarios no debilita el guardián: corrige un error de
+alcance, el mecanismo nunca quiso mirar dentro de un PNG». **La primera mitad es
+correcta; la segunda no**: la cabecera de `telegramIdOffences` **declaraba lo
+contrario, a propósito** — *«Un PNG o cualquier otro binario versionado se juzga
+con la misma regla que un fichero de texto»*. Sí quería. Lo que pasa es que **la
+premisa de esa frase era falsa en la mitad que importa**: «un identificador dentro
+de un binario está igual de versionado» es cierto, **«y por tanto este mecanismo
+lo encuentra» no**. Dentro de DEFLATE no hay nada que encontrar — lo que se ve en
+una captura son **píxeles**, no dígitos ASCII. **Así que no se pierde ninguna
+detección que el mecanismo tuviera**, y esa es la razón por la que la exclusión es
+legítima: no porque nadie quisiera mirar, sino porque **mirar ahí no informa**.
+
+**Medido, porque la pregunta de si era suerte tiene respuesta** (2026-09-04, sobre
+los 18 PNG y 5 WOFF2 versionados):
+
+- la tirada está en el **offset 3033, dentro del primer IDAT**, y el fichero **no
+  tiene ni un chunk de texto**;
+- **un segundo PNG** —`ca16-5-360x640-es.png`— lleva una tirada de **exactamente
+  nueve dígitos** que sólo escapa porque el byte siguiente es una letra y `\b` no
+  casa;
+- el resto se queda en 5–8. **La distribución tiene masa en el umbral**, así que
+  que `_qa/SPEC-004/` y `_qa/SPEC-017/` nunca hubieran disparado era **suerte con
+  ocho ficheros**, exactamente como sospechaba el encargo.
+
+**Lo que queda con menos red, en el ledger de SPEC-015 §3 y aquí en corto:** un id
+**visible** en una captura no lo caza este mecanismo —y no lo cazaba antes—; lo
+cubre **una persona** mirando lo que archiva. `*.woff2` es **preventiva y hoy no
+caza nada**. Y un contenedor comprimido de otra extensión —`.zip`, `.pdf`— **no
+está excluido y produciría el mismo falso positivo**, con disparador escrito.
+
+**Y una lección que costó una vuelta:** la primera redacción del motivo **citaba
+el número** y el guardián **se puso rojo sobre su propio fichero fuente**. Es
+**F-SPEC-015-19 apareciendo por segunda vez** —«componer la carga útil en vez de
+escribirla»—. El motivo ahora **describe** la tirada sin escribirla.
+
+**`npm run gates`: 147 ficheros, 1712 casos, 0 errores de tipo.**
+
+## F-SPEC-018-N2 — inventariado
+
+El panel arrastra desde SPEC-017 el mismo atajo `font:` que V1 corrigió en el
+marcador. El implementador **no lo tocó, y por la regla correcta**: es CA-17.2
+**(i)**, ensanchar por conveniencia la suite de una spec cerrada. **Destino:
+EPIC-MEJORA; disparador: la primera spec que toque `src/admin/view/styles.ts` por
+un motivo suyo.** Con la nota que él añade y que vale su peso: **el arreglo puede
+reusar `tests/board/cascade.ts` sin copiar una línea**, así que llega con su
+herramienta ya escrita.
+
+## F-SPEC-018-N3 — hallazgo colateral de `sdd-lingua`: el bot promete una página que no existe
+
+**No es de esta línea y no lo arreglo aquí, pero no puede quedarse sin destino,
+porque es una afirmación falsa publicada.** `bot.noticeLink` sirve hoy —comprobado
+el 2026-09-04— *«Tes a información completa en `https://marcador.gal/privacidade`»*
+(`gl.ts:80`) y su gemela castellana (`es.ts:73`). **`/privacidade` no existe**:
+`src/site/routes.ts` declara tres rutas —`/proxecto`, `/robot`, `/marcador`— y no
+hay directorio bajo `src/app/(gl)/`.
+
+Es **la misma clase de defecto que el §0 de esta spec** —un literal servido y
+verificado GREEN que afirma algo que no es cierto— **con el agravante de que aquí
+lo afirma el aviso de protección de datos del bot**, que es donde peor sienta. Y
+es anterior a SPEC-018: viene de SPEC-015.
+
+**Destino: no es EPIC-MEJORA.** El propio inventario de esa épica dice que «si un
+finding hace falsa una afirmación publicada, no es deuda, es un fallo, y va a
+`EPIC-FIX` o a la spec que lo causó». **Va a `EPIC-FIX`, y `EPIC-FIX` no existe
+todavía como directorio** —crearla es de `sdd-producto`, no mía—. **Disparador:
+inmediato**, y en todo caso **antes del 2026-09-08**, porque ese día el proyecto
+publica y esta frase la reciben los corresponsales.
+
+**Las dos salidas, para que quien la coja no empiece de cero:** o **se crea
+`/privacidade`** —y entonces manda la regla L12 de `sdd-lingua`: **`/robot` la
+enlaza y no la duplica**, porque dos textos de retención en dos páginas es el
+problema de la desambiguación multiplicado por dos—, o **`noticeLink` apunta a
+`/robot`**, que es donde la línea de privacidad vive de verdad por la **R2** del
+segundo dictamen legal («un solo lugar honesto, una superficie menos»). **La
+segunda es más barata y más coherente con lo ya decidido**, pero es decisión de
+producto, no mía.

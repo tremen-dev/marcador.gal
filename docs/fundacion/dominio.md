@@ -239,6 +239,40 @@ fila.
 **Dictamen de `sdd-lingua` del 2026-09-04**; **firmado por Alberto Fojo en el gate
 de SPEC-018 del 2026-09-04**.
 
+## Protección de datos (visible en UI, en las dos lenguas)
+
+Añadido el 2026-09-04 (SPEC-018 CA-18.2), a instancia de `sdd-lingua`, porque
+este vocabulario pasa a estar en **tres superficies** —el aviso del bot
+(`bot.notice*`, SPEC-015), la línea de privacidad de `/robot`, y una futura
+página propia— y **ésa es exactamente la configuración que produjo *Directo* /
+*En xogo*** (F-SPEC-015-9). Se registra **antes de usarse**, como exige la
+cabecera de este glosario.
+
+| Término | Literal galego | Literal castellano | Trampa |
+|---|---|---|---|
+| responsable del tratamiento | **responsable do tratamento** | responsable del tratamiento | **`-ble`, no `-bel`**; plural *responsables* |
+| encargado del tratamiento | **encargado do tratamento** | encargado del tratamiento | **`tratamento` es galego correcto** aunque coincida con el portugués |
+| interés legítimo | **interese lexítimo** | interés legítimo | `interese` (masculino) y `lexítimo` con **`x`** |
+| plazo de conservación | **prazo de conservación** | plazo de conservación | **`prazo`**, no *plazo* — y **cuidado con la hipercorrección inversa** |
+| derechos | **acceso, rectificación, supresión, limitación e oposición** | acceso, rectificación, supresión, limitación y oposición | **`supresión`** es el nombre del derecho: no *borrado* ni *eliminación* |
+| registro de acceso | **rexistro de acceso** | registro de acceso | `rexistro` con **`x`** |
+| dirección IP | **enderezo IP** | dirección IP | **`enderezo`**, masculino. *Dirección* existe en galego con otro sentido: el castellanismo es invisible |
+| proveedor de alojamiento | **provedor de aloxamento** | proveedor de alojamiento | **`provedor`, una sola `e`**; `aloxamento`, no *hospedaxe* (que es para personas) |
+| transferencia internacional de datos | **transferencia internacional de datos** | transferencia internacional de datos | **`datos`, nunca `dados`**: en galego son los de jugar. El lusismo que más caro sale porque se lee bien |
+
+**Y dos cosas que no son vocabulario sino invariantes de este bloque**, las dos de
+`sdd-lingua` y las dos vinculantes:
+
+1. **En un texto de privacidad el «nós» está prohibido salvo en el buzón.** El
+   registro de acceso **no lo hace marcador.gal**, lo hace el proveedor: escribir
+   *«gardamos o teu enderezo IP»* atribuye al proyecto un acto que ejecuta otro
+   **y funde este bloque con el de retención del raw store**, que empieza
+   literalmente con «Gardamos…» y habla de otra cosa y de otro plazo.
+2. **Un plazo se dice con tres piezas —cuánto, desde cuándo y qué pasa al final—**
+   y si falta la primera se da el **criterio**, nunca el hecho de no saberlo.
+   *«Consérvase o tempo que ese rexistro dura»* es una **tautología**, no un plazo,
+   y es el defecto que el RED de SPEC-018 encontró publicado.
+
 ## Fuentes y organismos
 
 | Término | Definición | Notas |
