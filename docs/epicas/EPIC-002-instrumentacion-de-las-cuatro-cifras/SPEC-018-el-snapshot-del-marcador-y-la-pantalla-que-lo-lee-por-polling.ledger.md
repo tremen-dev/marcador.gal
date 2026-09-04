@@ -21,7 +21,43 @@ epica: EPIC-002
   (`F-SPEC-018-V1..V4`) y un residuo declarado (`V5`). La spec **se queda en
   `en-revision`**.
 
-### Gates corridos por el verificador — 2026-09-04
+### Gates corridos por el verificador — 2026-09-04, SEGUNDA VUELTA
+
+**`npm run gates`** — **VERDE**, salida literal:
+
+```
+ RUN  v4.1.11 /Users/albertofojo/src/tremen-dev/marcador.gal
+
+ Test Files  147 passed (147)
+      Tests  1717 passed (1717)
+Type Errors  no errors
+   Start at  15:28:33
+   Duration  17.73s (transform 3.10s, setup 0ms, import 13.80s, tests 10.92s, environment 6ms, typecheck 292ms)
+```
+
+Y el build lista **trece rutas**, con las tres de esta spec dinámicas:
+
+```
+├ ƒ /admin          ├ ƒ /es/marcador   ├ ○ /proxecto
+├ ƒ /api/board      ├ ○ /es/proxecto   ├ ○ /robot
+├ ƒ /es/admin       ├ ○ /es/robot      └ ○ /robots.txt
+├ ƒ /marcador       ├ ƒ /api/cron/ingest · ƒ /api/telegram/webhook · ○ /_not-found
+```
+
+**`npm run test:db`** — **VERDE**, salida literal:
+
+```
+ Test Files  27 passed (27)
+      Tests  345 passed (345)
+   Start at  15:30:14
+   Duration  243.16s (transform 306ms, setup 0ms, import 1.30s, tests 239.73s, environment 1ms)
+```
+
+**Lo corrí yo, no lo tomé del encargo.** El host de Neon que el 04 por la mañana
+daba `ENOTFOUND` resuelve ahora, así que **CA-6.4 queda ejercido** y
+F-SPEC-018-V5 cerrado.
+
+### Gates corridos por el verificador — 2026-09-04, PRIMERA VUELTA
 
 **`npm run gates`** (typecheck → lint → build → test) — **VERDE**, salida literal
 de la cola:
@@ -77,7 +113,7 @@ queda sin verificar** (F-SPEC-018-V5).
 | CA-3 | `src/api/handler.ts` (`boardSnapshotOf`, `asksForSomethingArbitrary`) · `src/api/contract.ts` (`PUBLISHED_COMPETITIONS`) · `src/api/snapshot.ts` · `docs/procedimientos/carga-del-calendario.md` | `tests/board/snapshot.test.ts` 1–10 (control positivo 7) · `tests/board/runbook.test.ts` 1–3 | **Mutación M5**: tercera competición en `PUBLISHED_COMPETITIONS` ⇒ rojos los casos 4, 5, 6 y 7. Los ids son los del registro de fuentes (`futgal-preferente-g1`, `rfef-tercera-g1`) y no los nombres informales que el cuerpo del CA transcribe; el caso 5 ata las dos listas. | ✅ |
 | CA-4 | `src/api/snapshot.ts` (pura, sin reloj) · `src/api/ports.ts` (sólo lectura) · `src/decide/board-entry.ts` | `tests/board/frontier.test.ts` 14–21 (controles positivos 16, 21) · `tests/board/snapshot.test.ts` 31 | `DECISION_WRITERS` sigue en **dos** entradas y `tests/decide/` **no aparece en el diff** (`git diff --stat a63e23e..HEAD -- tests/decide/` vacío): el verde del caso 18 no se compró tocando la lista. `src/api/snapshot.ts` leído entero: función pura, sin `Date` ni `Clock`. | ✅ |
 | CA-5 | `src/api/contract.ts` (`PUBLISHED_FIELDS`) · `src/api/snapshot.ts` | `tests/board/snapshot.test.ts` 11–16 (control positivo 13) | **Mutación M10**: `rule` añadido de verdad a la proyección y al esquema ⇒ rojos los casos 12, 14 y 15. El mecanismo enumera las claves de `DecisionSchema`/`ObservationSchema`, no una lista negra. | ✅ |
-| CA-6 | `src/decide/board-entry.ts` · `src/api/ports.ts` (`BoardReader`) | `tests/board/frontier.test.ts` 22–23 · `tests/db/board-batch.test.ts` 1–5 (`npm run test:db`) | 6.1–6.3 verificados por lectura y por el caso 22 (3 vs 18 partidos, misma cuenta, una sola llamada con los 18). **6.4 NO EJECUTABLE aquí**: `npm run test:db` cae en DNS (`ENOTFOUND ep-soft-river-…neon.tech`), 27 ficheros fallan al importar y 345 casos quedan `skipped`, con y sin sandbox. **6.5 incumplido**, enmendado por `sdd-arquitecto`. Ver **F-SPEC-018-V5**. | ⚠️ |
+| CA-6 | `src/decide/board-entry.ts` · `src/api/ports.ts` (`BoardReader`) | `tests/board/frontier.test.ts` 22–23 · `tests/db/board-batch.test.ts` 1–5 (`npm run test:db`) | 6.1–6.3 verificados por lectura y por el caso 22 (3 vs 18 partidos, misma cuenta, una sola llamada con los 18). **6.4 EJERCIDO EN LA 2ª VUELTA**: corrí yo `npm run test:db` y pasa — **27 ficheros, 345 casos, 243 s**. El DNS de Neon que fallaba el 04 por la mañana resuelve ahora; **F-SPEC-018-V5 cerrado**. **6.5 sigue incumplido por imposibilidad**, con su enmienda de ADR-015: **⚠ aceptada**, con el precedente de SPEC-008 CA-2. | ⚠️ |
 | CA-7 | `src/api/freshness.ts` · `src/api/handler.ts` (`etagOf`, `matchesEtag`) · `src/api/snapshot.ts` (`version`) | `tests/board/snapshot.test.ts` 17–24 | Servidor real: `cache-control: public, s-maxage=10, stale-while-revalidate=10`, sin `private` ni `no-store`. Navegador: un solo `fetch` a `/api/board` en 33 s ⇒ `REFRESH_SECONDS = 30` es el que rige de verdad. | ✅ |
 | CA-8 | `src/board/handler.ts` (`minutesSince`, `lastDataOf`) · `src/board/view/markup.ts` (`transportNotice`) · `src/board/view/styles.ts` (`.transport`) · `src/i18n/board-bundle.ts` | `tests/board/document.test.ts` 9–16 (control positivo 13, 15) · `tests/board/snapshot.test.ts` 32 | **Navegador**: con el refresco caído, `#board-transport` computa `color: rgb(167,165,160)` (`--fg-muted`), `border: rgb(61,54,44)` (`--line-strong`), `opacity: 1` y `class="transport"` — ningún token de estado ni de cualificador. La fila lleva *Hai 22 min*, nunca un instante con segundos. | ✅ |
 | CA-9 | `src/board/handler.ts` · `src/board/view/refresh.ts` | `tests/board/document.test.ts` 17–21 | **Navegador, con cuatro filas reales**: tras un poll con éxito el `innerHTML` de las cuatro filas es **byte a byte idéntico**; tras `Network.emulateNetworkConditions{offline:true}` sigue siendo idéntico, `opacity: 1`, `display: table-row` y el color del marcador sin cambiar. Lo único que cambia es el aviso de página. | ✅ |
@@ -86,16 +122,121 @@ queda sin verificar** (F-SPEC-018-V5).
 | CA-12 | `src/board/handler.ts` · `src/board/view/styles.ts` · `src/i18n/qualifiers.ts` | `tests/board/document.test.ts` 30–34 (control positivo 32) · `tests/board/style.test.ts` 17–18 | **Navegador, contraste computado**: `.q-provisional` y `.q-confirmado` los dos `rgb(245,241,234)` = `--fg` — el énfasis del cualificador queda invertido como ADR-026 §2 obliga; `pendente_de_confirmar` ámbar, `sen_sinal` alerta, los cuatro con su NODO DE TEXTO completo al lado. Ninguna abreviatura, ningún glifo. | ✅ |
 | CA-13 | `src/i18n/board-bundle.ts` · `src/i18n/board.ts` · `src/i18n/qualifiers-bundle.ts` · `src/i18n/qualifiers.ts` · `src/i18n/gl.ts` · `src/i18n/es.ts` · `src/i18n/titles-bundle.ts` · `src/board/sources.ts` | `tests/board/document.test.ts` 35–43 (control positivo 41) · `tests/types/spec018-board.test-d.ts` 1–5 · `tests/site/titles-i18n.test.ts` 4 · `tests/site/document-titles.test.ts` 1–5 · `tests/site/robots.test.ts` 4 | `src/i18n/admin.ts` cambia de resolutor **sin tocar un literal** (diff leído línea a línea). Navegador: `/marcador` `lang="gl"` con *En xogo* / *Provisional*; `/es/marcador` `lang="es"` con *En juego* / *Provisional*. CA-13.8 se juzga con la enmienda (derivación + singular/plural). | ✅ |
 | CA-14 | `src/i18n/gl.ts` · `src/i18n/es.ts` (espacio `board`) | `tests/board/voice.test.ts` 1–10 (controles positivos 2, 7, 10) | 52 formas de 1.ª del singular, comparadas por palabra completa sobre texto desacentuado; siete ambiguas declaradas fuera con su motivo. `tests/site/i18n.test.ts` **no se ha tocado** (diff vacío): la lista negra de D-1 se ensancha en fichero nuevo, como CA-14.4 pide. | ✅ |
-| CA-15 | `src/board/view/styles.ts` · `src/design/tokens.ts` (`MEASURE`, `HAIRLINE_PX`) · `src/admin/view/styles.ts` | `tests/board/style.test.ts` 1–20 (controles positivos 3, 19, 20) · `tests/board/cascade.ts` (instrumento) · `tests/design/scale.test.ts` 1–6 (control positivo 5) | **Mutación M11**: `#8a8a8a` en `.soft` ⇒ rojo el caso 1. `docs/diseno/` intacto, `DECLARED_DIVERGENCES` sigue en 3, `LOADED_FACES` en 5: **EPIC-004 no se ha descongelado**. **Pero CA-15.7 falla en el navegador**: ver **F-SPEC-018-V1**. | ⚠️ |
+| CA-15 | `src/board/view/styles.ts` · `src/design/tokens.ts` (`MEASURE`, `HAIRLINE_PX`) · `src/admin/view/styles.ts` | `tests/board/style.test.ts` 1–20 (controles positivos 3, 19, 20) · `tests/board/cascade.ts` (instrumento) · `tests/design/scale.test.ts` 1–6 (control positivo 5) | **Mutación M11**: `#8a8a8a` en `.soft` ⇒ rojo el caso 1. `docs/diseno/` intacto, `DECLARED_DIVERGENCES` sigue en 3, `LOADED_FACES` en 5: **EPIC-004 no se ha descongelado**. **CA-15.7 CERRADO en la 2ª vuelta (V1)**: **M12** —devolver el atajo `font:` a `role()`, que es exactamente la hoja que yo encontré rota— ⇒ **rojo el caso 14**; **M13** —usar `role('display')`— ⇒ **rojo el caso 8**, así que se adaptó y no se debilitó. **Y en el navegador**: `font-variant-numeric` computa `tabular-nums` en las tres celdas (antes `normal`), y con el estilo real de la celda forzado a la cara **proporcional** `111111` y `000000` miden **75,53 px los dos**, mientras un `<p>` en esa misma cara mide 42,66 y 58,59. La declaración es ahora el mecanismo. | ✅ |
 | CA-16 | — (no lo implementa el implementador: es del verificador, con capturas en `_qa/SPEC-018/`) | — | **EJECUTADO POR EL VERIFICADOR EN UN NAVEGADOR DE VERDAD**, no por lectura de la hoja. Chromium 149 headless por CDP crudo contra `next dev`, 360 × 640, dsf 2, `mobile: true`. Diez capturas y dos informes JSON en `_qa/SPEC-018/`. Resultados abajo. | ✅ |
-| CA-17 | `tests/site/url-permanence.test.ts` · censos de `PAGES`, `ROUTES` y rutas de `robots.test.ts` | `tests/site/url-permanence.test.ts` 1 | 17.1 ✅ (las tres entradas están escritas en `docs/fundacion/dominio.md`). 17.3 ✅ (caso único, con literales, en dos grupos, y `/` sigue redirigiendo). 17.4 ✅ (ningún layout tocado). **17.2: la disciplina de commit no se siguió** — ver **F-SPEC-018-V3**. | ⚠️ |
-| CA-18 | `src/i18n/gl.ts` · `src/i18n/es.ts` · `src/i18n/site-bundle.ts` · `src/i18n/crawler-bundle.ts` · **`src/site/hosting.ts`** (nuevo, V4) · `src/site/project-page.tsx` · `src/site/crawler-page.tsx` · ledgers de SPEC-004, SPEC-005 y SPEC-007 | `tests/site/crawler-page.test.ts` 12, 12 bis/ter · **12 quater/quinquies/sexies/septies/octies (V4, control positivo 12 septies)** · `tests/site/identity.test.ts` 1–4 · `tests/board/no-contradiction.test.ts` 1–6 (control positivo 2, 3) · `tests/board/document.test.ts` 8 · **`tests/board/runbook.test.ts` 7, 8, 10** | **Mutación M8**: `board.heading` con un nombre de persona ⇒ rojos los casos 1 y 3 de `identity.test.ts`: la barrera de SPEC-007 **cubre de verdad** el espacio y las dos rutas nuevas, y sus dos números crecieron (4 espacios, 6 rutas). **Mutación M9**: reponer «Non republicamos os datos de ninguén» ⇒ rojos `no-contradiction` 1 y `crawler-page` 12. **Diff**: ningún cuerpo ni frontmatter de spec cerrada tocado; sólo ledgers. **Pero** ver **F-SPEC-018-V2** y **F-SPEC-018-V4**. | ⚠️ |
+| CA-17 | `tests/site/url-permanence.test.ts` · censos de `PAGES`, `ROUTES` y rutas de `robots.test.ts` | `tests/site/url-permanence.test.ts` 1 | 17.1 ✅ · 17.3 ✅ (caso único, con literales, en dos grupos, y `/` sigue redirigiendo) · 17.4 ✅ (ningún layout tocado). **17.2 CERRADO en la 2ª vuelta (V3)**: la cláusula del commit propio **no se cumplió y no se finge que sí**; `sdd-arquitecto` la declara mala con tres argumentos, la sustituye por una propiedad comprobable —el inventario fichero a fichero en el ledger, cotejado contra `git diff --name-only`—, **deja F-SPEC-016-8 abierto** y declara que **no es retroactiva a SPEC-018**. Las otras dos cláusulas —lo mínimo, ninguna aserción debilitada— sí se cumplen, y las comprobé en el diff. | ✅ |
+| CA-18 | `src/i18n/gl.ts` · `src/i18n/es.ts` · `src/i18n/site-bundle.ts` · `src/i18n/crawler-bundle.ts` · **`src/site/hosting.ts`** (nuevo, V4) · `src/site/project-page.tsx` · `src/site/crawler-page.tsx` · ledgers de SPEC-004, SPEC-005 y SPEC-007 | `tests/site/crawler-page.test.ts` 12, 12 bis/ter · **12 quater/quinquies/sexies/septies/octies (V4, control positivo 12 septies)** · `tests/site/identity.test.ts` 1–4 · `tests/board/no-contradiction.test.ts` 1–6 (control positivo 2, 3) · `tests/board/document.test.ts` 8 · **`tests/board/runbook.test.ts` 7, 8, 10** | **Mutación M8**: `board.heading` con un nombre de persona ⇒ rojos los casos 1 y 3 de `identity.test.ts`: la barrera de SPEC-007 **cubre de verdad** el espacio y las dos rutas nuevas, y sus dos números crecieron (4 espacios, 6 rutas). **Mutación M9**: reponer «Non republicamos os datos de ninguén» ⇒ rojos `no-contradiction` 1 y `crawler-page` 12. **Diff**: ningún cuerpo ni frontmatter de spec cerrada tocado; sólo ledgers. **V2 y V4 CERRADOS en la 2ª vuelta.** **V2**: la enmienda de SPEC-006 pasa a cubrir **tres** guardianes, admite con tabla antes/después que en el caso 4 **sí se relajó el predicado**, corrige por escrito la frase que lo negaba, y declara **tres** sitios con menos red —uno de ellos, que el número esperado dejó de ser literal, no se lo había pedido nadie—. **V4**: seis mutaciones mías (**MP1–MP6**) ponen rojo un caso nombrado cada una, y en las seis **el caso viejo habría pasado en verde** —reconstruido y ejecutado por mí—. | ✅ |
 | CA-19 | `docs/procedimientos/calendario-de-compromisos.md` | `tests/board/runbook.test.ts` 4–9 | Las cuatro filas están escritas, el disparador tiene **ocho** puntos con la aclaración de CA-2.9, el punto de tráfico está sustituido y el párrafo de cierre dice «Ocho de estas nueve fechas». **Escrito no es cumplido**, y CA-19.6 lo declara: son compromisos humanos y quedan para la persona. | ✅ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
 
-### **RED** — 2026-09-04, `sdd-verificador`
+### **GREEN** — 2026-09-04 (segunda vuelta), `sdd-verificador`
+
+**Los cinco findings del RED están cerrados, y ninguno lo doy por cerrado porque
+me lo dijeran: los cinco los volví a atacar.** Dieciocho criterios ✅ y **uno
+⚠️ justificada y aceptada** (CA-6, por CA-6.5). **La spec pasa a `hecho`.**
+
+**Gates, corridos por mí sobre el árbol limpio.** `npm run gates` **VERDE**: 147
+ficheros, **1717 casos** (eran 1710), 0 errores de tipo, y el build lista **trece
+rutas**. **`npm run test:db` VERDE: 27 ficheros, 345 casos, 243 s** — el host de
+Neon que el 04 por la mañana no resolvía resuelve ahora, así que **CA-6.4 está
+ejercido de verdad** y F-SPEC-018-V5 se cierra sin excusa.
+
+#### Los cinco findings, uno a uno, y con qué los ataqué
+
+| Finding | Cómo lo comprobé | Resultado |
+|---|---|---|
+| **V1** dígitos tabulares | **M12**: devolver el atajo `font:` a `role()` — la hoja exacta que yo encontré rota. **M13**: usar `role('display')`. Y el navegador otra vez. | **CERRADO.** M12 ⇒ rojo el caso 14; M13 ⇒ rojo el caso 8. En Chromium, `font-variant-numeric` computa **`tabular-nums`** en las tres celdas y, forzado a la cara **proporcional**, `111111` = `000000` = **75,53 px**. |
+| **V2** la enmienda incompleta | Lectura del §6 nuevo del ledger de SPEC-006 contra `git diff`. | **CERRADO.** Tres guardianes, tabla antes/después del predicado relajado, y la frase falsa corregida por escrito. |
+| **V3** la disciplina de commit | Lectura de la reformulación y del estado de F-SPEC-016-8. | **CERRADO como finding.** No se finge cumplida: se declara mala, se sustituye por algo comprobable y **el finding de EPIC-MEJORA sigue abierto**. |
+| **V4** la línea de privacidad | **MP1–MP6**, seis mutaciones mías sobre `gl.ts` y `es.ts`. | **CERRADO.** Las seis ponen rojo un caso nombrado, y **en las seis el caso viejo habría pasado en verde**. |
+| **V5** CA-6.4 sin ejercer | `npm run test:db`. | **CERRADO.** 27/345 en verde. |
+
+**La comprobación que más me importaba de esta vuelta era la de V4**, porque era
+una afirmación sobre un test que ya no existe. La ejercí reconstruyendo las seis
+aserciones del caso viejo —`cookies`, `/analitica/`, `/terceiros|terceros/`,
+`/interese lexitimo|interes legitimo/`, el buzón, y sin nombre de persona— y
+evaluándolas sobre las nueve claves concatenadas e interpoladas, mutación a
+mutación. **Las seis veces salió verde.** Un caso que no se puede poner rojo con
+seis defectos distintos del texto que dice vigilar no vigila nada, y el nuevo se
+pone rojo con los seis. La causa raíz que el implementador nombra —seis
+afirmaciones dentro de una sola cadena hacen invisible que falten dos— es
+correcta, y es la lección de este hallazgo.
+
+**Y lo que ha aparecido de nuevo, juzgado:**
+
+- **F-SPEC-018-N1 — mis propias capturas rompían el gate. Bien resuelto, y lo
+  medí yo.** Sobre los **23** PNG/WOFF2 versionados: `ca16-6-filas-360x640-gl.png`
+  da **una** ofensa, en el **offset 3033**, con una tirada de **once** dígitos; y
+  `ca16-5-360x640-es.png` lleva una tirada de **nueve** que sólo escapa porque el
+  byte siguiente no es un dígito. Las dos afirmaciones del arreglo son ciertas
+  exactamente como están escritas. **La exclusión está acotada** —`*.png` y
+  `*.woff2`, nada más— y **no ciega el mecanismo**: **M14** (un id en un `.ts` de
+  `src/`) y **M15** (el mismo id en `corresponsais/2026-27.json`) ponen rojos
+  **cuatro** casos cada una, incluidos los dos controles positivos y el caso 32,
+  «ninguna exclusión es decorativa». La quinta enmienda de ADR-015 lleva sus cinco
+  puntos y declara la red que pierde en tres partes, incluida la que más vale:
+  **un contenedor comprimido nuevo —`.zip`, `.pdf`, `.gz`— no está excluido y
+  entraría sin que nadie lo decidiera.**
+- **El toque a `tests/board/runbook.test.ts`: correcto, y no es lo que CA-17.2
+  vigila.** Es la suite **de esta misma spec**, viva. Y no se debilitó nada: el
+  caso 7 pasa de una aserción a **dos** —la cadena nueva **y** una negativa que
+  prohíbe la vieja—, el caso 8 conserva sus dos con el censo actualizado, y el
+  caso 10 es puro añadido. El motivo está escrito y es bueno: **publicar un plazo
+  de 24 h vuelve falsa una fila que mandaba mirar el tráfico al día siguiente**,
+  cuando ya no queda nada que mirar.
+- **El paso por `en-progreso` y la vuelta a `en-revision` (`f2fba6f`) queda
+  constatado.** Es el gate del harness, que no deja tocar código en `en-revision`,
+  y tiene precedente en `344260e`. No es una irregularidad; se anota para que
+  quien lea el `historial:` no lo lea como una vuelta atrás del veredicto.
+- **N3, N4 y N5 están inventariados con destino y disparador**, y no los cuento
+  contra la spec. Van al informe para el humano: **N3 apunta a `EPIC-FIX`, que no
+  existe todavía como directorio** —crearla es de `sdd-producto`— y su disparador
+  es «inmediato, y en todo caso antes del 2026-09-08».
+
+#### Lo que dejo escrito y NO bloquea
+
+**El inventario fichero a fichero que la cláusula nueva de V3 va a exigir no
+existe todavía para SPEC-018, y es coherente que no exista**: la propia
+reformulación declara que **no es retroactiva** a esta spec. Lo anoto porque el
+ledger de SPEC-018 no permite hoy reconstruir qué tocó de specs cerradas —
+`tests/bot/support/telegram-ids.ts` no aparece en él ni una vez, y está enmendado
+en el ledger de SPEC-015, que es donde ADR-015 lo pide—. **No es un defecto de
+seguridad**: comprobé el diff de `tests/bot/` entero y no hay ninguna aserción
+borrada ni debilitada. Es de reconstruibilidad, y **escribir esa lista costaría un
+párrafo y convertiría la cláusula nueva en un precedente con ejemplo** en vez de
+en una regla sin estrenar. **Queda a criterio de `sdd-arquitecto`; no lo exijo,
+porque exigirlo sería aplicar retroactivamente una regla que ella misma declaró no
+retroactiva.**
+
+**Una imprecisión menor en un motivo, sin consecuencia hoy.** La entrada `*.png`
+de `ID_SCAN_EXCLUSIONS` dice que «cualquier texto incrustado viaja comprimido e
+ilegible». **Para un chunk `tEXt` de PNG eso no es cierto** —`tEXt` es Latin-1 sin
+comprimir; `zTXt` e `iTXt` sí pueden ir comprimidos—. Comprobado sobre los 18 PNG
+versionados: **ninguno tiene un chunk de texto de ningún tipo**, así que no cambia
+ninguna conclusión ni ninguna medida. Se anota para que nadie apoye en esa frase
+una exclusión futura más ancha.
+
+#### Lo que sostiene este GREEN, y lo que no sostiene
+
+Sigue en pie todo lo que verifiqué en la primera vuelta y volví a mirar aquí:
+`robots.txt` intacto y sin `Disallow`; `noindex, noarchive` sin `nofollow`; cero
+analítica; ninguna llamada a la acción; los tres enlaces salientes; `/proxecto` y
+`/robot` enlazando la pantalla; la ausencia de sesión como frontera; el grafo que
+no alcanza `src/polite/http.ts`; `DECISION_WRITERS` en dos entradas con
+`tests/decide/` fuera del diff; EPIC-004 sin descongelar. Y **CA-16 vuelto a
+correr contra la hoja nueva**: nada de lo que ya estaba verde se movió.
+
+**Lo que este veredicto NO dice, y conviene que se lea:** ningún test de esta spec
+prueba que lo publicado sea **cierto** —que el plazo de 24 h sea el real, que el
+plan de alojamiento no cambie, que no se añada un desvío de registros—. Eso está
+declarado dentro del propio criterio y vive en el calendario de compromisos. Y
+**CA-19 entero sigue siendo compromiso humano**: escrito no es cumplido.
+
+---
+
+### **RED** — 2026-09-04 (primera vuelta), `sdd-verificador`
 
 **Quince de los diecinueve criterios cierran ✅ y cuatro quedan ⚠️** (CA-6, CA-15,
 CA-17, CA-18). **La spec no pasa a `hecho`.** No es un veredicto sobre la calidad
@@ -187,7 +328,8 @@ contra lo que el manejador sirve que F-SPEC-017-17 dejó como procedimiento.
 | CA-13.3 | `ca16-5-360x640-es.png`, `ca16-10-filas-360x640-es.png` | `/es/marcador` sirve `lang="es"`, *En juego* / *Provisional*, `<title>marcador.gal</title>`, sin desplazamiento horizontal. |
 | CA-1.5 | `ca16-informe.json` | `performance.getEntriesByType('resource')` filtrado por origen: **lista vacía**. Ni una petición a un tercero desde el navegador. `document.styleSheets` = `[null]`: la hoja es inline y **`globals.css` no se carga** (ADR-025 §4.1, por construcción, porque es un `route.ts`). |
 | ADR-026 §3.6 | `ca16-1-360x640-gl.png` | Fondo computado `rgb(17,17,16)`, texto `rgb(245,241,234)`: la pantalla nace oscura sin tocar el sitio público. |
-| **CA-15.7 — FALLA** | `ca16-filas-informe.json` | Sobre las celdas que **sí llevan cifras**: `font-variant-numeric: normal` y `font-feature-settings: normal`. Medido: `111111` y `000000` miden **72,25 px los dos**, así que los dígitos **sí salen tabulares** — pero por la familia mono, no por la declaración. Ver **F-SPEC-018-V1**. |
+| **CA-15.7 — FALLABA (1ª vuelta)** | `ca16-filas-informe.json` | Sobre las celdas que **sí llevan cifras**: `font-variant-numeric: normal` y `font-feature-settings: normal`. Medido: `111111` y `000000` miden **72,25 px los dos**, así que los dígitos **sí salían tabulares** — pero por la familia mono, no por la declaración. Fue **F-SPEC-018-V1**. |
+| **CA-15.7 — CERRADO (2ª vuelta)** | `ca16-11-v2-filas-360x640-gl.png`, `ca16-12-v2-foco.png`, `ca16-v2-informe.json` | **Reejecutado contra la hoja nueva**, porque `role()` cambió de forma de emitir tipografía. Ahora las tres celdas computan `font-variant-numeric: tabular-nums` y `font-feature-settings: "tnum"`. **Y la prueba de fuego**: tomando el estilo **computado real** de la celda del marcador y forzándolo a la cara **proporcional** `--sans`, `111111` y `000000` miden **75,53 px los dos**; un `<p>` en esa misma cara mide **42,66** y **58,59**. La igualdad ya no la puede firmar `--mono`: la firma la declaración. Y nada más se movió — 360/360 sin desplazamiento del cuerpo, cuatro filas, seis paradas de foco con anillo de 2 px, ningún nombre truncado, `q-provisional` y `q-confirmado` los dos en `--fg`. |
 | — | `servido-gl.html`, `ca16-informe.json`, `ca16-filas-informe.json` | El documento servido y los dos volcados de estilo computado, para que esto sea reproducible sin volver a montar el andamio. |
 
 ## Salvedades / follow-ups
@@ -315,7 +457,10 @@ instrumentación; disparador: la verificación de `lapreferente.com`.**
 > cerrarlo. **No he editado ni una línea de `src/` ni de `tests/`**: las once
 > mutaciones que ejercí están revertidas y `git diff src/ tests/` queda vacío.
 
-## F-SPEC-018-V1 — los dígitos tabulares de ADR-013 §3 **computan `normal`**: la declaración está muerta y el único test que la vigila mira una cadena
+## ✅ CERRADO (2ª vuelta) · F-SPEC-018-V1 — los dígitos tabulares de ADR-013 §3 **computan `normal`**: la declaración está muerta y el único test que la vigila mira una cadena
+
+> **CERRADO el 2026-09-04 en la segunda vuelta.** `role()` dejó de emitir el atajo `font:` —se quita el constructo que reinicia, no se reordenan dos líneas— y el caso 14 pasa a MEDIR resolviendo la cascada (`tests/board/cascade.ts`) sobre una cara PROPORCIONAL. Verificado por mí con la mutación **M12** (devolver el atajo ⇒ rojo el caso 14), **M13** (usar `role('display')` ⇒ rojo el caso 8: adaptado, no debilitado) y con el navegador: `tabular-nums` computado en las tres celdas, y 75,53 px para `111111` y `000000` forzando la cara proporcional.
+
 
 **Criterio que incumple:** **CA-15.7** («Dígitos tabulares en marcador, hora e
 instantes (ADR-013 §3)»).
@@ -373,7 +518,10 @@ prohíbe expresamente ensanchar la suite de al lado por conveniencia. **Destino 
 la mitad del panel: EPIC-MEJORA; disparador: la primera spec que toque
 `src/admin/view/styles.ts` por un motivo suyo.**
 
-## F-SPEC-018-V2 — la cuarta enmienda de ADR-015 enumera **dos** aserciones de SPEC-006 y hay **tres**; la que falta sí relaja su predicado
+## ✅ CERRADO (2ª vuelta) · F-SPEC-018-V2 — la cuarta enmienda de ADR-015 enumera **dos** aserciones de SPEC-006 y hay **tres**; la que falta sí relaja su predicado
+
+> **CERRADO el 2026-09-04 en la segunda vuelta.** La enmienda del ledger de SPEC-006 pasa a cubrir **tres** guardianes, admite con tabla antes/después que en el caso 4 **sí se relajó el predicado**, corrige por escrito la frase que lo negaba, identifica la causa distinta del tercero —un título **sin parte traducible**, no un título que sea el dominio— y declara **tres** sitios con menos red, uno de ellos no pedido por este finding.
+
 
 **Criterios que incumple:** **CA-17.2** («ninguna aserción existente se debilita
 ni se borra — el verificador lo comprueba en el diff, aserción a aserción») y
@@ -423,7 +571,10 @@ que diga la verdad: **un predicado sí se relajó**, con qué se compensó, y qu
 despierta lo mismo que a las otras dos —que el título deje de valer
 `marcador.gal`—. Es una edición de ledger; no hay código que cambiar.
 
-## F-SPEC-018-V3 — la disciplina de commit de CA-17.2 no se siguió, y por eso existe un commit en el que la pantalla ya está y `/robot` todavía jura que no hay marcador público
+## ✅ CERRADO (2ª vuelta) · F-SPEC-018-V3 — la disciplina de commit de CA-17.2 no se siguió, y por eso existe un commit en el que la pantalla ya está y `/robot` todavía jura que no hay marcador público
+
+> **CERRADO el 2026-09-04 en la segunda vuelta, y de la única forma que lo cerraba: sin fingir que la regla funcionó.** F-SPEC-016-8 **sigue abierto**; la cláusula del commit propio se declara mala con tres argumentos —colisiona con CA-18, no sobrevive a un squash, sólo se comprueba cuando el historial ya está escrito— y se sustituye por una propiedad comprobable: el inventario fichero a fichero en el ledger, cotejado contra `git diff --name-only`. **No retroactiva a SPEC-018**, que es lo correcto.
+
 
 **Criterio que incumple:** **CA-17.2** («se toca lo mínimo, **cada toque va en su
 propio commit con el motivo escrito**, y ninguna aserción existente se debilita»).
@@ -473,7 +624,10 @@ F-SPEC-016-8 como si la regla hubiera funcionado**:
    regla **reforzada**: que el commit propio se compruebe, y por quién. Hoy no lo
    comprueba nadie más que el verificador leyendo `git show --stat`.
 
-## F-SPEC-018-V4 — la línea de privacidad se publica con **dos no-respuestas**, y el caso que dice vigilarlas no las vigila
+## ✅ CERRADO (2ª vuelta) · F-SPEC-018-V4 — la línea de privacidad se publica con **dos no-respuestas**, y el caso que dice vigilarlas no las vigila
+
+> **CERRADO el 2026-09-04 en la segunda vuelta, y es el que más se movió.** `privacy` pasa de **una** clave a **nueve**; el encargado se nombra (**Vercel**) y el plazo se dice (**24 horas**), los dos desde `src/site/hosting.ts`; y entran tres elementos legales que **este finding tampoco había visto** —AEPD, transferencia fuera de la UE con su decisión de adecuación, y quién responde—, más el navegador y el referente en «qué se registra». Verificado por mí con **seis mutaciones (MP1–MP6)**: las seis ponen rojo un caso nombrado, y **en las seis el caso viejo, reconstruido y ejecutado, habría pasado en verde**.
+
 
 **Criterio que incumple:** **CA-18.2**, último párrafo: «*qué registra el
 servidor, **quién lo procesa**, con qué base, **cuánto se conserva**, que no hay
@@ -536,7 +690,10 @@ grep -n "12 quater" -A 14 tests/site/crawler-page.test.ts
 3. Comprobar que sigue verde la barrera de SPEC-007: la línea **no puede nombrar
    a ninguna persona física** (nombrar a una empresa de alojamiento no la cruza).
 
-## F-SPEC-018-V5 — residuo declarado: **CA-6.4 no lo ha verificado nadie**
+## ✅ CERRADO (2ª vuelta) · F-SPEC-018-V5 — residuo declarado: **CA-6.4 no lo ha verificado nadie**
+
+> **CERRADO el 2026-09-04 en la segunda vuelta.** Corrí `npm run test:db` yo mismo y pasa: **27 ficheros, 345 casos, 243 s**. Era un fallo de entorno —el host de Neon no resolvía por DNS esa mañana— y no de la implementación, como el finding decía. **CA-6.4 queda ejercido.**
+
 
 **Criterio afectado:** **CA-6.4** («un caso de `tests/db/` afirma que la lectura en
 lote devuelve, para cada partido, la misma `Decision` vigente que
