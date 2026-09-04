@@ -723,3 +723,73 @@ código** —`tests/site/crawler-page.test.ts`, y dentro de él solo el bloque d
 caso 19— además de este ledger y del frontmatter de la spec (F-SPEC-007-8). En la
 segunda vuelta **no se ha tocado `src/`**: ni un literal, ni `measuring`, ni
 `about`, ni `umbrellaLink`, ni la constante del paraguas.
+
+## Enmienda — 2026-09-04: aparece un quinto sitio con texto visible y el alcance cerrado de CA-1 deja de cubrirlo EN SILENCIO
+
+> Escrita por `sdd-implementador` en el mismo cambio que publica la pantalla,
+> como exigen **ADR-027 §3.c** y **SPEC-018 CA-18.3**. **El cuerpo de SPEC-007
+> no se edita y su frontmatter tampoco** (ADR-015 §1 y §4): sigue `hecho` y
+> sigue GREEN.
+
+**1. Qué afirmaba el CA, y por qué era razonable.**
+
+**CA-1** exige que el sitio no nombre a ninguna persona física ni diga cuántas
+hay (ADR-012 §1), y su barrera se escribió deliberadamente **más ancha que el
+defecto**: no sobre la clave `about`, donde el nombre estaba, sino sobre **los
+tres espacios de nombres** —`site`, `crawler`, `titles`— y sobre **el HTML de
+las cuatro rutas**. El caso 4 del mismo fichero fija esos dos números
+—`toHaveLength(3)` y `toHaveLength(4)`— precisamente para que la barrera no
+pueda quedarse vacía sin que nadie lo vea. Era lo correcto y sigue siéndolo.
+
+**2. Qué lo invalida, citado por número.**
+
+**SPEC-018** (ADR-027 §1) añade **un quinto espacio de nombres con texto
+visible** —`board`, el del marcador— y **dos rutas más** —`/marcador` y
+`/es/marcador`—.
+
+**Y lo que la hace una enmienda y no un mantenimiento es la forma del fallo:
+esta barrera NO se pone roja.** Fijar «exactamente tres y exactamente cuatro»
+hace que un quinto sitio con texto visible **deje de estar cubierto en
+silencio**, que es peor que un rojo — un rojo se arregla; una cobertura que
+desaparece sin avisar no se arregla porque nadie sabe que hace falta. **ADR-027
+§3.c lo nombra como «una cuarta cosa, que no es una afirmación sino una barrera
+que deja de cubrir».**
+
+**3. Con qué se sustituye, y si la red que queda es menor.**
+
+`NAMESPACES` pasa a recorrer **cuatro** espacios —añade `board` en las dos
+lenguas— y `HTML` pasa a recorrer **seis** rutas —añade el documento que sirven
+`/marcador` y `/es/marcador`, leído del propio manejador y no de una copia—. Los
+dos números del caso 4 se actualizan **en el mismo diff**, que es lo que
+mantiene honesto el control de vacuidad.
+
+**Ninguna aserción se debilita.** `NO_PERSON` y `NO_HEADCOUNT` son exactamente
+las mismas listas, con los mismos términos y el mismo `deaccent`; los casos 1, 2
+y 3 conservan su predicado palabra por palabra; los casos 5 a 10 de CA-2 no se
+tocan. **Lo único que crece es el censo de lo que recorren**, que es la
+distinción (ii) de SPEC-018 CA-17.2: el dato de un guardián cuyo dato cambió.
+
+**La red que queda es MAYOR, no menor**, y en la dimensión que importa: el sitio
+gana una superficie pública **que además es la primera que va a ver alguien de
+fuera**, y esa superficie entra dentro de la barrera en el mismo cambio en que
+nace, en vez de en una spec de limpieza posterior.
+
+**Y hay una propiedad que la ruta nueva da gratis y las cuatro viejas no
+tienen:** el marcador se sirve desde un **manejador de ruta**, así que la
+barrera afirma sobre **el documento servido byte a byte** en vez de sobre
+`renderToStaticMarkup`. Es exactamente el agujero que **F-SPEC-004-7** describe
+—«un `metadata` con `openGraph`, un favicon remoto o un script en un layout
+futuro entrarían sin poner nada rojo»— y aquí no se reintroduce. **F-SPEC-004-7
+conserva su disparador intacto**, porque esta pantalla no toca ningún layout.
+
+**4. Si el veredicto sigue en pie.** **Sí.** SPEC-007 sigue `hecho` y GREEN. No
+cambia ni un literal, ni una regla, ni un término de ninguna de las dos listas
+negras: cambia el conjunto sobre el que se aplican, y crece.
+
+**5. Qué la despierta.** **La sexta superficie con texto visible.** Cada vez que
+este proyecto añada un espacio de nombres de i18n con prosa o una ruta que sirva
+HTML, los dos números de este caso tienen que crecer con ella **en el mismo
+cambio**. Que eso siga sin ponerse rojo solo es la deuda de forma que esta
+enmienda deja anotada: **destino EPIC-MEJORA; disparador: la tercera vez que
+haya que actualizar estos dos números a mano** — a la tercera, la barrera debería
+derivar su censo en vez de enumerarlo.

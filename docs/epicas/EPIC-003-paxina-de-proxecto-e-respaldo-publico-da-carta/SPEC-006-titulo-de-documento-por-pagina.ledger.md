@@ -476,3 +476,240 @@ el árbol real intacto, `git status` vacío antes y después). Está resumido en
 Si al implementar aparece que **hay que modificar un test de SPEC-004 o de
 SPEC-005**, la instrucción de CA-4 es **parar y devolver a arquitectura**, no
 añadir una excepción.
+
+---
+
+## Enmienda — 2026-09-04: el título del marcador ES el nombre del dominio, y TRES aserciones de esta spec dejan de poder ser universales
+
+**Escrita por `sdd-arquitecto` el 2026-09-04**, a instancia de **F-SPEC-018-1**,
+que el implementador de SPEC-018 levantó y **paró en vez de resolver por su
+cuenta** — que es exactamente lo que la última línea de este ledger le pedía:
+«no añadir una excepción» sin volver a arquitectura. Volvió. Esto es la
+respuesta.
+
+### 1. Qué afirmaban las dos aserciones, y por qué eran razonables
+
+- **`tests/site/titles-i18n.test.ts` caso 6** — «ningún título es un valor de los
+  que el sitio sí sirve en su cuerpo». Refuerza **CA-3(c)**. Su motivo está
+  escrito en el propio caso y es bueno: si un título volviera al namespace del
+  sitio por otra puerta, los casos 2 y 5 de `pages.test.ts` —que exigen que
+  **cada** clave del sitio aparezca en el cuerpo de `/proxecto`— empezarían a
+  mentir.
+- **`tests/site/title-source.test.ts` caso 3** — «cada título vive en el bundle de
+  su lengua y en ningún otro punto de `src/`». Sostiene el propósito de **CA-2**:
+  que nadie transcriba a mano un título que sale de i18n.
+- **`tests/site/document-titles.test.ts` caso 4** — «los cuatro títulos son
+  distintos entre sí dos a dos», escrito como `expect(new Set(declared).size).toBe(4)`.
+  Sostiene **CA-1**. Protegía **dos** cosas a la vez, y conviene separarlas porque
+  sólo una sobrevive: *(a)* que ninguna ruta sirva el título de **otra página**, y
+  *(b)* que las **dos lenguas de una misma página** no sirvan el mismo título — el
+  caso de «alguien se olvidó de traducir el título».
+
+Las dos eran razonables porque, con dos páginas, **ningún título se parecía a
+ninguna otra cadena del sistema**: *O proxecto — marcador.gal* y *O rastrexador —
+marcador.gal* son cadenas que no existen en ninguna otra parte por ningún otro
+motivo.
+
+### 2. Qué las invalida
+
+**El gate humano del 2026-09-04** decidió, sobre la nota §3 de SPEC-018, que el
+título de la pantalla del marcador es **`marcador.gal` a secas** —descartando
+expresamente `O marcador — marcador.gal`, que es la forma que sigue el patrón de
+las otras dos y que `sdd-lingua` §1.1 había dejado abierta como decisión de
+producto—. Lo recoge **SPEC-018 CA-13.5** y **ADR-027 §1**.
+
+Ese valor **es el nombre del dominio**, y de ahí salen las dos colisiones, que
+son **estructurales y no un descuido**:
+
+1. **`site.heading` también es `marcador.gal`**: es el `<h1>` de `/proxecto` desde
+   SPEC-004. Un título igual al nombre del sitio choca por fuerza con el caso 6.
+2. **El dominio aparece por construcción en once ficheros de `src/`** que no
+   tienen nada que ver con un título —`polite/user-agent.ts`, `site/contact.ts`,
+   `site/routes.ts`, `site/robots-txt.ts`, `api/freshness.ts`…—, así que el caso 3
+   se pone rojo **por una coincidencia de cadena y no por el defecto que vigila**.
+
+Y hay una **tercera colisión, con una causa distinta de las dos primeras**, que
+la primera redacción de esta enmienda no vio:
+
+3. **`marcador.gal` es el mismo título en las dos lenguas.** Las otras dos páginas
+   tienen un título con parte traducible —*O proxecto* / *El proyecto*— y el del
+   marcador **no tiene ninguna**: es el nombre del dominio, y el nombre del dominio
+   no se traduce. Así que las seis rutas producen **cinco** títulos distintos, y el
+   caso 4 se pone rojo por contar.
+
+**Las tres son estructurales y no elegibles por diseño:** las dos primeras las
+produce **cualquier** título que sea el nombre del sitio; la tercera, **cualquier**
+título sin parte traducible. **No hay forma de implementar la decisión del gate sin
+tocar los tres.**
+
+### 3. Con qué se sustituye, y dónde hay menos red que antes
+
+**Hay dos formas distintas, y la primera redacción de esta enmienda las confundió
+en una. Se corrigen aquí (§6).**
+
+**Forma A — exención nominal, en los casos 6 y 3.** Se añade **una colisión
+declarada por identidad de clave Y de valor** —`{ key: 'scoreboard', value:
+'marcador.gal' }`— con su motivo escrito, y **una aserción nueva que la ata**:
+`scoreboard` vuelve a ser rojo en cuanto deje de valer `marcador.gal`. **Aquí no
+se relaja el predicado y no se exime ninguna otra clave**: cualquier otro título
+que coincida con un valor del sitio, o que aparezca fuera de su bundle, **sigue
+siendo rojo**.
+
+**Forma B — relajación del predicado, en el caso 4. Y ésta hay que decirla con sus
+palabras, porque es lo que la primera redacción negó.** El predicado **cambia**:
+
+| | Antes | Después |
+|---|---|---|
+| Aserción | `expect(new Set(declared).size).toBe(4)` | `expect(new Set(declared).size).toBe(ROUTES.length - 1)` |
+| Qué dice | **todos** los títulos distintos | **se admite exactamente un duplicado** |
+
+No es una exención nominal: es **un presupuesto de una colisión**, y el conteo
+**no dice cuál**. Lo que lo compensa, y está en el mismo caso:
+
+1. `expect(titlesBundle('gl').scoreboard).toBe(titlesBundle('es').scoreboard)` —
+   **obliga** a que el duplicado exista y sea ése, así que no queda un hueco libre
+   que otro par pueda ocupar en su lugar;
+2. un bucle **por ruta** que afirma que **ninguna sirve el título de otra página**,
+   que es la mitad (a) del §1 y la que de verdad importaba.
+
+**Con las dos, la mitad (a) queda cubierta igual o mejor que antes** —el bucle es
+más explícito que un conteo—. **La mitad (b) se pierde para el marcador**, y a
+propósito: sus dos lenguas sirven el mismo título **por decisión del gate**, así
+que ahí «olvidarse de traducir» y «cumplir la decisión» son indistinguibles. Para
+`/proxecto` y `/robot` la mitad (b) **sigue viva**: si alguien pusiera el título
+galego en el bundle castellano, habría **dos** duplicados, el conteo daría
+`ROUTES.length - 2` y el caso mordería.
+
+**Y hay que decir, sin suavizarlo, dónde queda menos red — en tres sitios, no en
+uno:**
+
+- **Caso 6: no queda menos.** Lo que ese caso protege de verdad —que un título no
+  **vuelva** al namespace del sitio— lo sigue afirmando el **caso 5**, intacto y
+  sin exención. `scoreboard` vive en `titles`, no en `site`, y `site.heading` se
+  sigue sirviendo en el cuerpo de `/proxecto` exactamente igual, así que los
+  casos 2 y 5 de `pages.test.ts` no empiezan a mentir. **La exención es sobre una
+  coincidencia de valor, no sobre la propiedad que sostiene CA-3(c).**
+- **Caso 3: aquí sí queda menos.** A partir de ahora,
+  **alguien que escriba a mano `marcador.gal` como título en un módulo de `src/`
+  que no sea de ruta no lo detectaría este caso**. Lo que sigue cubriéndolo, y por
+  eso el hueco es estrecho: el **caso 2** —ningún módulo de ruta declara un título
+  como literal, que es la letra de CA-2— y el **caso 5 de
+  `tests/site/document-titles.test.ts`**, que afirma sobre el **HTML servido** que
+  el documento del marcador toma su título de `titlesBundle(locale).scoreboard`.
+  El camino realista está cubierto; el rebuscado, no.
+- **Caso 4: queda menos en dos cosas, y la segunda no la causa el título sino la
+  forma de escribir la aserción.**
+  1. **La mitad (b) desaparece para el marcador** (Forma B, arriba): nada detecta
+     que sus dos lenguas sean idénticas por descuido en vez de por decisión,
+     porque la aserción que las ata **exige** que lo sean.
+  2. **El número esperado dejó de ser un literal.** `toBe(4)` era una cifra escrita
+     a mano: añadir una ruta y no actualizarla ponía el caso **rojo**, y alguien
+     tenía que volver a contar. `toBe(ROUTES.length - 1)` **se mueve solo con el
+     censo**, así que añadir una séptima ruta ya no obliga a nadie a re-derivar
+     nada. Se pierde **fricción deliberada**, que era parte de lo que el caso
+     valía. **Esto no lo obligaba la decisión del gate y se podría haber escrito de
+     otra manera** —por ejemplo fijando `toBe(5)` a mano—; se acepta como está
+     porque el bucle por ruta cubre la propiedad, pero queda escrito que es una
+     elección de forma y no una consecuencia.
+
+**Y una precisión que hace la enmienda más leve de lo que parece: la letra de
+CA-2 y la de CA-3 siguen satisfechas enteras.** CA-2 dice «ningún título
+declarado por una ruta es una cadena escrita a mano» —caso 2, intacto—; CA-3(c)
+dice «el namespace del sitio ya no contiene el título» —caso 5, intacto—. Lo que
+se acota son **dos aserciones que iban más allá de la letra de su CA**, que es la
+clase de guardián más valiosa y también la que primero choca con un caso que
+nadie previó.
+
+**Lo que NO cambia, y conviene enumerarlo porque es casi todo:** los censos —el
+`PAGES` de `titles-i18n.test.ts` caso 4, que crece de dos a tres, y el `ROUTES` de
+`document-titles.test.ts`, que crece de cuatro a seis— **no son enmiendas**: son
+el dato de un guardián cuyo dato cambió, y SPEC-018 CA-13.6 y CA-17.2(ii) lo
+distinguen expresamente. Tampoco cambian la paridad de lenguas por tipo y en
+ejecución; que ninguna clave esté vacía; los casos 1, 2, 3 y 5 de
+`document-titles.test.ts` —incluido el 5, que afirma que el título **cambia si
+cambia el bundle**, y que es lo que sostiene que el del marcador no está
+transcrito—; el caso 2 y el caso 5 de `titles-i18n.test.ts`; y **CA-4 entero**,
+porque los **tres** ficheros tocados son **de esta spec**, no de SPEC-004 ni de
+SPEC-005, y ninguno de aquéllos se ha modificado.
+
+### 4. El veredicto sigue en pie, y ahora con la cuenta bien hecha
+
+**GREEN del 2026-09-01 intacto.** No se retira ninguna aserción, no se toca el
+cuerpo de la spec ni su frontmatter (ADR-015 §1 y §4), y `hecho` sigue siendo
+`hecho`.
+
+**Pero la primera redacción de este apartado decía «no se relaja ningún
+predicado», y eso era falso.** Lo correcto, y es lo que sostiene el veredicto:
+
+- **En dos de los tres guardianes** —caso 6 de `titles-i18n` y caso 3 de
+  `title-source`— hay **una excepción nominal atada por una aserción propia**, y
+  ahí el predicado **no se relaja**.
+- **En el tercero** —caso 4 de `document-titles`— **el predicado sí se relaja**, de
+  «todos distintos» a «se admite un duplicado», y lo compensan dos aserciones
+  nuevas (§3, Forma B).
+- **La letra de CA-1, CA-2 y CA-3(c) sigue satisfecha entera.** CA-1 dice «cada
+  ruta sirve el título de **su propia clave**» —el bucle por ruta lo afirma más
+  explícitamente que el conteo que sustituye—; CA-2, «ningún título declarado por
+  una ruta es una cadena escrita a mano» —caso 2, intacto—; CA-3(c), «el namespace
+  del sitio ya no contiene el título» —caso 5, intacto—. **Lo que se acota en los
+  tres sitios son aserciones que iban más allá de la letra de su CA.**
+
+Es la clase de guardián más valiosa y también la primera que choca con un caso que
+nadie previó. **El veredicto se sostiene porque ningún CA pierde su letra**, no
+porque no se haya tocado nada.
+
+### 5. Qué lo despierta
+
+- **El título del marcador deja de valer `marcador.gal`.** Las **tres** exenciones
+  quedan sin sujeto y **hay que retirarlas**, no dejarlas por si acaso: una
+  exención sin caso que la use es la puerta que alguien reutiliza. Las aserciones
+  añadidas en §3 lo ponen rojo el mismo día.
+- **El título del marcador gana una parte traducible** —deja de ser el mismo en las
+  dos lenguas—. Entonces el caso 4 puede **volver a `toBe(ROUTES.length)`**, que es
+  su forma fuerte, y las dos aserciones compensatorias sobran. Es el único de los
+  tres que se puede deshacer sin tocar los otros dos.
+- **Aparece un segundo título que colisiona con un valor del sitio o con una
+  cadena de `src/`.** Entonces esto deja de ser una colisión y pasa a ser un
+  patrón, y lo que toca **no es una tercera exención**: es rehacer el mecanismo del
+  caso 3 para que distinga «una cadena que aparece» de «una cadena usada como
+  título», que es lo que de verdad quiere vigilar.
+- **El día que exista CI** (F-SPEC-004-3 · F-SPEC-005-4). Hoy nada de esto se pone
+  rojo si nadie corre `npm run gates`.
+
+- **Aparece un segundo título sin parte traducible.** Entonces el presupuesto de
+  «un duplicado» deja de valer y **no se sube a dos**: hay que sustituir el conteo
+  por una comparación que nombre los pares admitidos, o el caso deja de medir.
+
+### 6. Corrección — 2026-09-04, tarde: esta enmienda describía mal lo que ampara
+
+**Lo escribo aquí y no reescribiendo en silencio, porque una enmienda de ADR-015
+que se corrige sin decirlo vale menos que la que no existió.**
+
+La primera redacción de esta enmienda, de esta misma mañana, **cubría dos
+guardianes y afirmaba que «no se relaja ningún predicado»**. Las dos cosas eran
+falsas: hay **tres** —el caso 4 de `document-titles.test.ts` también se tocó, en el
+mismo diff— y en ese tercero **el predicado sí se relajó**, de `toBe(4)` a
+`toBe(ROUTES.length - 1)`.
+
+**Lo encontró `sdd-verificador`** al verificar SPEC-018, y lo levantó como
+**F-SPEC-018-V2**, con la frase que da la medida del problema: *«el expediente
+afirma algo que el diff desmiente»*. No es un fallo de código —lo implementado es
+correcto y está compensado— sino **del documento que da fe de él**, que es la peor
+clase: el diff se revisa una vez y la enmienda se lee durante años.
+
+**Qué he corregido:** el encabezado (dos → **tres**), §1 (el tercer guardián y las
+**dos** cosas que protegía), §2 (la tercera colisión, que tiene **otra causa** — el
+título no tiene parte traducible, no que sea el dominio), §3 (partido en **Forma
+A**, exención nominal, y **Forma B**, relajación de predicado, con la tabla de
+antes y después y las dos compensaciones), §4 (la afirmación falsa, sustituida por
+la cuenta correcta) y §5 (dos disparadores nuevos).
+
+**Y una cosa que la corrección deja al descubierto y que no estaba en el hallazgo:**
+`toBe(ROUTES.length - 1)` **hace que el número esperado se mueva solo con el
+censo**, así que añadir una séptima ruta ya no obliga a nadie a re-derivar la
+cifra. Eso **no lo obligaba la decisión del gate**; es una elección de forma, se
+acepta porque el bucle por ruta cubre la propiedad, y queda escrita en §3 para que
+no se lea como una consecuencia inevitable.
+
+**Referencias:** SPEC-018 CA-13.5, CA-13.6, CA-17.2 y CA-18 · ADR-027 §1 ·
+ADR-015 §1, §2, §3 y §4 · F-SPEC-018-1 · F-SPEC-018-V2.

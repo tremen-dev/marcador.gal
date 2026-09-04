@@ -36,6 +36,32 @@ const TITLE_ELEMENT = /<\s*title[\s>/]/i;
 /** Dónde vive el texto de cada lengua, y el único sitio donde puede vivir. */
 const BUNDLE_OF: Record<SiteLocale, string> = { gl: 'i18n/gl.ts', es: 'i18n/es.ts' };
 
+/**
+ * COLISIÓN DECLARADA, Y NO ES UNA EXENCIÓN GENERAL — SPEC-018 CA-13.5.
+ *
+ * El gate del 2026-09-04 decidió que el título del marcador es **`marcador.gal`
+ * a secas**. Ese valor ES EL NOMBRE DEL DOMINIO, así que aparece por
+ * construcción en once ficheros de `src/` que no tienen nada que ver con un
+ * título —`polite/user-agent.ts`, `site/contact.ts`, `site/routes.ts`,
+ * `site/robots-txt.ts`, `api/freshness.ts`…—, y este caso se pone rojo por una
+ * coincidencia de cadena y no por el defecto que vigila.
+ *
+ * LO QUE ESTE CASO VIGILA SIGUE VIGILADO E INTACTO para los otros cuatro
+ * títulos: que nadie transcriba mañana a mano un título que hoy sale de i18n.
+ * Y para éste, lo que lo protege es lo que ya lo protegía antes: el caso 2
+ * —ningún módulo de ruta declara un título como literal— y el hecho de que el
+ * documento del marcador tome el suyo de `titlesBundle(locale).scoreboard`,
+ * que el caso 5 de `document-titles.test.ts` afirma sobre el HTML servido.
+ *
+ * LA EXCEPCIÓN ES POR IDENTIDAD DE CLAVE Y DE VALOR: cualquier otro título que
+ * aparezca fuera de su bundle sigue siendo ROJO, y `scoreboard` vuelve a serlo
+ * en cuanto deje de valer `marcador.gal`.
+ *
+ * ⚠ EXIGE UNA ENMIENDA DE ADR-015 SOBRE SPEC-006 QUE CA-18.4 NO ORDENÓ y que
+ * sólo `sdd-arquitecto` puede firmar. Anotado en el ledger (F-SPEC-018-1).
+ */
+const SCOREBOARD_BARE_DOMAIN = { key: 'scoreboard', value: 'marcador.gal' } as const;
+
 function isTypeScript(file: SourceFile): boolean {
   return file.path.endsWith('.ts') || file.path.endsWith('.tsx');
 }
@@ -75,6 +101,10 @@ describe('CA-2 — el título es un dato de i18n, nunca una cadena escrita a man
 
     const offenders = SITE_LOCALES.flatMap((locale) =>
       Object.entries(titlesBundle(locale))
+        .filter(
+          ([key, value]) =>
+            !(key === SCOREBOARD_BARE_DOMAIN.key && value === SCOREBOARD_BARE_DOMAIN.value),
+        )
         .map(([key, value]) => ({
           key: `${locale}.${key}`,
           where: files.filter((f) => f.text.includes(value)).map((f) => f.path),
@@ -84,6 +114,12 @@ describe('CA-2 — el título es un dato de i18n, nunca una cadena escrita a man
     );
 
     expect(offenders).toEqual([]);
+
+    // La colisión declarada es EXACTAMENTE ésa y no otra: si el título del
+    // marcador cambia, este caso vuelve a morder sin tocar nada.
+    for (const locale of SITE_LOCALES) {
+      expect(titlesBundle(locale).scoreboard).toBe(SCOREBOARD_BARE_DOMAIN.value);
+    }
   });
 });
 

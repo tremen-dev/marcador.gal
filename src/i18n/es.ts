@@ -15,10 +15,11 @@
  * SPEC-015 wrote down (SPEC-017 CA-9.6). The literals come from
  * `docs/fundacion/dominio.md`, where the gate of 2026-09-03 wrote them.
  */
-import type { MatchQualifier } from '../model/qualifier';
 import type { AdminBundle } from './admin-bundle';
+import type { BoardBundle } from './board-bundle';
 import type { BotBundle } from './bot-bundle';
 import type { CrawlerBundle } from './crawler-bundle';
+import type { QualifiersBundle } from './qualifiers-bundle';
 import type { SiteBundle } from './site-bundle';
 import type { StatusesBundle } from './statuses-bundle';
 import type { TitlesBundle } from './titles-bundle';
@@ -132,7 +133,66 @@ export const es = {
     confirmado: 'Confirmado',
     pendente_de_confirmar: 'Pendiente de confirmar',
     sen_sinal: 'Sin señal',
-  } satisfies Record<MatchQualifier, string>,
+  } satisfies QualifiersBundle,
+
+  /**
+   * El marcador (SPEC-018). *Sinal* / *señal* NO aparecen aquí —viven solo en
+   * `qualifiers`— y *actualizar* / *actualizado* no aparecen allí
+   * (ADR-027 §4.4). Las dos ausencias son un caso.
+   */
+  board: {
+    heading: 'El marcador',
+
+    competitionHeading: '{competition}',
+    roundLabel: 'Jornada {round}',
+
+    colTime: 'Hora',
+    colHome: 'Casa',
+    colAway: 'Fuera',
+    colScore: 'Marcador',
+    colStatus: 'Estado',
+    colQualifier: 'Cualificador',
+    colLastData: 'Último dato',
+
+    statusInline: 'Estado',
+    qualifierInline: 'Cualificador',
+
+    noScoreYet: 'Sin marcador publicado',
+    suspendedReserve:
+      'Suspendido: el marcador no es definitivo hasta que decida el Comité de Competición.',
+
+    lastDataNow: 'Ahora mismo',
+    lastDataMinutes: 'Hace {n} min',
+    lastDataNone: 'Todavía no',
+
+    refreshedNow: 'Actualizado ahora mismo',
+    refreshedMinutes: 'Actualizado hace {n} min',
+    refreshFailed: 'No se ha podido actualizar. Lo que ves es de hace {n} min.',
+    reloadHint: 'Carga la página de nuevo.',
+    autoRefresh: 'Esta página se actualiza sola cada {seconds} segundos.',
+
+    publishedNever: 'Todavía no se ha publicado ningún marcador.',
+    publishedAt: 'Última publicación: hace {n} min.',
+
+    emptyNoMatchday:
+      'No hay ninguna jornada de medición declarada, así que no hay nada que mostrar.',
+    emptyNoMatches: 'La jornada declarada no tiene ningún partido.',
+
+    noticeHeading: 'Qué es esto',
+    noticeMeasurement: 'Esto es una medición, no un producto.',
+    noticeNotOfficial: 'No es oficial: no viene de la RFGF ni de futgal.es.',
+    noticeSingleSource:
+      'Hay una sola fuente automática, así que lo normal es que el marcador sea provisional y que llegue con retraso.',
+    noticeSeveralSources:
+      'Hay {sources} fuentes automáticas, así que el marcador puede llegar con retraso.',
+    noticeStop: 'Para pedir que pare, basta con escribir a {mailbox}.',
+
+    crawlerLink: 'Cómo se leen las páginas públicas, y cómo pedir que pare',
+    projectLink: 'Qué es marcador.gal',
+    mailboxLink: 'Escribir al buzón',
+
+    otherLanguage: 'Galego',
+  } satisfies BoardBundle,
 
   admin: {
     title: 'Panel del operador — marcador.gal',
@@ -202,6 +262,11 @@ export const es = {
   titles: {
     project: 'El proyecto — marcador.gal',
     crawler: 'El rastreador — marcador.gal',
+    /**
+     * `marcador.gal` A SECAS, igual que en galego. Decidido por Alberto Fojo
+     * el 2026-09-04 (SPEC-018 CA-13.5).
+     */
+    scoreboard: 'marcador.gal',
   } satisfies TitlesBundle,
 
   site: {
@@ -219,21 +284,28 @@ export const es = {
     measuring:
       'El objeto del estudio son las opciones de obtener los resultados del fútbol ' +
       'gallego: qué vías hay para leerlos y cuánto trabajo llevan. ' +
-      'La medición todavía no ha empezado y no hay ninguna cifra. ' +
+      'El instrumento ya está construido y todavía no hay ninguna cifra: no se ha ' +
+      'declarado ninguna jornada de medición. ' +
       'La fuente oficial de las competiciones que se quieren medir no se rastrea, ' +
       'porque su fichero robots.txt no lo permite y respetarlo es una norma del ' +
-      'proyecto: esa es una de las razones por las que el estudio está parado.',
+      'proyecto.',
 
     purposeHeading: 'Para qué',
     purpose:
       'La medición sirve para decidir una sola cosa: si el proyecto es viable. ' +
-      'El resultado es un informe interno, no un producto.',
+      'El resultado es un informe interno, no un producto; lo que sí se puede ver es ' +
+      'la pantalla donde se mide.',
 
     noProductHeading: 'Todavía no hay producto',
     noProduct:
-      'Hoy no hay nada que usar: ni marcador público, ni aplicación, ni cuenta que ' +
-      'crear. Esta página existe para decir quién está detrás y qué se va a medir, ' +
-      'y nada más.',
+      'Hoy no hay producto: ni aplicación, ni cuenta que crear. ' +
+      'Sí hay una pantalla pública de medición, el marcador, que muestra los partidos ' +
+      'de las jornadas declaradas de dos competiciones y nada más. ' +
+      'Es un instrumento de medida: lo normal es que el marcador vaya provisional y ' +
+      'que llegue con retraso, y se apaga cuando la medición termina.',
+
+    scoreboardHeading: 'El marcador',
+    scoreboardLink: 'Ver la pantalla de medición',
 
     crawlerHeading: 'El rastreador',
     crawlerLink: 'Cómo se leen las páginas públicas, y cómo pedir que pare',
@@ -277,9 +349,47 @@ export const es = {
 
     noRepublishHeading: 'Qué no hacemos con lo que leemos',
     noRepublish:
-      'No republicamos los datos de nadie. Esto es una medición, y el resultado es un ' +
-      'informe interno. No hay marcador público, ni fichero de datos, ni nada que se pueda ' +
-      'consultar fuera del proyecto.',
+      'No hay redistribución en bloque: ni fichero de datos, ni volcado, ni feed, ni ' +
+      'API, ni widget, ni exportación. No hay histórico. ' +
+      'Hay una pantalla pública de medición que muestra dos competiciones y solo las ' +
+      'jornadas declaradas, como mucho dos, y de cada partido salen cuatro cosas: la ' +
+      'hora, los dos equipos, el marcador y el estado. ' +
+      'No sale ni un dato personal, no hay monetización y la retención no se mueve.',
+
+    scoreboardHeading: 'La pantalla de medición',
+    scoreboardLink: 'Ver lo que se publica',
+
+    noNamesHeading: 'A quién leemos',
+    noNames:
+      'No nombramos los sitios que leemos. Si crees que leemos el tuyo, escribe a ' +
+      '{mailbox} y paramos: no hace falta que lo confirmemos antes.',
+
+    privacyHeading: 'Qué se registra de quien visita',
+    privacyNoTrackers:
+      'No hay cookies, ni analítica, ni ningún componente de terceros en las páginas ' +
+      'de este sitio.',
+    privacyLog:
+      'El servidor deja un registro técnico de cada petición: la dirección IP, la hora, ' +
+      'la página pedida, el navegador y de dónde viene el enlace. No se recoge ningún ' +
+      'otro dato de quien visita.',
+    privacyProcessor:
+      'El sitio está alojado en {provider}, que es quien guarda ese registro por cuenta ' +
+      'de marcador.gal. {provider} está en Estados Unidos, y la transferencia está ' +
+      'amparada por una decisión de adecuación de la Comisión Europea.',
+    privacyBasis:
+      'La base jurídica es el interés legítimo de mantener el servicio en pie y seguro: ' +
+      'sin ese registro no se puede saber si algo falla ni frenar un abuso.',
+    privacyRetention:
+      'marcador.gal no guarda nada de quien visita ni exporta copia de ese registro. ' +
+      'Lo conserva {provider} durante {retention}, que es el plazo que fija ella.',
+    privacyController: 'Del sitio responde el proyecto, bajo el paraguas de tremen.dev.',
+    privacyRights:
+      'Puedes pedir acceso, rectificación, supresión, limitación u oposición: escribe a ' +
+      '{mailbox}.',
+    privacyAuthority: 'Y puedes reclamar ante la Agencia Española de Protección de Datos.',
+    privacyNotTheArchive:
+      'Ese registro no es el archivo del que habla «Qué guardamos y cuánto tiempo»: aquel ' +
+      'guarda lo que se lee de otros sitios; este, el rastro que deja quien visita.',
 
     storageHeading: 'Qué guardamos y cuánto tiempo',
     storage:
@@ -290,8 +400,10 @@ export const es = {
 
     stopHeading: 'Cómo pedir que pare',
     stop:
-      'Escribe a {mailbox} y paramos. Basta con pedirlo. También sirve añadir una regla en ' +
-      'tu propio robots.txt: lo leemos antes de cada ventana de observación y lo respetamos.',
+      'Escribe a {mailbox} y paramos. Basta con pedirlo, y vale tanto para dejar de leer ' +
+      'tu sitio como para dejar de publicar nada que salga de él. También sirve añadir ' +
+      'una regla en tu propio robots.txt: lo leemos antes de cada ventana de observación ' +
+      'y lo respetamos.',
 
     otherLanguage: 'Galego',
   } satisfies CrawlerBundle,

@@ -15,7 +15,7 @@ import { parseRobots } from '@/polite/robots';
 import { USER_AGENT } from '@/polite/user-agent';
 import { MAILBOX } from '@/site/contact';
 import { buildRobotsTxt } from '@/site/robots-txt';
-import { CRAWLER_PATH, PROJECT_PATH, SITE_ORIGIN } from '@/site/routes';
+import { CRAWLER_PATH, PROJECT_PATH, SCOREBOARD_PATH, SITE_ORIGIN } from '@/site/routes';
 import { stripComments } from './source-scan';
 
 describe('CA-11 — robots.txt propio', () => {
@@ -36,10 +36,30 @@ describe('CA-11 — robots.txt propio', () => {
     expect(buildRobotsTxt()).not.toMatch(/^\s*disallow:/im);
   });
 
+  /**
+   * CENSO ACTUALIZADO EL 2026-09-04 (SPEC-018 CA-13.6 y CA-2.3, disciplina de
+   * CA-17.2 (ii)): la lista ENUMERA LAS RUTAS DEL SITIO y el sitio gana dos.
+   * La regla que guarda —nuestro propio parser nos deja rastrear el sitio
+   * entero— no cambia ni una letra.
+   *
+   * Y `robots.txt` NO GANA NINGÚN `Disallow` (caso 3, intacto). El motivo dejó
+   * de ser «un `Disallow` confirma que existe» y pasó a ser TÉCNICO: un
+   * `Disallow: /marcador` DERROTARÍA al `noindex`, porque sin rastrear el
+   * buscador nunca lo lee y la URL puede indexarse desnuda. Las dos directivas
+   * juntas son estrictamente peores que `noindex` sola (ADR-027 §3.a).
+   */
   test('4. nuestro propio parser nos deja rastrear el sitio entero', () => {
     const policy = parseRobots(buildRobotsTxt(), USER_AGENT);
 
-    const paths = ['/', PROJECT_PATH.gl, PROJECT_PATH.es, CRAWLER_PATH.gl, CRAWLER_PATH.es];
+    const paths = [
+      '/',
+      PROJECT_PATH.gl,
+      PROJECT_PATH.es,
+      CRAWLER_PATH.gl,
+      CRAWLER_PATH.es,
+      SCOREBOARD_PATH.gl,
+      SCOREBOARD_PATH.es,
+    ];
 
     expect(paths.filter((path) => !policy.isAllowed(`${SITE_ORIGIN}${path}`))).toEqual([]);
   });

@@ -25,6 +25,7 @@
  */
 import { es } from './es';
 import { gl } from './gl';
+import { qualifiersBundle } from './qualifiers';
 import { statusesBundle } from './statuses';
 import type { AdminBundle, AdminLocale } from './admin-bundle';
 import type { MatchStatus } from '../model/match';
@@ -104,25 +105,27 @@ export function adminStatus(locale: AdminLocale, status: MatchStatus): AdminText
   return asAdminText(statusesBundle(locale)[status]);
 }
 
-const QUALIFIERS: Record<AdminLocale, Readonly<Record<MatchQualifier, string>>> = {
-  gl: gl.qualifiers,
-  es: es.qualifiers,
-};
-
 /**
  * The visible form of a qualifier, in BOTH languages (CA-9.6).
  *
  * The panel is the first artefact of the real system that shows a person a
  * qualifier, which is the trigger SPEC-015 left written. The gate of
  * 2026-09-03 decided they ARE translated, and `sdd-arquitecto` wrote the two
- * columns in `docs/fundacion/dominio.md` the same day: the literals below come
- * from there and are not invented here. TWO OF THE FOUR ARE IDENTICAL IN BOTH
+ * columns in `docs/fundacion/dominio.md` the same day: the literals come from
+ * there and are not invented here.
+ *
+ * SINCE SPEC-018 (CA-13.4) THEY COME THROUGH `src/i18n/qualifiers.ts`, the
+ * namespace's own resolver, extracted so that the scoreboard does not have to
+ * import the panel's bundle to name a qualifier. NOT ONE LITERAL CHANGED and
+ * the panel's i18n case stays green without touching an assertion.
+ *
+ * TWO OF THE FOUR ARE IDENTICAL IN BOTH
  * LANGUAGES AND THAT IS CORRECT — *Provisional* and *Confirmado* — and it is
  * not something to «fix». THE IDENTIFIER IS NOT TRANSLATED: `MATCH_QUALIFIERS`
  * stays in galego (SPEC-001 CA-8).
  */
 export function adminQualifier(locale: AdminLocale, qualifier: MatchQualifier): AdminText {
-  return asAdminText(QUALIFIERS[locale][qualifier]);
+  return asAdminText(qualifiersBundle(locale)[qualifier]);
 }
 
 /**

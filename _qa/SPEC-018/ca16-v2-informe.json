@@ -1,0 +1,131 @@
+{
+  "tabular": [
+    {
+      "sel": "[data-field=\"score\"]",
+      "text": "1-0",
+      "fontVariantNumeric": "tabular-nums",
+      "fontFeatureSettings": "\"tnum\"",
+      "family": "\"Geist Mono\"",
+      "size": "20px",
+      "weight": "600",
+      "lineHeight": "20px"
+    },
+    {
+      "sel": "[data-field=\"time\"]",
+      "text": "2026-09-06 17:00",
+      "fontVariantNumeric": "tabular-nums",
+      "fontFeatureSettings": "\"tnum\"",
+      "family": "\"Geist Mono\"",
+      "size": "13px",
+      "weight": "600",
+      "lineHeight": "13px"
+    },
+    {
+      "sel": "[data-field=\"last\"]",
+      "text": "Hai 22 min",
+      "fontVariantNumeric": "tabular-nums",
+      "fontFeatureSettings": "\"tnum\"",
+      "family": "\"Geist Mono\"",
+      "size": "13px",
+      "weight": "600",
+      "lineHeight": "13px"
+    }
+  ],
+  "medida": {
+    "scoreEnSuFamilia": {
+      "unos": 72.25,
+      "ceros": 72.25
+    },
+    "scoreForzadoASans": {
+      "unos": 75.53125,
+      "ceros": 75.53125
+    },
+    "parrafoSans": {
+      "unos": 42.65625,
+      "ceros": 58.59375
+    }
+  },
+  "layout": {
+    "docScrollWidth": 360,
+    "docClientWidth": 360,
+    "rows": 4
+  },
+  "cells": [
+    {
+      "status": "En xogo",
+      "statusColor": "rgb(255, 107, 0)",
+      "qual": "Provisional",
+      "qualColor": "rgb(245, 241, 234)",
+      "home": "RC Celta B",
+      "truncado": false
+    },
+    {
+      "status": "Rematado",
+      "statusColor": "rgb(167, 165, 160)",
+      "qual": "Pendente de confirmar",
+      "qualColor": "rgb(240, 177, 53)",
+      "home": "SD Compostela",
+      "truncado": false
+    },
+    {
+      "status": "Aprazado",
+      "statusColor": "rgb(240, 177, 53)",
+      "qual": "Confirmado",
+      "qualColor": "rgb(245, 241, 234)",
+      "home": "Arosa SC",
+      "truncado": false
+    },
+    {
+      "status": "Suspendido",
+      "statusColor": "rgb(240, 177, 53)",
+      "qual": "Sen sinal",
+      "qualColor": "rgb(255, 101, 90)",
+      "home": "CD Lugo B",
+      "truncado": false
+    }
+  ],
+  "tabStops": [
+    {
+      "el": "DIV",
+      "href": null,
+      "fv": true,
+      "outline": "2px solid",
+      "h": 139
+    },
+    {
+      "el": "DIV",
+      "href": null,
+      "fv": true,
+      "outline": "2px solid",
+      "h": 100
+    },
+    {
+      "el": "A",
+      "href": "/robot",
+      "fv": true,
+      "outline": "2px solid",
+      "h": 46
+    },
+    {
+      "el": "A",
+      "href": "/proxecto",
+      "fv": true,
+      "outline": "2px solid",
+      "h": 44
+    },
+    {
+      "el": "A",
+      "href": "mailto:ola@tremen.dev",
+      "fv": true,
+      "outline": "2px solid",
+      "h": 44
+    },
+    {
+      "el": "A",
+      "href": "/es/marcador",
+      "fv": true,
+      "outline": "2px solid",
+      "h": 44
+    }
+  ]
+}

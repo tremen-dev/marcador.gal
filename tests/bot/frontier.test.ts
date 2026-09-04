@@ -372,8 +372,14 @@ describe('CA-10.4 — ningún fichero del repositorio contiene un `telegram_user
     // real: se escribe, se mide, se borra. La extensión es `.md` y no `.ts`
     // A PROPÓSITO — un módulo huérfano bajo `src/` pondría rojo el caso de
     // cobertura de `tests/polite/architecture.test.ts`, que corre en otro
-    // worker (F-SPEC-013-10) —, y no debilita nada: este mecanismo no mira la
-    // extensión, y que alcanza a los `.ts` de `src/` lo afirma el caso 27.
+    // worker (F-SPEC-013-10) —, y no debilita nada: que alcanza a los `.ts` de
+    // `src/` lo afirma el caso 27.
+    //
+    // MATIZ DESDE EL 2026-09-04 (enmienda ADR-015, F-SPEC-018-N1): este
+    // mecanismo SÍ mira la extensión, pero sólo para dejar fuera dos
+    // contenedores comprimidos —`*.png` y `*.woff2`— donde no puede informar en
+    // ninguna dirección. Para todo lo demás, incluida la extensión de esta
+    // sonda, sigue sin mirarla.
     writeFileSync(PROBE_PATH, PROBE_TEXT, 'utf8');
     try {
       const offences = telegramIdOffences();

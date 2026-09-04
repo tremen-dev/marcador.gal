@@ -37,4 +37,20 @@ export interface TitlesBundle {
    * is the first thing anyone auditing a log sees of us.
    */
   readonly crawler: string;
+
+  /**
+   * `/marcador` and `/es/marcador` (SPEC-018 CA-13.5, ADR-027 §1).
+   *
+   * ITS VALUE IS `marcador.gal` IN BOTH LANGUAGES, decided by Alberto Fojo on
+   * 2026-09-04, discarding the form `O marcador — marcador.gal` that follows
+   * the pattern of the other two: the scoreboard's front page does not repeat
+   * the domain behind a dash. It is a product decision, not a language one —
+   * `sdd-lingua` §1.1 left it open as exactly that.
+   *
+   * It is here and not anywhere else because SPEC-006 left it written that
+   * every new page of the site declares its title here or has none; the page
+   * is served from a route handler, but the title is still a DATUM and this
+   * is where the data of the titles live.
+   */
+  readonly scoreboard: string;
 }

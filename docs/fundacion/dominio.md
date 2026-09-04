@@ -74,6 +74,38 @@ Nota de norma, del mismo dictamen: **`aprazar`/`Aprazado`**, no *adiar*
 puerta—, así que el estado se muestra **siempre con su etiqueta** («Estado:
 Rematado») y nunca como frase suelta.
 
+**`descanso` NO es un estado, y no hay un sexto. Entrada de resolución, añadida
+el 2026-09-04** (SPEC-018 CA-17.1, ADR-027 §9.1), para que la pregunta no vuelva.
+
+El intervalo entre las dos partes —Regla 7 IFAB, no más de 15 minutos— es un
+momento **dentro de `live`**: un partido en el descanso **está *En xogo***. Ni ha
+terminado, ni está detenido, ni está suspendido, y la competición no lo reconoce
+como situación administrativa de un partido: las que sí reconoce son *jugado*,
+*aplazado*, *suspendido* y *no presentado*.
+
+Por tanto **`MATCH_STATUSES` sigue teniendo cinco valores**, RN-06 no gana
+ninguna transición y `migrations/0001` no se toca. **Lo que una fuente escriba
+como «Descanso» se lee como `live`** — así lo hace ya `CEROACERO_SHAPE.statusWords`
+desde SPEC-008, y ese mapeo es correcto y no se toca.
+
+Los cuatro motivos, cada uno suficiente, están en **ADR-027 §9.1**; el más
+importante es que RN-06 es una **tabla cerrada de transiciones** y admitir el
+descanso obligaría a decidir quién puede provocarlo y qué le pasa al timeout de
+`kickoff + 110 min`, que se contaría sobre un partido que estuvo quince minutos
+sin jugarse. Eso no es un literal nuevo: es reabrir el motor.
+
+**Si algún día se quiere enseñar, la vía es un cualificador derivado, no un
+estado** —la forma de *pendente de confirmar* y *sen sinal* (ADR-021 §6)—, y hoy
+**no se puede derivar** porque el modelo no guarda ni minuto ni periodo.
+
+**`docs/diseno/` dibuja un `DESC` que no está en este glosario** y que ADR-026
+§4.3 ya trata como desviación del artefacto. No es evidencia de dominio: sus
+datos de muestra son inventados y su propio `canvas.json` lo advierte. Queda
+inventariado en EPIC-004 con el resto de la reparación del artefacto.
+
+**Dictamen de `sdd-competicion` del 2026-09-04**, disparado por ADR-026 §7;
+**firmado por Alberto Fojo en el gate de SPEC-018 del 2026-09-04**.
+
 ## Cualificadores del marcador (visibles en UI, en las dos lenguas)
 
 | Término | Significado | Notas | Literal galego | Literal castellano |
@@ -82,6 +114,18 @@ Rematado») y nunca como frase suelta.
 | **confirmado** | Publicado con fuente de peso ≥ 0.9, o dos fuentes independientes ≥ 0.7 coincidentes (RN-02). | Qué cuenta como **independientes** no se presume: se mide. Ver *Independencia entre fuentes* — y hoy la segunda vía **no se dispara con ninguna fuente real**, porque la lista de pares declarados nace vacía. Cómo se distingue en pantalla: **ADR-026 §2**, bajo esta tabla. **Lleva etiqueta siempre** —también él— y **nunca se pinta con el acento de marca**. | Confirmado | Confirmado |
 | **pendente de confirmar** | `finished` alcanzado por timeout, sin fuente que lo cierre. | En i18n en las dos lenguas desde el 2026-09-03 (SPEC-017 CA-9.6). **Se deriva, no se guarda** (SPEC-013, ADR-021 §6): la `Decision` vigente es `finished` y **ninguna** de sus observaciones de apoyo dice `finished`. Cómo se distingue: **ADR-026 §2.4** — color de aviso **con su etiqueta al lado, siempre**; nunca el glifo `?` que dibuja `docs/diseno/`, que no está en este glosario y no es traducible (ADR-026 §4.2). | Pendente de confirmar | Pendiente de confirmar |
 | **sen sinal** | Partido `live` sin observación nueva en 15 min (RN-07). | En i18n en las dos lenguas desde el 2026-09-03 (SPEC-017 CA-9.6). Genera alerta en el panel. **Se deriva, no se guarda** (SPEC-013, ADR-021 §6): la `Decision` vigente tiene `rule: 'RN-07'`. Entrar en *sen sinal* **emite `Decision`** —cambia lo que ve el usuario, y nada llega al usuario sin pasar por el motor (RN-08)— con el mismo estado y el mismo marcador; salir de él emite otra, con la regla que corresponda (RN-12, escalón 5: «la `Decision` solo mueve el marcador **o su cualificador**»). Cómo se distingue: **ADR-026 §2.4**, igual que el anterior; nunca el glifo `!`. | Sen sinal | Sin señal |
+
+**Los cuatro califican una `Decision` publicada. Un partido sin `Decision` NO
+tiene cualificador — no tiene «ninguno», no tiene uno vacío y no tiene un
+quinto.** Añadido el 2026-09-04 (SPEC-018 CA-17.1, ADR-027 §6): el caso normal
+antes del primer tick es un partido del calendario declarado sobre el que todavía
+no se ha publicado nada, y ahí **no hay ninguna `Decision` que calificar**. La
+ausencia de dato **no es un cualificador**, y se dice con su propio literal —*Sen
+marcador publicado* / *Sin marcador publicado*— **nunca con los tokens de aviso**,
+que ya significan *sen sinal* y *pendente de confirmar*, y **nunca como «sen
+datos»**, que comparte molde con *sen sinal* y reintroduce justo la confusión que
+`sdd-lingua` §3.1 obliga a cerrar. Esta línea existe para que ninguna spec futura
+invente un quinto cualificador para llenar ese hueco.
 
 **Cómo se distinguen en pantalla, y esto ya no está abierto.** *Fijado el
 2026-09-03 por **ADR-026 §2**, que lo decide **para todas las interfaces**, no
@@ -160,6 +204,74 @@ color, y ninguno baja de 4.5:1—; lo que desaparece es la posibilidad de cumpli
 la etiqueta, dónde va, y si *confirmado* lleva además una marca. Eso es de la
 spec que dibuje cada pantalla (ADR-026 §2, último párrafo).
 
+
+## Los dos lados de un partido
+
+Añadido el 2026-09-04 (SPEC-018 CA-17.1), porque el marcador es **la primera
+superficie que los rotula en una cabecera de columna** y había **dos pares en
+circulación**. El identificador va en inglés (`home_id`, `away_id`); el literal es
+lo que ve una persona y va a i18n en las dos lenguas (D-2).
+
+| Término | Definición | Notas | Literal galego | Literal castellano |
+|---|---|---|---|---|
+| **equipo da casa** | El lado local de un `Match`: `home_id`. | Etiqueta visible en **toda** superficie. | **Casa** | Casa |
+| **equipo de fóra** | El lado visitante de un `Match`: `away_id`. | Ídem. Ojo: **`fóra` lleva acento** —adverbio—; `fora` sin acento es forma verbal. | **Fóra** | Fuera |
+
+**Gana el par que ya era texto visible, y ése es el criterio.** `src/i18n/` ya
+servía *da casa* / *de fóra* desde **dos specs cerradas** —`helpOrder` del bot
+(SPEC-015) y `formHomeScore`/`formAwayScore` del panel (SPEC-017)—, mientras que
+`docs/diseno/` usa *local* / *visitante* **en prosa** y está congelado. Registrar
+*local*/*visitante* como etiqueta habría creado el segundo par exacto que
+*Directo*/*En xogo* creó, en la misma pantalla y el mismo día que SPEC-018 venía a
+pagar esa factura (F-SPEC-015-9).
+
+***Local* y *visitante* siguen siendo galego correcto y siguen valiendo en prosa y
+en documentación.** Lo que no pueden ser es **una etiqueta visible**.
+
+**Y los nombres de los equipos no se traducen, no se abrevian y no se truncan**,
+en ninguna lengua y en ninguna anchura: son los canónicos de la RFGF (ver
+`Team`, y ADR-013 §4 —sin escudos, la fila funciona sólo con tipografía—). El
+motivo es concreto y lo dio `sdd-competicion`: en Terceira RFEF juegan **filiales
+que se distinguen por una sola letra final**, así que `CD Lugo B` truncado a
+`CD Lugo` son **dos clubes con el mismo texto en pantalla**. Si no cabe, crece la
+fila.
+
+**Dictamen de `sdd-lingua` del 2026-09-04**; **firmado por Alberto Fojo en el gate
+de SPEC-018 del 2026-09-04**.
+
+## Protección de datos (visible en UI, en las dos lenguas)
+
+Añadido el 2026-09-04 (SPEC-018 CA-18.2), a instancia de `sdd-lingua`, porque
+este vocabulario pasa a estar en **tres superficies** —el aviso del bot
+(`bot.notice*`, SPEC-015), la línea de privacidad de `/robot`, y una futura
+página propia— y **ésa es exactamente la configuración que produjo *Directo* /
+*En xogo*** (F-SPEC-015-9). Se registra **antes de usarse**, como exige la
+cabecera de este glosario.
+
+| Término | Literal galego | Literal castellano | Trampa |
+|---|---|---|---|
+| responsable del tratamiento | **responsable do tratamento** | responsable del tratamiento | **`-ble`, no `-bel`**; plural *responsables* |
+| encargado del tratamiento | **encargado do tratamento** | encargado del tratamiento | **`tratamento` es galego correcto** aunque coincida con el portugués |
+| interés legítimo | **interese lexítimo** | interés legítimo | `interese` (masculino) y `lexítimo` con **`x`** |
+| plazo de conservación | **prazo de conservación** | plazo de conservación | **`prazo`**, no *plazo* — y **cuidado con la hipercorrección inversa** |
+| derechos | **acceso, rectificación, supresión, limitación e oposición** | acceso, rectificación, supresión, limitación y oposición | **`supresión`** es el nombre del derecho: no *borrado* ni *eliminación* |
+| registro de acceso | **rexistro de acceso** | registro de acceso | `rexistro` con **`x`** |
+| dirección IP | **enderezo IP** | dirección IP | **`enderezo`**, masculino. *Dirección* existe en galego con otro sentido: el castellanismo es invisible |
+| proveedor de alojamiento | **provedor de aloxamento** | proveedor de alojamiento | **`provedor`, una sola `e`**; `aloxamento`, no *hospedaxe* (que es para personas) |
+| transferencia internacional de datos | **transferencia internacional de datos** | transferencia internacional de datos | **`datos`, nunca `dados`**: en galego son los de jugar. El lusismo que más caro sale porque se lee bien |
+
+**Y dos cosas que no son vocabulario sino invariantes de este bloque**, las dos de
+`sdd-lingua` y las dos vinculantes:
+
+1. **En un texto de privacidad el «nós» está prohibido salvo en el buzón.** El
+   registro de acceso **no lo hace marcador.gal**, lo hace el proveedor: escribir
+   *«gardamos o teu enderezo IP»* atribuye al proyecto un acto que ejecuta otro
+   **y funde este bloque con el de retención del raw store**, que empieza
+   literalmente con «Gardamos…» y habla de otra cosa y de otro plazo.
+2. **Un plazo se dice con tres piezas —cuánto, desde cuándo y qué pasa al final—**
+   y si falta la primera se da el **criterio**, nunca el hecho de no saberlo.
+   *«Consérvase o tempo que ese rexistro dura»* es una **tautología**, no un plazo,
+   y es el defecto que el RED de SPEC-018 encontró publicado.
 
 ## Fuentes y organismos
 

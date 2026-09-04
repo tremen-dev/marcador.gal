@@ -23,8 +23,9 @@ import { crawlerBundle } from '@/i18n/crawler';
 import { otherLocale } from '@/i18n/site';
 import type { SiteLocale } from '@/i18n/site-bundle';
 import { USER_AGENT } from '@/polite/user-agent';
+import { withHosting } from '@/site/hosting';
 import { withMailbox } from '@/site/mailbox-link';
-import { CRAWLER_PATH } from '@/site/routes';
+import { CRAWLER_PATH, SCOREBOARD_PATH } from '@/site/routes';
 
 export function CrawlerPage({ locale }: { locale: SiteLocale }) {
   const t = crawlerBundle(locale);
@@ -60,9 +61,41 @@ export function CrawlerPage({ locale }: { locale: SiteLocale }) {
         <p>{t.noRepublish}</p>
       </section>
 
+      {/* SPEC-018 CA-2.9: la pantalla se enlaza desde la página que un tercero audita. */}
+      <section>
+        <h2>{t.scoreboardHeading}</h2>
+        <p>
+          <a href={SCOREBOARD_PATH[locale]}>{t.scoreboardLink}</a>
+        </p>
+      </section>
+
+      <section>
+        <h2>{t.noNamesHeading}</h2>
+        <p>{withMailbox(t.noNames)}</p>
+      </section>
+
       <section>
         <h2>{t.storageHeading}</h2>
         <p>{t.storage}</p>
+      </section>
+
+      {/*
+        SPEC-018 CA-18.2 — one claim, one paragraph, in the order the ruling
+        fixed: no trackers, what is logged, who processes it, on what basis, for
+        how long, who answers, the rights, the authority, and the sentence that
+        keeps this block from being read as the one above it.
+      */}
+      <section>
+        <h2>{t.privacyHeading}</h2>
+        <p>{t.privacyNoTrackers}</p>
+        <p>{t.privacyLog}</p>
+        <p>{withHosting(t.privacyProcessor)}</p>
+        <p>{t.privacyBasis}</p>
+        <p>{withHosting(t.privacyRetention)}</p>
+        <p>{t.privacyController}</p>
+        <p>{withMailbox(t.privacyRights)}</p>
+        <p>{t.privacyAuthority}</p>
+        <p>{t.privacyNotTheArchive}</p>
       </section>
 
       <section>

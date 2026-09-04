@@ -1548,3 +1548,129 @@ spec**. La forma es la de ADR-015 §2 y §3, y quien la registra es
    el mismo destino (EPIC-MEJORA) y el mismo disparador; `F-SPEC-015-14` designa
    desde hoy, y sólo, el catálogo leído del disco. No se ha borrado nada: las dos
    entradas siguen donde estaban y esta enmienda es su desempate.
+
+---
+
+## Enmienda — 2026-09-04: el guardián de CA-10.4 mira dentro de contenedores comprimidos, donde no puede informar en ninguna dirección
+
+**Escrita por `sdd-arquitecto` el 2026-09-04**, a instancia de **F-SPEC-018-N1**.
+La levantó el implementador que cerró F-SPEC-018-V1 y la reprodujo el
+orquestador: **`npm run gates` no podía pasar en la rama de SPEC-018**, con
+cuatro casos de esta suite en rojo —28, 30, 31 y 32—.
+
+### 1. Qué afirmaba el CA y por qué era razonable
+
+**CA-10.4:** «ningún fichero del repositorio contiene un `telegram_user_id`». El
+mecanismo recorre **el árbol versionado entero, sin filtro de extensión**, y lee
+en `latin1` —un byte, un carácter—. La cabecera de `telegramIdOffences` declaraba
+la decisión con estas palabras: *«Un PNG o cualquier otro binario versionado se
+juzga con la misma regla que un fichero de texto, porque un identificador escrito
+dentro de un binario está igual de versionado.»*
+
+**Era razonable, y la mitad de esa frase sigue siendo cierta.** El alcance total
+no fue un descuido: lo trajo la **sonda P14** del RED del 2026-09-03, que midió
+que un escaneo limitado a tres sospechosos dejaba pasar un identificador escrito
+en `src/bot/notes.ts`. Y la regla que sostiene es de las irreversibles —git no se
+purga, se reescribe (ADR-009 §3)—, así que ensanchar era lo correcto.
+
+### 2. Qué lo invalida
+
+**SPEC-018 CA-16 obliga a versionar capturas de pantalla** —cotejadas byte a byte
+contra lo que el manejador sirve, que es el procedimiento que F-SPEC-017-17 dejó
+establecido porque Chrome por MCP no alcanza `localhost`—. Con diez capturas
+nuevas en `_qa/SPEC-018/`, el escaneo encontró en una de ellas una tirada de once
+dígitos y la leyó como un identificador.
+
+**No es una fuga. Es ruido de compresión, y está medido** (2026-09-04):
+
+- La tirada está en el **offset 3033**, **dentro del primer chunk IDAT**, es
+  decir **dentro del flujo DEFLATE**. El fichero tiene **IHDR, 36 IDAT e IEND y
+  ni un solo chunk de texto**: no hay ningún campo donde pudiera haber texto de
+  verdad.
+- **No es mala suerte de una vez.** De los 18 PNG y 5 WOFF2 versionados, **uno
+  casa** y **un segundo —`ca16-5-360x640-es.png`— lleva una tirada de exactamente
+  nueve dígitos que sólo escapa porque el byte siguiente es una letra y `\b` no
+  casa**. Las tiradas más largas del resto son de 5 a 8. **La distribución tiene
+  masa justo en el umbral, y cada captura nueva es otra tirada.** Que
+  `_qa/SPEC-004/` y `_qa/SPEC-017/` no hubieran disparado nunca era eso: suerte
+  con ocho ficheros.
+
+**Y la premisa de la cabecera era falsa en la mitad que importa.** «Un
+identificador escrito dentro de un binario está igual de versionado» es cierto;
+**«y por tanto este mecanismo lo encuentra» no lo es.** En un contenedor
+comprimido este detector **no puede encontrar un identificador real ni evitar uno
+falso**: lo que se ve en una captura son **píxeles**, no dígitos ASCII, y
+cualquier texto incrustado viaja comprimido e ilegible. **El escenario que la
+frase quería cubrir —una captura que enseñe un id— nunca estuvo cubierto.**
+
+### 3. Con qué se sustituye, y si la red que queda es menor
+
+**Dos entradas nuevas en `ID_SCAN_EXCLUSIONS`, `*.png` y `*.woff2`**, con su
+motivo escrito y en la forma que la lista ya tenía (sufijo, como `*.ledger.md`).
+**El mecanismo no cambia**: ni el patrón, ni el recorrido del árbol, ni la lectura
+en `latin1`, ni el fallo cerrado ante un fichero ilegible.
+
+**La red que queda NO es menor, y ésta es la parte que hay que leer despacio,
+porque el hallazgo se podría haber cerrado debilitando el guardián y no es lo que
+se ha hecho:**
+
+- **No se pierde ninguna detección que este mecanismo tuviera**, por lo del §2:
+  dentro de DEFLATE no había nada que encontrar.
+- **Todo lo demás sigue dentro sin excepción**: los `.ts`, los `.md`, los
+  `.json`, los `.sql`, el `.env.example`, `corresponsais/`, `tests/fixtures/` — y
+  **un `.svg`, que es texto y no está excluido**. La exclusión es por **formato
+  comprimido**, no por «binario»: un formato binario con metadatos legibles
+  seguiría dentro, y si algún día se versiona uno hay que mirarlo.
+- **El caso 27 sigue afirmando que alcanza a los `.ts` de `src/`**, el **30**
+  sigue siendo control positivo con la sonda real, y el **31** sigue declarando
+  que el mecanismo previene y no repara.
+
+**Dónde sí hay menos, dicho sin suavizar. Tres cosas:**
+
+1. **Un identificador visible en una captura de pantalla no lo caza este
+   mecanismo — y no lo cazaba antes tampoco.** La diferencia es que ahora está
+   escrito. **Lo que sí lo cubre es una persona**: quien archive capturas en
+   `_qa/` mira lo que se ve en ellas, y el bot es la única superficie del proyecto
+   donde un id podría aparecer en pantalla.
+2. **`*.woff2` es preventiva y hoy no caza nada**: la tirada más larga medida en
+   las cinco fuentes es de siete dígitos. Se declara porque el caso 32 mide que
+   **el conjunto** de exclusiones no es decorativo y no que lo sea cada una —**es
+   literalmente F-SPEC-015-19**—, y porque sin ella la próxima fuente pondría en
+   rojo una spec que no tiene nada que ver con el bot.
+3. **Un contenedor comprimido nuevo entra sin que nadie lo decida** hasta que
+   alguien añada su extensión. `.zip`, `.pdf` o `.gz` no están en la lista y **no
+   están excluidos**, así que producirían el mismo falso positivo. Es un problema
+   de la próxima vez, no de ésta, y queda con disparador en §5.
+
+**Y una cosa que se aprendió por el camino y que vale la pena registrar:** la
+primera redacción de esta enmienda **citaba el número de once dígitos dentro del
+motivo**, y el guardián **se puso rojo sobre su propio fichero fuente**. Es
+exactamente la circularidad que **F-SPEC-015-19** dejó inventariada —«componer la
+carga útil en vez de escribirla»— apareciendo por segunda vez. El motivo ahora
+describe la tirada («once dígitos en el offset 3033») **sin escribirla**.
+
+### 4. El veredicto sigue en pie
+
+**GREEN del 2026-09-03 intacto.** El cuerpo de SPEC-015 no se edita y su
+frontmatter tampoco (ADR-015 §1 y §4); `hecho` sigue siendo `hecho`. **La letra de
+CA-10.4 sigue satisfecha**: «ningún fichero del repositorio contiene un
+`telegram_user_id`» era y sigue siendo cierta, y lo que se corrige es un
+**mecanismo que decía encontrar algo donde no puede haber nada que encontrar**.
+`npm run gates`, tras la enmienda: **147 ficheros, 1712 casos, 0 errores de
+tipo.**
+
+### 5. Qué lo despierta
+
+- **El primer contenedor comprimido de otra extensión que se versione** —`.zip`,
+  `.pdf`, `.gz`, un `.mp4`—. No se añade a la lista sin mirar antes si ese formato
+  **tiene metadatos legibles**: si los tiene, la exclusión sería una pérdida real y
+  no una corrección de alcance.
+- **El primer formato binario con texto plano dentro** que alguien quiera excluir.
+  **La respuesta por defecto es no**, y este apartado es la razón.
+- **El día que `_qa/` deje de versionarse**, o que exista un entorno con navegador
+  que alcance `localhost` (F-SPEC-017-17): las capturas dejarían de estar en el
+  árbol y las dos exclusiones se quedarían sin sujeto. **Se retiran, no se dejan
+  por si acaso.**
+
+**Referencias:** SPEC-018 CA-16 y CA-18.4 · ADR-015 §1, §2, §3 y §4 ·
+ADR-016 §3.2 y §3.3 · ADR-009 §3 · F-SPEC-018-N1 · F-SPEC-015-19 · F-SPEC-017-17.

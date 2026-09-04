@@ -29,7 +29,7 @@ Roles de dominio consultivos: `/sdd-competicion`, `/sdd-legal-datos`,
 
 Fase: **EPIC-002 — instrumentación de las cuatro cifras**. `EPIC-001` sigue
 bloqueada hasta su veredicto y `EPIC-003` ya está **cerrada**.
-- EPIC-002: Objetivo: las cuatro cifras (latencia, cobertura, conflictos, minutos de operación manual) que salieron de EPIC-001 el 2026-08-31. **SPEC-008** (adaptador de `ceroacero.es` y cortesía RN-11 con una sola implementación) está **`hecho`** (2026-09-01), junto con **ADR-014**. De su CA-2, que no terminaba, nació **SPEC-009** (la frontera de capacidad de RN-11, demostrada sin listas negras), en `hecho` (2026-09-02). **SPEC-010** (calendario declarado y repositorios), está **`hecho`** (2026-09-02). **SPEC-011** (catálogo de alias y resolver), está **`hecho`** (2026-09-02), junto con **ADR-018**. **SPEC-012** (cron de ingesta, el tick que abre ventanas y persiste Observation), está **`hecho`** (2026-09-02), junto con **ADR-019**. **SPEC-013** (motor de decisiones, el reducer puro de RN-01..RN-07 y el ciclo que lo ejecuta), está **`hecho`** (2026-09-02), junto con **ADR-021**. **SPEC-015** (bot de Telegram del corresponsal, validación humana de propuestas), está **`hecho`** (2026-09-03), junto con **ADR-022** y **ADR-023**. **SPEC-016** (el catálogo de corresponsales se resuelve en compilación, `npm run build` pasa a ser gate), está **`hecho`** (2026-09-03); restaura lo que ADR-022 §2 ya decía. **SPEC-017** (panel del operador, sesión declarada sin usuarios, toda corrección como Observation), está **`hecho`** (2026-09-03), junto con **ADR-024**, **ADR-025** y **ADR-026**. Directorios nuevos: `src/admin/`, `src/design/`, `public/fonts/`. `src/ingest/`, `src/polite/`, `src/calendar/`, `src/alias/`, `src/decide/` y `src/bot/` ya existen.
+- EPIC-002: Objetivo: las cuatro cifras (latencia, cobertura, conflictos, minutos de operación manual) que salieron de EPIC-001 el 2026-08-31. **SPEC-008** (adaptador de `ceroacero.es` y cortesía RN-11 con una sola implementación) está **`hecho`** (2026-09-01), junto con **ADR-014**. De su CA-2, que no terminaba, nació **SPEC-009** (la frontera de capacidad de RN-11, demostrada sin listas negras), en `hecho` (2026-09-02). **SPEC-010** (calendario declarado y repositorios), está **`hecho`** (2026-09-02). **SPEC-011** (catálogo de alias y resolver), está **`hecho`** (2026-09-02), junto con **ADR-018**. **SPEC-012** (cron de ingesta, el tick que abre ventanas y persiste Observation), está **`hecho`** (2026-09-02), junto con **ADR-019**. **SPEC-013** (motor de decisiones, el reducer puro de RN-01..RN-07 y el ciclo que lo ejecuta), está **`hecho`** (2026-09-02), junto con **ADR-021**. **SPEC-015** (bot de Telegram del corresponsal, validación humana de propuestas), está **`hecho`** (2026-09-03), junto con **ADR-022** y **ADR-023**. **SPEC-016** (el catálogo de corresponsales se resuelve en compilación, `npm run build` pasa a ser gate), está **`hecho`** (2026-09-03); restaura lo que ADR-022 §2 ya decía. **SPEC-017** (panel del operador, sesión declarada sin usuarios, toda corrección como Observation), está **`hecho`** (2026-09-03), junto con **ADR-024**, **ADR-025** y **ADR-026**. **SPEC-018** (snapshot y página mínima por polling), está **`hecho`** (2026-09-04), junto con **ADR-027**. Directorios nuevos: `src/admin/`, `src/design/`, `public/fonts/`. `src/ingest/`, `src/polite/`, `src/calendar/`, `src/alias/`, `src/decide/` y `src/bot/` ya existen.
 - EPIC-001: Objetivo: responder, **antes de construir el motor**, la pregunta de la que depende su diseño —¿hay fuentes automáticas usables, y son independientes entre sí?—, la precondición no medida de **RN-02**. Es medición, no producto: el entregable es un **veredicto con evidencia citada** (espejo, independiente o inconcluso) y el instrumento reutilizable que lo produce. Código que deja: `src/model/`, `src/raw/`, `src/db/` (SPEC-001), `src/mirror/` (SPEC-002 y SPEC-003), `migrations/0001` aplicada. Las tres specs están hechas y verificadas GREEN. **Veredicto: 2026-09-08.**
 - EPIC-003: **`hecho`** (2026-09-01, firmada por Alberto Fojo) — primera épica del proyecto en llegar ahí. Sus cuatro specs (SPEC-004, 005, 006, 007) verificadas GREEN, 2026-08-31 a 2026-09-01. Sitio público en `marcador.gal`: galego por defecto, castellano en `/es`; `/proxecto` y `/robot` en ambas lenguas con paridad de contenido. Componentes en `src/site/`, bundles i18n en `src/i18n/`, rutas en `src/app/(gl)/` y `src/app/(es)/`. `robots.txt` generado dinámicamente. El sitio no nombra a ninguna persona y se presenta bajo el paraguas de tremen.dev (ADR-012). User-agent declarado: `marcador.gal/0.0.1 (+https://marcador.gal/robot; medicion de latencia)` (ADR-011).
 - EPIC-004: **aprobada y CONGELADA de nacimiento** (2026-09-01). Guarda el sistema de diseño del marcador (`docs/diseno/`) y no se descongela hasta el go/no-go. Si vas a tocar interfaz, léela antes: su inventario tiene dos entradas que ya disparan —qué cualificador es el estado normal, y que el panel del operador no tiene ningún diseño.
@@ -42,7 +42,7 @@ bloqueada hasta su veredicto y `EPIC-003` ya está **cerrada**.
 que la fuente oficial **no es capturable** (ADR-008). SPEC-002 queda a la espera de
 que lo sea; SPEC-003 mide lo que sí se puede medir sin ella. EPIC-002 **tiene ya el tick de ingesta y el motor de decisiones funcionando, y falta colegir las cuatro cifras tras abrir la ventana**.
 
-Hay **veintiséis ADRs**, todos **aprobados e inmutables**. Para cambiar uno
+Hay **veintisiete ADRs**, todos **aprobados e inmutables**. Para cambiar uno
 aprobado, escribe otro ADR que lo supersede; no lo edites. ADR-008 y ADR-009
 superseden **parcialmente** a ADR-002 y ADR-005: lee siempre el que supersede
 antes de apoyarte en el viejo. **ADR-013 fija la semántica visual del marcador**
@@ -149,8 +149,9 @@ src/raw/      puerto RawStore: store.ts, disk.ts, blob.ts, capture.ts (SPEC-001)
 src/db/       cliente postgres.js, runner de migraciones, puertos, rate-limit.ts (SPEC-001, SPEC-008);
               calendar.ts, observations.ts, decisions.ts, matches.ts, arrays.ts (SPEC-010);
               aliases.ts (SPEC-011); ingest-attempts.ts (SPEC-012); alerts.ts (SPEC-013);
-              bot.ts (SPEC-015); admin.ts (SPEC-017)
+              bot.ts (SPEC-015); admin.ts (SPEC-017); board.ts (SPEC-018)
 migrations/   SQL numerado, aplicado en orden (ADR-006); 0001..0008 aplicadas (SPEC-001, SPEC-008, SPEC-010, SPEC-011, SPEC-012, SPEC-013, SPEC-015, SPEC-017)
+              SPEC-018 no añade ninguna: es proyección de sólo lectura (ADR-027)
 src/polite/   cortesía RN-11 con un solo dueño (ADR-014, SPEC-008): robots.ts,
               http.ts, user-agent.ts, rate-limit.ts, policy.ts, policy-durable.ts, clock.ts.
               src/mirror/ ya no es su domicilio
@@ -168,12 +169,15 @@ src/calendar/ calendario declarado a mano (SPEC-010): schedule.ts, time.ts, ids.
               declared.ts, ports.ts, cli.ts, command.ts
 src/decide/   motor de decisiones (SPEC-013, RN-01..RN-07): rules.ts, roles.ts,
               independence.ts, thresholds.ts, attribution.ts, qualifier.ts, alert.ts,
-              apply.ts, cycle.ts, replay.ts, ports.ts, engine-entry.ts (SPEC-015), read-entry.ts (SPEC-017)
+              apply.ts, cycle.ts, replay.ts, ports.ts, engine-entry.ts (SPEC-015), read-entry.ts (SPEC-017), board-entry.ts (SPEC-018)
 src/bot/      bot de Telegram del corresponsal (SPEC-015, RN-09): telegram.ts, webhook.ts,
               correspondents.ts, catalog.ts, archive.ts, candidates.ts, windows.ts,
               observation.ts, proposal.ts, llm.ts, prompt.ts, redact.ts, commands.ts,
               card.ts, ports.ts
-src/api/      snapshot (+ stream SSE, fuera de EPIC-001)
+src/api/      contrato del snapshot (SPEC-018, ADR-027): contract.ts, snapshot.ts (proyección
+              pura), freshness.ts, handler.ts, ports.ts
+src/board/    pantalla del marcador por polling (SPEC-018): handler.ts, order.ts, sources.ts,
+              view/ (markup.ts, refresh.ts, styles.ts)
 src/admin/    panel del operador con sesión declarada sin usuarios (SPEC-017, ADR-024, ADR-025):
               session.ts, handler.ts, actions.ts, observation.ts, ports.ts, ticket.ts,
               redact.ts, archive.ts, board.ts, view/ (componentes)
@@ -185,10 +189,13 @@ src/app/      Next.js App Router (ADR-001, ADR-004)
   api/telegram/webhook/  webhook de Telegram `/api/telegram/webhook` (SPEC-015)
   (gl)/admin/   panel del operador en galego /admin (SPEC-017)
   (es)/es/admin/  panel del operador en castellano /es/admin (SPEC-017)
+  (gl)/marcador/ snapshot en galego /marcador (SPEC-018)
+  (es)/es/marcador/ snapshot en castellano /es/marcador (SPEC-018)
+  api/board/  ruta snapshot `/api/board` (SPEC-018)
   robots.txt/ ruta dinámica que genera robots.txt (SPEC-004 CA-11)
   globals.css estilos globales, sin dependencias externas (SPEC-004 CA-9)
 src/site/     componentes y utilidades compartidas por el sitio público (EPIC-003)
-              contact.ts, redirects.ts, routes.ts, document.tsx, project-page.tsx, robots-txt.ts
+              contact.ts, hosting.ts, redirects.ts, routes.ts, document.tsx, project-page.tsx, robots-txt.ts, crawler-page.tsx (SPEC-018)
 src/i18n/     bundles de i18n con paridad galego/castellano (SPEC-004 CA-4, EPIC-003)
               gl.ts, es.ts (bundles del sitio público, D-2)
               site-bundle.ts, site.ts (tipos y contrato)

@@ -53,9 +53,34 @@ export interface SiteBundle {
   readonly purposeHeading: string;
   readonly purpose: string;
 
-  /** CA-8.4 — todavía no hay producto, sin fecha y sin condicional. */
+  /**
+   * CA-8.4 — todavía no hay producto, sin fecha y sin condicional.
+   *
+   * ENMENDADO EL 2026-09-04 POR SPEC-018 CA-18.1 (ADR-015, ADR-027 §3.c).
+   * Dejaba de ser cierto el día que el marcador se publicase: decía «nin
+   * marcador público». Pasa a decir que la pantalla existe, dónde está, que
+   * enseña sólo las jornadas declaradas de DOS competiciones, que es un
+   * instrumento de medida, que normalmente irá provisional y con atraso, y que
+   * se apaga cuando la medición acaba.
+   *
+   * LO QUE NO PUEDE CAMBIAR, PORQUE ES DE CARGA: «no hay aplicación, ni cuenta
+   * que crear» sigue siendo verdad y es exactamente lo que mantiene el art. 10
+   * LSSI fuera. Quien edite este literal tiene que saber que esa mitad no es
+   * prosa sobrante.
+   */
   readonly noProductHeading: string;
   readonly noProduct: string;
+
+  /**
+   * SPEC-018 CA-2.9 — el enlace a la pantalla del marcador.
+   *
+   * NO ES NAVEGACIÓN: es lo que convierte `noindex` en NO-AMPLIFICACIÓN en vez
+   * de en OCULTACIÓN. Publicar, no indexar y no enlazar sería esconderse, y
+   * leería fatal al lado de la carta a la RFGF. Enlazarla NO dispara el
+   * re-dictamen (ADR-027 §3.d, punto 4): es obligatorio.
+   */
+  readonly scoreboardHeading: string;
+  readonly scoreboardLink: string;
 
   /** CA-8.5 — el enlace a `/robot`, la página del rastreador (SPEC-005). */
   readonly crawlerHeading: string;

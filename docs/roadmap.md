@@ -25,8 +25,8 @@ tipo: roadmap
 
 - **EPIC-002 — Instrumentación de las cuatro cifras.** Latencia, cobertura,
   conflictos y operación, que salieron de EPIC-001 el 2026-08-31 porque exigen el
-  motor, los adaptadores y el cron: **nueve specs ya entregadas** (SPEC-008 a
-  SPEC-013, SPEC-015, SPEC-016 y SPEC-017). Sus cifras nacen **sin
+  motor, los adaptadores y el cron: **diez specs ya entregadas** (SPEC-008 a
+  SPEC-013, SPEC-015, SPEC-016, SPEC-017 y SPEC-018). Sus cifras nacen **sin
   referencia oficial**, y la épica obliga a declarar junto a cada una qué la
   degrada.
 
@@ -35,8 +35,7 @@ tipo: roadmap
   entregó el bot del corresponsal y **SPEC-017** el panel del operador, las dos
   `hecho` y verificadas GREEN. Con ellas existe por fin **una ruta a un marcador
   *confirmado***, que con una sola fuente automática de peso 0.7 no existía. Lo
-  que queda de la épica es **el snapshot con su página mínima por polling y la
-  instrumentación de las cuatro cifras**, y la cifra de operación manual —la del
+  que queda de la épica es **la instrumentación de las cuatro cifras**, y la cifra de operación manual —la del
   corte duro de los 30 min— ya se puede medir, porque ya hay sobre qué medirla.
 
   **Sube a *Ahora* el 2026-09-01, y no por decisión de prioridad sino porque es
@@ -47,7 +46,7 @@ tipo: roadmap
   **entregada**: **SPEC-008** —adaptador de `ceroacero.es` y cortesía RN-11 con
   una sola implementación—, `hecho` y verificada GREEN el 2026-09-01 tras siete
   vueltas, junto con **ADR-014**. De la descomposición orientativa del 2026-09-01
-  **quedan solo el snapshot y las cifras**: el bot y el panel iban **antes**, y ya
+  **quedan solo las cifras**: el bot y el panel iban **antes**, y ya
   están. Y hubo una que nadie planificó:
   **SPEC-009** (`hecho`, 2026-09-02), la frontera de capacidad de RN-11,
   que salió de SPEC-008 porque su criterio no terminaba — nueve evasiones

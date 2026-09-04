@@ -1,0 +1,285 @@
+{
+  "layout": {
+    "docScrollWidth": 360,
+    "docClientWidth": 360,
+    "bodyScrollWidth": 360,
+    "scrollerScrolls": [
+      {
+        "scrollW": 1028,
+        "clientW": 344
+      },
+      {
+        "scrollW": 771,
+        "clientW": 344
+      }
+    ],
+    "rows": 4
+  },
+  "tabular": [
+    {
+      "sel": "[data-field=\"score\"]",
+      "text": "1-0",
+      "fontVariantNumeric": "normal",
+      "fontFeatureSettings": "normal",
+      "family": "\"Geist Mono\""
+    },
+    {
+      "sel": "[data-field=\"time\"]",
+      "text": "2026-09-06 17:00",
+      "fontVariantNumeric": "normal",
+      "fontFeatureSettings": "normal",
+      "family": "\"Geist Mono\""
+    },
+    {
+      "sel": "[data-field=\"last\"]",
+      "text": "Hai 22 min",
+      "fontVariantNumeric": "normal",
+      "fontFeatureSettings": "normal",
+      "family": "\"Geist Mono\""
+    }
+  ],
+  "cells": [
+    {
+      "match": "futgal-preferente-g1-2026-27-j1-celtab-ourense",
+      "status": {
+        "text": "En xogo",
+        "cls": "s-live",
+        "color": "rgb(255, 107, 0)"
+      },
+      "qualifier": {
+        "text": "Provisional",
+        "cls": "q-provisional",
+        "color": "rgb(245, 241, 234)"
+      },
+      "score": "1-0",
+      "home": "RC Celta B",
+      "last": "Hai 22 min"
+    },
+    {
+      "match": "futgal-preferente-g1-2026-27-j1-compostela-barco",
+      "status": {
+        "text": "Rematado",
+        "cls": "s-finished",
+        "color": "rgb(167, 165, 160)"
+      },
+      "qualifier": {
+        "text": "Pendente de confirmar",
+        "cls": "q-pendente-de-confirmar",
+        "color": "rgb(240, 177, 53)"
+      },
+      "score": "0-0",
+      "home": "SD Compostela",
+      "last": "Hai 180 min"
+    },
+    {
+      "match": "futgal-preferente-g1-2026-27-j1-aprazado",
+      "status": {
+        "text": "Aprazado",
+        "cls": "s-postponed",
+        "color": "rgb(240, 177, 53)"
+      },
+      "qualifier": {
+        "text": "Confirmado",
+        "cls": "q-confirmado",
+        "color": "rgb(245, 241, 234)"
+      },
+      "score": "Sen marcador publicado",
+      "home": "Arosa SC",
+      "last": "Aínda non"
+    },
+    {
+      "match": "rfef-tercera-g1-2026-27-j1-lugob-ferrolb",
+      "status": {
+        "text": "Suspendido",
+        "cls": "s-suspended",
+        "color": "rgb(240, 177, 53)"
+      },
+      "qualifier": {
+        "text": "Sen sinal",
+        "cls": "q-sen-sinal",
+        "color": "rgb(255, 101, 90)"
+      },
+      "score": "2-1",
+      "home": "CD Lugo B",
+      "last": "Hai 50 min"
+    }
+  ],
+  "teamOverflow": [
+    {
+      "text": "RC Celta B",
+      "textOverflow": "clip",
+      "overflow": "visible",
+      "clientW": 122,
+      "scrollW": 122,
+      "truncated": false
+    },
+    {
+      "text": "UD Ourense",
+      "textOverflow": "clip",
+      "overflow": "visible",
+      "clientW": 124,
+      "scrollW": 124,
+      "truncated": false
+    },
+    {
+      "text": "SD Compostela",
+      "textOverflow": "clip",
+      "overflow": "visible",
+      "clientW": 122,
+      "scrollW": 122,
+      "truncated": false
+    },
+    {
+      "text": "CD Barco",
+      "textOverflow": "clip",
+      "overflow": "visible",
+      "clientW": 124,
+      "scrollW": 124,
+      "truncated": false
+    },
+    {
+      "text": "Arosa SC",
+      "textOverflow": "clip",
+      "overflow": "visible",
+      "clientW": 122,
+      "scrollW": 122,
+      "truncated": false
+    },
+    {
+      "text": "Racing Villalbés",
+      "textOverflow": "clip",
+      "overflow": "visible",
+      "clientW": 124,
+      "scrollW": 124,
+      "truncated": false
+    },
+    {
+      "text": "CD Lugo B",
+      "textOverflow": "clip",
+      "overflow": "visible",
+      "clientW": 89,
+      "scrollW": 89,
+      "truncated": false
+    },
+    {
+      "text": "Racing de Ferrol B",
+      "textOverflow": "clip",
+      "overflow": "visible",
+      "clientW": 141,
+      "scrollW": 141,
+      "truncated": false
+    }
+  ],
+  "tabStops": [
+    {
+      "el": "DIV",
+      "href": null,
+      "focusVisible": true,
+      "outline": "2px solid rgb(245, 241, 234)",
+      "h": 139,
+      "w": 344
+    },
+    {
+      "el": "DIV",
+      "href": null,
+      "focusVisible": true,
+      "outline": "2px solid rgb(245, 241, 234)",
+      "h": 100,
+      "w": 344
+    },
+    {
+      "el": "A",
+      "href": "/robot",
+      "focusVisible": true,
+      "outline": "2px solid rgb(245, 241, 234)",
+      "h": 46,
+      "w": 344
+    },
+    {
+      "el": "A",
+      "href": "/proxecto",
+      "focusVisible": true,
+      "outline": "2px solid rgb(245, 241, 234)",
+      "h": 44,
+      "w": 149
+    },
+    {
+      "el": "A",
+      "href": "mailto:ola@tremen.dev",
+      "focusVisible": true,
+      "outline": "2px solid rgb(245, 241, 234)",
+      "h": 44,
+      "w": 133
+    },
+    {
+      "el": "A",
+      "href": "/es/marcador",
+      "focusVisible": true,
+      "outline": "2px solid rgb(245, 241, 234)",
+      "h": 44,
+      "w": 84
+    }
+  ],
+  "before": {
+    "notice": "Actualizado agora mesmo",
+    "rows": [
+      "<td data-field=\"time\" class=\"instant\">2026-09-06 17:00</td><td data-field=\"home\" class=\"team\">RC Celta B</td><td data-field=\"away\" class=\"team\">UD Ourense</td><td data-field=\"score\" class=\"score\">1-0</td><td data-field=\"status\" class=\"s-live\">En xogo</td><td data-field=\"qualifier\" class=\"q-provisional\">Provisional</td><td data-field=\"last\" class=\"instant\">Hai 22 min</td>",
+      "<td data-field=\"time\" class=\"instant\">2026-09-06 18:30</td><td data-field=\"home\" class=\"team\">SD Compostela</td><td data-field=\"away\" class=\"team\">CD Barco</td><td data-field=\"score\" class=\"score\">0-0</td><td data-field=\"status\" class=\"s-finished\">Rematado</td><td data-field=\"qualifier\" class=\"q-pendente-de-confirmar\">Pendente de confirmar</td><td data-field=\"last\" class=\"instant\">Hai 180 min</td>",
+      "<td data-field=\"time\" class=\"instant\">2026-09-06 19:00</td><td data-field=\"home\" class=\"team\">Arosa SC</td><td data-field=\"away\" class=\"team\">Racing Villalbés</td><td data-field=\"score\" class=\"score\">Sen marcador publicado</td><td data-field=\"status\" class=\"s-postponed\">Aprazado</td><td data-field=\"qualifier\" class=\"q-confirmado\">Confirmado</td><td data-field=\"last\" class=\"instant\">Aínda non</td>",
+      "<td data-field=\"time\" class=\"instant\">2026-09-06 17:00</td><td data-field=\"home\" class=\"team\">CD Lugo B</td><td data-field=\"away\" class=\"team\">Racing de Ferrol B</td><td data-field=\"score\" class=\"score\">2-1</td><td data-field=\"status\" class=\"s-suspended\">Suspendido</td><td data-field=\"qualifier\" class=\"q-sen-sinal\">Sen sinal</td><td data-field=\"last\" class=\"instant\">Hai 50 min</td>"
+    ]
+  },
+  "afterPoll": {
+    "notice": "Actualizado agora mesmo",
+    "polls": 1,
+    "rows": [
+      "<td data-field=\"time\" class=\"instant\">2026-09-06 17:00</td><td data-field=\"home\" class=\"team\">RC Celta B</td><td data-field=\"away\" class=\"team\">UD Ourense</td><td data-field=\"score\" class=\"score\">1-0</td><td data-field=\"status\" class=\"s-live\">En xogo</td><td data-field=\"qualifier\" class=\"q-provisional\">Provisional</td><td data-field=\"last\" class=\"instant\">Hai 22 min</td>",
+      "<td data-field=\"time\" class=\"instant\">2026-09-06 18:30</td><td data-field=\"home\" class=\"team\">SD Compostela</td><td data-field=\"away\" class=\"team\">CD Barco</td><td data-field=\"score\" class=\"score\">0-0</td><td data-field=\"status\" class=\"s-finished\">Rematado</td><td data-field=\"qualifier\" class=\"q-pendente-de-confirmar\">Pendente de confirmar</td><td data-field=\"last\" class=\"instant\">Hai 180 min</td>",
+      "<td data-field=\"time\" class=\"instant\">2026-09-06 19:00</td><td data-field=\"home\" class=\"team\">Arosa SC</td><td data-field=\"away\" class=\"team\">Racing Villalbés</td><td data-field=\"score\" class=\"score\">Sen marcador publicado</td><td data-field=\"status\" class=\"s-postponed\">Aprazado</td><td data-field=\"qualifier\" class=\"q-confirmado\">Confirmado</td><td data-field=\"last\" class=\"instant\">Aínda non</td>",
+      "<td data-field=\"time\" class=\"instant\">2026-09-06 17:00</td><td data-field=\"home\" class=\"team\">CD Lugo B</td><td data-field=\"away\" class=\"team\">Racing de Ferrol B</td><td data-field=\"score\" class=\"score\">2-1</td><td data-field=\"status\" class=\"s-suspended\">Suspendido</td><td data-field=\"qualifier\" class=\"q-sen-sinal\">Sen sinal</td><td data-field=\"last\" class=\"instant\">Hai 50 min</td>"
+    ]
+  },
+  "afterFail": {
+    "notice": "Non se puido actualizar. O que ves é de hai 0 min. Carga a páxina de novo.",
+    "noticeStyle": {
+      "color": "rgb(167, 165, 160)",
+      "opacity": "1",
+      "border": "rgb(61, 54, 44)"
+    },
+    "rows": [
+      "<td data-field=\"time\" class=\"instant\">2026-09-06 17:00</td><td data-field=\"home\" class=\"team\">RC Celta B</td><td data-field=\"away\" class=\"team\">UD Ourense</td><td data-field=\"score\" class=\"score\">1-0</td><td data-field=\"status\" class=\"s-live\">En xogo</td><td data-field=\"qualifier\" class=\"q-provisional\">Provisional</td><td data-field=\"last\" class=\"instant\">Hai 22 min</td>",
+      "<td data-field=\"time\" class=\"instant\">2026-09-06 18:30</td><td data-field=\"home\" class=\"team\">SD Compostela</td><td data-field=\"away\" class=\"team\">CD Barco</td><td data-field=\"score\" class=\"score\">0-0</td><td data-field=\"status\" class=\"s-finished\">Rematado</td><td data-field=\"qualifier\" class=\"q-pendente-de-confirmar\">Pendente de confirmar</td><td data-field=\"last\" class=\"instant\">Hai 180 min</td>",
+      "<td data-field=\"time\" class=\"instant\">2026-09-06 19:00</td><td data-field=\"home\" class=\"team\">Arosa SC</td><td data-field=\"away\" class=\"team\">Racing Villalbés</td><td data-field=\"score\" class=\"score\">Sen marcador publicado</td><td data-field=\"status\" class=\"s-postponed\">Aprazado</td><td data-field=\"qualifier\" class=\"q-confirmado\">Confirmado</td><td data-field=\"last\" class=\"instant\">Aínda non</td>",
+      "<td data-field=\"time\" class=\"instant\">2026-09-06 17:00</td><td data-field=\"home\" class=\"team\">CD Lugo B</td><td data-field=\"away\" class=\"team\">Racing de Ferrol B</td><td data-field=\"score\" class=\"score\">2-1</td><td data-field=\"status\" class=\"s-suspended\">Suspendido</td><td data-field=\"qualifier\" class=\"q-sen-sinal\">Sen sinal</td><td data-field=\"last\" class=\"instant\">Hai 50 min</td>"
+    ],
+    "rowStyles": [
+      {
+        "opacity": "1",
+        "color": "rgb(245, 241, 234)",
+        "display": "table-row"
+      },
+      {
+        "opacity": "1",
+        "color": "rgb(245, 241, 234)",
+        "display": "table-row"
+      },
+      {
+        "opacity": "1",
+        "color": "rgb(245, 241, 234)",
+        "display": "table-row"
+      },
+      {
+        "opacity": "1",
+        "color": "rgb(245, 241, 234)",
+        "display": "table-row"
+      }
+    ]
+  },
+  "es": {
+    "lang": "es",
+    "docScrollWidth": 360,
+    "docClientWidth": 360,
+    "status": "En juego",
+    "qualifier": "Provisional"
+  }
+}
