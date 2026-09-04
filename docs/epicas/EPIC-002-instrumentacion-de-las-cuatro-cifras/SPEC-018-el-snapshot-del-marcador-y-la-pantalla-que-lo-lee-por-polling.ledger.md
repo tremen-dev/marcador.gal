@@ -86,7 +86,7 @@ queda sin verificar** (F-SPEC-018-V5).
 | CA-12 | `src/board/handler.ts` · `src/board/view/styles.ts` · `src/i18n/qualifiers.ts` | `tests/board/document.test.ts` 30–34 (control positivo 32) · `tests/board/style.test.ts` 17–18 | **Navegador, contraste computado**: `.q-provisional` y `.q-confirmado` los dos `rgb(245,241,234)` = `--fg` — el énfasis del cualificador queda invertido como ADR-026 §2 obliga; `pendente_de_confirmar` ámbar, `sen_sinal` alerta, los cuatro con su NODO DE TEXTO completo al lado. Ninguna abreviatura, ningún glifo. | ✅ |
 | CA-13 | `src/i18n/board-bundle.ts` · `src/i18n/board.ts` · `src/i18n/qualifiers-bundle.ts` · `src/i18n/qualifiers.ts` · `src/i18n/gl.ts` · `src/i18n/es.ts` · `src/i18n/titles-bundle.ts` · `src/board/sources.ts` | `tests/board/document.test.ts` 35–43 (control positivo 41) · `tests/types/spec018-board.test-d.ts` 1–5 · `tests/site/titles-i18n.test.ts` 4 · `tests/site/document-titles.test.ts` 1–5 · `tests/site/robots.test.ts` 4 | `src/i18n/admin.ts` cambia de resolutor **sin tocar un literal** (diff leído línea a línea). Navegador: `/marcador` `lang="gl"` con *En xogo* / *Provisional*; `/es/marcador` `lang="es"` con *En juego* / *Provisional*. CA-13.8 se juzga con la enmienda (derivación + singular/plural). | ✅ |
 | CA-14 | `src/i18n/gl.ts` · `src/i18n/es.ts` (espacio `board`) | `tests/board/voice.test.ts` 1–10 (controles positivos 2, 7, 10) | 52 formas de 1.ª del singular, comparadas por palabra completa sobre texto desacentuado; siete ambiguas declaradas fuera con su motivo. `tests/site/i18n.test.ts` **no se ha tocado** (diff vacío): la lista negra de D-1 se ensancha en fichero nuevo, como CA-14.4 pide. | ✅ |
-| CA-15 | `src/board/view/styles.ts` · `src/design/tokens.ts` (`MEASURE`, `HAIRLINE_PX`) · `src/admin/view/styles.ts` | `tests/board/style.test.ts` 1–18 (control positivo 3) · `tests/design/scale.test.ts` 1–6 (control positivo 5) | **Mutación M11**: `#8a8a8a` en `.soft` ⇒ rojo el caso 1. `docs/diseno/` intacto, `DECLARED_DIVERGENCES` sigue en 3, `LOADED_FACES` en 5: **EPIC-004 no se ha descongelado**. **Pero CA-15.7 falla en el navegador**: ver **F-SPEC-018-V1**. | ⚠️ |
+| CA-15 | `src/board/view/styles.ts` · `src/design/tokens.ts` (`MEASURE`, `HAIRLINE_PX`) · `src/admin/view/styles.ts` | `tests/board/style.test.ts` 1–20 (controles positivos 3, 19, 20) · `tests/board/cascade.ts` (instrumento) · `tests/design/scale.test.ts` 1–6 (control positivo 5) | **Mutación M11**: `#8a8a8a` en `.soft` ⇒ rojo el caso 1. `docs/diseno/` intacto, `DECLARED_DIVERGENCES` sigue en 3, `LOADED_FACES` en 5: **EPIC-004 no se ha descongelado**. **Pero CA-15.7 falla en el navegador**: ver **F-SPEC-018-V1**. | ⚠️ |
 | CA-16 | — (no lo implementa el implementador: es del verificador, con capturas en `_qa/SPEC-018/`) | — | **EJECUTADO POR EL VERIFICADOR EN UN NAVEGADOR DE VERDAD**, no por lectura de la hoja. Chromium 149 headless por CDP crudo contra `next dev`, 360 × 640, dsf 2, `mobile: true`. Diez capturas y dos informes JSON en `_qa/SPEC-018/`. Resultados abajo. | ✅ |
 | CA-17 | `tests/site/url-permanence.test.ts` · censos de `PAGES`, `ROUTES` y rutas de `robots.test.ts` | `tests/site/url-permanence.test.ts` 1 | 17.1 ✅ (las tres entradas están escritas en `docs/fundacion/dominio.md`). 17.3 ✅ (caso único, con literales, en dos grupos, y `/` sigue redirigiendo). 17.4 ✅ (ningún layout tocado). **17.2: la disciplina de commit no se siguió** — ver **F-SPEC-018-V3**. | ⚠️ |
 | CA-18 | `src/i18n/gl.ts` · `src/i18n/es.ts` · `src/i18n/site-bundle.ts` · `src/i18n/crawler-bundle.ts` · `src/site/project-page.tsx` · `src/site/crawler-page.tsx` · ledgers de SPEC-004, SPEC-005 y SPEC-007 | `tests/site/crawler-page.test.ts` 12, 12 bis/ter/quater · `tests/site/identity.test.ts` 1–4 · `tests/board/no-contradiction.test.ts` 1–6 (control positivo 2, 3) · `tests/board/document.test.ts` 8 | **Mutación M8**: `board.heading` con un nombre de persona ⇒ rojos los casos 1 y 3 de `identity.test.ts`: la barrera de SPEC-007 **cubre de verdad** el espacio y las dos rutas nuevas, y sus dos números crecieron (4 espacios, 6 rutas). **Mutación M9**: reponer «Non republicamos os datos de ninguén» ⇒ rojos `no-contradiction` 1 y `crawler-page` 12. **Diff**: ningún cuerpo ni frontmatter de spec cerrada tocado; sólo ledgers. **Pero** ver **F-SPEC-018-V2** y **F-SPEC-018-V4**. | ⚠️ |
@@ -1056,3 +1056,223 @@ un lector razonable supondrá que los 30/90 días también valen aquí.
 ya está abierto por CA-18.2, y esto es **la letra del criterio, que hoy promete
 tres cosas que no comprueba** — es CA-17.2 **(iii)**, corregir lo que esta misma
 decisión vuelve falso, no **(i)**. El verificador lo dice con las mismas palabras.
+
+---
+
+# Respuesta de `sdd-implementador` al RED — 2026-09-04, tarde
+
+Un implementador nuevo, sin memoria de la primera vuelta, con **un solo
+encargo**: **F-SPEC-018-V1**, el único hallazgo de código. V2, V3 y V4 los
+llevaba `sdd-arquitecto` en paralelo y **no se han tocado**.
+
+## V1 — CA-15.7: los dígitos tabulares. **Cerrado, y con las dos mitades**
+
+### 1. El CSS: se deja de emitir el reset, no se reordenan dos líneas
+
+`role()` en `src/board/view/styles.ts` emitía el **atajo `font:`**. El atajo
+escribe cuatro cosas y hace una quinta que nunca nombra: **resetea a su valor
+inicial todas las demás propiedades de fuente**, `font-variant-numeric` y
+`font-feature-settings` entre ellas. `.score` y `.instant` son más específicas
+que la regla que declara `tabular-nums`, y `td` va después, así que las dos
+propiedades que sostienen **ADR-013 §3** computaban `normal` **justo en las tres
+celdas que llevan cifras**.
+
+**Se eligió la segunda de las dos salidas que el hallazgo ofrecía: quitar el
+atajo, no reordenar.** El motivo, escrito en el propio `role()`:
+
+- **Reordenar es disciplina, y la disciplina es lo que ya falló.** Emitir las
+  dos propiedades después del atajo repara el defecto de hoy y deja la trampa
+  armada: vuelve en cuanto alguien añada una regla en el orden equivocado, y el
+  test tendría que vigilar un **orden**, no un **valor**.
+- **El atajo resetea ocho propiedades más que nunca menciona.** Reordenar repara
+  las dos que hoy conocemos. Quitar el atajo quita **el constructo que resetea**,
+  así que ninguna regla de esta hoja puede apagar en silencio una propiedad de
+  fuente que no nombra, en ningún orden.
+- **Cuesta unos bytes de CSS.** `role()` decía cuatro cosas; ahora las dice en
+  cuatro longhands. No cambia ni un valor: mismo peso, mismo tamaño, mismo
+  interlineado, misma familia. Nada de lo que se ve en pantalla se mueve —
+  **salvo que las cifras ahora sí son tabulares por el mecanismo que la hoja
+  declara**.
+
+### 2. El test: el caso 14 **mide**, y mide donde `--mono` no puede contestar
+
+El caso 14 comprobaba que la **cadena** `font-variant-numeric:tabular-nums`
+aparecía en la hoja. Aparecía. Ahora resuelve **la cascada** y **mide anchuras**.
+
+**El instrumento: `tests/board/cascade.ts`.** Una cascada pequeña —reglas de la
+hoja, especificidad del selector que encaja, orden de documento— con **la
+expansión del atajo `font:` incluyendo lo que resetea**, que es exactamente la
+semántica donde vive el defecto. Y un modelo de anchuras con **números medidos
+en un navegador de verdad**, los que este ledger citó al levantar V1:
+
+| cara | `111111` | `000000` |
+|---|---|---|
+| Geist sans (proporcional) | 42,66 px | 58,59 px |
+| Geist Mono | 72,25 px | 72,25 px |
+
+**La trampa, y cómo se cierra.** En `--mono` los dos anchos coinciden **diga lo
+que diga la hoja**: medir ahí contesta que sí por el motivo equivocado, que es
+precisamente lo que el verificador señaló. Por eso **el caso 14 mide en la cara
+PROPORCIONAL**: en `sans`, que `111111` y `000000` midan lo mismo **sólo puede
+venir de las figuras tabulares**. La familia deja de poder responder por la
+declaración.
+
+**Las tres celdas no se escriben en el test**: se leen de `src/board/handler.ts`
+(`'time' → instant`, `'score' → score`, `'last' → instant`), así que si mañana
+una cambia de clase el modelo cambia con ella en vez de quedarse midiendo un
+elemento que ya no existe.
+
+**Declarado dentro del caso lo que el mecanismo no alcanza (ADR-016 §6):** el
+resolutor no sabe decidir selectores con combinador ni con pseudoclase. Eso no
+se supone — `unresolvableSelectors()` **enumera** los que podrían alcanzar a esas
+tres celdas y el caso 14 exige que la lista sea **vacía**. Y sigue siendo un caso
+**estático**: no hay navegador ni se ejecuta una línea de JavaScript de página,
+como CA-16.3 declara para CA-1..CA-15.
+
+### 3. La medición, antes y después
+
+Con la cascada del commit `238ba38`, sobre las tres celdas:
+
+| celda | fvn | ffs | `111111` | `000000` |
+|---|---|---|---|---|
+| **ANTES** `time` `td.instant` | `normal` | `normal` | 42,66 px | 58,59 px |
+| **ANTES** `score` `td.score` | `normal` | `normal` | 42,66 px | 58,59 px |
+| **ANTES** `last` `td.instant` | `normal` | `normal` | 42,66 px | 58,59 px |
+| **DESPUÉS** `time` `td.instant` | `tabular-nums` | `'tnum' 1` | 58,59 px | 58,59 px |
+| **DESPUÉS** `score` `td.score` | `tabular-nums` | `'tnum' 1` | 58,59 px | 58,59 px |
+| **DESPUÉS** `last` `td.instant` | `tabular-nums` | `'tnum' 1` | 58,59 px | 58,59 px |
+
+### 4. El control positivo, con la mutación exacta
+
+**Mutación M-V1**, en `src/board/view/styles.ts`, dentro de `role()` — devolver
+el atajo:
+
+```diff
+   const lines = [
+-    `font-weight:${declared.weight}`,
+-    `font-size:${declared.px}px`,
+-    `line-height:${declared.leading}`,
+-    `font-family:var(--${declared.family})`,
++    `font:${declared.weight} ${declared.px}px/${declared.leading} var(--${declared.family})`,
+   ];
+```
+
+Resultado, medido: **un solo caso rojo, y es el 14**.
+
+```
+FAIL tests/board/style.test.ts > CA-15.5 a CA-15.9 — el suelo de ADR-025, intacto
+     > 14. CA-15.7 — las tres celdas con cifras MIDEN igual `111111` y `000000` (ADR-013 §3)
+AssertionError: expected [ …(9) ] to deeply equal []
++ [
++   "time  → <td class=\"instant\">: 111111 mide 42.66 px y 000000 mide 58.59 px",
++   "time  → <td class=\"instant\">: font-variant-numeric computa normal",
++   "time  → <td class=\"instant\">: font-feature-settings computa normal",
++   "score → <td class=\"score\">:   111111 mide 42.66 px y 000000 mide 58.59 px",
++   "score → <td class=\"score\">:   font-variant-numeric computa normal",
++   "score → <td class=\"score\">:   font-feature-settings computa normal",
++   "last  → <td class=\"instant\">: 111111 mide 42.66 px y 000000 mide 58.59 px",
++   "last  → <td class=\"instant\">: font-variant-numeric computa normal",
++   "last  → <td class=\"instant\">: font-feature-settings computa normal",
++ ]
+   Tests  1 failed | 51 passed (52)
+```
+
+Las nueve ofensas son las **tres celdas por tres comprobaciones**: la anchura
+medida y los dos valores computados. Ni una sola de las otras 51 se mueve.
+
+**Y la mutación está en la historia, no sólo aquí.** El commit `238ba38`
+(`test(SPEC-018)`) es el **rojo del ciclo**: trae el caso 14 que mide con la hoja
+todavía sin arreglar. `git stash push src/board/view/styles.ts` sobre `801bef0`
+reproduce el mismo estado. El caso viejo —el que buscaba la cadena— **pasa en
+los dos**, que es el defecto entero en una frase.
+
+**Dos controles positivos más, dentro de la suite**, para que nadie tenga que
+mutar nada a mano:
+
+- **Caso 19**: con el atajo devuelto, `fvn` y `ffs` computan `normal` y las
+  anchuras se separan (42,66 vs 58,59 px).
+- **Caso 20 — la trampa, escrita**: **la misma hoja rota**, medida en `--mono`,
+  da **72,25 px los dos**. Verde con la declaración muerta. Es el motivo por el
+  que la familia no puede ser el mecanismo, y por el que el caso 14 mide en
+  `sans`.
+
+### 5. Lo que se tocó, y lo que no
+
+| fichero | qué |
+|---|---|
+| `src/board/view/styles.ts` | `role()` emite longhands; comentario del porqué |
+| `tests/board/cascade.ts` | **nuevo** — la cascada y el modelo de anchuras |
+| `tests/board/style.test.ts` | caso 14 reescrito, casos 19 y 20 nuevos, caso 8 adaptado |
+
+**El caso 8 se adaptó, no se debilitó** (CA-17.2): afirmaba que la hoja no
+contiene el rol `display` *en la forma en que la hoja lo emitía*. La hoja emite
+ahora longhands, así que la aserción pasa a pedir los tres números del rol
+seguidos en esa forma. Mismo predicado, misma fuerza; sin el cambio la aserción
+habría quedado **vacua** — buscando una cadena que ya no puede existir, que es
+la misma clase de defecto que este hallazgo.
+
+**Numeración**: los casos nuevos son **19 y 20**, al final del bloque, para no
+renumerar 15–18, que este ledger ya cita por su número.
+
+**`src/admin/view/styles.ts` NO se ha tocado.** Arrastra el mismo patrón desde
+SPEC-017 y **CA-17.2 (i) lo prohíbe**. Queda como **F-SPEC-018-N2**, abajo.
+
+### 6. Gate
+
+`npm run gates` — `typecheck` ✅ · `lint` ✅ · `build` ✅ · `test` **4 rojos, y
+ninguno es de este cambio**: los cuatro son de `tests/bot/frontier.test.ts`
+(CA-10.4 de SPEC-015) y los cuatro los provoca **el mismo PNG**, `_qa/SPEC-018/`,
+que este cambio no toca. Es **F-SPEC-018-N1**, abajo. **Medido**: con
+`git stash -u` de los tres ficheros de arriba, esos cuatro casos siguen rojos y
+con la misma ofensa.
+
+`tests/board/style.test.ts`: **52/52 verdes** (52 porque importa `contrast` de la
+suite del panel, que se registra con ella).
+
+`npm run test:db` no se ha corrido: no se ha tocado nada de base de datos.
+
+## Findings nuevos
+
+### F-SPEC-018-N1 — el guardián de CA-10.4 (SPEC-015) lee **bytes de PNG**, y una captura de CA-16 lo pone rojo
+
+**Qué pasa.** `tests/bot/frontier.test.ts` casos 28, 30, 31 y 32 recorren el
+árbol versionado entero **sin filtro de extensión** —a propósito: «lee BYTES DE
+FICHEROS, todos, sean código o no»— buscando `/\b\d{9,12}\b/`. La captura
+`_qa/SPEC-018/ca16-6-filas-360x640-gl.png`, que **el verificador versionó como
+evidencia de CA-16**, contiene en sus bytes comprimidos la secuencia
+`33350004404`. Cuatro casos rojos, incluidos los dos controles positivos del
+propio mecanismo.
+
+**Es previo a este cambio y no lo causa ningún código**: llegó con `f29d2cf`, el
+commit del veredicto. Medido con `git stash -u`.
+
+**Por qué importa.** `npm run gates` **no puede pasar en esta rama**, y el gate
+de calidad es lo único que hay: no hay CI. Un guardián irreversible —git no se
+purga, se reescribe (ADR-009 §3)— que se dispara con un falso positivo se acaba
+silenciando, y ése es el peor final posible para éste.
+
+**Lo que NO se ha hecho aquí, y por qué.** Arreglarlo es tocar la suite de
+**SPEC-015, cerrada**: o se excluye `_qa/` de `ID_SCAN_EXCLUSIONS` —lo que
+**debilita** el guardián y no es ninguno de los tres casos de CA-17.2—, o el
+escaneo deja de mirar binarios —lo mismo—, o las capturas dejan de versionarse.
+Las tres son **decisiones**, no un arreglo, y ninguna es mía.
+
+**Destino: `sdd-arquitecto`, en esta misma vuelta de SPEC-018** — el rojo es de
+esta rama y sale de la evidencia de CA-16 de esta spec. **Disparador: ya está
+disparado.**
+
+### F-SPEC-018-N2 — el panel arrastra el mismo atajo `font:` desde SPEC-017
+
+`src/admin/view/styles.ts` tiene su propia copia de `role()`, emitiendo el
+atajo, y su propia regla `.num,.score,.instant,td,th` con `tabular-nums`
+declarado antes. **El defecto es idéntico** y el panel también enseña marcadores
+y horas.
+
+**No se toca aquí: CA-17.2 (i) prohíbe ensanchar la suite de al lado por
+conveniencia**, y el propio hallazgo V1 lo dice con esas palabras.
+
+**Destino: EPIC-MEJORA. Disparador: la primera spec que toque
+`src/admin/view/styles.ts` por un motivo suyo** — que es el mismo disparador que
+el verificador le escribió. El arreglo está probado y cabe en un diff: `role()`
+emite longhands, y el caso equivalente al 14 puede reusar `tests/board/cascade.ts`
+sin copiar una línea.
