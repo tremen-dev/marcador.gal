@@ -30,6 +30,13 @@ import {
 import { DECLARED_DIVERGENCES, rootBlock } from '@/design/system';
 import { MATCH_QUALIFIERS } from '@/model/qualifier';
 import { contrast } from '../admin/style.test';
+import {
+  computedStyle,
+  digitsWidthPx,
+  tabularFigures,
+  unresolvableSelectors,
+} from './cascade';
+import type { StyledElement } from './cascade';
 
 /**
  * La hoja SIN el bloque `:root`, que es el único sitio donde un valor
@@ -38,6 +45,34 @@ import { contrast } from '../admin/style.test';
  * valor propio en una regla.
  */
 const RULES = BOARD_STYLESHEET.replace(/:root\{[^}]*\}/, ':root{}');
+
+/**
+ * LAS TRES CELDAS QUE LLEVAN CIFRAS — `time`, `score` y `last` — LEÍDAS DEL
+ * MANEJADOR, no escritas aquí. Si mañana una de ellas cambia de clase, el
+ * modelo cambia con ella en vez de quedarse midiendo un elemento que ya no
+ * existe; y si desaparece, el `toEqual` de abajo lo dice.
+ */
+async function digitCells(): Promise<readonly (StyledElement & { field: string })[]> {
+  const handler = await readFile('src/board/handler.ts', 'utf8');
+  const cells = [...handler.matchAll(/'(time|score|last)',\s*'([a-z-]+)'\)/g)].map((match) => ({
+    field: match[1]!,
+    tag: 'td',
+    classes: [match[2]!],
+  }));
+
+  expect(cells.map((cell) => cell.field).sort()).toEqual(['last', 'score', 'time']);
+  return cells;
+}
+
+/**
+ * LA MUTACIÓN CON LA QUE SE PROBÓ QUE EL CASO 14 MUERDE, y es exactamente la
+ * hoja que había antes de F-SPEC-018-V1: una regla con atajo `font:` que
+ * alcanza a la celda del marcador DESPUÉS de la que declara `tabular-nums`.
+ */
+function withFontShorthandBack(): string {
+  const { weight, px, leading } = TYPE.score;
+  return `${BOARD_STYLESHEET}\n.score{font:${weight} ${px}px/${leading} var(--mono)}`;
+}
 
 describe('CA-15.1 — un solo domicilio: ni un color, ni una familia, ni un radio propios', () => {
   test('1. ninguna regla de la hoja declara un `#rrggbb` ni un nombre de fuente', () => {
@@ -171,9 +206,56 @@ describe('CA-15.5 a CA-15.9 — el suelo de ADR-025, intacto', () => {
     expect(TOUCH_TARGET_PX).toBe(44);
   });
 
-  test('14. CA-15.7 — dígitos tabulares en marcador, hora e instantes (ADR-013 §3)', () => {
-    expect(BOARD_STYLESHEET).toContain('font-variant-numeric:tabular-nums');
-    expect(BOARD_STYLESHEET).toMatch(/\.num,\.score,\.instant,td,th\{/);
+  /**
+   * CA-15.7 SE MIDE, NO SE BUSCA (F-SPEC-018-V1). Este caso decía que la CADENA
+   * `font-variant-numeric:tabular-nums` estaba en la hoja. Estaba, y la
+   * propiedad computaba `normal` en las tres celdas con cifras: el atajo `font:`
+   * de `role()` la reiniciaba tres reglas más abajo.
+   *
+   * Ahora se resuelve la CASCADA y se mide la anchura, Y SE MIDE EN UNA CARA
+   * PROPORCIONAL a propósito. En `--mono` los dos anchos coinciden diga lo que
+   * diga la hoja —72,25 px los dos, medido— así que medir en mono contesta que
+   * sí por el motivo equivocado. En `sans`, `111111` y `000000` miden 42,66 y
+   * 58,59 px salvo que las figuras tabulares estén encendidas: ahí la igualdad
+   * sólo puede venir de la declaración, que es lo que ADR-013 §3 exige.
+   *
+   * Sus dos controles positivos son los casos 19 y 20, al final del bloque para
+   * no renumerar los que el ledger ya cita.
+   */
+  test('14. CA-15.7 — las tres celdas con cifras MIDEN igual `111111` y `000000` (ADR-013 §3)', async () => {
+    const cells = await digitCells();
+    const offenders: string[] = [];
+
+    for (const cell of cells) {
+      const style = computedStyle(BOARD_STYLESHEET, cell);
+      const label = `${cell.field} → <td class="${cell.classes.join(' ')}">`;
+      const ones = digitsWidthPx('111111', style);
+      const zeros = digitsWidthPx('000000', style);
+
+      // LA MEDIDA, en una tipografía proporcional: sólo `tabular-nums` las iguala.
+      if (ones !== zeros) {
+        offenders.push(
+          `${label}: 111111 mide ${ones.toFixed(2)} px y 000000 mide ${zeros.toFixed(2)} px`,
+        );
+      }
+      // Y el diagnóstico, para que un rojo diga POR QUÉ: el valor COMPUTADO, no
+      // la cadena de la hoja.
+      if (style.get('font-variant-numeric') !== 'tabular-nums') {
+        offenders.push(`${label}: font-variant-numeric computa ${style.get('font-variant-numeric')}`);
+      }
+      if (style.get('font-feature-settings') !== "'tnum' 1") {
+        offenders.push(
+          `${label}: font-feature-settings computa ${style.get('font-feature-settings')}`,
+        );
+      }
+    }
+
+    expect(offenders).toEqual([]);
+
+    // Lo que el resolutor no sabe decidir, comprobado en vez de supuesto
+    // (ADR-016 §6): ningún selector con combinador ni ninguna pseudoclase que
+    // declare una propiedad de fuente alcanza a estas tres celdas.
+    expect(unresolvableSelectors(BOARD_STYLESHEET, cells)).toEqual([]);
   });
 
   test('15. CA-15.8 — la hoja es propia: ningún módulo de `src/board/` importa CSS', async () => {
@@ -214,5 +296,31 @@ describe('CA-15.5 a CA-15.9 — el suelo de ADR-025, intacto', () => {
     expect(BOARD_STYLESHEET).not.toContain('--fg-prov');
     // Y ninguna REGLA apaga un cualificador con el token más apagado.
     expect(RULES).not.toMatch(/\.q-[a-z-]+\{[^}]*--fg-dim/);
+  });
+
+  test('19. CONTROL POSITIVO de CA-15.7: devolver el atajo `font:` pone rojo el caso 14', async () => {
+    const cells = await digitCells();
+    const score = cells.find((cell) => cell.field === 'score')!;
+    const style = computedStyle(withFontShorthandBack(), score);
+
+    // El atajo reinicia las dos propiedades que sostienen ADR-013 §3…
+    expect(style.get('font-variant-numeric')).toBe('normal');
+    expect(style.get('font-feature-settings')).toBe('normal');
+    // …y con ellas apagadas la medida las separa, que es el rojo del caso 14.
+    expect(digitsWidthPx('111111', style)).not.toBe(digitsWidthPx('000000', style));
+    expect(digitsWidthPx('111111', style)).toBeCloseTo(42.66, 2);
+    expect(digitsWidthPx('000000', style)).toBeCloseTo(58.59, 2);
+  });
+
+  test('20. y LA TRAMPA que el caso viejo no veía: en `--mono` la hoja rota pasa igual', () => {
+    const style = computedStyle(withFontShorthandBack(), { tag: 'td', classes: ['score'] });
+
+    // Misma hoja rota, misma declaración muerta…
+    expect(tabularFigures(style)).toBe(false);
+    // …y en una monoespaciada los dos anchos coinciden de todos modos: 72,25 px
+    // los dos, medido en el navegador. Por eso CA-15.7 se mide en `sans`, y por
+    // eso la familia NO puede ser el mecanismo que sostiene ADR-013 §3.
+    expect(digitsWidthPx('111111', style, 'mono')).toBe(digitsWidthPx('000000', style, 'mono'));
+    expect(digitsWidthPx('111111', style, 'mono')).toBeCloseTo(72.25, 2);
   });
 });
