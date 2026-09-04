@@ -89,7 +89,7 @@ queda sin verificar** (F-SPEC-018-V5).
 | CA-15 | `src/board/view/styles.ts` · `src/design/tokens.ts` (`MEASURE`, `HAIRLINE_PX`) · `src/admin/view/styles.ts` | `tests/board/style.test.ts` 1–20 (controles positivos 3, 19, 20) · `tests/board/cascade.ts` (instrumento) · `tests/design/scale.test.ts` 1–6 (control positivo 5) | **Mutación M11**: `#8a8a8a` en `.soft` ⇒ rojo el caso 1. `docs/diseno/` intacto, `DECLARED_DIVERGENCES` sigue en 3, `LOADED_FACES` en 5: **EPIC-004 no se ha descongelado**. **Pero CA-15.7 falla en el navegador**: ver **F-SPEC-018-V1**. | ⚠️ |
 | CA-16 | — (no lo implementa el implementador: es del verificador, con capturas en `_qa/SPEC-018/`) | — | **EJECUTADO POR EL VERIFICADOR EN UN NAVEGADOR DE VERDAD**, no por lectura de la hoja. Chromium 149 headless por CDP crudo contra `next dev`, 360 × 640, dsf 2, `mobile: true`. Diez capturas y dos informes JSON en `_qa/SPEC-018/`. Resultados abajo. | ✅ |
 | CA-17 | `tests/site/url-permanence.test.ts` · censos de `PAGES`, `ROUTES` y rutas de `robots.test.ts` | `tests/site/url-permanence.test.ts` 1 | 17.1 ✅ (las tres entradas están escritas en `docs/fundacion/dominio.md`). 17.3 ✅ (caso único, con literales, en dos grupos, y `/` sigue redirigiendo). 17.4 ✅ (ningún layout tocado). **17.2: la disciplina de commit no se siguió** — ver **F-SPEC-018-V3**. | ⚠️ |
-| CA-18 | `src/i18n/gl.ts` · `src/i18n/es.ts` · `src/i18n/site-bundle.ts` · `src/i18n/crawler-bundle.ts` · `src/site/project-page.tsx` · `src/site/crawler-page.tsx` · ledgers de SPEC-004, SPEC-005 y SPEC-007 | `tests/site/crawler-page.test.ts` 12, 12 bis/ter/quater · `tests/site/identity.test.ts` 1–4 · `tests/board/no-contradiction.test.ts` 1–6 (control positivo 2, 3) · `tests/board/document.test.ts` 8 | **Mutación M8**: `board.heading` con un nombre de persona ⇒ rojos los casos 1 y 3 de `identity.test.ts`: la barrera de SPEC-007 **cubre de verdad** el espacio y las dos rutas nuevas, y sus dos números crecieron (4 espacios, 6 rutas). **Mutación M9**: reponer «Non republicamos os datos de ninguén» ⇒ rojos `no-contradiction` 1 y `crawler-page` 12. **Diff**: ningún cuerpo ni frontmatter de spec cerrada tocado; sólo ledgers. **Pero** ver **F-SPEC-018-V2** y **F-SPEC-018-V4**. | ⚠️ |
+| CA-18 | `src/i18n/gl.ts` · `src/i18n/es.ts` · `src/i18n/site-bundle.ts` · `src/i18n/crawler-bundle.ts` · **`src/site/hosting.ts`** (nuevo, V4) · `src/site/project-page.tsx` · `src/site/crawler-page.tsx` · ledgers de SPEC-004, SPEC-005 y SPEC-007 | `tests/site/crawler-page.test.ts` 12, 12 bis/ter · **12 quater/quinquies/sexies/septies/octies (V4, control positivo 12 septies)** · `tests/site/identity.test.ts` 1–4 · `tests/board/no-contradiction.test.ts` 1–6 (control positivo 2, 3) · `tests/board/document.test.ts` 8 · **`tests/board/runbook.test.ts` 7, 8, 10** | **Mutación M8**: `board.heading` con un nombre de persona ⇒ rojos los casos 1 y 3 de `identity.test.ts`: la barrera de SPEC-007 **cubre de verdad** el espacio y las dos rutas nuevas, y sus dos números crecieron (4 espacios, 6 rutas). **Mutación M9**: reponer «Non republicamos os datos de ninguén» ⇒ rojos `no-contradiction` 1 y `crawler-page` 12. **Diff**: ningún cuerpo ni frontmatter de spec cerrada tocado; sólo ledgers. **Pero** ver **F-SPEC-018-V2** y **F-SPEC-018-V4**. | ⚠️ |
 | CA-19 | `docs/procedimientos/calendario-de-compromisos.md` | `tests/board/runbook.test.ts` 4–9 | Las cuatro filas están escritas, el disparador tiene **ocho** puntos con la aclaración de CA-2.9, el punto de tráfico está sustituido y el párrafo de cierre dice «Ocho de estas nueve fechas». **Escrito no es cumplido**, y CA-19.6 lo declara: son compromisos humanos y quedan para la persona. | ✅ |
 
 ## Veredicto del verificador
@@ -1517,3 +1517,200 @@ problema de la desambiguación multiplicado por dos—, o **`noticeLink` apunta 
 segundo dictamen legal («un solo lugar honesto, una superficie menos»). **La
 segunda es más barata y más coherente con lo ya decidido**, pero es decisión de
 producto, no mía.
+
+---
+
+# Respuesta de `sdd-implementador` al RED — 2026-09-04, noche
+
+> Un implementador nuevo, sin memoria de las vueltas anteriores, con **un solo
+> encargo: F-SPEC-018-V4**, el único hallazgo que llega al público el 08. V1 lo
+> cerró otro implementador, V2 y V3 el arquitecto y V5 el orquestador; **no se
+> ha tocado nada de ellos**. La spec pasó a `en-progreso` sólo para poder tocar
+> código —el gate del estándar lo exige— y **vuelve a `en-revision`**, que es
+> donde el verificador la dejó y desde donde él la mueve.
+
+## V4 — la línea de privacidad. **Cerrado, y con las tres mitades**
+
+El hallazgo tenía dos: el texto y el caso. La resolución del arquitecto añadió
+la tercera, que es la que explica por qué esto pasó: **`privacy` era una clave
+con seis afirmaciones dentro**, y dentro de una sola cadena **una afirmación que
+falta no se ve ni en el diff ni en un test**.
+
+### 1. Las nueve claves, con su literal
+
+Tomadas del ledger tal como el arquitecto las escribió, sin cambiar una palabra.
+**No hubo que consultar a `sdd-lingua`**: se leyeron las nueve en las dos lenguas
+contra las trampas de norma que el dictamen enumera —`prazo`, `datos`, `provedor`,
+`aloxado`, `enderezo`, `rexistro` y `lexítimo` con `x`, enclisis en `consérvao`
+frente a proclisis en `non se recolle`, y `u oposición` en castellano— y **no
+apareció ningún problema de lengua ni de sentido**. `privacyHeading` no se toca.
+
+| # | Clave | Galego | Castellano |
+|---|---|---|---|
+| 1 | `privacyNoTrackers` | Non hai cookies, nin analítica, nin ningún compoñente de terceiros nas páxinas deste sitio. | No hay cookies, ni analítica, ni ningún componente de terceros en las páginas de este sitio. |
+| 2 | `privacyLog` | O servidor deixa un rexistro técnico de cada petición: o enderezo IP, a hora, a páxina pedida, o navegador e de onde vén a ligazón. Non se recolle ningún outro dato de quen visita. | El servidor deja un registro técnico de cada petición: la dirección IP, la hora, la página pedida, el navegador y de dónde viene el enlace. No se recoge ningún otro dato de quien visita. |
+| 3 | `privacyProcessor` | O sitio está aloxado en {provider}, que é quen garda ese rexistro por conta de marcador.gal. {provider} está nos Estados Unidos, e a transferencia está amparada por unha decisión de adecuación da Comisión Europea. | El sitio está alojado en {provider}, que es quien guarda ese registro por cuenta de marcador.gal. {provider} está en Estados Unidos, y la transferencia está amparada por una decisión de adecuación de la Comisión Europea. |
+| 4 | `privacyBasis` | A base xurídica é o interese lexítimo de manter o servizo en pé e seguro: sen ese rexistro non se pode saber se algo falla nin frear un abuso. | La base jurídica es el interés legítimo de mantener el servicio en pie y seguro: sin ese registro no se puede saber si algo falla ni frenar un abuso. |
+| 5 | `privacyRetention` | marcador.gal non garda nada de quen visita nin exporta copia dese rexistro. Consérvao {provider} durante {retention}, que é o prazo que fixa ela. | marcador.gal no guarda nada de quien visita ni exporta copia de ese registro. Lo conserva {provider} durante {retention}, que es el plazo que fija ella. |
+| 6 | `privacyController` | Do sitio responde o proxecto, baixo o paraugas de tremen.dev. | Del sitio responde el proyecto, bajo el paraguas de tremen.dev. |
+| 7 | `privacyRights` | Podes pedir acceso, rectificación, supresión, limitación ou oposición: escribe a {mailbox}. | Puedes pedir acceso, rectificación, supresión, limitación u oposición: escribe a {mailbox}. |
+| 8 | `privacyAuthority` | E podes reclamar ante a Axencia Española de Protección de Datos. | Y puedes reclamar ante la Agencia Española de Protección de Datos. |
+| 9 | `privacyNotTheArchive` | Ese rexistro non é o arquivo do que fala «Que gardamos e canto tempo»: aquel garda o que se le doutros sitios; este, o rastro que deixa quen visita. | Ese registro no es el archivo del que habla «Qué guardamos y cuánto tiempo»: aquel guarda lo que se lee de otros sitios; este, el rastro que deja quien visita. |
+
+**Dónde viven los dos datos nuevos: `src/site/hosting.ts`, fichero nuevo.**
+`HOSTING_PROVIDER` y `ACCESS_LOG_RETENTION`, más `withHosting()`, que rellena
+los dos huecos. La forma es la de `site/contact.ts` y la razón es la misma: **un
+bundle por lengua serían ya dos copias de un dato que va a moverse**, y aquí el
+dato es además de otro —de la plataforma, no de este repositorio—. `site/contact.ts`
+no vale como domicilio: su caso 4 exige que no exporte nada más que el buzón.
+La cabecera del fichero lleva escrito el contrato de migración, que es lo único
+que protege a esas dos líneas de envejecer en silencio.
+
+**La página sirve nueve `<p>`, uno por clave, en el orden de la tabla.** Sólo
+dos pasan por interpolación de proveedor (`privacyProcessor`, `privacyRetention`)
+y uno por la del buzón (`privacyRights`); `withHosting` devuelve **texto plano y
+no un nodo**, porque ninguno de los dos datos es un enlace y esta página no
+manda a nadie a otro sitio a leer lo que ya dice.
+
+### 2. El caso: nueve aserciones positivas, tres negativas y una barrera léxica
+
+El caso 12 quater se llamaba «qué registra el servidor, con qué base, **cuánto**,
+y que no hay cookies ni analítica» y **no tenía ni una aserción sobre «cuánto» ni
+sobre quién procesa**. Ahora son cinco casos, y ninguno de los nueve elementos
+puede faltar sin que uno se ponga rojo.
+
+| Caso | Qué afirma |
+|---|---|
+| **12 quater** | Los nueve elementos sobre el texto de las nueve claves ya interpolado. **E1** `cookies` · `analitica` · `terceiros\|terceros`. **E2** `enderezo ip\|direccion ip`, `, a hora,\|, la hora,`, `paxina pedida\|pagina pedida`, **`navegador`** y **`ligazon\|enlace`**. **E3** el nombre del encargado, en las dos lenguas. **E4** `interese lexitimo\|interes legitimo` **más** `manter o servizo\|mantener el servicio`. **E5** el plazo, `fixa ela\|fija ella`, `non garda nada\|no guarda nada` y `exporta copia`. **E6** el buzón y las **cinco** formas de derecho, `limitacion` incluida. **E7** `proteccion de datos`. **E8** `estados unidos` y `adecuacion`. **P6** `tremen.dev` |
+| **12 quinquies** | Las nueve claves existen en las dos lenguas y **se sirven enteras** en las dos rutas; y los dos datos nuevos **se interpolan en vez de escribirse** —ningún valor del bundle los contiene y el HTML servido sí— |
+| **12 sexies** | Las tres negativas: **nada circular** (la fórmula exacta que causó esto), **nadie disfrazado de servidor** (`o servidor onde está aloxado` / su gemela), y **ninguna persona física** más **ninguna llamada a la acción** (`patrocina`, `publicidade`, `publicidad`, `doar`, `subscri`) |
+| **12 septies** | **CONTROL POSITIVO**: las dos fórmulas retiradas —copiadas del texto que el sitio servía hasta hoy— **muerden** sobre una cadena sintética en las dos lenguas, y los cinco términos de llamada a la acción también. Sin él, dos expresiones regulares mal escritas darían verde el caso anterior sin comprobar nada |
+| **12 octies** | **La barrera léxica de L10 con su excepción declarada**: `arquivo`/`archivo` no aparece en ninguna clave `privacy*` **salvo `privacyNotTheArchive`**, y `rexistro`/`registro` no aparece en `storage`. **La excepción no es un agujero**: el mismo caso exige que la clave exenta use **las dos** palabras y que **cite el otro bloque por el texto de su cabecera**, no por su posición |
+
+**Declarado dentro del caso (ADR-016 §6):** todas estas aserciones prueban que
+**unas palabras están escritas, no que sean ciertas**. Que el plazo publicado sea
+el real depende del plan de alojamiento y de que nadie añada un desvío de
+registros, y eso pasa **fuera de este repositorio**. Va al calendario de
+compromisos, y esa fila **existe** — ver §4.
+
+### 3. Las mutaciones: seis, y las seis muerden
+
+Ejercidas sobre el árbol real y **revertidas todas** (`git status` limpio salvo el
+frontmatter de estado).
+
+| # | Mutación | Casos rojos |
+|---|---|---|
+| **M-V4a** | `privacyRetention` (gl) vuelve a «Consérvase o tempo que ese rexistro dura» | **12 quater** (falta el plazo), **12 quinquies** (el plazo no llega al HTML) y **12 sexies** (la fórmula circular) — **tres** |
+| **M-V4b** | Quitar `o navegador e de onde vén a ligazón` de `privacyLog` (gl) | **12 quater**: `expected … to contain 'navegador'` |
+| **M-V4c** | `privacyProcessor` (es) vuelve al rodeo «el servidor donde está alojado» y pierde la transferencia | **12 quater** (`estados unidos`) y **12 sexies** (el rodeo) |
+| **M-V4d** | `privacyAuthority` (gl) pasa a «ante a autoridade que corresponda» | **12 quater**: `expected … to contain 'proteccion de datos'` |
+| **M-V4e** | Meter `arquivo` en `privacyBasis` (gl) | **12 octies**: `expected [ 'gl.privacyBasis' ] to deeply equal []` |
+| **M-V4f** | La clave existe pero **la página deja de servirla**: se borra el `<p>` de `privacyRetention` | **12 quinquies**: `expected [ 'gl.privacyRetention', …(1) ] to deeply equal []` |
+
+**M-V4a es la mutación del hallazgo**: repone exactamente lo que el sitio servía
+esta mañana. **Con el caso viejo, las seis habrían pasado en verde menos ninguna**
+— el caso viejo afirmaba `cookies`, `analitica`, `terceiros`, `interese lexitimo`
+y el buzón, y **las seis mutaciones dejan esas cinco cosas intactas**. Ése es el
+hallazgo entero en una frase.
+
+**Y el rojo está en la historia, no sólo aquí**: el commit `477579c`
+(`test(SPEC-018)`) trae los cinco casos contra unas claves que todavía no
+existen — cuatro casos rojos, `Tests 4 failed | 25 passed`.
+
+### 4. Lo que publicar el plazo vuelve falso, corregido en el mismo cambio
+
+**Una fila del calendario de compromisos escrita ayer dejó de ser cierta hoy**, y
+la causa es el dato que esta línea publica: decía **«al día siguiente de cada
+jornada declarada, mirar el punto de tráfico»**, y el registro de acceso dura lo
+que `/robot` dice que dura, así que **al día siguiente ya no está**. Mirarlo tarde
+no es mirarlo mal: es no poder mirarlo. Pasa a **«El mismo día, al cerrar cada
+jornada declarada»**. Es la regla de CA-18 —lo que publicar vuelve falso se
+corrige en el mismo cambio— aplicada al documento operativo en vez de a un
+literal.
+
+**Y entra la fila que el dictamen dejó escrita**: confirmar antes del despliegue
+que el plan de alojamiento sigue siendo el que fija el plazo y que **no hay ni
+desvío de registros ni observabilidad ampliada**; y que **la ampliada no se
+contrata**, porque multiplicaría por treinta la retención de datos personales
+para vigilar un umbral —peor minimización, art. 5.1.c— y pondría el plazo
+publicado en 30 días **justo al lado de los 30 del archivo**, que es la confusión
+que `privacyNotTheArchive` existe para deshacer.
+
+Los dos números de los casos **7** y **8** de `tests/board/runbook.test.ts`
+crecen con ella —la fila del tráfico y el censo de filas y su párrafo de cierre—
+y **crecen ahí y no en silencio**: son el dato de un guardián cuyo dato cambió, y
+**ningún predicado se relaja**. **Caso 10 nuevo** para la fila nueva. Es la suite
+de **esta** spec, que está viva; no hay ninguna spec cerrada tocada por esto.
+
+### 5. Lo que se tocó, y lo que no
+
+| fichero | qué |
+|---|---|
+| `src/i18n/crawler-bundle.ts` | `privacy` → nueve claves, con el porqué de la forma escrito en el contrato |
+| `src/i18n/gl.ts` · `src/i18n/es.ts` | los nueve literales, con paridad |
+| `src/site/hosting.ts` | **nuevo** — los dos datos, `withHosting()` y el contrato de migración |
+| `src/site/crawler-page.tsx` | nueve `<p>` en el orden de la tabla |
+| `tests/site/crawler-page.test.ts` | 12 quater reescrito; 12 quinquies/sexies/septies/octies nuevos; `fill()` en el ayudante |
+| `docs/procedimientos/calendario-de-compromisos.md` | la fila del tráfico corregida, la fila del plan nueva, la cuenta del cierre |
+| `tests/board/runbook.test.ts` | casos 7 y 8 con su dato nuevo, caso 10 nuevo |
+
+**NO se ha tocado nada de V1, V2, V3 ni V5**, ni `src/board/view/styles.ts`, ni
+`tests/board/style.test.ts`, ni `tests/board/cascade.ts`, ni
+`tests/bot/frontier.test.ts`, ni ninguna de las cinco enmiendas de ADR-015.
+**Y `https://marcador.gal/privacidade` sigue sin arreglarse a propósito**: es
+F-SPEC-018-N3, es de SPEC-015 y va a `EPIC-FIX`.
+
+**Numeración**: los casos nuevos van al final de la familia `12 …` con nombres
+latinos, para no renumerar 13–22, que este ledger cita por su número.
+
+### 6. Gate
+
+**`npm run gates` — VERDE**, corrido entero al terminar:
+
+```
+Route (app)
+┌ ○ /_not-found        ├ ƒ /es/marcador
+├ ƒ /admin             ├ ○ /es/proxecto
+├ ƒ /api/board         ├ ○ /es/robot
+├ ƒ /api/cron/ingest   ├ ƒ /marcador
+├ ƒ /api/telegram/webhook  ├ ○ /proxecto
+├ ƒ /es/admin          ├ ○ /robot
+                       └ ○ /robots.txt
+
+ Test Files  147 passed (147)
+      Tests  1717 passed (1717)
+Type Errors  no errors
+```
+
+Eran **1712** al empezar: **+5 casos**, los cuatro de `crawler-page.test.ts` y el
+10 de `runbook.test.ts`. **`npm run test:db` no se ha corrido: no se ha tocado
+nada de base de datos.**
+
+## Findings nuevos
+
+### F-SPEC-018-N4 — el plazo publicado depende de un plan que nadie de este repositorio puede ver
+
+**No es un defecto: es el residuo de este arreglo, y hay que decirlo con el mismo
+cuidado con el que se dice el plazo.** La línea publica un número que es una
+propiedad **de la plataforma**, no del programa, y **ninguna aserción puede
+comprobarlo**: las nueve prueban que las palabras están escritas. Si el plan
+cambia, si se contrata observabilidad ampliada o si alguien añade un desvío de
+registros, **el plazo publicado se vuelve falso sin que nada se ponga rojo** — y
+lo hace en la página que un tercero audita.
+
+Mitigado con lo único que se puede: la fila del calendario (§4), el contrato
+escrito en la cabecera de `src/site/hosting.ts`, y que el dato viva en **una sola
+línea** en vez de en dos literales. **Destino: el calendario de compromisos, con
+disparador `antes del despliegue del 2026-09-08` y permanente después.
+Reaparecerá el día que el proyecto tenga CI, que es cuando se podrá al menos
+comprobar la cabecera del proveedor.**
+
+### F-SPEC-018-N5 — `privacyController` da contacto, no identidad, y eso es de gate
+
+**Ya está declarado por el arquitecto como residual (P6) y no lo resuelvo: lo
+repito aquí porque ahora está publicado.** «Do sitio responde o proxecto, baixo o
+paraugas de tremen.dev» **no cierra del todo el art. 13.1.a** —da a quién
+escribir, no quién responde— y **ADR-012 §1 impide darlo en este repositorio**. La
+salida limpia no toca ningún literal de aquí: **publicar la identificación en
+`tremen.dev`**, que es otro sitio. **Destino: el gate; disparador: ya está
+disparado —el rol legal lo pide hoy— y no bloquea el 08.**
