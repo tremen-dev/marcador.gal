@@ -6,8 +6,11 @@ epica: EPIC-002
 # Ledger — SPEC-018 El snapshot del marcador y la pantalla que lo lee por polling
 
 ## Resumen
-- Fase: `borrador` — pendiente del gate humano. Trae **ADR-027** en `borrador`.
-- Dictámenes de dominio: `dictamenes-SPEC-018.md` (los tres roles, copiados enteros).
+- Fase: `borrador` — **segunda redacción**, tras el gate del 2026-09-04 en el que
+  Alberto Fojo decidió que **el marcador se publica** (salida B). Pendiente de
+  firma. Trae **ADR-027** en `borrador`.
+- Dictámenes de dominio: `dictamenes-SPEC-018.md` (los tres roles, copiados enteros;
+  `sdd-legal-datos` dictaminó **dos veces**, y el segundo manda donde hablen de lo mismo).
 - Rama: `ft/SPEC-018-snapshot-e-paxina-minima`
 
 ## Matriz de criterios de aceptación
@@ -33,6 +36,8 @@ epica: EPIC-002
 | CA-15 | | | | ❌ |
 | CA-16 | | | | ❌ |
 | CA-17 | | | | ❌ |
+| CA-18 | | | | ❌ |
+| CA-19 | | | | ❌ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->

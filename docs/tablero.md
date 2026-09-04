@@ -76,7 +76,7 @@ Actualizado: 2026-09-04
 | ADR-024 | aprobada | el-panel-del-operador-sesion-declarada-sin-sistema-de-usuarios-el-vale-de-accion-y-toda-operacion-como-observation-por-la-puerta-estrecha | 2026-09-03 (Alberto Fojo) |
 | ADR-025 | aprobada | el-suelo-de-interfaz-mientras-epic-004-esta-congelada-foco-visible-teclado-toque-de-44-px-y-estilos-que-no-comparten-una-linea-con-globals-css | 2026-09-03 (Alberto Fojo) |
 | ADR-026 | aprobada | el-sistema-de-diseno-de-docs-diseno-es-vinculante-para-toda-interfaz-tokens-como-codigo-enfasis-del-cualificador-invertido-y-supersede-parcialmente-a-adr-025 | 2026-09-03 (Alberto Fojo (por delegación) |
-| ADR-027 | borrador | el-marcador-todavia-no-se-publica-proyeccion-de-solo-lectura-tras-la-sesion-declarada-apertura-de-la-jornada-de-medicion-y-los-tres-relojes-de-la-frescura | 2026-09-04 (sdd-arquitecto) |
+| ADR-027 | borrador | el-marcador-se-publica-proyeccion-de-solo-lectura-la-jornada-de-medicion-como-unica-apertura-y-los-tres-relojes-de-la-frescura | 2026-09-04 (sdd-arquitecto) |
 
 ## Resumen
 
