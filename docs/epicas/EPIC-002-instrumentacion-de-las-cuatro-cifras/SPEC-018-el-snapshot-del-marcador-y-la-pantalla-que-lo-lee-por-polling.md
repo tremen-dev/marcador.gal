@@ -2,7 +2,7 @@
 id: SPEC-018
 tipo: spec
 epica: EPIC-002
-estado: en-progreso
+estado: en-revision
 aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-09-04, por: sdd-arquitecto}
@@ -10,6 +10,7 @@ historial:
   - {estado: en-progreso, fecha: 2026-09-04, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-09-04, por: sdd-implementador}
   - {estado: en-progreso, fecha: 2026-09-04, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-09-04, por: sdd-implementador}
 ---
 # SPEC-018 — El snapshot del marcador y la pantalla que lo lee por polling
 
