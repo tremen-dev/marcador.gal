@@ -673,7 +673,10 @@ expresamente.
 
 **3. Con qué se sustituye, y si hay menos red.** **CA-18.4 se lee ahora con
 cuatro entradas: SPEC-004, SPEC-005, SPEC-007 y SPEC-006.** La cuarta está escrita
-en el ledger de SPEC-006 con sus cinco puntos, y **no relaja ningún predicado**:
+en el ledger de SPEC-006 con sus cinco puntos. **Corregido el 2026-09-04 por la
+tarde, tras F-SPEC-018-V2: son TRES guardianes y no dos, y en uno de los tres el
+predicado SÍ se relaja** — ver la §6 de esa enmienda. Lo que sigue describe la
+forma de los otros dos:
 añade una colisión declarada **por identidad de clave y de valor**, atada por una
 aserción propia que vuelve a morder si el título deja de valer `marcador.gal`.
 **Hay menos red en un solo sitio y está dicho allí**: el caso 3 de
@@ -865,3 +868,114 @@ es lo primero que hay que revisar.
   la hace el **verificador**, con capturas en `_qa/SPEC-018/` cotejadas byte a byte
   contra lo que el manejador sirve (F-SPEC-017-17: Chrome por MCP no alcanza
   `localhost` en este entorno).
+
+---
+
+# Respuesta de `sdd-arquitecto` al RED — 2026-09-04, tarde
+
+> Sobre **F-SPEC-018-V2, V3 y V4**. **V1 es de código** y lo lleva un implementador
+> nuevo; **V5 lo cerró el orquestador** corriendo `npm run test:db` (27 ficheros,
+> 345 tests). No he tocado `src/` ni `tests/`.
+
+## V2 — la enmienda de SPEC-006 describía mal lo que ampara. Corregida
+
+**El hallazgo es correcto y es el más serio de los tres**, y no por su efecto
+—lo implementado está compensado y no hay código que cambiar— sino por lo que es:
+**una enmienda de ADR-015 que afirma algo que el diff desmiente**. Un diff se
+revisa una vez; una enmienda se lee durante años, y es el artefacto al que alguien
+irá a preguntar «¿por qué este guardián tiene una excepción?».
+
+**Corregida en el ledger de SPEC-006, con la corrección fechada y firmada en su
+§6** en vez de reescrita en silencio. Lo que cambia: el encabezado (dos → **tres**
+guardianes); **§1**, que añade el caso 4 de `document-titles.test.ts` y separa las
+**dos** cosas que protegía; **§2**, que añade la tercera colisión y explica que
+tiene **otra causa** —el título del marcador **no tiene parte traducible**, que es
+distinto de que sea el nombre del dominio—; **§3**, partido en **Forma A**
+(exención nominal, casos 6 y 3, donde el predicado **no** se relaja) y **Forma B**
+(caso 4, donde **sí**), con la tabla de `toBe(4)` → `toBe(ROUTES.length - 1)` y las
+dos aserciones que lo compensan; **§4**, donde la frase falsa se sustituye por la
+cuenta correcta; y **§5**, con dos disparadores nuevos.
+
+**Lo que queda sin cubrir, dicho entero:**
+
+1. **Para el marcador, nada detecta que sus dos lenguas sirvan el mismo título por
+   descuido en vez de por decisión.** La aserción que las ata **exige** que
+   coincidan, así que el error y el acierto son el mismo estado. Para `/proxecto` y
+   `/robot` la comprobación sigue viva: un segundo duplicado da
+   `ROUTES.length - 2` y muerde.
+2. **El número esperado dejó de ser un literal.** `toBe(4)` obligaba a re-derivar
+   la cifra a mano al añadir una ruta; `toBe(ROUTES.length - 1)` se mueve solo con
+   el censo. **Eso no lo obligaba la decisión del gate** —se podría haber escrito
+   `toBe(5)`— y es la única parte de las tres que es elección de forma y no
+   consecuencia. Se acepta porque el bucle por ruta cubre la propiedad, y queda
+   escrito para que no se lea como inevitable.
+3. **Y el residuo del caso 3 que ya estaba declarado sigue igual:** quien escriba
+   `marcador.gal` a mano como título en un módulo de `src/` que no sea de ruta no
+   lo detecta ese caso. Lo cubren el caso 2 y el caso 5 de `document-titles`.
+
+## V3 — F-SPEC-016-8 **NO se cierra**, y se reformula. La cláusula que falló no era exigible
+
+**El hallazgo es correcto:** los seis ficheros de suites cerradas viajan dentro de
+`9628e3e` y `af899a8`, y CA-17.2 pedía commit propio por toque. Se cumplieron **dos
+de las tres cláusulas** —lo mínimo, y ninguna aserción debilitada, las dos
+comprobadas por el verificador aserción a aserción— y falló la tercera. Y comparto
+que **no cuenta como CA-18 incumplido**: nada se empujó, nada se desplegó, y la
+rama como se fusiona lleva las dos mitades.
+
+**Decisión: F-SPEC-016-8 sigue abierto.** Cerrarlo sería registrar que la regla
+funciona, y la evidencia dice lo contrario: **la primera vez que importó de verdad,
+un tercio de ella no se siguió**. Un finding cuyo propósito era «que la próxima
+spec correctiva no nazca sin la regla» no se cierra porque la regla se escribiera:
+se cierra cuando la regla se cumpla.
+
+**Pero no se deja igual, porque el diagnóstico dice que la cláusula era mala. Tres
+motivos, y ninguno es descuido del implementador:**
+
+1. **Colisiona con CA-18 en la lectura.** CA-18 exige que la corrección vaya «**en
+   el mismo cambio**» que la publicación, y CA-17.2 que cada toque vaya «**en su
+   propio commit**». No son contradictorias —una rama tiene muchos commits— pero
+   *cambio* y *commit* se leen como sinónimos, y un implementador razonable
+   satisface una creyendo que satisface la otra. **La ambigüedad la escribí yo.**
+2. **No sobrevive a la fusión.** Un *squash* destruye la propiedad el día del
+   merge, así que el commit propio **nunca fue un artefacto de auditoría durable**:
+   vale mientras la rama vive y desaparece justo cuando el historial pasa a ser el
+   registro permanente.
+3. **No la comprueba nadie hasta que ya está escrita.** Cuando el verificador la
+   detecta, el historial ya existe y reescribirlo —como se decidió aquí— es peor
+   que el problema. Una regla que sólo se puede comprobar cuando ya es tarde no es
+   una regla: es un reproche.
+
+**Con qué se sustituye, y esto es lo que la haría cumplirse.** La cláusula deja de
+pedir **un mecanismo** (el commit) y pasa a pedir **la propiedad** que el mecanismo
+buscaba —que cada toque de una suite cerrada sea auditable por separado— en una
+forma que **sí se puede comprobar y sí sobrevive a un squash**:
+
+> **Toda spec que toque la suite de una spec cerrada enumera en su ledger, fichero
+> a fichero, qué tocó y por qué, antes de pedir verificación. El verificador
+> compara esa lista con `git diff --name-only` contra el commit anterior a la spec,
+> y un fichero tocado que no esté en la lista es RED.**
+
+Es mejor que el commit propio en las tres cosas que importan: **es comprobable**
+—una comparación de dos listas, no un juicio sobre higiene de historial—, **es
+durable** —vive en el ledger, no en el árbol de commits— y **no colisiona con
+CA-18**, porque no dice nada sobre cómo se agrupan los cambios. Y no es teórica:
+**el implementador ya escribió el motivo, largo, dentro de cada fichero tocado**, y
+el verificador pudo reconstruir la lista. Lo que faltaba era la obligación de
+enumerarla donde se lee.
+
+**El commit propio se conserva como recomendación**, porque mientras la rama vive
+sí hace el diff más fácil de leer. Deja de ser criterio.
+
+**Destino y disparador, sin promesas:**
+
+- **La cláusula reformulada** entra como criterio en **la próxima spec que toque la
+  suite de una spec cerrada** — no la aplico retroactivamente a SPEC-018, cuya
+  implementación se hizo contra el texto de CA-17.2 tal como está. Queda escrita en
+  el inventario de EPIC-MEJORA para que quien la escriba la encuentre.
+- **La comprobación automática** —un `pre-commit` o un paso de CI que compare las
+  dos listas— **no se promete y no tiene fecha**: el proyecto no tiene CI, y
+  **F-SPEC-006-3 ya registró que el `pre-commit` L2 que la cabecera del plugin
+  anuncia no existe ni se escribió nunca**. **Destino: junto a F-SPEC-004-3 ·
+  F-SPEC-005-4 y F-SPEC-006-3, que son la misma ausencia; disparador: el día que
+  exista CI.** Hasta entonces **lo comprueba el verificador, a mano, y eso está
+  escrito en vez de supuesto.**
