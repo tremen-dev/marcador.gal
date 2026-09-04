@@ -2,10 +2,11 @@
 id: SPEC-018
 tipo: spec
 epica: EPIC-002
-estado: borrador
-aprobada-por:
+estado: aprobada
+aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-09-04, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-04, por: Alberto Fojo}
 ---
 # SPEC-018 — El snapshot del marcador y la pantalla que lo lee por polling
 

@@ -1,9 +1,11 @@
 ---
 id: ADR-027
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-04, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-04, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # ADR-027: El marcador se publica — proyección de sólo lectura, la jornada de medición como única apertura, y los tres relojes de la frescura
 
