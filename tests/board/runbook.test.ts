@@ -108,8 +108,17 @@ describe('CA-19 — los compromisos que ningún test sostiene, en el calendario'
     expect(commitments).toContain('no** la ruta de refresco');
     expect(commitments).toContain('primera aparición de un `Referer` que no sea este origen');
     expect(commitments).toContain('Umbral: **100 cargas**');
-    // Y una fila más: al día siguiente de cada jornada, una persona lo mira.
-    expect(commitments).toContain('Al día siguiente de cada jornada declarada');
+    // Y una fila más: al CERRAR cada jornada, una persona lo mira.
+    //
+    // DECÍA «Al día siguiente de cada jornada declarada» Y SE CORRIGE EL
+    // 2026-09-04, en el mismo cambio que publica el plazo de retención del
+    // registro de acceso (CA-18.2, F-SPEC-018-V4). No es un ajuste de
+    // redacción: el registro dura lo que la línea de privacidad dice que dura,
+    // así que al día siguiente YA NO ESTÁ y la fila mandaba mirar algo que ya
+    // no se puede mirar. Es el dato de un guardián cuyo dato cambió; el
+    // predicado —que la fila exista y diga cuándo— no se toca.
+    expect(commitments).toContain('El mismo día, al cerrar cada jornada declarada');
+    expect(commitments).not.toContain('Al día siguiente de cada jornada declarada');
     // Lo que se declara NO vigilable, sin eufemismos.
     expect(commitments).toContain('no sabemos ni sabremos quién abre esta pantalla');
   });
@@ -118,11 +127,15 @@ describe('CA-19 — los compromisos que ningún test sostiene, en el calendario'
     const commitments = await read(COMMITMENTS);
 
     expect(commitments).not.toContain('Cuatro de estas cinco fechas');
-    expect(commitments).toContain('Ocho de estas nueve fechas');
+    // LA CUENTA CRECE EL 2026-09-04 CON LA FILA DE F-SPEC-018-V4 —confirmar el
+    // plan de alojamiento antes de desplegar—, y crece AQUÍ y no en silencio.
+    // Es el dato de un guardián cuyo dato cambió: el predicado sigue siendo
+    // que el párrafo cuadre con la tabla, y por eso se afirman los dos.
+    expect(commitments).toContain('Nueve de estas diez fechas');
 
-    // La cuenta cuadra con la tabla: nueve filas de fecha.
+    // La cuenta cuadra con la tabla: diez filas de fecha.
     const rows = [...commitments.matchAll(/^\| \*\*[^|]+\*\*[^|]*\|/gm)];
-    expect(rows).toHaveLength(9);
+    expect(rows).toHaveLength(10);
   });
 
   test('9. CA-19.6 — y se declara que NO son barreras', async () => {
@@ -130,5 +143,28 @@ describe('CA-19 — los compromisos que ningún test sostiene, en el calendario'
 
     expect(commitments).toContain('Son\ncompromisos escritos, no barreras');
     expect(commitments).toContain('para que nadie los cuente como barreras al leer la matriz');
+  });
+
+  /**
+   * SPEC-018 CA-18.2, F-SPEC-018-V4 — LO QUE EL MECANISMO DE LA LÍNEA DE
+   * PRIVACIDAD NO ALCANZA, escrito donde alguien lo va a leer (ADR-016 §6).
+   *
+   * Las aserciones de `tests/site/crawler-page.test.ts` prueban que unas
+   * palabras están escritas, NUNCA que sean ciertas: que el plazo publicado
+   * siga siendo el real depende del plan de alojamiento y de que nadie añada
+   * un desvío de registros, y eso pasa fuera de este repositorio. Sin esta
+   * fila, la declaración del criterio apuntaría a un documento que no la
+   * contiene, que es exactamente el defecto que V4 cierra: una frase en el
+   * sitio donde debería estar la respuesta.
+   */
+  test('10. F-SPEC-018-V4 — el plazo publicado tiene quien lo compruebe, y no es un test', async () => {
+    const commitments = await read(COMMITMENTS);
+
+    expect(commitments).toContain('Confirmar que el plan de alojamiento');
+    expect(commitments).toContain('log drain');
+    expect(commitments).toContain('El plazo publicado nace falso el primer día');
+    // Y la decisión que va con ella: no se contrata observabilidad ampliada.
+    expect(commitments).toContain('la observabilidad ampliada no se contrata');
+    expect(commitments).toContain('peor minimización');
   });
 });
