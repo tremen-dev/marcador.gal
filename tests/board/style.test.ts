@@ -160,8 +160,12 @@ describe('CA-15.3 — el rol `display` no se usa y su cara NO se carga', () => {
     expect(code).not.toContain("role('display')");
     expect(code).not.toContain('TYPE.display');
     // El rol entero, no su número suelto: `44` es también `TOUCH_TARGET_PX`.
+    // EN LA FORMA EN QUE LA HOJA LO EMITE HOY, que desde F-SPEC-018-V1 son
+    // longhands y no el atajo `font:`. La aserción no se debilita: sigue
+    // pidiendo los tres números del rol seguidos, sólo que escritos como se
+    // escriben ahora.
     expect(BOARD_STYLESHEET).not.toContain(
-      `font:${TYPE.display.weight} ${TYPE.display.px}px/${TYPE.display.leading}`,
+      `font-weight:${TYPE.display.weight};font-size:${TYPE.display.px}px;line-height:${TYPE.display.leading}`,
     );
   });
 

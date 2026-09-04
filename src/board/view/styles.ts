@@ -79,11 +79,34 @@ function space(step: 0 | 1 | 2 | 3 | 4 | 5 | 6): string {
   return `${SPACE[step]}px`;
 }
 
-/** A typographic role, as a `font` shorthand plus whatever it declares. */
+/**
+ * A typographic role, AS LONGHANDS. NEVER the `font` shorthand (F-SPEC-018-V1).
+ *
+ * The shorthand said the same four things in less room and did a fifth one it
+ * never mentions: `font` RESETS every other font property to its initial value
+ * — `font-variant-numeric` and `font-feature-settings` among them. So the rule
+ * that carries ADR-013 §3 was being undone by every later rule that named a
+ * role, and the digits of the scoreboard came out tabular ONLY BECAUSE `--mono`
+ * is monospaced. Measured in the browser: with the shorthand,
+ * `font-variant-numeric` computed `normal` on the three cells that carry digits,
+ * and `111111` / `000000` measure 42.66 and 58.59 px the day one of them moves
+ * to `--sans`.
+ *
+ * THE FIX IS TO STOP EMITTING THE RESET, not to re-emit the two properties
+ * after it. Re-ordering repairs the two properties we happen to know about
+ * today, and only for as long as every future rule remembers the order — the
+ * shorthand resets eight more it never names. Longhands remove the construct
+ * that resets, so no rule of this sheet can switch off a font property it does
+ * not mention, in any order. It costs a few bytes of CSS and it buys that the
+ * guarantee stops depending on discipline.
+ */
 function role(name: keyof typeof TYPE): string {
   const declared: TypeRole = TYPE[name];
   const lines = [
-    `font:${declared.weight} ${declared.px}px/${declared.leading} var(--${declared.family})`,
+    `font-weight:${declared.weight}`,
+    `font-size:${declared.px}px`,
+    `line-height:${declared.leading}`,
+    `font-family:var(--${declared.family})`,
   ];
   if (declared.tracking !== undefined) lines.push(`letter-spacing:${declared.tracking}`);
   if (declared.uppercase === true) lines.push('text-transform:uppercase');
@@ -132,7 +155,17 @@ p{margin:0 0 ${space(1)}}
 
 .soft{color:var(--fg-muted)}
 
-/* ADR-013 §3: every digit of a scoreboard, an hour or an age is tabular. */
+/*
+ * ADR-013 §3: every digit of a scoreboard, an hour or an age is tabular. THIS
+ * DECLARATION SURVIVES THE RULES BELOW because role() emits longhands and no
+ * rule of this sheet carries a font shorthand — see role(), which explains why.
+ * It is the ONLY thing that makes the digits align: the family is not the
+ * mechanism, and case 14 of tests/board/style.test.ts measures it in a
+ * PROPORTIONAL face so that --mono cannot answer for it.
+ *
+ * (No backticks in this comment, and it is not a style: they live inside a
+ * template literal, so one of them ends the stylesheet.)
+ */
 .num,.score,.instant,td,th{
   font-family:var(--mono);
   font-variant-numeric:tabular-nums;
