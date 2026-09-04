@@ -5,26 +5,42 @@ estado: borrador
 historial:
   - {estado: borrador, fecha: 2026-09-04, por: sdd-arquitecto}
 ---
-# ADR-027: El marcador todavía no se publica — proyección de sólo lectura tras la sesión declarada, apertura de la jornada de medición, y los tres relojes de la frescura
+# ADR-027: El marcador se publica — proyección de sólo lectura, la jornada de medición como única apertura, y los tres relojes de la frescura
 
-- Deciders: propone `sdd-arquitecto` el 2026-09-04, al escribir **SPEC-018**.
-  **La decisión central de este ADR no la tomé yo: la impuso el dictamen de
-  `sdd-legal-datos` del 2026-09-04**, que es **bloqueante** y que encontró lo que
-  la spec no había visto — el proyecto ya declaró por escrito, en dos páginas
-  servidas y en una carta enviada, que **no hay marcador público** —. `sdd-lingua`
-  llegó al mismo hallazgo por su cuenta (su §6.1). Los tres dictámenes están
-  copiados enteros en
-  `docs/epicas/EPIC-002-instrumentacion-de-las-cuatro-cifras/dictamenes-SPEC-018.md`.
-  **Aprueba: pendiente de gate humano.**
+- Deciders: **decide Alberto Fojo el 2026-09-04, en el gate de SPEC-018: el
+  marcador se publica.** Es la **salida (B)** que el propio dictamen de
+  `sdd-legal-datos` había enumerado como admisible, y la tomó **con ese dictamen
+  delante y con sus tres consecuencias sobre la mesa**: que `/proxecto` y `/robot`
+  afirman **bajo test** que «non hai marcador público», que la carta a la RFGF
+  sigue viva hasta el **2026-09-08**, y que corregir esas afirmaciones es
+  obligatorio y va por **ADR-015**. En el mismo gate decidió la ruta —`/marcador`
+  y `/es/marcador`, **no la raíz**, con ADR-010 §5 intacto—, el título del
+  documento —`marcador.gal` a secas— y que la pantalla **lleva su declaración de
+  degradación visible**.
+  Escribe `sdd-arquitecto` el ADR que lo sostiene. **Aprueba: pendiente de gate
+  humano.**
+- **El dictamen bloqueante no se borra, y este ADR no lo relitiga.** La primera
+  redacción de SPEC-018 tomó la salida (A) —no publicar— siguiendo el dictamen de
+  `sdd-legal-datos` del 2026-09-04 por la mañana, al que `sdd-lingua` había llegado
+  por su cuenta (§6.1). Ese texto **se conserva íntegro** en
+  `dictamenes-SPEC-018.md`, con una nota de cabecera que registra que una decisión
+  de producto lo superó, con fecha y firmante — que es como se supera un dictamen
+  consultivo, no reescribiéndolo. **Se reconsultó al mismo rol esa misma tarde**,
+  y no sobre si se publica sino **bajo qué condiciones se publica bien**; su
+  segundo dictamen está en el mismo fichero y es la fuente de §3.
+  **Lo que el dictamen cierra expresamente sigue cerrado, y la decisión de
+  producto no lo abre:** no vale matizar la frase publicada para que siga pasando
+  el test. Se corrige de verdad o no se publica.
 - Specs relacionadas: **SPEC-018** (la que lo ejecuta); **SPEC-013** (`hecho`; el
   motor, el cualificador derivado y la frontera `DECISION_WRITERS`, que este ADR
   **no** ensancha); **SPEC-017** (`hecho`; el panel, cuyo precedente de forma se
   hereda casi entero y del que este ADR se aparta en **tres** puntos —el orden de
   las filas, la puerta de lectura en lote y el destinatario—); **SPEC-012**
   (`hecho`; las jornadas de medición declaradas, que son también la apertura de
-  esta pantalla); **SPEC-010** (`hecho`; el calendario declarado); **SPEC-004** y
-  **SPEC-005** (`hecho`, GREEN; el sitio público, cuyas afirmaciones este ADR
-  **protege en vez de enmendar** — §3).
+  esta pantalla); **SPEC-010** (`hecho`; el calendario declarado); **SPEC-004**,
+  **SPEC-005** y **SPEC-007** (`hecho`, GREEN; el sitio público, cuyas
+  afirmaciones publicadas **este ADR obliga a enmendar por ADR-015** — §3.c, y es
+  la parte más delicada de esta decisión).
 - Relacionado: **ADR-003** (SSE y el snapshot cacheable; este ADR lo **aterriza
   sin superseder**), **ADR-004** (sin proceso vivo, sin disco, sin
   `LISTEN/NOTIFY`), **ADR-006** (instantes ISO, sin ORM), **ADR-008 §1 y §5** (una
@@ -32,11 +48,11 @@ historial:
   producción: ningún dato se publica»), **ADR-009 §3 y §6**, **ADR-010 §5** (`/`
   reservada para el producto), **ADR-011** y **ADR-012 §1 y §3** (la identidad
   pública y el buzón delante), **ADR-013 §1..§6**, **ADR-015** (cómo se enmienda
-  una spec cerrada — este ADR evita tener que usarlo), **ADR-016** (lista cerrada
+  una spec cerrada — **este ADR obliga a usarlo tres veces**), **ADR-016** (lista cerrada
   con motivo por entrada, y declarar lo que un mecanismo no alcanza), **ADR-017**
   (calendario declarado), **ADR-019 §2 y §3**, **ADR-020 §2**, **ADR-021 §2, §5 y
-  §6**, **ADR-024 §1, §3 y §9** (el panel, cuya sesión declarada es ahora también
-  la puerta de esta pantalla), **ADR-025 §2, §3, §4.1 y §5** (el suelo de
+  §6**, **ADR-024 §1, §3 y §9** (el panel, del que esta pantalla toma la llave de
+  la jornada declarada y **no** la puerta), **ADR-025 §2, §3, §4.1 y §5** (el suelo de
   interfaz, intacto), **ADR-026 §1, §2, §3, §4 y §7** (el sistema de diseño
   vinculante, el énfasis invertido, y la pregunta de `descanso`/`suspended` que
   §9 contesta), **EPIC-004** (`aprobada` y **congelada**; su inventario, entradas
@@ -45,19 +61,23 @@ historial:
 
 ## Contexto
 
-### Lo que iba a cambiar hoy, y lo que resultó que no puede cambiar todavía
+### Lo que cambia hoy: el dato sale del proyecto
 
 Hasta ahora el sistema **capturaba, decidía y guardaba en privado**. `src/mirror/`
 midió, `src/ingest/` ingirió, `src/decide/` decidió, `src/bot/` recogió y
 `src/admin/` arbitró, y **ninguna de esas cinco piezas enseñó nunca un marcador a
-nadie que no sea el operador**. La spec del snapshot iba a ser la primera que
-sirviera un marcador en una URL pública de `marcador.gal`, y eso cambiaba el
-verbo: de **obtener** a **publicar**.
+nadie que no sea el operador**. El panel se sirve `noindex, nofollow`, detrás de
+una sesión firmada y con `Cache-Control: no-store`.
+
+**Esta pantalla es lo contrario en las tres dimensiones: pública, cacheable y
+legible por cualquiera.** No es «una pantalla más»: es el punto donde el verbo
+cambia de **obtener** a **publicar**, y donde tres cosas que hasta hoy eran
+internas se vuelven afirmaciones frente a terceros.
 
 **Se consultó a los tres roles consultivos antes de escribir un solo criterio, y
 el de `sdd-legal-datos` volvió bloqueante.** No por el derecho *sui generis*
-—que también analiza, y con matices que valen para el día que se publique— sino
-por un hecho del propio repositorio que estaba delante de todos:
+—que también analiza, y cuyo análisis es ahora la materia de §3— sino por un
+hecho del propio repositorio que estaba delante de todos:
 
 > El proyecto **ya ha declarado por escrito, en público y ante un tercero
 > concreto, que no publica nada**. Tres veces, y las tres siguen vivas hoy.
@@ -75,23 +95,30 @@ por un hecho del propio repositorio que estaba delante de todos:
    Su plazo **vence el 2026-09-08** y **está sin contestar ahora mismo**.
 
 Servir un marcador de Preferente Futgal Grupo 1 y Terceira RFEF Grupo 1 en una
-URL pública convierte las tres en **falsas**. Y `/robot` no es una página
-cualquiera: **es la página que viaja dentro del `User-Agent` de cada petición que
-este proyecto hace** (ADR-011), la que sostiene RN-11 frente a terceros y la que
-respalda la carta. Todo el andamio de mitigación de este proyecto —el user-agent
-declarado, el ritmo publicado, el buzón delante (ADR-012 §3)— vale **porque es
-verificable y cierto**. Una sola afirmación desmentida por la propia web lo
-convierte en lo contrario de lo que se construyó para ser.
+URL pública convierte las tres en **falsas si no se corrigen**. Y `/robot` no es
+una página cualquiera: **es la página que viaja dentro del `User-Agent` de cada
+petición que este proyecto hace** (ADR-011), la que sostiene RN-11 frente a
+terceros y la que respalda la carta. Todo el andamio de mitigación de este
+proyecto —el user-agent declarado, el ritmo publicado, el buzón delante
+(ADR-012 §3)— vale **porque es verificable y cierto**.
 
-Y hay una corrección de premisa que el mismo dictamen deja escrita y que conviene
+**Y ahí está la decisión, y por qué este ADR gasta una sección entera en algo que
+parece documentación.** El gate eligió publicar. Publicar sin corregir esas tres
+afirmaciones no es un descuido de mantenimiento: **es convertir la mitigación en
+su contrario**, y hacerlo en la página que un tercero audita. Así que las
+correcciones **no son un follow-up de esta decisión: son parte de ella**, van en
+el mismo cambio, y §3.c las escribe una por una.
+
+Hay además una corrección de premisa que el dictamen deja escrita y que conviene
 no perder: **el riesgo residual que ADR-008 §5 aceptó no cubre publicar.** Lo que
 el gate firmó el 2026-08-31 fue **capturar**, bajo el límite expreso «es
 medición, no producción: ningún dato se publica»; y el amparo del art. 4 de la
 Directiva (UE) 2019/790 que ADR-009 apunta cubre **extraer y reproducir**, no
-**reutilizar**. Publicar es otro acto y necesita su propia firma.
+**reutilizar**. Publicar es otro acto y necesita su propia firma — **y ésta es
+esa firma**, no una remisión a la anterior.
 
-**Este ADR no relitiga si el marcador debe publicarse algún día. Decide que no se
-publica hoy, y deja escrito exactamente qué hace falta para que se publique.**
+**Este ADR no relitiga la decisión de publicar. La ejecuta, y escribe las
+condiciones bajo las cuales publicar es honesto en vez de sólo legal.**
 
 ### Cinco hechos del repositorio que deciden la forma, medidos el 2026-09-04
 
@@ -181,15 +208,25 @@ motivo que no es de gusto: el bot ya le promete al corresponsal que lo que
 confirme «**sae no marcador**» (`gl.ts`, SPEC-015, `hecho`), y *resultado* es el
 desenlace, no lo que pasa en el minuto 30. **`/marcador` y `/es/marcador`.**
 
-**Y la dirección es provisional, declarado aquí para que nadie la herede como
-permanente.** `sdd-lingua` tiene razón en que `marcador.gal/marcador` es una
-tautología y en que la ruta natural de esta pantalla es la raíz; **ADR-010 §5 ya
-reservó `/` para el producto** y dejó escrito que quitar la redirección a
-`/proxecto` «sea una línea y no una discusión». Ese día no es hoy (§3). Por eso:
-la dirección **entra en `src/site/routes.ts`**, porque las direcciones del sitio
-viven en un solo sitio, **pero NO gana la promesa de permanencia de ADR-010 §5**,
-que cubre `/proxecto` y `/robot` por un motivo que ésta no tiene —`/robot` viaja
-dentro del `User-Agent`—.
+**La dirección es `/marcador`, y la raíz NO se toca. Decidido por Alberto Fojo el
+2026-09-04**, descartando explícitamente las dos alternativas que estaban sobre la
+mesa: tomar `/` ahora, y dejar escrito un disparador para mudarse a `/` en el
+go/no-go. **ADR-010 §5 queda intacto y `/` sigue redirigiendo a `/proxecto`.**
+
+`sdd-lingua` §1.2 recomendaba la raíz con dos argumentos correctos —que
+`marcador.gal/marcador` es una tautología, y que ADR-010 §5 ya había previsto que
+quitar la redirección «sea una línea y no una discusión»—. **No se declaran
+equivocados: se declaran superados por una decisión de producto sobre qué es hoy
+este dominio.** Publicar una pantalla de medición no es lo mismo que declarar que
+`marcador.gal` **es** el marcador, y la raíz es esa declaración.
+
+**Consecuencia que se acepta y se escribe:** la dirección **entra en
+`src/site/routes.ts`**, porque las direcciones del sitio viven en un solo sitio,
+**y NO gana la promesa de permanencia de ADR-010 §5**, que cubre `/proxecto` y
+`/robot` por un motivo que ésta no tiene —`/robot` viaja dentro del
+`User-Agent`—. Que `/marcador` pueda moverse algún día es cierto y **no lleva
+disparador escrito a propósito**: el gate descartó ponerle uno, y un disparador
+que nadie ha decidido es peor que ninguno.
 
 ### §2. El snapshot es una proyección, y no deriva nada que derive el motor
 
@@ -253,63 +290,98 @@ puede abrirla**, el segundo dice **qué contiene**. Los dos se deciden aquí por
 protegen lo mismo por caminos distintos, y porque el día que caiga el primero el
 segundo tiene que seguir en pie.
 
-#### 3.a — La puerta: la sesión declarada del operador
+#### 3.a — La puerta: no hay. La pantalla es pública y no sabe nada de quien la abre
 
-**Ésta es la decisión que el dictamen bloqueante impuso, y es la mitad de este ADR
-que no se puede saltar.**
+**`/marcador` y `/es/marcador` se sirven sin sesión, sin cookie y sin
+autenticación de ninguna clase.** No hay formulario de acceso, no hay secreto
+compartido, no hay `ADMIN_OPERATORS` y no hay nada del mecanismo de ADR-024 en el
+camino de estas rutas — y **eso es una frontera, no una omisión**: si mañana
+alguien mete una comprobación de sesión aquí para «proteger» algo, lo que ha hecho
+es partir el producto en dos verdades.
 
-Durante EPIC-002, **la pantalla del marcador se sirve tras la misma sesión
-declarada que el panel** (ADR-024 §2 y §3): cookie firmada con HMAC bajo
-`ADMIN_SESSION_SECRET`, catálogo `ADMIN_OPERATORS` en entorno, caducidad dentro
-de la firma, **fallo cerrado** en las mismas tres formas, y ninguna tabla de
-sesiones. **No se inventa ninguna puerta nueva**, y ése es medio motivo de
-elegirla: una segunda forma de entrar sería una segunda superficie que auditar.
+**Y la ausencia de puerta tiene una consecuencia técnica que se decide aquí:
+la respuesta no depende de quién pregunte.** No se lee cookie, ni
+`Accept-Language`, ni ninguna cabecera de cliente; la lengua sale **de la URL**.
+Por eso la respuesta **se puede compartir en una caché** (§7.3) sin filtrar nada
+de nadie, y por eso **no hay nada que registrar sobre el visitante** (§4.5).
 
-**Por qué esto no le quita nada a la épica.** «Publicado» se mide como `Decision`
-escrita (RN-08, `_epica.md` de EPIC-002), y **las cuatro cifras se cuentan contra
-los dos logs, no contra una URL servida**. La pantalla existe para **poder
-mirar** —para que una persona con un cronómetro vea la jornada entera
-refrescándose, cosa que el tablero del panel no hace porque es una cola de
-trabajo—, y para eso no hace falta que la abra un desconocido.
+**Lo que se publica, dicho como lista para que nadie tenga que deducirlo:** los
+partidos de una jornada de medición declarada (§3.b), con los campos de §10 y
+ninguno más. **No** hay endpoint documentado, **no** hay CORS abierto, **no** hay
+feed, **no** hay widget, **no** hay exportación y **no** hay API. `GET /api/board`
+existe **porque la pantalla lo usa**, no como superficie ofrecida a terceros, y
+esa distinción no es retórica: es la diferencia entre publicar una pantalla y
+publicar unos datos. **Cero monetización** (D-7), que además es lo que mantiene
+vivo el argumento de que esto no menoscaba la inversión de nadie.
 
-**Qué se conserva por no publicar, y es mucho:**
+**Indexación: `noindex, noarchive`, por cabecera `X-Robots-Tag` y por
+`<meta name="robots">`, las dos. Sin `nofollow`.** El precedente de forma es el
+panel (SPEC-017 CA-1.10); **el contenido lo fija el segundo dictamen**, que
+modificó su propio V9 al saber que la pantalla sería pública. Los tres, uno a uno:
 
-- **`noRepublish`, `noProduct` y la carta siguen siendo ciertas.** No hay que
-  enmendar SPEC-004 ni SPEC-005 por ADR-015, no hay que reescribir la página que
-  viaja dentro del `User-Agent`, y no hay que avisar a la RFGF de nada en la
-  semana en que decide.
-- **El análisis de reutilización del art. 7.2.b no llega a aplicarse**, porque no
-  hay puesta a disposición del público. Lo que quede por decidir el día que se
-  publique queda decidido ese día, con el dictamen delante y con la firma que le
-  corresponde.
-- **No hace falta aviso de privacidad, ni umbral de tráfico, ni banner**: la
-  pantalla no sabe nada de quien la abre y no pide nada a ningún tercero (§2.5,
-  §4.4).
+- **`noindex` se queda, y no es esconderse: es no competir.** La carta a la RFGF
+  construye su gancho sobre una búsqueda concreta —«aparecen ocho agregadores
+  privados y ninguna liga a futgal.es»—, y **el día que `marcador.gal/marcador`
+  sea el noveno resultado de esa búsqueda, el argumento de la carta se vuelve
+  contra quien la firmó**. Además, una pantalla que vive dos jornadas no tiene
+  nada que hacer en un índice: las entradas sobreviven a la página y producirían
+  resultados obsoletos sobre partidos ya jugados.
+- **`nofollow` se retira, y en el dictamen anterior estaba.** En público le diría
+  al rastreador que no siga los enlaces salientes de la pantalla — y los únicos
+  que hay son `/robot` y `/proxecto`, precisamente la página que viaja dentro de
+  nuestro `User-Agent` (ADR-011) y que queremos que un tercero alcance. Declararlo
+  trabaja contra el proyecto y no protege nada.
+- **`noarchive` se añade, y es un hueco que sólo aparece al publicar.** Una página
+  pública **la archivan terceros**, y ese archivo sobrevive a nuestras dos
+  jornadas y a nuestros 30 días de retención: la defensa de «acotada en el tiempo»
+  es sobre *nuestra* publicación, no sobre la copia de otro. `noarchive` lo mitiga
+  en los buscadores y **no es exigible frente al Internet Archive** — se dice así,
+  y lo que de verdad lo acota es que lo archivable sea mínimo (§3.b, §10).
 
-**Y qué hace falta para publicarla. Se escribe aquí para que ese día sea un
-trámite y no una arqueología:**
+**Y `noindex` no es ocultación porque no va solo.** Solo, sería esconderse, y
+leería fatal junto a la carta. Va con **tres cosas que lo compensan y son
+obligatorias**: `/proxecto` y `/robot` **enlazan la pantalla** en las dos lenguas
+(§3.c), los literales se corrigen para decir que existe (§3.c), y **la RFGF es
+avisada** (§3.e). El resultado es una postura describible en una frase:
+**descubrible por una persona, no amplificada por un buscador.**
 
-1. **Un ADR nuevo con firma del gate.** No vale remitirse a ADR-008 §5, que firmó
-   capturar y escribió el límite contrario. Ese ADR recoge las **trece
-   condiciones** y el **disparador de re-dictamen de siete puntos** que
-   `sdd-legal-datos` §6.2 y §6.3 dejaron redactados.
-2. **La corrección de `noRepublish` y `noProduct` en el mismo cambio**, por el
-   procedimiento de ADR-015 —el cuerpo de SPEC-004 y SPEC-005 no se edita nunca,
-   se enmienda en su ledger— y **nunca matizando la frase para que siga pasando el
-   test**, que es la salida que el dictamen cierra expresamente.
-3. **No antes del 2026-09-08**, plazo vivo de la carta.
-4. **`/` en vez de `/marcador`**, retirando la redirección de `src/site/redirects.ts`
-   (SPEC-004 CA-1) como ADR-010 §5 previó, con su enmienda.
-5. **`noindex, nofollow` por cabecera `X-Robots-Tag` y por `<meta>`**, como el
-   panel; **y `robots.txt` no se toca**, porque un `Disallow` confirma que existe
-   y porque ése es el fichero con el que este proyecto le pide a otros que le
-   dejen pasar. **Y con la advertencia escrita: `noindex` no es una defensa
-   jurídica, es mitigación de descubrimiento.**
+**Y se escribe la advertencia, porque es donde alguien se engañaría dentro de seis
+meses: `noindex` no es una defensa jurídica, es mitigación de descubrimiento.**
+«Poner a disposición del público» (art. 7.2.b Dir. 96/9/CE) se cumple con una URL
+pública, indexada o no. Nadie podrá alegar más adelante «no lo publicábamos,
+estaba en `noindex`».
 
-**Consecuencia de forma, y hay que decirla:** esta pantalla no es «el panel con
-otra plantilla». Comparte la puerta y no comparte nada más — ni el orden (§8), ni
-el destinatario, ni el vale de acción, ni la escritura. Cuando se publique, lo
-único que cambia es la puerta.
+**`robots.txt` no gana ningún `Disallow`, y el motivo cambió y ahora es técnico.**
+Bajo la salida (A) el argumento era que un `Disallow` confirma que la ruta existe;
+con una pantalla deliberadamente pública eso ya no aplica. Los que quedan son
+mejores:
+
+1. **Un `Disallow: /marcador` derrotaría al `noindex`.** `Disallow` impide
+   **rastrear**, y sin rastrear el buscador **nunca lee el `noindex`**: la URL
+   puede seguir apareciendo como URL desnuda, alimentada por enlaces externos, y
+   sin forma de retirarla. Las dos directivas juntas son **estrictamente peores
+   que `noindex` sola**. Quien proponga «pues lo bloqueamos también en robots.txt»
+   estará empeorando justo lo que quiere arreglar.
+2. **`robots.txt` es el fichero con el que este proyecto le pide a otro que le
+   deje pasar** — es literalmente el objeto de la carta a la RFGF, que pide dos
+   líneas de él. Ensuciar el propio con exclusiones defensivas mientras se pide lo
+   contrario es un mal negocio.
+
+Además `tests/site/robots.test.ts` caso 3 **ya prohíbe** cualquier `Disallow`. Lo
+único que cambia ahí es su **lista cerrada de rutas permitidas** (caso 4), que gana
+la del marcador: es un censo, no una regla (§3.c).
+
+**Y una superficie que la publicación deja expuesta, dicha sin adornos porque
+llamarla privada sería el mismo error que llamar defensa a `noindex`:
+`GET /api/board` es un endpoint JSON público, y cualquiera con las herramientas
+del navegador puede leerlo.** Existe **porque la pantalla lo usa**, no como
+superficie ofrecida a terceros, y esa distinción se sostiene con cuatro cosas
+comprobables, no con una intención: **nunca emite ninguna cabecera CORS**, lleva
+el mismo `X-Robots-Tag` que el documento, **no se documenta en ningún sitio** —ni
+en `/robot`, ni en `/proxecto`, ni con un enlace— y sirve **exactamente** la lista
+cerrada de §10, ni un campo más. `sdd-legal-datos` recomendaba en su lugar que el
+refresco devolviese **fragmento HTML**, con lo que la condición sería literalmente
+cierta en vez de sostenida; **no se toma, y el motivo está en §11**.
 
 #### 3.b — La apertura: sólo los partidos de una jornada de medición declarada
 
@@ -339,6 +411,156 @@ más que allí:
 mirar más que esta pantalla a propósito: es una herramienta, no una vista del
 producto.
 
+**Y la apertura se acota por los dos lados, no por uno.** `MEASUREMENT_WINDOWS`
+acota **cuándo**; una lista cerrada nueva, `PUBLISHED_COMPETITIONS`, acota
+**qué**: exactamente `preferente-futgal-grupo-1` y `terceira-rfef-grupo-1`, con su
+motivo escrito por entrada (la forma de `ALLOWED_PACKAGES`, ADR-016 §3.2). Sin
+ella, cargar el calendario de una tercera competición la publicaría **sin que
+nadie tomase ninguna decisión**. Y **ninguna ruta acepta una fecha, una jornada ni
+un identificador arbitrarios**: lo alcanzable desde fuera es **igual** a lo
+declarado, y una petición por una jornada no declarada responde `404` con cero
+lecturas de la base.
+
+**Ésta es también la parada de emergencia, y conviene que esté escrito porque el
+día que haga falta nadie va a leer un ADR:** si ZOS, Lda. o la RFGF piden que se
+pare, **parar es vaciar `MEASUREMENT_WINDOWS`**. La pantalla sirve entonces lista
+vacía con cero consultas, y no hay que tocar una línea de lógica. **Se para
+primero y se dictamina después**, que es lo que `/robot` promete al rastreo — y la
+publicación no puede prometer menos que la captura.
+
+#### 3.c — Lo que hay que corregir en el mismo cambio, y por qué no es un follow-up
+
+**Tres afirmaciones publicadas dejan de ser ciertas el día que esta pantalla
+exista, y se corrigen en el mismo cambio, por ADR-015, en el ledger de la spec que
+las escribió.** No en una spec de limpieza posterior: **cualquier ventana entre las
+dos cosas es una ventana en la que el proyecto publica un marcador mientras jura
+en la página que un tercero audita que no lo publica.**
+
+| Qué | Dónde | Deja de afirmar | Enmienda |
+|---|---|---|---|
+| `site.noProduct` | `/proxecto` | que no hay marcador público | **SPEC-004** |
+| `site.measuring` | `/proxecto` | «a medición aínda non comezou» — **ya era falsa** desde SPEC-012/013/017 | **SPEC-004** |
+| `crawler.noRepublish` | `/robot` | «non republicamos os datos de ninguén», «o resultado é un informe interno», «non hai marcador público» | **SPEC-005** |
+
+**Y una cuarta cosa, que no es una afirmación sino una barrera que deja de
+cubrir:** `tests/site/identity.test.ts` fija **exactamente tres espacios de
+nombres y cuatro rutas**, así que **no se pone rojo** cuando aparece un quinto
+sitio con texto visible — **deja de vigilarlo en silencio**, que es peor.
+Enmienda: **SPEC-007**.
+
+**Qué se puede seguir prometiendo en `/robot`, que es más de lo que parece y más
+auditable que lo que se retira**: que **no hay redistribución en bloque** —ni
+fichero, ni volcado, ni feed, ni API, ni widget, ni exportación—, que **no hay
+histórico** navegable, que son **dos competiciones y sólo las jornadas
+declaradas**, que por partido salen **cuatro cosas y ninguna más**, que **no hay
+ni un dato personal**, que **no hay monetización**, y que **la retención no se
+mueve**. Cualquiera puede abrir la pantalla y verificarlo en diez segundos, que es
+más de lo que se podía hacer con «non republicamos».
+
+**Y la promesa de parar se ensancha, que es la adición más importante del cambio
+en `/robot`:** «abonda con pedilo» cubría el **rastreo**; pasa a cubrir también
+**la publicación**. La publicación no puede prometer menos que la captura.
+
+**Lo que NO vale, y el dictamen lo cierra dos veces:** matizar la frase para que el
+test siga verde. Ni «non republicamos… salvo unha pantalla de medición», ni
+reinterpretarla sobre datos personales —que sería literalmente cierto y sería
+peor—. **La frase se va; la promesa se reconstruye.**
+
+**Y hay una cosa que no se arregla editando nada.** La **carta**, enviada el
+2026-09-01, dice «Non republico os seus datos» y «aínda sen publicar». Una carta
+enviada no se enmienda: el destinatario ya tiene el texto, y editar
+`docs/negocio/carta-rfgf-acceso.md` no pondría rojo nada y tampoco arreglaría
+nada. Lo único que la repara es §3.e.
+
+#### 3.d — Qué reabre esto: el disparador de re-dictamen, y el punto que nadie puede vigilar
+
+La publicación se firma **acotada**. Cualquiera de estas ocho cosas **reabre el
+dictamen** y no se sirve una petición más hasta que `sdd-legal-datos` vuelva a
+dictaminar y el gate firme:
+
+1. una **tercera jornada** de medición, o que la publicación se vuelva continua;
+2. una **competición** fuera de `PUBLISHED_COMPETITIONS`;
+3. **cualquier dato nuevo** — clasificación, goleadores, alineaciones, árbitros,
+   entrenadores, minuto a minuto, estadísticas;
+4. **amplificación**: que la pantalla deje de ser `noindex` (4.a), que aparezca en
+   `robots.txt` (4.b), que aparezca un **enlace entrante externo** (4.c), o que la
+   pantalla **se mueva a `/`** (4.e). **Enlazarla desde `/proxecto` y `/robot` NO
+   dispara: es obligatorio** (§3.c) — y decirlo importa, porque el disparador
+   anterior lo listaba como amplificación y cumplir la obligación lo habría
+   disparado el primer día;
+5. **acceso programático ofrecido a un tercero**: documentación, CORS, feed,
+   widget, exportación o API;
+6. **cualquier monetización** (D-7): publicidad, patrocinio, muro de pago,
+   afiliación, o usar esta pantalla para vender servicios del paraguas;
+7. **que deje de ser el operador y su entorno quien la abre** — ver abajo;
+8. **que el aviso de degradación deje de ser cierto**: una segunda fuente
+   automática, o que `futgal.es` pase a ser capturable.
+
+**Y el punto 7 no se sostenía como estaba escrito, así que se sustituye.** Decía
+«más de 100 visitantes distintos», y **con §4.5 nadie puede observar eso**: no hay
+analítica y no la va a haber. Un disparador que nadie puede observar es peor que
+ninguno, porque hace creer que algo vigila. La sustitución **no añade ni un byte a
+la página**:
+
+- **cargas del documento** `/marcador` y `/es/marcador` en un día, leídas de los
+  registros que la plataforma ya produce — se cuenta **el documento y no la ruta
+  de refresco**, que a un poll por minuto inflaría el número unas noventa veces
+  por lector y hora. El umbral de 100 se conserva, en cargas;
+- **la primera aparición de un `Referer` que no sea este origen**, que es el
+  indicador que de verdad importa y es gratis: un enlace de un medio, un club o la
+  federación **es** el momento en que esto dejó de ser el operador y su entorno;
+- **y lo que se declara no vigilable, sin eufemismos: no sabemos ni sabremos quién
+  abre esta pantalla, cuánto se queda ni si vuelve.** No hay analítica, no la
+  habrá, y esa ausencia **es una decisión, no una carencia**.
+
+**Queda prohibido cualquier mecanismo de audiencia en la página, y con nombre
+propio porque es la respuesta de un clic: `@vercel/analytics` no entra.** Inyecta
+un guion, convierte la IP de cada visitante en una cesión a un tercero, y pondría
+rojo el caso de §2.5 — que es exactamente para lo que ese caso está.
+
+**Y un disparador que no es de esta pantalla y que hay que dejar escrito aquí
+porque ADR-012 es inmutable y no admite añadidos:** **el día que exista cualquier
+contraprestación sobre esta pantalla, el art. 10 LSSI pasa a aplicar y ADR-012 §1
+cede en lo relativo a identificar al prestador.** Ese día se escribe un ADR que lo
+sustituya, y **se pide revisión profesional antes de monetizar, no después**. Lo
+que hoy mantiene eso lejos es comprobable y barato: **la pantalla no lleva ninguna
+llamada a la acción** —ni alta, ni lista de espera, ni boletín, ni formulario— y
+sus únicos enlaces salientes son `/robot`, `/proxecto` y el buzón.
+
+#### 3.e — Lo que sólo puede hacer una persona, y ningún criterio puede dar por cumplido
+
+**No se despliega antes del 2026-09-08, y no antes de que la RFGF haya sido
+avisada — lo que ocurra más tarde de los dos.** El 08 es la fecha en que la carta
+se da por no contestada (`docs/roadmap.md`, decisión del 2026-09-01). Bajo la
+salida (A) esa fecha era un motivo para no publicar; aquí es una condición de
+**secuencia**: no poner la pantalla delante de la federación en la misma semana en
+que se le pide algo diciéndole que no publicamos nada.
+
+**Y el aviso a la RFGF no es un segundo correo de los que la regla por defecto
+prohíbe.** `calendario-de-compromisos.md` dice que no se insiste mientras Alberto
+Fojo no se pronuncie, y eso sigue en pie: lo prohibido es **un recordatorio**. Este
+aviso **no pide nada**: corrige una afirmación que se les hizo por escrito, y se
+les debe conteste o no conteste. Va sin ninguna petición nueva, sin repetir la
+anterior y sin plazo — **si pide algo, se convierte en el correo que la regla
+prohíbe**.
+
+**Hay además una ordenación de tres días que conviene no descubrir sobre la
+marcha**, porque una de las fechas decide el contenido de la otra: el **06** se
+verifica `lapreferente.com` (fila 1 del calendario de compromisos), el **07** se
+ajusta el aviso de degradación y el número que declara si esa verificación cambió
+el hecho, y el **08** se despliega. En ese orden.
+
+**Y la respuesta de la federación, si llega, hay que saber clasificarla**, porque
+llegará en un párrafo de prosa: **«no nos rastreéis» no detiene la publicación**
+—no se les rastrea y no se les iba a rastrear—; **cualquier frase sobre la
+publicación misma sí la detiene**, y entonces se para primero y se dictamina
+después (§3.b). **En la duda, se para.**
+
+**Nada de este apartado lo sostiene un test, y no se finge que lo haga.** Su sitio
+es `docs/procedimientos/calendario-de-compromisos.md`, que existe exactamente
+porque el proyecto **no tiene CI** y «nadie va a enterarse en rojo de que se pasó
+un plazo».
+
 ### §4. Tres relojes, y no se confunden nunca
 
 Ésta es la mitad del ADR que no existía en ninguna otra pantalla, y es donde una
@@ -361,6 +583,17 @@ actualización»:
    el que se mide RN-07—; **la página lleva el reloj del transporte**, fuera de la
    tabla; y **el reloj del dato viaja en el snapshot** y se resume una vez por
    página como la última publicación del conjunto (§7.1).
+
+   **Y el de la fila se publica como edad redondeada a minutos, nunca como
+   instante absoluto con precisión de segundo.** `sdd-legal-datos` rectificó aquí
+   su propia tabla —había puesto `decided_at`— y confirmó que `last_observed_at`
+   es la elección correcta **y también la segura**: `observed_at` es **nuestro**
+   reloj, no el de la fuente, y nuestra cadencia ya está publicada por RN-11 y por
+   `/robot`, así que no hay primera divulgación de nada. Lo que sí sería un
+   residuo es un **log público, partido a partido y al segundo, de cuándo
+   pedimos**; redondear al minuto lo cierra sin quitarle nada al lector. Y
+   `decided_at` en la fila sería además **engañoso**: el motor no emite `Decision`
+   por tick, así que no distingue «no ha pasado nada» de «nadie ha mirado».
 2. **El fallo del transporte NUNCA se pinta como un cualificador ni como un
    estado.** Que el navegador no consiga refrescar **no** es *sen sinal*, no es
    `postponed` y no es «el partido paró»: es que **esta pantalla** está vieja. Se
@@ -461,13 +694,14 @@ ETag». **Este ADR lo aterriza y no lo supersede.** Lo que concreta:
    con el mismo contenido tienen el mismo `ETag` aunque se generen con un minuto
    de diferencia. Es lo que hace que un cliente que refresca cada 30 s pague `304`
    casi siempre.
-3. **La caché es corta y su número vive como constante nombrada en un solo
-   sitio**, como `PRE`/`POST` (ADR-019 §2), `TOUCH_TARGET_PX` (ADR-025 §3) y las
-   6 h de ADR-014 §3.2: **elegido, no medido**, y revisable con la primera jornada
-   delante. **Y es caché privada mientras la pantalla esté tras la sesión** (§3):
-   una respuesta que sólo ve quien tiene la cookie no se comparte en un CDN. El
-   día que se publique, la caché compartida de ADR-003 entra con el mismo número y
-   una línea de cabecera distinta.
+3. **La caché es corta, compartida y su número vive como constante nombrada en un
+   solo sitio**, como `PRE`/`POST` (ADR-019 §2), `TOUCH_TARGET_PX` (ADR-025 §3) y
+   las 6 h de ADR-014 §3.2: **elegido, no medido**, y revisable con la primera
+   jornada delante. Compartida —`s-maxage` en el CDN, que es lo que ADR-003 ya
+   dibujó— porque **ahora sí hay más de un lector**, y sin ella `N` navegadores
+   refrescando cada medio minuto son `N` proyecciones por medio minuto contra una
+   base que a la vez está ingiriendo. **La respuesta no depende de quién pida**
+   (§4.5), así que compartirla no filtra nada de nadie.
 4. **Y la regla que protege la primera cifra: la latencia se mide sobre
    `decided_at`.** «Publicado» es `Decision` escrita (RN-08), y **el intervalo de
    refresco de esta pantalla y su caché no son parte de esa definición**. Quien
@@ -597,8 +831,10 @@ la misma fila **no es decoración: es lo que impide publicar un resultado falso.
 ### §10. La proyección es un tipo propio, y lo que no está en ella no sale
 
 **Lo que la pantalla y el JSON sirven es una proyección construida a propósito,
-nunca el `Decision` canónico.** Es dictamen vinculante de `sdd-legal-datos` §4.1
-y vale igual tras la sesión, porque es el contrato que un día se publica.
+nunca el `Decision` canónico.** Es dictamen vinculante de `sdd-legal-datos` §4.1,
+y con la publicación decidida **deja de ser una precaución y pasa a ser la
+frontera**: lo que entre aquí lo lee cualquiera, para siempre y sin poder
+retirarlo.
 
 El camino fácil lo pisa: `read-entry.ts` devuelve `Decision`, «el modelo canónico
 que el frontend ya recibe», y servirlo tal cual filtra tres cosas que no son del
@@ -647,10 +883,15 @@ pretenda — ni en HTML, ni en JSON, ni en un atributo, ni en un comentario.
 
 ### §11. Lo que este ADR no decide
 
-- **Si el marcador se publica, y cuándo.** §3 dice que hoy no y qué hace falta.
-  **Destino: un ADR nuevo con firma del gate; disparador: el go/no-go, o antes si
-  el humano lo decide con el dictamen delante — y en ningún caso antes del
-  2026-09-08.**
+- **Si el marcador se publica.** Ya está decidido y no es de este ADR: lo decidió
+  **Alberto Fojo el 2026-09-04**. Lo que este ADR decide es **bajo qué condiciones**
+  (§3), y esas condiciones **no incluyen ampliar el alcance de la publicación**:
+  una tercera jornada, una competición más, un dato más o un acceso programático
+  **reabren el dictamen** (§3.d).
+- **Mudar la pantalla a `/`.** Descartado en el gate del 2026-09-04, **y sin
+  disparador escrito a propósito**: el gate rechazó tanto tomar la raíz como
+  dejar puesto un disparador para hacerlo. ADR-010 §5 sigue diciendo lo que dice y
+  quien quiera moverla necesita una decisión nueva, no una condición cumplida.
 - **SSE.** Sigue fuera por decisión de la épica, y ADR-003 lo previó: «ninguna
   métrica la necesita». Lo que este ADR hace es dejar el contrato en un sitio
   (`src/api/`) desde el que un segundo transporte no obliga a reescribir la
@@ -662,15 +903,32 @@ pretenda — ni en HTML, ni en JSON, ni en un atributo, ni en un comentario.
   producto (§5).
 - **La migración del sitio público al sistema de diseño.** ADR-026 §1 le puso
   dueño y disparador y este ADR los deja intactos. Los dos temas opuestos siguen
-  sin compartir una línea de CSS, y **mientras la pantalla no sea pública el
-  choque tampoco lo ve nadie de fuera**.
+  sin compartir una línea de CSS — pero **el choque deja hoy de ser latente**: con
+  la pantalla pública, `marcador.gal` sirve el marcador **oscuro** y `/proxecto`
+  **claro** en el mismo dominio, y ahora lo ve cualquiera que navegue entre los
+  dos. **Es exactamente la entrada 6 del inventario de EPIC-004 empeorando de la
+  forma que ADR-026 §1 anticipó**, y su dueño y su disparador no cambian.
 - **Los literales.** `sdd-lingua` propuso el juego entero y esta spec lo aterriza;
   lo que este ADR fija son las **reglas** —la barrera léxica de §4.4, la etiqueta
   larga de §8.1, la prohibición de «en directo» y de «sen datos»—, no las cadenas.
+  Lo mismo con la redacción nueva de `noRepublish` y `noProduct`: §3.c dice **qué
+  tienen que dejar de afirmar y qué tienen que pasar a afirmar**; las palabras son
+  de `sdd-lingua` y del implementador.
+- **Que el refresco devuelva fragmento HTML en vez de JSON.** Es la recomendación
+  **R1** del segundo dictamen y haría la condición «sin superficie programática»
+  literalmente cierta en vez de sostenida por cuatro comprobaciones. **No se toma**,
+  por dos motivos: **ADR-003 fijó un snapshot JSON** y este ADR lo aterriza sin
+  superseder —cambiar el formato del cuerpo sería superseder una decisión aprobada
+  para satisfacer una recomendación—, y **el contrato serializado es medio
+  entregable de esta spec**: si nunca se sirve, no se ha ejercido. Los cuatro
+  mínimos vinculantes del dictamen se cumplen enteros (§3.a) y **el residuo queda
+  escrito**: ese JSON lo lee cualquiera. **Destino: la épica de producto, con SSE;
+  disparador: el día que haya un segundo consumidor del contrato.**
 - **La tabla de clasificación, la ficha de partido, el histórico, los filtros y el
   buscador.** Son producto. Esta pantalla es una jornada y nada más.
 - **Analítica, contador de visitas o cualquier medición de audiencia.** No hay, y
-  §4.5 lo hace estructural.
+  §4.5 lo hace estructural. **`@vercel/analytics` queda prohibido con nombre
+  propio** (§3.d): es la respuesta de un clic y es justo la trampa.
 - **La retención de producción del raw store.** Sigue sin dueño (ADR-009 §6,
   F-SPEC-001-1). Esta pantalla no archiva nada, y publicar no alargaría la
   retención: si alguien lo alega, es señal de que dejó de ser medición.
@@ -682,13 +940,22 @@ pretenda — ni en HTML, ni en JSON, ni en un atributo, ni en un comentario.
 
 ### Positivas
 
-- **El proyecto no gasta su credibilidad con el único interlocutor que le
-  importa.** `/robot`, `/proxecto` y la carta siguen siendo ciertas, y siguen
-  siéndolo justo la semana en que la RFGF decide. Es lo más valioso de este ADR y
-  no costó nada más que preguntar antes de escribir.
-- **Ninguna spec cerrada necesita enmienda.** Ni SPEC-004, ni SPEC-005, ni
-  SPEC-001, ni SPEC-008, ni SPEC-013: no se publica, no se añade un sexto estado y
-  no se añade el minuto. Es un ADR que **evita** tres usos de ADR-015.
+- **El proyecto puede por fin enseñar lo que hace.** Es lo que compra la decisión,
+  y no es poco: el go/no-go llega con un producto que se ha visto funcionando una
+  jornada real, no sólo con cuatro números sacados de una base. La épica lo pedía
+  en su alcance desde el primer día.
+- **Y lo hace sin dejar ninguna afirmación publicada en falso**, porque la
+  corrección va **en el mismo cambio** y no en una spec de limpieza posterior
+  (§3.c). El andamio de `/robot` —user-agent declarado, ritmo, buzón delante—
+  **sigue siendo verificable y cierto**, que es lo único que lo hace valer.
+- **El aviso de la propia pantalla es ahora la declaración de degradación que la
+  épica exige**, no una cortesía interna: quien la abra lee, en la misma pantalla,
+  que esto es medición y por qué lo normal es *provisional*.
+- **Ninguna spec cerrada cambia de cuerpo, y sólo tres cambian de ledger.**
+  SPEC-001, SPEC-008 y SPEC-013 quedan intactas —no hay sexto estado, no hay
+  minuto, no hay columna nueva—; SPEC-004, SPEC-005 y SPEC-007 reciben **una
+  enmienda de ledger cada una**, que es exactamente el mecanismo que ADR-015
+  existe para dar.
 - **La entrada 4 del inventario de EPIC-004 se cierra por el lado bueno**, y por
   el mismo procedimiento que cerró la 1: contestándola **antes** de dibujar, y
   contestándola con un cambio de forma —servir el dato— y no con un dibujo mejor
@@ -712,18 +979,24 @@ pretenda — ni en HTML, ni en JSON, ni en un atributo, ni en un comentario.
 
 ### Negativas / follow-ups
 
-- **La épica prometía «una página HTML que lee el snapshot» y lo que se entrega no
-  lo puede ver nadie de fuera.** Es una reducción real de alcance frente a lo que
-  `_epica.md` escribió, aunque esa palabra —«pública»— no esté en ninguna parte de
-  su texto. **Se acepta porque el coste de la alternativa se paga con la RFGF**, y
-  queda con dueño y disparador en §3.
-- **La página nace apagada y va a parecer rota.** Con `MEASUREMENT_WINDOWS` vacía
-  no hay ni un partido. Es lo correcto —es lo mismo que entregaron SPEC-012,
-  SPEC-015 y SPEC-017— y es la **cuarta** vez que este proyecto entrega una pieza
-  apagada, así que conviene decirlo en voz alta: **lo que enciende las cuatro es
-  el mismo diff**, la primera jornada declarada, con sus dos precondiciones
-  escritas (ADR-020 §3). Y hoy falta algo antes incluso que eso: **`calendario/`
-  no existe y la jornada 1 es el 2026-09-06.**
+- **Se publica con la carta a la RFGF todavía viva, y eso es un riesgo real que la
+  decisión asume.** No se elimina, se acota: **no se despliega antes del
+  2026-09-08** (§3.b) y **avisar a la federación es un compromiso humano con
+  nombre y fecha** (§3.e), no un criterio que un test pueda dar por cumplido. **El
+  dictamen bloqueante decía que ésta era la peor semana imaginable para
+  reescribir `/robot`, y sigue en el expediente diciéndolo.** Que se publique de
+  todas formas es una decisión firmada, y lo que este ADR puede hacer —y hace— es
+  que no se publique **antes** de esa fecha y que la federación no se entere sola.
+- **La página nace apagada y ahora eso lo ve cualquiera.** Con
+  `MEASUREMENT_WINDOWS` vacía no hay ni un partido, y una URL pública que no
+  enseña nada es peor que una privada que no enseña nada: parece rota. Es la
+  **cuarta** pieza apagada que entrega este proyecto —SPEC-012, SPEC-015,
+  SPEC-017— y **lo que enciende las cuatro es el mismo diff**, la primera jornada
+  declarada con sus dos precondiciones escritas (ADR-020 §3). Y hoy falta algo
+  antes incluso que eso: **`calendario/` no existe y la jornada 1 es el
+  2026-09-06**. **Mitigación, y por eso es un criterio y no una nota:** la pantalla
+  vacía **dice por qué está vacía**, y distingue «no hay partidos» de «no se
+  declaró ninguno» (§3.b, §6).
 - **Un partido puede quedarse `live` para siempre** fuera de una jornada declarada
   (§2.3), porque nadie corre el motor para escribirle su RN-07. La mitigación es
   el instante en la fila, que es honesto y no bonito. **Destino: la spec de
@@ -749,46 +1022,86 @@ pretenda — ni en HTML, ni en JSON, ni en un atributo, ni en un comentario.
   que se decidiera nada—. El `ETag` sí, porque es del cuerpo; la `version` es
   información para quien lea el JSON, no el mecanismo de caché. Declarado aquí
   para que nadie construya sobre ella una detección de cambios.
-- **La pantalla comparte puerta con el panel y no comparte nada más**, así que hay
-  **una** sesión para dos superficies con propósitos distintos. Es deliberado (§3)
-  y su precio es que el disparador de ADR-024 —«el día que haya un segundo
-  operador, esta decisión se reabre entera»— ahora arrastra también a esta
-  pantalla.
+- **Tres enmiendas de ledger sobre specs `hecho` y GREEN**, y son la parte de esta
+  decisión que más fácil se hace mal. ADR-015 da el mecanismo, pero el mecanismo
+  no impide la tentación: **estrechar la frase hasta que el test siga verde en vez
+  de corregirla**. §3.c lo prohíbe y CA-18 lo mide, y aun así es lo que hay que
+  mirar en la revisión.
+- **`/robot` deja de poder prometer una cosa que hoy promete**, y no hay forma de
+  compensarla del todo: hasta hoy la respuesta a «¿qué hacéis con lo que leéis?»
+  era «nada, es un informe interno», que es la respuesta más fuerte posible.
+  Después de esto es una respuesta más larga y por tanto más débil. **Es el coste
+  directo de la decisión** y no se disimula.
+- **El disparador de re-dictamen no lo vigila ningún test, y su punto de tráfico no
+  lo puede vigilar nadie** — la pantalla no tiene analítica y §4.5 lo hace
+  estructural. Va a `docs/procedimientos/calendario-de-compromisos.md` con los
+  otros compromisos que **nadie va a recordar solo**, y ese fichero existe
+  precisamente porque el proyecto **no tiene CI** (F-SPEC-004-3 · F-SPEC-005-4).
 - **Los horarios cambian en bloque a finales de octubre** (`sdd-competicion` T7):
   con el paso a horario de invierno, los campos sin iluminación homologada
   —mayoría en Preferente— adelantan sus horas y el calendario declarado se recarga
   casi entero. **Cualquier caché servirá horas viejas y quien llegue tarde al
   campo culpará al marcador.** Es un dato de dominio que ningún test ve.
   **Destino: el runbook de carga del calendario; disparador: el cambio de hora.**
+- **Cuatro residuales que el gate firma con los ojos abiertos**, y los cuatro los
+  nombra `sdd-legal-datos` en su segundo dictamen:
+  1. **El archivo de un tercero sobrevive a todo.** Una página pública la archivan
+     otros, y `noarchive` no es exigible frente al Internet Archive. La defensa de
+     «acotada en el tiempo» es sobre **nuestra** publicación, no sobre la copia de
+     otro. Lo único que la mitiga de verdad es que lo archivable sea mínimo (§3.b,
+     §10).
+  2. **El JSON del refresco lo lee cualquiera** con las herramientas del navegador
+     (§3.a). Está declarado, no disimulado.
+  3. **Nadie sabrá cuánta gente la abre**, y es la contrapartida querida de §4.5.
+     El disparador de §3.d se sostiene con registros de servidor y con el primer
+     `Referer` externo, no con instrumentación.
+  4. **Cinco de las condiciones no las vigila ningún test y no hay CI.** Van al
+     calendario de compromisos, que existe por eso.
+- **El juicio de valor central sigue sin cerrarse, y no lo cierra este ADR:** si
+  dos jornadas publicadas sobre dos competiciones caen del lado bueno del art. 7.5
+  frente a ZOS, Lda. El criterio del rol es que sí; **su dictamen no lo cierra y la
+  firma del gate lo asume.** Requiere revisión profesional, como la requiere
+  cualquier monetización futura (§3.d).
 - **Este ADR se aprueba sin haber sobrevivido a un sábado**, como ADR-013, ADR-025
-  y ADR-026.
+  y ADR-026. Y ahora eso pesa más: **el primer sábado lo va a ver alguien que no
+  somos nosotros.**
 
 ## Alternativas consideradas
 
-- **Publicar la pantalla y enmendar `noRepublish` y `noProduct` por ADR-015.** Es
-  la salida limpia si se quiere publicar, y `sdd-legal-datos` la lista como opción
-  (B). **Rechazada hoy, y sólo hoy**, por tres cosas que se suman: la carta a la
-  RFGF está viva hasta el **2026-09-08**; reescribir `/robot` —la página que viaja
-  dentro del `User-Agent`— la misma semana en que la federación decide es el peor
-  momento imaginable; y **la épica no gana nada**, porque sus cuatro cifras se
-  miden sobre `Decision`, no sobre una URL. Queda escrita entera en §3 para el día
-  que se decida de verdad, con su firma.
+- **No publicar: servir la pantalla tras la sesión declarada del operador.** Era
+  la salida **(A)** y **fue la primera redacción entera de SPEC-018 y de este
+  ADR**, siguiendo el dictamen bloqueante. Sus argumentos eran buenos y siguen
+  siéndolo como hechos: la épica mide «publicado» como `Decision` escrita, así que
+  **no perdía ninguna cifra**; no había que enmendar nada; y el análisis de
+  reutilización del art. 7.2.b no llegaba a aplicarse. **Rechazada por decisión de
+  Alberto Fojo el 2026-09-04**, tomada con todo eso delante. Lo que la decisión
+  compra, y que (A) no daba: **el proyecto puede enseñar lo que hace**, y la spec
+  siguiente —la de las cifras— no llega al go/no-go con un producto que nadie ha
+  visto nunca funcionando. Se registra aquí entera porque es la alternativa que un
+  lector futuro va a querer entender, no un descarte de trámite.
 - **Matizar el literal para que siga pasando el test** («non republicamos… salvo
-  unha pantalla de medición»). **Rechazada, y el dictamen la cierra
-  expresamente**: la frase se publicó y se mandó por correo sin matiz, y
-  matizarla *a posteriori* para que quepa lo que se acaba de hacer es exactamente
-  lo que un tercero enseñaría.
+  unha pantalla de medición»). **Rechazada, y es el rechazo que la decisión de
+  publicar hace más importante, no menos**: la frase se publicó y se mandó por
+  correo **sin matiz**, y matizarla *a posteriori* para que quepa lo que se acaba
+  de hacer es exactamente lo que un tercero enseñaría. §3.c exige que las
+  afirmaciones **se corrijan de verdad**, diciendo lo que ahora es cierto, no que
+  se estrechen hasta seguir siendo literalmente verdaderas.
+- **Publicar y arreglar `/robot` y `/proxecto` después**, en una spec de limpieza.
+  **Rechazada, y es la tentación real de esta decisión**, porque es la que ahorra
+  trabajo hoy: dejaría al proyecto, durante el tiempo que tarde esa spec,
+  publicando un marcador **y jurando en la página que un tercero audita que no lo
+  publica**. La corrección no es un follow-up de esta decisión: es parte de ella, y
+  por eso §3.c está dentro del ADR y no en una nota.
 - **No construir la pantalla en absoluto**, ya que la épica mide sobre la base.
   Rechazada: la verificación a cronómetro de 10 partidos que la épica exige
   necesita **ver la jornada entera refrescándose**, y el tablero del panel es una
   cola de trabajo ordenada por urgencia que no sirve para eso. Además, sin
-  pantalla el snapshot se escribiría el día de la publicación, sin nadie que lo
-  haya ejercido nunca.
+  pantalla el snapshot se escribiría sin que nadie lo haya ejercido nunca.
 - **Servir la pantalla dentro del panel, como una vista más de `src/admin/`.**
-  Rechazada: comparten puerta y nada más. El panel escribe, ésta no; el panel se
-  ordena por urgencia, ésta por hora; el panel es de una persona, ésta es la forma
-  del producto. Meterla dentro habría atado el día de la publicación a desmontar
-  `src/admin/`.
+  Rechazada, y con la decisión de publicar deja de ser siquiera discutible: el
+  panel escribe y ésta no, el panel se ordena por urgencia y ésta por hora, el
+  panel es de una persona y ésta es de cualquiera. Meterla dentro habría atado la
+  publicación a desmontar `src/admin/`.
 - **Que la pantalla lea la base directamente, sin snapshot.** Rechazada: es más
   corto y deja el proyecto sin contrato. El día que entre SSE, la publicación o un
   feed, habría **dos** definiciones de «lo que se publica» y la segunda se
