@@ -39,3 +39,14 @@ export const HOSTING_PROVIDER = 'Vercel';
 
 /** How long the provider keeps that log. Same string in both languages. */
 export const ACCESS_LOG_RETENTION = '24 horas';
+
+/**
+ * Fills the two hosting slots of an i18n literal. Plain text and not a node:
+ * unlike the mailbox, neither of these is a link, and nothing on this page
+ * should invite anybody to go anywhere else to read what it already says.
+ */
+export function withHosting(value: string): string {
+  return value
+    .replaceAll('{provider}', HOSTING_PROVIDER)
+    .replaceAll('{retention}', ACCESS_LOG_RETENTION);
+}

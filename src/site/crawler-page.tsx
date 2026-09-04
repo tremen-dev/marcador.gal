@@ -23,6 +23,7 @@ import { crawlerBundle } from '@/i18n/crawler';
 import { otherLocale } from '@/i18n/site';
 import type { SiteLocale } from '@/i18n/site-bundle';
 import { USER_AGENT } from '@/polite/user-agent';
+import { withHosting } from '@/site/hosting';
 import { withMailbox } from '@/site/mailbox-link';
 import { CRAWLER_PATH, SCOREBOARD_PATH } from '@/site/routes';
 
@@ -78,9 +79,23 @@ export function CrawlerPage({ locale }: { locale: SiteLocale }) {
         <p>{t.storage}</p>
       </section>
 
+      {/*
+        SPEC-018 CA-18.2 — one claim, one paragraph, in the order the ruling
+        fixed: no trackers, what is logged, who processes it, on what basis, for
+        how long, who answers, the rights, the authority, and the sentence that
+        keeps this block from being read as the one above it.
+      */}
       <section>
         <h2>{t.privacyHeading}</h2>
-        <p>{withMailbox(t.privacy)}</p>
+        <p>{t.privacyNoTrackers}</p>
+        <p>{t.privacyLog}</p>
+        <p>{withHosting(t.privacyProcessor)}</p>
+        <p>{t.privacyBasis}</p>
+        <p>{withHosting(t.privacyRetention)}</p>
+        <p>{t.privacyController}</p>
+        <p>{withMailbox(t.privacyRights)}</p>
+        <p>{t.privacyAuthority}</p>
+        <p>{t.privacyNotTheArchive}</p>
       </section>
 
       <section>

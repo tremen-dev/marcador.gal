@@ -99,16 +99,90 @@ export interface CrawlerBundle {
 
   /**
    * SPEC-018 CA-18.2 — THE PRIVACY LINE. Not a legal notice and not a banner:
-   * what the server logs, with what basis, how long it is kept, THAT THERE ARE
-   * NO COOKIES, NO ANALYTICS AND NO THIRD PARTIES, and the mailbox for arts.
-   * 15-22 GDPR.
+   * what the server logs, who processes it, with what basis, how long it is
+   * kept, THAT THERE ARE NO COOKIES, NO ANALYTICS AND NO THIRD PARTIES, and the
+   * mailbox for arts. 15-22 GDPR.
    *
    * It goes INSIDE `/robot`, which already carries the block of what is stored
    * and for how long: one honest place, one surface fewer. AND IT NAMES NO
    * NATURAL PERSON, which the barrier of SPEC-007 already watches.
+   *
+   * ONE CLAIM, ONE KEY — AND THAT SHAPE IS THE FIX, NOT A PREFERENCE. This was
+   * a SINGLE key holding six claims until 2026-09-04, and two of the six were
+   * answered with a phrase that occupies the place of an answer: «the server
+   * this is hosted on», which names nobody, and «it is kept for as long as that
+   * log lasts», which is circular and gives no period at all. INSIDE ONE STRING
+   * A MISSING CLAIM IS INVISIBLE — in the diff and in the test — and the case
+   * that watched it asserted four of the six. Split into nine, each one is a
+   * key a test can ask for, and three claims that had never been written appear
+   * on their own: the supervisory authority (art. 13.2.d), the transfer outside
+   * the EU that naming the processor makes due (art. 13.1.f), and who answers
+   * for the site (art. 13.1.a). `CrawlerBundle` is the contract of SPEC-018,
+   * WHICH IS ALIVE: splitting it is not an ADR-015 amendment, it is its
+   * intended use (F-SPEC-018-V4).
+   *
+   * THE VOICE IS NOT STYLE EITHER, and it is binding (`sdd-lingua` L1-L3): the
+   * whole block is second person singular, and the `nós` is FORBIDDEN in it
+   * except in the mailbox sentence — writing «we keep your IP» would attribute
+   * to the project an act ANOTHER PARTY performs, and would melt this block
+   * into `storage`, which starts with «Gardamos…» and speaks of another thing
+   * with another period.
+   *
+   * `{provider}` and `{retention}` come from `src/site/hosting.ts`, the same
+   * way `{mailbox}` comes from `src/site/contact.ts`.
    */
   readonly privacyHeading: string;
-  readonly privacy: string;
+
+  /** 1 — no cookies, no analytics, no third-party component. Impersonal. */
+  readonly privacyNoTrackers: string;
+
+  /**
+   * 2 — WHAT is logged. Five things and not three: browser and referrer were
+   * missing, and the referrer is the very thing point 7 of the re-ruling
+   * trigger leans on (CA-19.4).
+   */
+  readonly privacyLog: string;
+
+  /**
+   * 3 — WHO PROCESSES IT, named. A processor IS a recipient (arts. 4.9 and
+   * 13.1.e) and the paraphrase was not a category: there is exactly one, and
+   * the name can be checked from outside. Carries the transfer outside the EU
+   * (art. 13.1.f), which only becomes due once the processor is named.
+   */
+  readonly privacyProcessor: string;
+
+  /** 4 — the legal basis, and what it is for. */
+  readonly privacyBasis: string;
+
+  /**
+   * 5 — HOW LONG. A period, whose period it is, and that the project keeps no
+   * copy of it. The three pieces, because the defect this closes filled the
+   * place of the first one with a sentence.
+   */
+  readonly privacyRetention: string;
+
+  /** 6 — who answers for the site (art. 13.1.a), under the umbrella. */
+  readonly privacyController: string;
+
+  /** 7 — the mailbox and the five rights, `limitación` included. */
+  readonly privacyRights: string;
+
+  /** 8 — the supervisory authority to complain to (art. 13.2.d). */
+  readonly privacyAuthority: string;
+
+  /**
+   * 9 — THE DISAMBIGUATION, and it is not decoration: this block and `storage`
+   * speak of DIFFERENT THINGS with different periods and sit two keys apart, so
+   * a reasonable reader will assume the 30/90 days of the raw store also apply
+   * to their IP. It cites the other block BY THE TEXT OF ITS HEADING —not by
+   * its position, which depends on the layout— and tells them apart BY OBJECT,
+   * not by period, which would age.
+   *
+   * It is also the ONE declared exception to the lexical barrier: `arquivo`
+   * appears in no other `privacy*` key and `rexistro` appears in none of
+   * `storage`, and this key names both on purpose, which is its entire job.
+   */
+  readonly privacyNotTheArchive: string;
 
   /** Claim 5 — what is stored, and for how long. */
   readonly storageHeading: string;

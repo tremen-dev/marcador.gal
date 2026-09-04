@@ -358,12 +358,31 @@ export const gl = {
       'e paramos: non fai falta que o confirmemos antes.',
 
     privacyHeading: 'Que se rexistra de quen visita',
-    privacy:
+    privacyNoTrackers:
       'Non hai cookies, nin analítica, nin ningún compoñente de terceiros nas páxinas ' +
-      'deste sitio. O servidor onde está aloxado deixa un rexistro técnico de acceso ' +
-      '—enderezo IP, hora e páxina pedida— co interese lexítimo de manter o servizo en ' +
-      'pé, e consérvase o tempo que ese rexistro dura. Para acceder, rectificar, ' +
-      'suprimir ou opoñerte, escribe a {mailbox}.',
+      'deste sitio.',
+    privacyLog:
+      'O servidor deixa un rexistro técnico de cada petición: o enderezo IP, a hora, a ' +
+      'páxina pedida, o navegador e de onde vén a ligazón. Non se recolle ningún outro ' +
+      'dato de quen visita.',
+    privacyProcessor:
+      'O sitio está aloxado en {provider}, que é quen garda ese rexistro por conta de ' +
+      'marcador.gal. {provider} está nos Estados Unidos, e a transferencia está amparada ' +
+      'por unha decisión de adecuación da Comisión Europea.',
+    privacyBasis:
+      'A base xurídica é o interese lexítimo de manter o servizo en pé e seguro: sen ese ' +
+      'rexistro non se pode saber se algo falla nin frear un abuso.',
+    privacyRetention:
+      'marcador.gal non garda nada de quen visita nin exporta copia dese rexistro. ' +
+      'Consérvao {provider} durante {retention}, que é o prazo que fixa ela.',
+    privacyController: 'Do sitio responde o proxecto, baixo o paraugas de tremen.dev.',
+    privacyRights:
+      'Podes pedir acceso, rectificación, supresión, limitación ou oposición: escribe a ' +
+      '{mailbox}.',
+    privacyAuthority: 'E podes reclamar ante a Axencia Española de Protección de Datos.',
+    privacyNotTheArchive:
+      'Ese rexistro non é o arquivo do que fala «Que gardamos e canto tempo»: aquel garda ' +
+      'o que se le doutros sitios; este, o rastro que deixa quen visita.',
 
     storageHeading: 'Que gardamos e canto tempo',
     storage:

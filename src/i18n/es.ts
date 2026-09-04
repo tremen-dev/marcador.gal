@@ -365,12 +365,31 @@ export const es = {
       '{mailbox} y paramos: no hace falta que lo confirmemos antes.',
 
     privacyHeading: 'Qué se registra de quien visita',
-    privacy:
+    privacyNoTrackers:
       'No hay cookies, ni analítica, ni ningún componente de terceros en las páginas ' +
-      'de este sitio. El servidor donde está alojado deja un registro técnico de ' +
-      'acceso —dirección IP, hora y página pedida— con el interés legítimo de mantener ' +
-      'el servicio en pie, y se conserva el tiempo que ese registro dura. Para acceder, ' +
-      'rectificar, suprimir u oponerte, escribe a {mailbox}.',
+      'de este sitio.',
+    privacyLog:
+      'El servidor deja un registro técnico de cada petición: la dirección IP, la hora, ' +
+      'la página pedida, el navegador y de dónde viene el enlace. No se recoge ningún ' +
+      'otro dato de quien visita.',
+    privacyProcessor:
+      'El sitio está alojado en {provider}, que es quien guarda ese registro por cuenta ' +
+      'de marcador.gal. {provider} está en Estados Unidos, y la transferencia está ' +
+      'amparada por una decisión de adecuación de la Comisión Europea.',
+    privacyBasis:
+      'La base jurídica es el interés legítimo de mantener el servicio en pie y seguro: ' +
+      'sin ese registro no se puede saber si algo falla ni frenar un abuso.',
+    privacyRetention:
+      'marcador.gal no guarda nada de quien visita ni exporta copia de ese registro. ' +
+      'Lo conserva {provider} durante {retention}, que es el plazo que fija ella.',
+    privacyController: 'Del sitio responde el proyecto, bajo el paraguas de tremen.dev.',
+    privacyRights:
+      'Puedes pedir acceso, rectificación, supresión, limitación u oposición: escribe a ' +
+      '{mailbox}.',
+    privacyAuthority: 'Y puedes reclamar ante la Agencia Española de Protección de Datos.',
+    privacyNotTheArchive:
+      'Ese registro no es el archivo del que habla «Qué guardamos y cuánto tiempo»: aquel ' +
+      'guarda lo que se lee de otros sitios; este, el rastro que deja quien visita.',
 
     storageHeading: 'Qué guardamos y cuánto tiempo',
     storage:
