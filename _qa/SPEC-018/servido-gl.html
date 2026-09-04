@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="gl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, noarchive">
+<title>marcador.gal</title>
+<style>
+@font-face{font-family:'Geist';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/Geist-Regular.woff2') format('woff2')}
+@font-face{font-family:'Geist';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/Geist-Medium.woff2') format('woff2')}
+@font-face{font-family:'Geist';font-style:normal;font-weight:600;font-display:swap;src:url('/fonts/Geist-SemiBold.woff2') format('woff2')}
+@font-face{font-family:'Geist Mono';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/GeistMono-Medium.woff2') format('woff2')}
+@font-face{font-family:'Geist Mono';font-style:normal;font-weight:600;font-display:swap;src:url('/fonts/GeistMono-SemiBold.woff2') format('woff2')}
+
+:root{--bg:#111110;--bg-elevated:#1A1815;--bg-step:#221F1A;--line:#2A2620;--line-strong:#3D362C;--fg:#F5F1EA;--fg-muted:#A7A5A0;--fg-dim:#716F6C;--brand:#56DB8F;--brand-deep:#35C177;--brand-ink:#04160C;--accent-live:#FF6B00;--amber:#F0B135;--alert:#FF655A;--sans:'Geist',ui-sans-serif,system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;--mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;--bg-subtle:#131211;--bg-live:#1E1A16;--line-row:#1D1A16}
+
+*,*::before,*::after{box-sizing:border-box}
+
+html{-webkit-text-size-adjust:100%;color-scheme:dark}
+
+body{
+  margin:0;
+  padding:12px 8px 48px;
+  background:var(--bg);
+  color:var(--fg);
+  font-family:var(--sans);
+  font-size:16px;
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow-wrap:anywhere;
+}
+
+main{max-width:60rem;margin:0 auto}
+
+h1{margin:0 0 12px;font:500 15px/1.2 var(--sans);letter-spacing:-0.01em;font-size:20px}
+h2{margin:24px 0 8px;font:600 11px/1 var(--mono);letter-spacing:0.15em;text-transform:uppercase;color:var(--brand)}
+p{margin:0 0 8px}
+
+.soft{color:var(--fg-muted)}
+
+/* ADR-013 §3: every digit of a scoreboard, an hour or an age is tabular. */
+.num,.score,.instant,td,th{
+  font-family:var(--mono);
+  font-variant-numeric:tabular-nums;
+  font-feature-settings:'tnum' 1;
+}
+.score{font:600 20px/1 var(--mono);color:var(--fg)}
+.instant{font:600 13px/1 var(--mono);color:var(--fg-muted)}
+
+/*
+ * THE FOUR QUALIFIERS. provisional and confirmado carry THE SAME colour — the
+ * main one — and both carry their label, confirmado WITHOUT ANY ADDITIONAL
+ * MARK; the other two carry a colour because they are conditions and not the
+ * normal case, and they carry their label too (ADR-026 §2, ADR-027 §8,
+ * ADR-013 §2 and §6).
+ */
+.q-provisional,.q-confirmado{color:var(--fg)}
+.q-pendente-de-confirmar{color:var(--amber)}
+.q-sen-sinal{color:var(--alert)}
+
+/* The five states. live is the ember of ADR-013 §1, and nothing else is. */
+.s-live{color:var(--accent-live)}
+.s-postponed,.s-suspended{color:var(--amber)}
+.s-scheduled,.s-finished{color:var(--fg-muted)}
+
+/*
+ * THE PAGE'S CLOCK — the TRANSPORT's, and it lives OUTSIDE THE TABLE
+ * (ADR-027 §4). Neutral tokens only: no state token and no qualifier token
+ * touches this rule, ever.
+ */
+.transport{
+  border:1px solid var(--line-strong);
+  border-radius:10px;
+  padding:8px;
+  margin:0 0 12px;
+  background:var(--bg-elevated);
+  color:var(--fg-muted);
+  font:600 13px/1 var(--mono);
+}
+
+/* The degradation notice. Visible with no interaction, before the table. */
+.notice{
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:8px 12px;
+  margin:0 0 12px;
+  background:var(--bg-elevated);
+  color:var(--fg);
+}
+.notice h2{margin:0 0 4px}
+
+/* The one wide element scrolls INSIDE ITS OWN CONTAINER (ADR-025 §3.2). */
+.scroller{overflow-x:auto}
+
+/*
+ * THE TABLE IS AS WIDE AS ITS CONTENT AND SCROLLS INSIDE .scroller, and the
+ * team cell NEVER ellipses: a canonical RFGF name is not a string to be
+ * chopped (dominio.md, CA-10.2). ADR-025 §3.2 is satisfied all the same: what
+ * scrolls is the container, never the body.
+ */
+table{border-collapse:collapse;width:max-content;min-width:100%}
+th,td{padding:8px;border-bottom:1px solid var(--line-row);text-align:left;white-space:nowrap;overflow-wrap:normal}
+th{font:600 11px/1 var(--mono);letter-spacing:0.15em;text-transform:uppercase;color:var(--fg-dim);background:var(--bg-step)}
+td{font:500 15px/1.2 var(--sans);letter-spacing:-0.01em;color:var(--fg)}
+.team{font-family:var(--sans)}
+
+/* ADR-025 §3, INTACT: every interactive control is at least 44 x 44 px. */
+a,summary{min-height:44px}
+
+a{
+  display:inline-flex;
+  align-items:center;
+  min-width:44px;
+  padding:0 4px;
+  color:var(--brand);
+  text-decoration:none;
+}
+a:hover{color:var(--fg);text-decoration:underline}
+
+/*
+ * ADR-025 §2.1, INTACT and now permanent (ADR-026 §5). A real outline on the
+ * perimeter, never a change of background or of text colour, and the browser's
+ * own ring is never switched off anywhere in this sheet. The ring is --fg and
+ * not --brand on purpose: the brand green already means brand, link, heading
+ * and active nav, and a colour that means six things means none (ADR-026 §2.3).
+ * --fg over --bg is 18.4:1, far above the 3:1 the rule asks — the test
+ * CALCULATES it.
+ */
+:focus-visible{
+  outline:2px solid var(--fg);
+  outline-offset:2px;
+  border-radius:8px;
+}
+
+nav{margin-top:24px}
+ul{margin:0;padding:0;list-style:none}
+</style>
+</head>
+<body>
+<main>
+<h1>O marcador</h1>
+<section class="notice"><h2>Que é isto</h2><p>Isto é unha medición, non un produto.</p><p>Non é oficial: non vén da RFGF nin de futgal.es.</p><p>Hai unha soa fonte automática, así que o normal é que o marcador sexa provisional e que chegue con atraso.</p><p>Para pedir que pare, abonda con escribir a ola@tremen.dev.</p></section>
+<p class="transport" id="board-transport">Actualizado agora mesmo</p>
+<p class="soft">Esta páxina actualízase soa cada 30 segundos.</p>
+<p class="soft">Aínda non se publicou ningún marcador.</p>
+<p>Non hai ningunha xornada de medición declarada, así que non hai nada que amosar.</p>
+<nav><p><a href="/robot">Como se len as páxinas públicas, e como pedir que pare</a></p><p><a href="/proxecto">Que é marcador.gal</a></p><p><a href="mailto:ola@tremen.dev">Escribir ao buzón</a></p><p><a href="/es/marcador" lang="es" hreflang="es">Castellano</a></p></nav>
+<script type="application/json" id="board-config">{"etag":"\"d78c4626ec1eddf5735f9331efe20ae2\"","api":"/api/board","statuses":{"scheduled":"Programado","live":"En xogo","finished":"Rematado","postponed":"Aprazado","suspended":"Suspendido"},"qualifiers":{"provisional":"Provisional","confirmado":"Confirmado","pendente_de_confirmar":"Pendente de confirmar","sen_sinal":"Sen sinal"},"noScoreYet":"Sen marcador publicado","lastDataNow":"Agora mesmo","lastDataMinutes":"Hai {n} min","lastDataNone":"Aínda non","refreshedNow":"Actualizado agora mesmo","refreshedMinutes":"Actualizado hai {n} min","refreshFailed":"Non se puido actualizar. O que ves é de hai {n} min.","reloadHint":"Carga a páxina de novo."}</script>
+<script>(function(){
+  var raw = document.getElementById("board-config");
+  if (!raw) return;
+  var cfg = JSON.parse(raw.textContent || '{}');
+  var notice = document.getElementById("board-transport");
+  if (!notice) return;
+
+  var tag = cfg.etag || null;
+  var lastOk = Date.now();
+
+  function minutes(since){ return Math.floor((Date.now() - since) / 60000); }
+  function fill(template, n){ return String(template).split('{n}').join(String(n)); }
+
+  function say(text){ notice.textContent = text; }
+
+  function sayFresh(){
+    var n = minutes(lastOk);
+    say(n < 1 ? cfg.refreshedNow : fill(cfg.refreshedMinutes, n));
+  }
+
+  // THE ERROR BRANCH. It touches the notice and NOTHING ELSE: not a class, not
+  // a style, not a value of a row.
+  function sayStale(){
+    var n = minutes(lastOk);
+    say(fill(cfg.refreshFailed, n) + ' ' + cfg.reloadHint);
+  }
+
+  function cellOf(row, field){
+    return row.querySelector('[data-field="' + field + '"]');
+  }
+
+  function put(row, field, value, className){
+    var cell = cellOf(row, field);
+    if (!cell) return;
+    cell.textContent = value;
+    if (className !== null) cell.className = className;
+  }
+
+  function score(match){
+    if (match.home_score === null || match.away_score === null) return cfg.noScoreYet;
+    return String(match.home_score) + '-' + String(match.away_score);
+  }
+
+  function age(instant){
+    if (!instant) return cfg.lastDataNone;
+    var then = Date.parse(instant);
+    if (isNaN(then)) return cfg.lastDataNone;
+    var n = Math.max(0, Math.floor((Date.now() - then) / 60000));
+    return n < 1 ? cfg.lastDataNow : fill(cfg.lastDataMinutes, n);
+  }
+
+  // SUBSTITUTES VALUES. It never creates a row, never removes one and never
+  // touches the container of the table.
+  function apply(data){
+    var list = (data && data.matches) || [];
+    for (var i = 0; i < list.length; i++) {
+      var match = list[i];
+      var row = document.querySelector('[data-match="' + match.match_id + '"]');
+      if (!row) continue;
+      put(row, 'score', score(match), null);
+      put(row, 'status', cfg.statuses[match.status] || '', 's-' + match.status);
+      put(
+        row,
+        'qualifier',
+        match.qualifier === null ? '' : cfg.qualifiers[match.qualifier] || '',
+        match.qualifier === null ? '' : 'q-' + String(match.qualifier).split('_').join('-')
+      );
+      put(row, 'last', age(match.last_observed_at), null);
+    }
+  }
+
+  function poll(){
+    var headers = {};
+    if (tag) headers['If-None-Match'] = tag;
+    fetch("/api/board", { headers: headers, credentials: 'omit' })
+      .then(function(response){
+        if (response.status === 304) { lastOk = Date.now(); sayFresh(); return null; }
+        if (!response.ok) throw new Error('board');
+        tag = response.headers.get('ETag') || tag;
+        return response.json();
+      })
+      .then(function(data){
+        if (data === null) return;
+        apply(data);
+        lastOk = Date.now();
+        sayFresh();
+      })
+      .catch(function(){ sayStale(); });
+  }
+
+  sayFresh();
+  setInterval(poll, 30 * 1000);
+})();</script>
+</main>
+</body>
+</html>
