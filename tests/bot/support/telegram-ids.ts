@@ -57,6 +57,16 @@ export const ID_SCAN_EXCLUSIONS: readonly IdScanExclusion[] = [
       'Las fuentes del sistema de diseño de EPIC-004. Los artboards llevan inyectado un runtime minificado cuyas constantes de máscara de bits tienen 9 y 10 cifras, que es la forma que este mecanismo caza y no es ningún identificador de nadie. Es la MISMA frontera que ya está declarada, con el mismo motivo, en `SCAN_EXCLUSIONS` de `tests/polite/support/capability.ts` y en `.oxlintrc.json` desde el 2026-09-01: no es código de la aplicación y nadie escribe ahí un corresponsal.',
   },
   {
+    path: '*.png',
+    motive:
+      'Contenedores comprimidos, no texto. Una captura versionada guarda su imagen en chunks IDAT con DEFLATE dentro, y ahí este detector NO PUEDE ENCONTRAR UN IDENTIFICADOR REAL NI EVITAR UNO FALSO: un id que se vea en pantalla son píxeles, no dígitos ASCII, y cualquier texto incrustado viaja comprimido e ilegible. Medido el 2026-09-04 sobre los 18 PNG versionados: `_qa/SPEC-018/ca16-6-filas-360x640-gl.png` da una tirada de ONCE dígitos en el offset 3033, DENTRO del primer IDAT, y el fichero no tiene ni un chunk de texto; y `ca16-5-360x640-es.png` lleva una tirada de exactamente 9 dígitos que sólo escapa porque el byte siguiente es una letra y `\\b` no casa. No es mala suerte: la distribución tiene masa en el umbral y cada captura nueva es otra tirada.',
+  },
+  {
+    path: '*.woff2',
+    motive:
+      'El mismo caso que `*.png` y por el mismo motivo: WOFF2 es un contenedor comprimido (Brotli) y sus bytes se leen como ruido, así que el escaneo no informa en ninguna de las dos direcciones. RESIDUO DECLARADO: hoy NINGUNA de las cinco fuentes versionadas produce ofensa —la tirada más larga medida es de 7 dígitos en `GeistMono-Medium.woff2`—, así que esta entrada es PREVENTIVA y el caso 32 no la distinguiría de una decorativa, que es la limitación que F-SPEC-015-19 ya tiene inventariada. Se declara para que la próxima fuente no ponga en rojo una spec que no tiene nada que ver con el bot.',
+  },
+  {
     path: '*.ledger.md',
     motive:
       'El registro de verificación de cada spec, que es donde se escribe LO QUE SE MIDIÓ, carga útil de la sonda incluida: el veredicto RED del 2026-09-03 cita literalmente el número de diez cifras de la sonda P14 mientras describe el agujero que este caso cierra. Es el mismo motivo por el que `SCAN_EXCLUSIONS` deja fuera `tests/`: un guardián que convierte en ofensa documentar su propia sonda no se puede documentar, y un veredicto que no puede citar lo que midió no se puede reproducir. RESIDUO DECLARADO: un identificador real escrito en un ledger queda fuera de este mecanismo. No es donde vive el mapeo —su único domicilio durable es el entorno (ADR-023 §4)—, pero queda dicho para que nadie lea el criterio como si prometiera más.',
@@ -98,9 +108,19 @@ export function versionedTree(): readonly string[] {
  * Las ofensas del árbol, una por fichero que lleve la forma.
  *
  * Se lee en `latin1` y no en `utf8` a propósito: un byte, un carácter, sin
- * pérdida ni sustituciones. Un PNG o cualquier otro binario versionado se juzga
- * con la misma regla que un fichero de texto, porque un identificador escrito
- * dentro de un binario está igual de versionado.
+ * pérdida ni sustituciones. Un binario versionado que NO sea un contenedor
+ * comprimido se juzga con la misma regla que un fichero de texto, porque un
+ * identificador escrito dentro de él está igual de versionado — un `.svg`, que
+ * es texto, y un `.sql` o un `.json` siguen dentro sin excepción.
+ *
+ * LOS CONTENEDORES COMPRIMIDOS SON LA EXCEPCIÓN, Y ESTÁ EN LA LISTA DE ARRIBA
+ * (2026-09-04, enmienda ADR-015 sobre esta spec por F-SPEC-018-N1). La primera
+ * redacción de esta cabecera decía que un PNG se juzga igual que un texto, y la
+ * intención era buena pero la premisa era falsa: dentro de DEFLATE este
+ * detector no puede encontrar un identificador real —lo que se ve en una
+ * captura son píxeles, no dígitos— y sí puede inventarse uno. Excluirlos no
+ * pierde ninguna detección que este mecanismo tuviera; quita ruido que en la
+ * rama de SPEC-018 ya tumbó cuatro casos.
  *
  * Un fichero que no se puede leer es ROJO nombrándose, nunca silencio: es la
  * misma obligación de fallo cerrado que el recorrido de SPEC-009 CA-2 (ADR-016
