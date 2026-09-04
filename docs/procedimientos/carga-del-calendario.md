@@ -2,6 +2,37 @@
 
 Procedimiento para cargar el calendario de una competición y temporada en Postgres.
 
+## Regla dura: de dónde NO se saca el calendario
+
+**El calendario declarado no se deriva de ninguna fuente rastreada, ni a mano ni
+con un LLM sobre su HTML.** Es dictamen vinculante de `sdd-legal-datos`
+(SPEC-018 CA-3.8, ADR-027 §6.1) y **es la mejor pieza defensiva que tiene este
+proyecto ahora que publica**: la selección, el orden y los nombres son
+**nuestros**, y lo que se toma de un tercero se reduce a **un campo volátil por
+partido**. Un fichero escrito a mano y uno derivado del HTML de la fuente **son
+el mismo fichero** una vez cargados: **nada en el código lo protege y esta línea
+es lo único que hay.**
+
+**Y con la precisión que importa, porque la lectura mala es la que perjudica:**
+lo prohibido es derivarlo **de la fuente rastreada**. Una persona que consulta
+con su navegador el calendario publicado por la RFGF y **lo teclea** no incumple
+nada —**RN-11 gobierna la petición automatizada, no la lectura humana**— y es
+además la mejor posición defensiva disponible.
+
+## La parada de emergencia: parar es vaciar `MEASUREMENT_WINDOWS`
+
+**Si ZOS, Lda. o la RFGF piden que se pare, se para primero y se dictamina
+después. Y parar es vaciar la lista de `src/ingest/measurement.ts`** (SPEC-018
+CA-3.9, ADR-027 §3.b). Con la lista vacía:
+
+- **el cron no pide nada** a ningún tercero (SPEC-012), y
+- **el marcador sirve lista vacía con cero consultas** y dice por qué está
+  apagado (SPEC-018 CA-3.2).
+
+**No hay que tocar una línea de lógica.** Está escrito aquí porque **el día que
+haga falta nadie va a leer un ADR**, y porque el botón ya existe y nadie lo
+sabrá si no está en el runbook. **En la duda, se para.**
+
 ## Paso previo: dictamen de dominio
 
 Antes de la primera carga real, `sdd-competicion` debe confirmar:
@@ -101,3 +132,18 @@ Toda la información de quién cargó qué y cuándo vive en `calendar_loads`:
 - `file_digest`: SHA256 del fichero, permite detectar cambios sin recargar
 - `rounds`, `matches_count`: lo que se cargó
 - `inserted`, `updated`: lo que cambió en esa pasada
+
+## Cuando cambia la hora (finales de octubre)
+
+**Los horarios cambian en bloque con el paso a horario de invierno**
+(`sdd-competicion` T7, ADR-027 §Consecuencias negativas): los campos sin
+iluminación homologada —mayoría en Preferente— adelantan sus horas y **el
+calendario declarado se recarga casi entero**.
+
+Consecuencia que hay que mirar ese fin de semana: **cualquier caché servirá
+horas viejas**, y quien llegue tarde al campo culpará al marcador. La caché del
+marcador es corta y compartida (10 s, `src/api/freshness.ts`), así que se pasa
+sola; lo que no se pasa solo es **el calendario sin recargar**.
+
+**Disparador: el cambio de hora.** Recargar el fichero de cada competición
+afectada y comprobar en el marcador que las horas servidas son las nuevas.

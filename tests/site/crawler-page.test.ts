@@ -214,9 +214,7 @@ describe('CA-6 — las afirmaciones comprobables de la carta, publicadas', () =>
 
       // (b) Sin redistribución en bloque, con las seis formas enumeradas.
       expect(claim).toMatch(/redistribucion en bloque/);
-      for (const shape of ['ficheiro de datos', 'fichero de datos']) {
-        if (claim.includes(shape)) expect(claim).toContain(shape);
-      }
+      expect(claim).toMatch(/ficheiro de datos|fichero de datos/);
       for (const shape of ['feed', 'api', 'widget', 'exportacion']) {
         expect(claim).toContain(shape);
       }
