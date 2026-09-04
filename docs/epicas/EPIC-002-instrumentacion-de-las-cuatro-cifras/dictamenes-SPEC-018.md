@@ -1,5 +1,72 @@
 # Dictámenes de dominio para SPEC-018 — el snapshot y la página mínima del marcador
 
+> ## ⚠ NOTA DE CABECERA — 2026-09-04, tarde: el gate ejerció la salida (B) del dictamen bloqueante
+>
+> **Rectificación de esta misma nota, hecha el mismo día y a instancia del rol.**
+> La primera redacción decía que una decisión de producto **superó** al dictamen.
+> `sdd-legal-datos`, al reconsultársele, corrigió esa lectura y su corrección es
+> la que vale: **ningún dictamen suyo ha sido revocado.** Su V1 no prohibía
+> publicar: prohibía publicar **mientras `noRepublish` y `noProduct` dijeran lo
+> que dicen**, y enumeraba **dos** salidas lícitas. El gate eligió **(B)**, que es
+> una de las dos, y **(B) venía con su condicionado escrito**. Ese condicionado
+> —corregir los literales en el mismo cambio por ADR-015, avisar a la RFGF, y no
+> antes del 2026-09-08— **es ahora la parte operativa del dictamen, no la
+> desplazada**. Y su prohibición sigue viva en su forma condicional: **publicar
+> sin corregir los literales sigue prohibido**.
+>
+> **Lo que sigue NO se ha borrado, ni corregido, ni suavizado, y no se va a
+> hacer.** Se anota encima, que es lo que corresponde: un dictamen consultivo se
+> supera con una decisión firmada, no reescribiéndolo.
+>
+> El dictamen de **`sdd-legal-datos` del 2026-09-04 (mañana)** era **bloqueante**:
+> en su §0 y en sus V1 y V2 condicionaba la publicación a que `/robot` y
+> `/proxecto` dejen de afirmar que «non hai marcador público» —las dos sujetas por
+> test— y a la carta a la RFGF, enviada el 2026-09-01 y viva hasta el 2026-09-08.
+> `sdd-lingua` llegó al mismo hallazgo por su cuenta en su §6.1. La primera
+> redacción de SPEC-018 tomó por eso **la salida (A)**: construir la pantalla y
+> servirla tras la sesión declarada del operador.
+>
+> **En el gate del 2026-09-04, Alberto Fojo eligió la salida (B): el marcador se
+> publica.** Tomó la decisión **con este dictamen delante**, y con las tres cosas
+> que señala explícitamente sobre la mesa. Es una decisión de producto, es suya, y
+> **no se relitiga en la spec**.
+>
+> **Qué cambia y qué no:**
+>
+> - **(B) no es una vía de escape: es una de las dos salidas que este dictamen
+>   abrió**, y venía con condicionado. Exige corregir `noRepublish` y `noProduct`
+>   **en el mismo cambio** y por el procedimiento de **ADR-015**, avisar a la
+>   RFGF, y **no desplegar antes del 2026-09-08**. Las tres son ahora obligaciones
+>   de la spec (CA-18, CA-19).
+> - **Lo que el dictamen cierra expresamente sigue cerrado**, y la decisión de
+>   producto no lo abre: **no vale matizar la frase publicada para que siga pasando
+>   el test**. Se corrige de verdad o no se publica.
+> - **Sus condiciones sustantivas siguen vigentes enteras** —la apertura acotada a
+>   las jornadas de medición declaradas, la proyección cerrada, la traza de RN-12
+>   que no se enseña, el polling que nunca pide a un tercero, nada personal, sin
+>   escudos y sin monetización—. Lo que la decisión de producto movió es **quién
+>   puede abrir la URL**, no qué contiene ni cómo se obtiene. Y con público
+>   delante, varias de ellas **valen más, no menos**.
+>
+> **Se reconsultó al mismo rol esa misma tarde**, y no para repreguntar si se
+> publica —eso ya estaba decidido— sino **bajo qué condiciones se publica bien**.
+> Ese segundo dictamen está **al final de este fichero**, con su fecha, y es el que
+> manda donde los dos hablen de lo mismo: **mantiene V2..V8 y V10 intactos,
+> modifica su propio V9** (`nofollow` fuera, `noarchive` dentro), **rectifica su
+> propia tabla del §4** (`decided_at` → `last_observed_at`) y **añade cinco
+> condiciones que sólo existen cuando el destinatario es cualquiera**. Los dos
+> conviven a propósito: el rastro de que se avisó es parte del expediente.
+>
+> **Una precisión suya sobre este mismo expediente**, hecha suponiendo que ADR-027
+> ya estaba aprobado: pedía un ADR nuevo que supersediera parcialmente su §3.a.
+> **No hace falta: ADR-027 estaba en `borrador` y se ha reescrito entero**, así que
+> lo que su W3 exige —un ADR de publicación con firma del gate, con las dieciocho
+> condiciones y el disparador de ocho puntos— **es ADR-027 mismo**, no uno
+> posterior.
+>
+> — Anotado por `sdd-arquitecto` el 2026-09-04. **Decisión de producto: Alberto
+> Fojo, 2026-09-04.**
+
 > **Artefacto versionado, copiado literalmente.** Los **tres** roles consultivos
 > del proyecto —`sdd-lingua`, `sdd-competicion` y `sdd-legal-datos`—
 > dictaminaron sobre SPEC-018 el **2026-09-04**, a petición de
@@ -589,14 +656,26 @@ ADR-013 §4: sin escudos, la fila funciona solo con tipografía. Con dos nombres
 > Emitido el 2026-09-04 por el rol consultivo `sdd-lingua`, a petición de
 > `sdd-arquitecto`. Se copia literal. No escribió ningún fichero.
 >
-> **Nota del arquitecto, y es importante para leerlo:** este dictamen se
-> redactó **suponiendo que la pantalla sería pública**, que es como estaba
-> planteado el encargo. Su §1.2 recomienda por eso la ruta `/`. El dictamen
-> **bloqueante de `sdd-legal-datos` cambió esa premisa** —la pantalla no se
-> publica en EPIC-002— y `sdd-lingua` **llegó por su cuenta al mismo hallazgo**
-> en su §6.1, donde lista «que la pantalla no sea pública» como una de las tres
-> salidas admisibles. Todo lo demás del dictamen —nombre, literales, norma,
-> barreras— **vale igual**, porque no depende de quién pueda abrir la URL.
+> **Nota del arquitecto, actualizada tras el gate del 2026-09-04:** este dictamen
+> se redactó **suponiendo que la pantalla sería pública**, y **acertó**: el gate
+> eligió la salida (B). Su §6.1 —que llegó por su cuenta al mismo hallazgo que el
+> dictamen bloqueante y listó las tres salidas admisibles— queda **contestado por
+> la primera de las tres que él mismo enumera**: se reescriben las dos frases por
+> el procedimiento de ADR-015.
+>
+> **Lo único de este dictamen que el gate NO siguió es su §1.2, la ruta `/`.**
+> **Alberto Fojo decidió el 2026-09-04 que la pantalla vive en `/marcador` y
+> `/es/marcador`**, descartando explícitamente tanto tomar la raíz ahora como
+> dejar escrito un disparador para mudarse a ella en el go/no-go. **ADR-010 §5
+> queda intacto y `/` sigue reservada.** El argumento de lengua de `sdd-lingua` —la
+> tautología `marcador.gal/marcador`— **no se declara equivocado**: se declara
+> superado por una decisión de producto sobre qué es hoy este dominio. Y su §1.1
+> —que la pantalla se llama **el marcador** y no *resultados* ni *xornada*— **sí se
+> siguió entera**, incluido el nombre de la ruta.
+>
+> Todo lo demás —literales, norma, barreras, la separación de los tres silencios,
+> la etiqueta larga del cualificador— **vale igual y se absorbió**, porque no
+> dependía de quién pueda abrir la URL.
 
 **Emitido:** 2026-09-04. **Rol:** consultivo. Dictamina y cita fuente; no implementa.
 
@@ -952,3 +1031,384 @@ Las de SPEC-015 §5 siguen vigentes enteras y **no las repito**: género de `men
 | `docs/epicas/EPIC-MEJORA/_epica.md` F-SPEC-007-10 | Su disparador es esta spec | Lo contesta el §5.3 |
 
 **Y la regla dura del rol, para el arquitecto:** este dictamen **tiene que quedar por escrito en la spec o en su ledger**. El precedente es `dictamenes-SPEC-015.md`, en el mismo directorio.
+
+---
+
+# Dictamen `sdd-legal-datos` (SEGUNDO) — SPEC-018 bajo la salida (B): bajo qué condiciones se publica bien
+
+> Emitido el **2026-09-04**, por la tarde, a petición de `sdd-arquitecto`, **tras
+> la decisión de producto de Alberto Fojo por la salida (B)**. No se le preguntó
+> si se publica —eso estaba decidido— sino **bajo qué condiciones se publica
+> bien**. Se copia literal. No escribió ningún fichero.
+>
+> **Nota del arquitecto:** su **W3** pide un ADR que supersediera parcialmente
+> ADR-027 §3.a. Lo escribió suponiendo que ADR-027 estaba aprobado; **estaba en
+> `borrador` y se ha reescrito entero**, así que el ADR que W3 exige **es
+> ADR-027**. Y su **R1** —que el refresco devuelva fragmento HTML en vez de
+> JSON— **no se ha tomado**; el motivo está en ADR-027 §11 y en las notas para el
+> gate de SPEC-018, con los cuatro mínimos vinculantes de su C6 cumplidos.
+
+**No soy abogado y esto no es asesoramiento profesional.**
+
+**Comprobaciones hechas hoy (2026-09-04), porque un dictamen legal sin fecha no vale:**
+
+| Recurso | Resultado |
+|---|---|
+| `https://www.ceroacero.es/robots.txt` | **Sigue permitiendo.** `User-agent: *`, única prohibición `Disallow: /zzmap_v3.php`, 13 sitemaps. **Ninguna directiva TDM, `ai`, ni reserva de derechos.** Idéntico a ADR-008 §3 (2026-08-31) y a mi comprobación de esta mañana |
+| `https://www.ceroacero.es/.well-known/tdmrep.json` | **HTTP 403**, no 404. El canal estándar del *TDM Reservation Protocol* **no es observable** en ese host: un 403 no es prueba de ausencia de reserva. Dato nuevo, y cambia la condición 13 |
+| Art. 10 LSSI (Ley 34/2002) y Anexo a) | Sin reforma aplicable. Alcanza a servicios **no remunerados por el destinatario** «en la medida en que constituyan una actividad económica para el prestador». Régimen sancionador: arts. 38-40; incumplir el art. 10 es infracción **leve**, hasta **30.000 €** (art. 39) |
+| `DEFAULT_SOURCES` (`src/ingest/sources.ts:132`) | **Una sola entrada**: `CEROACERO_ENTRY`. Relevante para el §5.b |
+
+---
+
+## §0. Qué queda en pie de mi dictamen anterior, y qué no. La nota que va encima del fichero
+
+**Ningún dictamen mío ha sido revocado, y la nota debería decirlo así, porque es lo exacto.**
+
+Mi V1 no prohibía publicar: prohibía publicar **mientras `noRepublish` y `noProduct` dijeran lo que dicen**, y enumeraba **dos** salidas lícitas, (A) y (B). El gate ha elegido **(B)**, que es una de las dos que el propio dictamen abrió, y (B) venía ya con su condicionado escrito: *«se corrigen en el mismo cambio, no después — con el procedimiento de ADR-015 — y se avisa a la RFGF antes de que lo vean solos. Y no antes del 2026-09-08.»* Ese condicionado **pasa a ser la parte operativa**, no la desplazada.
+
+- **V1**: no superado; **ejercida su salida (B)**. Su prohibición sigue viva en su forma condicional: publicar **sin** corregir los literales sigue prohibido.
+- **V2** (no antes del 2026-09-08): **intacto**, ver §7.
+- **V3, V4, V5, V6, V7, V8, V10**: **intactos y sin un solo cambio**.
+- **V9** (`noindex, nofollow`): **modificado por mí, no por el gate** — ver §3. `noindex` se mantiene; `nofollow` se retira y se sustituye por `noarchive`.
+- **R1** (recomendar (A)): **consumida**. Era una recomendación, el gate la ha oído y ha decidido lo contrario con el dictamen delante. No se relitiga y no la vuelvo a mencionar.
+- **R2** (no citar la fuente): **se mantiene, con un añadido obligatorio** — ver §6.
+- Mi §4 asignaba `decided_at` al «instante del último dato». **Lo rectifico yo mismo a `last_observed_at`** — ver §5.a. Era una fila escrita para una audiencia de operador; SPEC-018 y `sdd-competicion` encontraron la respuesta mejor.
+
+**Consecuencia procedimental para `sdd-arquitecto`:** ADR-027 está aprobado e inmutable, y su **§3.a** (la puerta es la sesión declarada) y su **§3 punto 4** (`/` en vez de `/marcador`) quedan **superados parcialmente**. Eso exige **ADR nuevo que lo diga**, no una edición. Ese ADR es el que mi V3 exigía con firma del gate.
+
+---
+
+## §1. Las trece condiciones del §6.2, revisadas para (B)
+
+**Ninguna de las trece sobra. Tres cambian de forma. Faltan cinco**, y las cinco las hace faltar la decisión: cuando el destinatario deja de ser el operador, aparecen obligaciones que con la sesión delante no existían.
+
+Leyenda del reparto: **(a)** test estático, enunciable como CA · **(b)** línea de runbook · **(c)** compromiso humano con nombre y fecha que ningún test sostiene.
+
+### 1.1 Cuadro de reparto
+
+| # | Condición | Reparto | Cambia con (B) |
+|---|---|---|---|
+| 1 | Acotada en tiempo: dos jornadas declaradas | **(a)** + (b) residual | Se puede **testar**, y hoy no se testaba |
+| 2 | Acotada en alcance: dos competiciones | **(a)** | — |
+| 3 | Sin archivo histórico público | **(a)** | — |
+| 4 | El calendario sigue siendo humano | **(b)** + **(c)** | Sube de importancia; sigue sin test posible |
+| 5 | Sólo los campos permitidos, como proyección | **(a)** | Ya es CA-5. Intacta |
+| 6 | Sin superficie programática | **(a)** parcial + **(c)** | **Cambia**: `/api/board` se queda sin puerta |
+| 7 | Cero monetización | **(a)** parcial + **(c)** | Gana una mitad testable |
+| 8 | El polling nunca pide a un tercero | **(a)** | Mismo test, riesgo multiplicado por N |
+| 9 | `noindex`; `robots.txt` sin tocar | **(a)** | **Cambia**: sin `nofollow`, con `noarchive` |
+| 10 | Literales corregidos · RFGF avisada · fecha | **(a)** + **(b)** + **(c)** | Se **parte en tres** repartos distintos |
+| 11 | El buzón sigue delante | **(a)** | — |
+| 12 | La retención no se alarga | **(a)** parcial + **(c)** | — |
+| 13 | Re-comprobar `robots.txt` y reserva TDM | **(a)** mitad ya hecha + **(b)/(c)** la otra | **Cambia**: el canal TDM no es observable (403 hoy) |
+| **14** | **El aviso de medición y su degradación** | **(a)** + (c) | **Nueva** |
+| **15** | **La ruta es `/marcador`; `/` no se toca** | **(a)** | **Nueva** |
+| **16** | **Enlaces recíprocos con `/proxecto` y `/robot`** | **(a)** | **Nueva** |
+| **17** | **Cero almacenamiento, cero terceros, cero analítica** | **(a)** | **Nueva** (era un inciso del §5) |
+| **18** | **Línea de privacidad alcanzable** | **(a)** parcial + **(c)** | **Nueva** (era la recomendación R3) |
+
+### 1.2 Las que se enuncian como CA — enunciado propuesto
+
+**C1 — (a).** *Dado `MEASUREMENT_WINDOWS`, un caso afirma que la lista declarada tiene **como máximo dos entradas** y que el `competition_id` de cada una pertenece a la lista cerrada de C2. **Control positivo:** una tercera entrada, o una competición fuera de la lista, pone rojo un caso nombrado.* Y ya existe CA-3.1/3.2 para la mitad de contenido. **Residual (b):** el test sólo se pone rojo si alguien corre `npm run gates`, y no hay CI (`F-SPEC-004-3`): la línea de runbook es *«antes de desplegar la pantalla, `npm run gates`»*.
+
+**C2 — (a).** *Existe una lista cerrada `PUBLISHED_COMPETITIONS` con **exactamente** `preferente-futgal-grupo-1` y `terceira-rfef-grupo-1`, con motivo escrito por entrada (forma de `ALLOWED_PACKAGES`, ADR-016 §3.2). El snapshot filtra por ella; un caso afirma que un partido de una competición no listada no sale ni en HTML ni en el cuerpo del refresco. Control positivo: añadir una tercera pone rojo un caso nombrado.*
+
+**C3 — (a).** *El conjunto de jornadas alcanzables desde cualquier ruta pública es **igual** al conjunto declarado en `MEASUREMENT_WINDOWS`. Ninguna ruta acepta una fecha, una jornada ni un identificador arbitrarios; una petición por una jornada no declarada responde 404 **con cero lecturas de la base**. Control positivo: aceptar un parámetro de fecha pone rojo un caso nombrado.*
+
+**C5 — (a).** Ya es **CA-5** entero. **No la toco: es la condición mejor escrita de la spec** y es la que sobrevive a todo lo demás.
+
+**C6 — (a) parcial + (c).** El problema nuevo: CA-2 ponía la sesión delante de `/marcador`, `/es/marcador` **y `/api/board`**. Con (B) la pantalla es pública y su refresco tiene que serlo también, así que **`/api/board` queda expuesto y eso es, de hecho, un endpoint JSON público** — el punto 5 del disparador.
+- **Recomendación (la limpia):** que el refresco devuelva **fragmento HTML**, no JSON. Entonces C6 es literalmente cierta y el test es trivial. El `ETag` y la `version` de CA-7 funcionan igual sobre HTML.
+- **Mínimo vinculante si se queda en JSON**, las cuatro a la vez y testadas: *(i)* **nunca** se emite `Access-Control-Allow-Origin` ni ninguna cabecera CORS — un caso lo afirma sobre la respuesta, control positivo al añadirla; *(ii)* lleva `X-Robots-Tag: noindex` como el documento; *(iii)* **no se documenta en ningún sitio** — ni en `/robot`, ni en `/proxecto`, ni en un OpenAPI, ni con un enlace; *(iv)* sirve **exactamente** la lista cerrada de CA-5, ni un campo más.
+- **(c):** y se escribe en el ADR, sin adornos, que **cualquiera con las herramientas del navegador puede leer ese JSON**. Llamarlo «privado» sería el mismo error que llamar defensa a `noindex`.
+
+**C7 — (a) parcial + (c).** *Un caso afirma que el documento servido no contiene ningún `<iframe>`, ningún `<script src>` hacia un host que no sea este origen (ya CA-1.5), ningún `<a>` a un dominio de pago, y ninguna forma de una **lista cerrada declarada en el test con su motivo escrito**: patrocina/patrocinio/publicidade/publicidad/anuncio/doar/donar/apoia/apoya/subscri. Control positivo: una cadena de prueba pone rojo el caso.* **Declarado dentro del criterio (ADR-016 §6):** el mecanismo **no alcanza** un patrocinio acordado fuera de la página ni dinero que nunca toca el HTML. Eso es **(c)**: compromiso de Alberto Fojo, con fecha, de que no hay ni habrá contraprestación mientras esta pantalla esté servida.
+
+**C8 — (a).** Ya es **CA-1.4**. **No cambia de enunciado y cambia de peso**: con la sesión delante, `N` lectores ≈ 1; en público, `N` no tiene techo. Sigue siendo la afirmación más importante de la spec. **Consecuencia nueva de (B) que la spec tiene que resolver**: la caché deja de poder ser privada. Una caché pública es **legalmente favorable** —menos lecturas de origen, ninguna petición a terceros— pero no puede dejar la página vieja contradiciendo los tres relojes. Es del arquitecto; yo sólo marco que (B) lo abre.
+
+**C9 — (a).** Ver §3. Enunciado: *`X-Robots-Tag: noindex, noarchive` en cabecera **y** `<meta name="robots" content="noindex, noarchive">`; **sin `nofollow`**. Un caso lo afirma sobre las cabeceras y sobre el documento. `src/site/robots-txt.ts` no se toca, y el verificador lo comprueba en el diff.*
+
+**C11 — (a).** *El documento servido alcanza `ola@tremen.dev` **en un clic**: o lo contiene, o contiene un `<a href>` a `/robot`, cuyo primer bloque ya lo lleva (SPEC-005 CA-5, ADR-012 §3). Un caso lo afirma en las dos lenguas.* **Recomendación:** la dirección misma en el pie. Una línea no rompe la densidad de D-8 y ahorra el clic a quien viene a quejarse, que es justamente para quien está.
+
+**C12 — (a) parcial + (c).** *Un caso afirma que las constantes de retención siguen siendo 30 y 90 días (ADR-009, ADR-020).* Lo que ningún test ve —que nadie escriba una prórroga cuyo motivo real sea «ahora hay público»— es **(c)**.
+
+**C14 — (a) + (c). Nueva, y es la que la decisión de producto obliga a escribir.** El aviso no es decoración: es lo que sostiene la coherencia entre la pantalla, `/robot` y la carta, y es lo que mantiene vivo el argumento de *CV-Online* (C-762/19) y aleja el art. 10 LSSI (§4).
+- **Contenido obligado** (el *qué*, no las palabras — eso es de `sdd-lingua`): *(i)* esto es una medición, no un producto; *(ii)* **no es oficial ni de la RFGF** (§6); *(iii)* la degradación declarada — una sola fuente automática, luego lo normal es provisional y con atraso; *(iv)* cómo pedir que pare, con el buzón o `/robot`.
+- **Forma obligada, testable:** visible **sin interacción**, antes de la tabla en orden del documento, **paridad gl/es**, y **sin ningún control de descarte que escriba estado** — ni cookie ni `localStorage`, porque eso rompería C17 y CA-2.8. Un `<details>` plegado vale para la explicación larga, **nunca para la primera línea**.
+- **Y el hallazgo que convierte un (c) en un (a).** «Hay una sola fuente automática» es un hecho que **puede dejar de ser cierto en dos días**: `lapreferente.com` se verifica el **2026-09-06** (`calendario-de-compromisos.md`, fila 1). Un aviso público falso sobre la propia actividad es el mismo vector del art. 5 de la Ley 3/1991 que encontré en mi §0. **Enunciado:** *el número que el aviso declara se **deriva** de `DEFAULT_SOURCES` (`src/ingest/sources.ts:132`, hoy una entrada), no se escribe a mano; un caso afirma que coinciden. **Control positivo:** declarar una segunda fuente pone rojo un caso nombrado hasta que el aviso se corrija.* Es barato y cierra la clase entera de error.
+
+**C15 — (a). Nueva.** *`SITE_REDIRECTS` (`src/site/redirects.ts`) **no cambia**: `/` sigue redirigiendo a `/proxecto` y `/es` a `/es/proxecto`. Un caso afirma que no existe ninguna redirección de `/` hacia la pantalla y que las rutas del marcador son `/marcador` y `/es/marcador`. Control positivo: mover la pantalla a `/` pone rojo un caso nombrado.* ADR-010 §5 queda intacto por decisión del gate, y esto merece un CA porque **el atajo de «terminar el trabajo» llevando la pantalla a la raíz es exactamente el que alguien dará dentro de tres meses**. La raíz es la puerta de un producto; `/marcador` es una pantalla de medición, y eso es lo que el aviso afirma.
+
+**C16 — (a). Nueva.** *`/proxecto` y `/robot`, en las dos lenguas, enlazan la pantalla con un `<a href>` de verdad, y la pantalla enlaza `/robot`. Cuatro casos, uno por página y lengua.* Su función es jurídica y no de navegación: **es lo que convierte `noindex` en no-amplificación en vez de en ocultación** (§3).
+
+**C17 — (a). Nueva, y era un inciso de mi §5 que ahora tiene que ser condición con nombre.** Ya está casi entera en CA-1.5 y CA-2.8. Se enuncia como una sola: *ningún módulo de la pantalla ni de su contrato escribe cookie propia, usa `localStorage` o `sessionStorage`, lee `Accept-Language` o cabeceras de cliente, ni nombra ningún host externo; y **no existe ninguna medición de audiencia de ningún tipo**, incluido Vercel Web Analytics, cuya inyección de guion pondría rojo el caso de CA-1.5.* **Declarado dentro del criterio (ADR-016 §6), y hay que escribirlo porque es la respuesta al §2:** *lo que este mecanismo no alcanza es saber cuánta gente abre esta pantalla, cuánto se queda o si vuelve. **Eso es querido**, y es la causa de que el punto 7 del disparador no pueda vigilarse desde la página.* Es lo que retira el art. 22.2 LSSI sin banner y sin consentimiento.
+
+**C18 — (a) parcial + (c). Nueva.** Con la sesión delante no hacía falta. Con público sí: hay un tratamiento de IP en los logs (Vercel como **encargado**, base art. 6.1.f RGPD) y hay un interesado que ahora existe. **No es un aviso legal y no es un banner**: una línea alcanzable en un clic que diga qué registra el servidor, quién lo procesa, con qué base, cuánto se conserva, **que no hay cookies ni analítica ni terceros**, y el buzón para los arts. 15-22 RGPD. **Recomendación de sitio: dentro de `/robot`**, que ya tiene el bloque de qué se guarda y cuánto — un solo lugar honesto, una superficie menos. **Testable:** que existe, que se alcanza en un clic, y que **no nombra a ninguna persona física** (la lista negra de `tests/site/identity.test.ts` ya existe, SPEC-007). **(c):** que lo que dice sea verdad.
+
+### 1.3 Las que ningún test sostiene, y hay que decirlo sin adornos
+
+**C4 — el calendario humano. (b) + (c). Es el caso más claro de todo el reparto: no hay ni habrá test.** Un `calendario/<temporada>/<competition_id>.json` escrito a mano y uno derivado del HTML de la fuente son **el mismo fichero**. CA-3.5 ya pone la línea de runbook y es lo único que hay.
+- **Precisión que hay que añadir a esa línea, porque hoy se puede leer mal y la lectura mala es la que perjudica:** lo prohibido es derivarlo **de la fuente rastreada** —el HTML de `ceroacero.es`— a mano o con un LLM. **Una persona que consulta con su navegador el calendario publicado por la propia RFGF y lo teclea no incumple nada**: RN-11 gobierna la petición automatizada, no la lectura humana, y un calendario que viene del organizador es **la mejor** posición defensiva disponible (*Fixtures Marketing*, C-46/02 y acumuladas: la inversión en **crear** el calendario no genera *sui generis* para nadie).
+- **(c) propuesto, y es barato:** en el ledger de cada jornada, una línea firmada y fechada —*«calendario declarado a mano el AAAA-MM-DD a partir de <origen humano>»*—. No es un test, pero es lo que un tercero pediría y lo que convierte una convención en un registro.
+
+**C10 — se parte en tres, y cada trozo va a un sitio distinto. Es el reparto que la spec más fácilmente fingirá.**
+- **(a) los literales:** un caso afirma que `crawler.noRepublish` y `site.noProduct` **ya no contienen** las afirmaciones retiradas —lista cerrada declarada en el test: `non republicamos`, `informe interno`, `non hai marcador público`, `nada que se poida consultar fóra do proxecto`, y sus gemelas de `es`— y los casos nuevos que `sdd-lingua` y el implementador escriban para el contenido nuevo. **CA-2.7 se invierte**: dejaba de estar «intacta» y pasa a ser «corregida». Que el test cambie **es** el criterio.
+- **(b) el procedimiento:** enmienda por **ADR-015** en el **ledger** de SPEC-004 y de SPEC-005, bajo `## Enmienda — <fecha>: <qué la invalida>`. El cuerpo de esas specs no se edita **nunca**. Lo comprueba el verificador en el diff.
+- **(c) el aviso a la RFGF:** **Alberto Fojo, con fecha, antes o a la vez que el despliegue, nunca después.** Ningún test lo sostiene y ninguno lo sostendrá. **Fila nueva en `docs/procedimientos/calendario-de-compromisos.md`.**
+
+**C13 — cambia, y por un hecho de hoy.** La mitad del `robots.txt` **ya está mecanizada**: `src/polite/robots.ts`, vigencia 6 h, fallo cerrado (ADR-014 §3.2) — **(a)**, y no hay nada que añadir. La mitad de la reserva TDM **no la mira nada**, y hoy he descubierto que el canal estándar tampoco es observable: `/.well-known/tdmrep.json` responde **403**, no 404, así que *«no hay reserva»* sería una conclusión que el dato no permite.
+- **Línea de runbook (b), con los tres sitios y con la honestidad de que uno no se puede cerrar:** antes de abrir cada ventana se mira *(i)* `robots.txt` —hecho, sin líneas TDM/`ai` hoy—, *(ii)* `/.well-known/tdmrep.json` —**se anota el código de respuesta, no una conclusión**; hoy 403—, *(iii)* la página legal/ToS —**HTTP 503**, irrecuperable, igual que la dejó ADR-008 §4—.
+- **Y el mecanismo mínimo que propongo, porque no cuesta una sola petición nueva:** la reserva TDM puede viajar también en la cabecera `tdm-reservation` o en un `<meta>` de la respuesta. **El raw store ya archiva la respuesta entera antes de parsearla (RN-10)**, así que la comprobación puede ser **análisis estático del archivo**, no una petición. Cero superficie nueva, cero peticiones a terceros, y automatizable el día que se quiera.
+- **(c) residual:** que alguien mire. Fila en el calendario de compromisos.
+
+---
+
+## §2. El disparador de re-dictamen: de siete puntos a ocho, y qué pasa con el punto 7
+
+### 2.1 Los seis primeros
+
+**Puntos 1, 2, 3, 5 y 6: se mantienen literalmente.** Los tres primeros ganan además, con C1, C2 y C5, un test que se pone rojo **antes** de que el disparador tenga que dispararse — que es como debe ser: el disparador es la red, no el suelo. El 5 hereda el matiz de C6 sobre `/api/board`. El 6 (monetización) es el más importante de los seis y es el único que además invierte el §4.
+
+**Punto 4: se parte, y la decisión lo obliga.** Confundía cuatro cosas distintas, y una de ellas ha pasado de disparador a **obligación**:
+- **4.a** la pantalla deja de ser `noindex` → **sigue siendo disparador**, y ahora es el único de los cuatro que significa *amplificación*;
+- **4.b** aparece en `robots.txt` → **sigue siendo disparador** (y sería además técnicamente contraproducente, §3);
+- **4.c** aparece un **enlace externo** —un medio, un club, la federación, una red social— → **sigue siendo disparador**, y es el mejor indicador que hay (§2.2);
+- **4.d** ~~se enlaza desde `/proxecto` o `/robot`~~ → **deja de ser disparador y pasa a ser obligatorio** (C16). Es la corrección que (B) impone y hay que escribirla, porque tal como está redactado el punto 4 hoy, **cumplir C16 dispararía el re-dictamen**;
+- **4.e (nuevo)** la pantalla se mueve a `/` → **disparador nuevo**. El gate ha decidido `/marcador` con ADR-010 §5 intacto; llevarla a la raíz es un acto distinto y necesita otra firma.
+
+**Punto 8 (nuevo):** *el aviso de degradación deja de ser cierto* — aparece una segunda fuente automática, o `futgal.es` pasa a ser capturable. C14 lo pone rojo; el disparador dice qué hacer con el rojo.
+
+**La cláusula permanente se mantiene y sube de rango:** *el día que ZOS, Lda. o la RFGF escriban pidiendo que se pare, se para primero y se dictamina después.* Con público es más probable que llegue. **Y ahora merece una línea de runbook con el procedimiento concreto, porque «se para» tiene que ser ejecutable en menos de una hora:** el botón de parada **ya existe y no hay que construirlo** — **vaciar `MEASUREMENT_WINDOWS`**, y por CA-3.2 la pantalla sirve lista vacía con **cero consultas**. Escríbase en el runbook con esas palabras: *parar es vaciar la lista declarada, y no requiere tocar una línea de lógica.*
+
+### 2.2 El punto 7: no se sostiene como está, y no exige ningún mecanismo en la página
+
+Tienes razón y el problema es real: **con C17, nadie puede observar «más de 100 visitantes distintos».** Un disparador que nadie puede observar no es un disparador; es peor que no tenerlo, porque hace creer que algo vigila. **Dictamen: se sustituye, en tres piezas.**
+
+**(i) El indicador se cambia de métrica, no de naturaleza.** «Visitantes **distintos**» es inobservable **por diseño y por derecho**: distinguir personas exige identificarlas, y contar IPs distintas sería un tratamiento **nuevo** de dato personal que hoy no existe — el punto 7 estaría pidiendo, para vigilar el riesgo, crear exactamente el riesgo. Lo que sí existe ya, sin tocar nada, son **los logs de la plataforma**: la petición ya ocurrió, el registro ya está, Vercel ya es encargado (mi §5), y **nada se escribe en el equipo terminal de nadie**, así que el art. 22.2 LSSI no entra. **Se cambia a: cargas del documento `/marcador` y `/es/marcador` en un día**, leídas de los logs de la plataforma. Una carga por pestaña abierta, sin inflar por el polling —**por eso se cuenta el documento y no la ruta de refresco**, que a 60 s produce ~90 peticiones por lector y hora—. El umbral de 100 se conserva **en cargas de documento**, no en visitantes.
+
+**(ii) El indicador que de verdad importa no es un número, y es gratis.** **La primera aparición de un `Referer` que no sea este origen.** Lo envía el navegador, no se almacena en el equipo de nadie, y ya está en el log. Un enlace entrante de un medio, un club, la federación o una red social **es** el momento en que esto dejó de ser el operador y su entorno — y lo dice antes y mejor que cualquier recuento. Es, de hecho, el punto 4.c mirado desde el otro lado.
+
+**(iii) Lo que se declara **no vigilable**, por escrito y sin eufemismos.** *No sabemos ni sabremos quién abre esta pantalla, cuánto se queda ni si vuelve. No hay analítica, no la habrá, y esa ausencia es una decisión, no una carencia.*
+
+**El mínimo mecanismo que no convierte la página en un rastreador es: ninguno.** No se añade nada a la página. La observación es **del lado del servidor y a posteriori**, sobre datos que ya existen. Cualquier cosa que se inyecte en el documento —Vercel Web Analytics incluido, que es la respuesta de un clic y es justo la trampa— rompe C17 y CA-1.5, convierte la IP de cada visitante en una cesión y cambia todas mis respuestas del §4 y del §5.
+
+**Y el residual honesto, que es (c):** aunque el dato exista, **alguien tiene que ir a mirarlo**. Fila en `docs/procedimientos/calendario-de-compromisos.md`: *«al día siguiente de cada jornada de medición, Alberto Fojo mira las cargas de documento y los `Referer` de las dos rutas del marcador y escribe el número en el ledger de la jornada.»* **Al día siguiente y no al mes**: conviene confirmar la ventana de retención de logs del plan antes de apoyarse en ella; si es más corta que el hueco entre jornadas, la comprobación no admite aplazamiento.
+
+---
+
+## §3. `noindex` con (B): se mantiene, cambia de acompañantes, y `robots.txt` no se toca
+
+### 3.1 Las dos direcciones, y por qué la objeción se disuelve
+
+**A favor de mantenerlo, y una de las razones es específica de este proyecto y bastante fuerte:**
+- La carta a la RFGF construye su gancho sobre esto: *«Buscando hoy “Preferente Futgal grupo 1 resultados” aparecen ocho agregadores privados y ninguna liga a futgal.es»*. **El día que `marcador.gal/marcador` sea el noveno resultado de esa búsqueda, el argumento de la carta se vuelve contra quien la firmó.** No hay forma de leer eso a nuestro favor.
+- Mantiene vivo el argumento de *CV-Online Latvia* (C-762/19): lo que decide es si se **menoscaba la inversión** del fabricante. Una pantalla que no capta audiencia del buscador no le quita nada a ZOS; una indexada, en las mismas consultas, empieza a hacerlo.
+- Es el **sustituto estructural** del umbral que nadie puede medir (§2). Si no puedes observar la audiencia, lo coherente es no crear el mecanismo que la genera.
+- Una pantalla que vive dos jornadas no tiene nada que hacer en un índice: las entradas sobreviven a la página y producen resultados obsoletos sobre partidos que ya se jugaron.
+
+**En contra —«publicamos pero que no se vea»— y por qué no se sostiene:** la objeción supone que `noindex` es ocultación. **Lo es si va sola.** `noindex` + **ningún enlace** + **ninguna mención** es esconderse, y leería fatal junto a la carta. Pero eso no es lo que se va a hacer: **C16 obliga a enlazarla desde `/proxecto` y `/robot`**, C10 obliga a corregir los literales, y el aviso a la RFGF la nombra expresamente. **La honestidad se resuelve enlazando, no indexando.** Una página enlazada desde las dos páginas que la carta cita, y comunicada a su destinatario, es **descubrible por una persona y no amplificada por un buscador** — que es una postura coherente, defendible y describible en una frase, no un escondite.
+
+**Dictamen vinculante: `noindex` se mantiene, por cabecera `X-Robots-Tag` y por `<meta>`, las dos** (precedente ya verificado en SPEC-017 CA-1.10, `src/admin/handler.ts:118`). **Y se mantiene escrita la advertencia de mi V9: `noindex` no es una defensa jurídica.** La reutilización del art. 7.2.b es *poner a disposición del público*: una URL pública sin indexar lo está igual.
+
+### 3.2 Dos cambios a mi V9, y los dos los causa (B)
+
+- **`nofollow` se retira.** Con la sesión delante era inocuo. En público, `nofollow` le dice al rastreador que **no siga los enlaces salientes de esta página**, y los únicos enlaces salientes son `/robot` y `/proxecto` — precisamente la página que viaja dentro de nuestro `User-Agent` y que queremos que un tercero alcance (ADR-011, ADR-012 §3). Declararlo trabaja contra el proyecto y no protege nada. *(Cautela técnica: una página `noindex` de larga duración acaba tratada como `noindex,nofollow` por los buscadores; no se debe hacer depender el descubrimiento de `/robot` de los enlaces de esta pantalla — `/proxecto` ya lo enlaza y sí es indexable.)*
+- **`noarchive` se añade.** Es el hueco que (B) abre y que ninguna condición cubría: **una página pública será archivada por terceros, y ese archivo sobrevive a nuestras dos jornadas y a nuestros 30 días de retención.** La defensa de «acotada en el tiempo» (C1) es sobre *nuestra* publicación; el archivo de un tercero la hace permanente. `noarchive` es honrado por Google y Bing para sus copias en caché; **frente al Internet Archive no es exigible** y hay que escribirlo así. Es barato, ayuda algo, y **lo que no arregla es residual que el gate firma con los ojos abiertos** — junto con lo que ya lo mitiga de verdad: que lo archivable sea mínimo (C3 y C5).
+
+### 3.3 `robots.txt`: no se toca. Vinculante, y ahora con un argumento mejor que antes
+
+`src/site/robots-txt.ts` genera hoy `User-agent: * / Allow: /` y **no cambia**. Bajo (A) el motivo era *«un `Disallow` confirmaría que existe»*, que con una pantalla deliberadamente pública ya no aplica. Quedan dos, y el primero es decisivo y **técnico, no retórico**:
+
+1. **Un `Disallow: /marcador` derrotaría al `noindex`.** `Disallow` impide **rastrear**, y sin rastrear el buscador **nunca lee el `noindex`**: la URL puede seguir apareciendo en resultados como URL desnuda, alimentada por enlaces externos, y sin posibilidad de retirarla. Las dos directivas juntas son estrictamente peores que `noindex` sola. Quien proponga «pues lo bloqueamos también en robots.txt» estará empeorando exactamente lo que quiere arreglar.
+2. **`robots.txt` es el fichero con el que este proyecto le pide a otro que le deje pasar.** Es literalmente el objeto de la carta a la RFGF, que pide dos líneas. Ensuciar el propio con exclusiones defensivas mientras se pide lo contrario es un mal negocio, y sigue siéndolo con (B).
+
+### 3.4 ¿Se enlaza desde `/proxecto` y `/robot`? **Sí, vinculante, desde las dos y en las dos lenguas** (C16)
+
+Es la mitad que hace que `noindex` no sea ocultación (§3.1). Y en `/robot` tiene una función adicional: esa página tiene que **dejar de ser falsa** (§6), y una página que dice «hay una pantalla pública» **sin enlazarla** hace una afirmación; **enlazándola**, hace una afirmación **auditable**, que es lo único que `/robot` ha sido nunca.
+
+---
+
+## §4. Art. 10 LSSI frente a ADR-012: hoy no aplica, y lo que pasa el día del primer euro
+
+### 4.1 Qué obliga exactamente el art. 10
+
+Ley 34/2002, art. 10.1: el prestador debe disponer de medios para que destinatarios y autoridades accedan por medios electrónicos, **de forma permanente, fácil, directa y gratuita**, a: **(a)** su **nombre o denominación social**, su **domicilio** o la dirección de un establecimiento en España, su **dirección de correo electrónico** y cualquier otro dato que permita comunicación directa y efectiva; **(b)** datos de inscripción registral cuando proceda; **(c)** datos del órgano de supervisión si la actividad requiere autorización previa; **(d)** para profesiones reguladas, colegio, título y Estado; **(e)** el **NIF**; **(f)** precios e impuestos cuando proceda; **(g)** códigos de conducta.
+
+### 4.2 ¿Aplica hoy, con pantalla pública y sin monetización? **No. Vinculante.**
+
+El art. 10 sólo alcanza a un **servicio de la sociedad de la información**, y el Anexo a) de la LSSI lo define como el prestado normalmente **a título oneroso**, comprendiendo también **los no remunerados por sus destinatarios «en la medida en que constituyan una actividad económica para el prestador»** (verificado hoy, 2026-09-04). **El disparador no es que la página sea pública: es que haya actividad económica.** Hoy no la hay: sin publicidad, sin patrocinio, sin muro de pago, sin feed, sin formulario, sin lista de espera, sin captación de nada. **Que la pantalla pase de la sesión al público no mueve esta respuesta ni un milímetro**, y confirmo así mis dictámenes del 2026-09-01 y del 2026-09-04.
+
+**Pero el margen se ha estrechado en un punto concreto que prefiero escribir yo antes de que lo encuentre otro.** La pantalla queda ahora bajo un **paraguas comercial declarado y enlazado**: `tremen.dev` (ADR-012 §2). Cabe el argumento de que una página pública con forma de producto, que exhibe la capacidad técnica de un estudio profesional, es actividad económica **indirecta** — un activo de escaparate. **Mi criterio sigue siendo que no**, y lo que lo sostiene es comprobable: la pantalla **no ofrece nada**, no vende, no capta y **se declara medición** (C14). Y de ahí sale una **sub-condición vinculante nueva, testable**: *la pantalla no lleva ninguna llamada a la acción — ni alta, ni lista de espera, ni boletín, ni formulario, ni «contáctanos para…» — y sus únicos enlaces salientes son `/robot`, `/proxecto` y el buzón para quejas.* Un caso lo afirma con lista cerrada. Es barato y es exactamente lo que mantiene el art. 10 fuera.
+
+### 4.3 ¿Basta el buzón más el paraguas si algún día aplicara? **No, y hay que decirlo claro**
+
+`ola@tremen.dev` cubre **un solo elemento** del art. 10.1.a: el correo electrónico. **No cubre el nombre o denominación social, ni el domicilio o establecimiento en España, ni el NIF (art. 10.1.e), ni la inscripción registral si procede.** Y el paraguas tampoco: `tremen.dev` **no publica textos legales y no nombra a nadie** — comprobado por `sdd-arquitecto` el 2026-09-01 y registrado en ADR-012, que **deliberadamente dejó de apoyarse en esa premisa**.
+
+**Por tanto: el art. 10 y ADR-012 §1 son incompatibles.** ADR-012 §1 prohíbe nombrar a persona física y prohíbe declarar la forma jurídica; el art. 10 exige exactamente eso. **El día que aplique, ADR-012 §1 cede en parte** — no entero: nada obliga a publicar cuántas personas hay detrás.
+
+### 4.4 Qué pasa exactamente el día que haya cualquier ingreso
+
+**Desde el primer euro** de publicidad, patrocinio, muro de pago, afiliación, venta de feed, o del uso de esta pantalla para vender servicios de `tremen.dev`:
+
+1. **El art. 10 pasa a aplicar** y hay que publicar identificación completa (§4.1). Incumplirlo está tipificado en el régimen sancionador de la LSSI (arts. 38-40) como infracción **leve**, con multa de hasta **30.000 €** (art. 39) — *el apartado concreto conviene que lo confirme una revisión profesional*.
+2. **ADR-012 §1 queda superado en parte**, y eso no se parchea: **ADR nuevo**.
+3. Si el ingreso es publicidad, entra además el **art. 20 LSSI** (identificar al anunciante y el carácter promocional). Si viene de apuestas, el **RD 958/2020**, ya descartado en `docs/negocio/monetizacion.md` y en D-7.
+4. **Muere el argumento de *CV-Online*** (§1.3 de mi dictamen anterior), que es hoy el más fuerte que tiene el proyecto frente a ZOS.
+5. La línea de privacidad (C18) deja de poder ser anónima: el responsable pasa a ser identificable.
+
+**Instrumento correcto, y se escribe ahora, no ese día.** ADR-012 está aprobado e inmutable, así que el disparador **no puede añadírsele**: va en **el ADR nuevo de publicación**, citándolo. Redacción propuesta: *«El día que exista cualquier contraprestación sobre esta pantalla, ADR-012 §1 cede en lo relativo a la identificación del prestador; ese día se escribe un ADR que la sustituya y **se pide revisión profesional antes de monetizar, no después**.»* Y no es motivo para retrasar nada hoy: la forma más barata de mantenerlo lejos son C7 y la sub-condición de §4.2.
+
+---
+
+## §5. Qué cambia en «qué se puede enseñar» ahora que el destinatario es cualquiera
+
+**La lista de permitido/prohibido de mi §4 no cambia de contenido.** Cambia la **consecuencia de un fallo**: bajo (A) una filtración llegaba a un operador autenticado; bajo (B) llega a cualquiera, se cachea, se captura y se archiva fuera de nuestro alcance (§3.2). Por eso CA-5 —lista cerrada enumerando el esquema canónico, con control positivo— deja de ser buena práctica y pasa a ser **la** condición: es la única de las dieciocho cuyo fallo es irreversible.
+
+Dos precisiones, que son las que preguntas.
+
+### 5.a `last_observed_at` frente a `decided_at`: **`last_observed_at`, y rectifico mi propia tabla**
+
+Mi §4 puso `decided_at` en la fila «instante del último dato». **Estaba escrita para una audiencia de operador y para una proyección cuya única preocupación era la filtración. SPEC-018 y `sdd-competicion` llegaron a la respuesta mejor, y bajo (B) lo es MÁS, no menos.**
+
+**¿Publicar `observed_at` revela algo sobre el ritmo de rastreo de un tercero que `decided_at` no revele? No.** Tres pasos:
+
+1. **`observed_at` es *nuestro* reloj, no el de la fuente.** Es el instante en que **nosotros** pedimos y parseamos, no el instante en que el tercero publicó. No revela la cadencia de ZOS: revela la nuestra.
+2. **La nuestra ya está publicada, a propósito y por norma.** RN-11 fija 1 petición/minuto por competición; `/robot` lo publica; la carta a la RFGF lo dice con esas palabras. **No hay primera divulgación**, que es exactamente lo que hacía inaceptable nombrar la fuente (mi §2). Una cadencia de 60 s es de nuestro cron y es idéntica leamos a quien leamos: **no identifica a nadie**.
+3. **Y `decided_at` sería peor, no mejor, y ahora eso importa más.** El motor **no emite `Decision` por tick**: sólo cuando cambia la tupla publicada (ADR-021). Un `live` sin goles puede tener `decided_at` de hace cuarenta minutos estando perfectamente vivo — o de hace cuarenta minutos porque la fuente murió. **`decided_at` no distingue «no ha pasado nada» de «nadie ha mirado».** Rotularlo «último dato» ante un público sería una afirmación engañosa sobre la frescura de un dato propio: el mismo vector del art. 5 de la Ley 3/1991 que encontré en mi §0, y además destruye RN-07 para quien lee. **La opción honesta y la legalmente segura coinciden**, que no pasa a menudo.
+
+**Dos condiciones vinculantes que se enganchan:**
+- **Granularidad de minutos, no de segundos.** Se publica **la edad redondeada a minutos**, como ya hace SPEC-018 §4 (*«Último dato + la edad»*), y **ningún instante absoluto con precisión de segundo** de nuestra petición aparece en el cuerpo servido. Un `<time datetime>` **redondeado al minuto** es admisible por accesibilidad. Cierra el único residual que quedaba —un log público, partido a partido, de cuándo pedimos— sin quitarle nada al lector. Testable.
+- **Nunca rotulado «actualizado desde X»** (ya en mi §4 y en la barrera léxica de CA-8.4).
+
+### 5.b «Hay una sola fuente automática» sin nombrarla: **sí se puede. Vinculante**
+
+La pregunta es buena porque en mi §4.1 sostuve que **la cardinalidad es información** —dos `supporting_observation_ids` dicen «hay dos fuentes» sin nombrar ninguna—. La coherencia obliga a tomármelo en serio, y tres cosas la distinguen:
+
+1. **Ya es público, y a propósito.** `/robot` dice hoy *«Hai fontes que hoxe non lemos precisamente por iso»*; `/proxecto` dice que la fuente oficial no se rastrea porque su `robots.txt` no lo permite; la carta lo dice. Que la oficial **no** está entre nuestras automáticas es hecho publicado. Añadir «hay una» **no estrecha el conjunto de candidatas**: la propia carta observa que en esa consulta aparecen **ocho** agregadores privados.
+2. **Es información sobre nosotros, no sobre ellos.** «Leemos una fuente automática» describe nuestra arquitectura. «Leemos ceroacero.es» nombra a un tercero y es la primera divulgación que mi §2 cierra.
+3. **Sin el número, la afirmación no es comprobable.** «Lo normal es provisional y con atraso» se **deriva** de RN-02 + RN-03 + el hecho de la fuente única. Enunciar la consecuencia ocultando la causa deja al lector una promesa que no puede verificar — y la verificabilidad **es** toda la mitigación de este proyecto.
+
+**Dónde está la línea, porque se rompe en la frase siguiente. Prohibido en el aviso:** el **nombre** y el **dominio** de la fuente; su **peso** (0.7 — ya prohibido); su **tipo** («un agregador privado», «una web de resultados»), porque tipo + «una» + la competición estrecha mucho y no compra nada; cualquier **cadencia atribuida a ella** («la leemos cada minuto» vale como ritmo **nuestro** en `/robot`, no como «leemos X cada minuto» en la pantalla); y cualquier **comparación** («más rápida que la oficial»).
+
+**Y una prohibición que no es obvia:** **no se dice en la pantalla que «la fuente oficial no nos deja».** En `/robot` está dicho, es correcto y se queda. En el marcador, junto a las dos competiciones de la RFGF y en la semana en que decide, **se lee como un reproche a la federación en la página que republica sus competiciones**. Va en `/robot`, y la pantalla enlaza.
+
+---
+
+## §6. Las enmiendas obligadas: qué tienen que dejar de afirmar y qué tienen que pasar a afirmar
+
+No redacto literales. Digo el contenido, que es lo mío.
+
+### 6.1 `site.noProduct` (SPEC-004, `gl.ts:226` / `es.ts:233`)
+
+**Deja de afirmar:** que no hay marcador público; que «no hay nada que usar»; que la página existe sólo para decir quién está detrás y qué se va a medir.
+
+**Pasa a afirmar:** que **hay** una pantalla pública, **dónde está** (y la enlaza, C16); que enseña **sólo** las jornadas de medición declaradas de **dos** competiciones; que es un **instrumento de medición y no un producto**; que **normalmente será provisional y llegará con atraso**; y que **se apaga cuando la medición acaba**.
+
+**Lo que NO puede cambiar, y es de carga:** «no hay aplicación, ni cuenta que crear, ni lista de espera». **Sigue siendo verdad y es exactamente lo que mantiene el art. 10 LSSI fuera** (§4.2). Quien edite este literal tiene que saber que esa mitad no es prosa sobrante.
+
+**Y en el mismo cambio, `site.measuring`.** Hoy dice *«A medición aínda non comezou e non hai ningunha cifra»*, y es **falso** desde SPEC-012/013/017. Lo marqué como hallazgo colateral con destino EPIC-MEJORA; con (B) **sube a vinculante en esta enmienda**: una afirmación falsa en la misma página que enlaza el marcador público es el mismo fallo del §0, en la misma página y con más audiencia.
+
+### 6.2 `crawler.noRepublish` (SPEC-005, `gl.ts:271` / `es.ts:279`) — la difícil
+
+**Deja de afirmar las tres:** «Non republicamos os datos de ninguén»; «o resultado é un informe interno»; «Non hai marcador público, nin ficheiro de datos, nin nada que se poida consultar fóra do proxecto».
+
+**Y cierro otra vez la salida que sale sola.** La frase *podría* salvarse leyéndola sobre **personas** —de datos personales no republicamos ninguno, y eso sigue siendo literalmente cierto (§5 de mi dictamen anterior)—. **No.** Reutilizar la misma frase con un sentido más estrecho del que tenía cuando se publicó y se mandó por correo es «matizar el literal para que siga pasando el test», y es lo que un tercero enseñaría. **La frase se va; la promesa se reconstruye.**
+
+**Qué se sigue pudiendo prometer en `/robot`, y es mucho más de lo que parece — y más auditable que lo que se retira:**
+
+1. **No hay redistribución en bloque.** Ni fichero de datos, ni volcado, ni feed, ni API, ni widget, ni exportación. **Éste era el núcleo verdadero de «non republicamos», y sobrevive entero** (C6).
+2. **No hay histórico.** Se sirve la jornada viva; no hay archivo navegable y nada se acumula en público (C3).
+3. **Sólo dos competiciones, sólo las jornadas declaradas, y fuera de ellas la pantalla no enseña marcador** (C1, C2). **Con el número.**
+4. **Sólo cuatro cosas por partido:** equipos y hora, estado y marcador, cualificador, y la edad del último dato. **Ni clasificación, ni goleadores, ni alineaciones, ni árbitros, ni entrenadores, ni minuto a minuto, ni estadísticas** (C5). Es una promesa **más fuerte y más comprobable** que la que se retira: cualquiera puede abrir la pantalla y verificarla en diez segundos.
+5. **Ni un dato personal.** Ni de jugadores, ni de árbitros, ni de entrenadores, ni de corresponsales u operadores (§5 de mi dictamen anterior).
+6. **Cero monetización** (C7).
+7. **La promesa de parar, y ahora extendida.** *«Abonda con pedilo: non fai falta alegar nada»* dejaba de cubrir sólo el rastreo. **Tiene que cubrir también la publicación**, y ésta es la adición más importante de todo el cambio en `/robot`: la publicación no puede prometer menos que la captura.
+8. **La retención no se mueve** (C12): 30 días, una prórroga escrita, techo de 90.
+
+### 6.3 ¿Hay que decir en `/robot` de dónde sale el dato? **Reviso mi R2: se mantiene, con un añadido obligatorio**
+
+Mi R2 recomendaba no citar la fuente y dejaba abierto *«si el gate decide que sí se nombra, se nombra en `/robot`»*. Esa opción está ahora viva y me toca decidirla.
+
+**A favor de nombrarla:** la página es pública y un lector que ve un marcador de competiciones de la RFGF en un sitio que no es la RFGF tiene una pregunta legítima. No contestarla arriesga la peor lectura disponible: **que esto sea un marcador oficial o avalado** — territorio de D-1, y con la federación decidiendo esta semana.
+
+**En contra:** es la **primera divulgación pública** de que leemos `ceroacero.es`, en la forma más adversa —escrita, fechada, propia, junto a una página que republica—. **No compra cobertura ninguna**: el *sui generis* (arts. 133-137 TRLPI) es patrimonial y **no lleva derecho de paternidad**; el art. 32 TRLPI (cita) exige fuente pero se aplica a fragmentos de **obra**, y un marcador no es obra. Cero beneficio jurídico, prueba entregada.
+
+**Resolución, y creo que enhebra la aguja:** la pregunta legítima del lector es **«¿esto es oficial?»**, no **«¿qué agregador?»**. La primera **hay que contestarla, y de forma destacada, en la pantalla y en `/robot`: esto NO es oficial, no es de la RFGF y no viene de `futgal.es`.** Esa es la **adición vinculante nueva**, y la causa (B): con una pantalla de operador nadie podía confundirla con un marcador oficial; en público, la confusión es el fallo por defecto. La segunda pregunta no hay que contestarla y no se contesta.
+
+**Y el silencio se declara, que es lo que lo hace defendible.** Una línea en `/robot`: *no nombramos los sitios que leemos; si crees que leemos el tuyo, escribe y paramos.* Ya existe en espíritu (*«Hai fontes que hoxe non lemos precisamente por iso»*). **`/robot` sigue describiendo el método entero** —ritmo, robots.txt, retención, buzón— y retiene sólo la **identidad**, diciendo que la retiene. Eso es una postura; ocultarlo sin decirlo no lo sería.
+
+**Marco esto como el punto que más me esperaría que una revisión profesional reabra:** «publicar y no decir de dónde» es sólido en términos probatorios e incómodo en términos de transparencia. El desempate, hoy, es que no existe deber de atribución y que el resto de `/robot` sigue siendo íntegramente comprobable.
+
+---
+
+## §7. La fecha: **2026-09-08 se mantiene. Vinculante**
+
+Se mantiene, pero **cambia de función**. Bajo (A) era una razón para no publicar. Bajo (B) es una condición de **secuencia**: no poner la pantalla delante de la federación en la misma semana en que le pedimos algo diciéndole que no publicamos nada. La formulación exacta es:
+
+> **No antes del 2026-09-08, y no antes de que la RFGF haya sido avisada — lo que ocurra más tarde de los dos.**
+
+**Y una ordenación operativa que conviene escribir:** la verificación de `lapreferente.com` es el **2026-09-06** (`calendario-de-compromisos.md`, fila 1). Cae **antes** del 08 y **decide el texto del aviso de C14**. Si `lapreferente.com` sirve, el aviso nace falso el primer día. **El 06 se comprueba, el 07 se ajusta el aviso y el número derivado, el 08 se despliega.** En ese orden.
+
+### Las tres ramas
+
+**Contestan que sí** (añaden las dos líneas): `futgal.es` pasa a ser capturable, entra como adaptador y peso en la configuración (`src/ingest/sources.ts` está escrito para eso), la segunda vía de RN-02 reabre y con peso 1.0 hay *confirmado* por peso solo. **Nada de esto bloquea la publicación**, pero **dispara el punto 8**: el aviso de C14 se vuelve falso, C14 se pone rojo por derivación de `DEFAULT_SOURCES`, y **el aviso y `/robot` se corrigen en el mismo cambio que la fuente nueva**. Y ADR-008 §1 necesita un ADR que lo supersede.
+
+**Contestan que no.** Hay que distinguir dos cosas que llegarán mezcladas en un párrafo de prosa, y alguien tendrá que clasificarlas. **Regla de clasificación, y es dictamen:**
+- **«No, no nos rastree»** → **no detiene la publicación.** No los rastreamos hoy y seguiríamos sin hacerlo; nada cambia. Y no son titulares del *sui generis* de la base que sí leemos —esa es de ZOS, Lda.—; sobre su propio calendario, *Fixtures Marketing* (C-46/02 y acumuladas) sugiere que tendrían un *sui generis* débil o inexistente, porque la inversión en **crear** los datos no cuenta.
+- **Cualquier frase sobre la publicación misma** —«no muestren nuestras competiciones», «no usen nuestro nombre», «no autorizamos esto»— → **dispara la cláusula permanente: se para primero y se dictamina después.** Parar es vaciar `MEASUREMENT_WINDOWS` (§2.1).
+- **En la duda, se para.** Es lo que `/robot` promete al rastreo, y la publicación no puede prometer menos.
+
+**No contestan** (lo previsto en `docs/roadmap.md`): vence el plazo, no se insiste, se publica.
+
+**Y aquí hay un choque que hay que resolver antes de que alguien lo resuelva mal.** `calendario-de-compromisos.md` fila 3 dice que **no se manda ningún segundo correo** mientras Alberto Fojo no se pronuncie. C10 exige avisar a la RFGF de la publicación. **No son lo mismo, y la distinción importa:** el correo prohibido por defecto es un **recordatorio** —insistir en una petición no contestada—. El aviso de C10 **no es una petición y no es una insistencia**: es la corrección de una afirmación que les hicimos por escrito, y se les debe conteste o no conteste. **Enviarlo no es insistir.** Pero tiene que estar escrito como lo que es: **sin ninguna petición nueva, sin repetir la anterior y sin plazo**. Si pide algo, se convierte en el segundo correo que la regla por defecto prohíbe.
+
+---
+
+## §8. Resumen
+
+### Dictamen vinculante
+
+| # | Dictamen |
+|---|---|
+| W1 | **Ningún dictamen anterior queda revocado.** El gate eligió **(B)**, una de las dos salidas que mi V1 enumeró, y su condicionado pasa a ser el operativo. **V2..V8 y V10 intactos**; **V9 modificado por mí** (§3); **mi §4 rectificado por mí** en `decided_at` → `last_observed_at` (§5.a) |
+| W2 | **Las trece condiciones se mantienen las trece. Cambian de forma tres (6, 9, 13), se parte una en tres repartos (10) y se añaden cinco (14-18).** El reparto (a)/(b)/(c) del §1 es vinculante: **la spec no puede colocar en (a) lo que es (c)** |
+| W3 | **La publicación necesita ADR propio con firma del gate**, que **supersede parcialmente ADR-027 §3.a y §3.4** (ADR-027 es inmutable: no se edita) y que recoja las dieciocho condiciones y el disparador de **ocho** puntos |
+| W4 | **`noindex` se mantiene, por cabecera y por meta. `nofollow` se retira** (trabaja contra `/robot`) **y se añade `noarchive`.** Se mantiene escrito que `noindex` no es defensa jurídica |
+| W5 | **`src/site/robots-txt.ts` no se toca.** Un `Disallow` **derrotaría** al `noindex`: sin rastreo el buscador nunca lee la directiva y la URL puede indexarse desnuda |
+| W6 | **La pantalla se enlaza desde `/proxecto` y `/robot`, en las dos lenguas, y ella enlaza `/robot`.** Es lo que convierte `noindex` en no-amplificación en vez de en ocultación. **Y deja de ser disparador**, que hoy lo es |
+| W7 | **El punto 7 del disparador se sustituye**: cargas de documento y `Referer` externo desde los logs que la plataforma ya produce; **cero mecanismo en la página**; y lo no vigilable se declara. **Vercel Web Analytics, prohibido** |
+| W8 | **Art. 10 LSSI no aplica hoy**: el disparador es la actividad económica, no la publicidad de la página. **Sub-condición nueva: ninguna llamada a la acción en la pantalla.** El día del primer euro, ADR-012 §1 cede y hace falta ADR nuevo + **revisión profesional antes de monetizar** |
+| W9 | **`last_observed_at`, no `decided_at`**, publicado como **edad en minutos** y sin instante absoluto con precisión de segundo. No revela el ritmo de un tercero: revela el nuestro, que ya está publicado |
+| W10 | **«Una sola fuente automática» se puede decir sin nombrarla**, y el número se **deriva de `DEFAULT_SOURCES`**, no se teclea. Prohibidos en el aviso: nombre, dominio, peso, **tipo**, cadencia atribuida y comparación con la oficial |
+| W11 | **`noRepublish` y `noProduct` se corrigen en el mismo cambio, por ADR-015 en el ledger, sin matizar la frase.** `site.measuring`, que ya es falsa, entra en la misma enmienda |
+| W12 | **La fuente no se nombra, ni en la pantalla ni en `/robot`; y se añade, destacado en las dos, que esto NO es oficial ni de la RFGF.** El silencio sobre la identidad se declara en una línea |
+| W13 | **No antes del 2026-09-08, y no antes de haber avisado a la RFGF — lo que ocurra más tarde.** Con la regla de clasificación de la respuesta del §7 |
+
+### Recomendación
+
+| # | Recomendación |
+|---|---|
+| R1 | **Que el refresco devuelva fragmento HTML, no JSON.** Entonces C6 es literalmente cierta y no hay que sostener que un endpoint alcanzable con `curl` «no es una superficie programática» |
+| R2 | **La línea de privacidad dentro de `/robot`**, no en una página nueva: un solo lugar honesto, una superficie menos que auditar |
+| R3 | **El buzón `ola@tremen.dev` en el pie de la pantalla**, no sólo a un clic. Una línea no rompe D-8 y ahorra el clic a quien viene a quejarse |
+| R4 | **La comprobación de reserva TDM, como análisis estático del raw store**, no como petición nueva: RN-10 ya archiva la respuesta entera, cabeceras incluidas. Cero superficie, cero peticiones |
+| R5 | **Escribir en el runbook que parar es vaciar `MEASUREMENT_WINDOWS`**, con esas palabras. El botón ya existe (CA-3.2) y nadie lo sabrá el día que haga falta |
+
+### Requiere revisión profesional
+
+- Si dos jornadas de publicación sobre dos competiciones caen o no del lado del **art. 7.5** frente a ZOS, Lda. — mi criterio es que sí, y sigue siendo el juicio de valor central. **La firma del gate lo asume; mi dictamen no lo cierra.**
+- **Antes de cualquier monetización**: art. 10 LSSI + colisión con ADR-012 §1, y el apartado sancionador exacto (arts. 38-39).
+- Cualquier feed, widget o API B2B: eso es licencia o acuerdo, no dictamen.
+- La ponderación formal del interés legítimo (art. 6.1.f RGPD) y el registro de actividades (art. 30), que ADR-009 dejó abierto y que una pantalla pública acerca.
+
+### Residuales que el gate firma con los ojos abiertos
+
+1. **El archivo de terceros sobrevive a todo.** Una página pública será archivada; `noarchive` no es exigible frente al Internet Archive. La defensa «acotada en el tiempo» es sobre nuestra publicación, no sobre la copia de otro. Lo único que la mitiga es que lo archivable sea mínimo (C3, C5).
+2. **El JSON del refresco, si se queda en JSON, lo lee cualquiera** con las herramientas del navegador.
+3. **Nadie sabrá cuánta gente lo abre**, y ésa es la contrapartida de C17.
+4. **Cinco de las dieciocho condiciones no las vigila ningún test, y no hay CI.** Van a `docs/procedimientos/calendario-de-compromisos.md` por el mismo motivo por el que ese fichero existe: **nadie se va a enterar en rojo.**
+
+**Fuentes normativas citadas:** Directiva 96/9/CE arts. 7.1, 7.2.a/b, 7.5 · TRLPI (RDLeg 1/1996) arts. 10, 14.3, 32, 129 bis, 133-137 · Directiva (UE) 2019/790 art. 4 (transp. RDL 24/2021) · RGPD arts. 4.1, 4.5, 5.1.c, 6.1.f, 13, 15-22, 30, Cdo. 26 · LSSI-CE (Ley 34/2002) arts. 1, 10, 20, 22.2, 38-40 y Anexo a) · Ley 17/2001 de Marcas arts. 34, 37 · Ley 3/1991 de Competencia Desleal art. 5 · TJUE: C-203/02 *BHB/William Hill*, C-46/02 y acumuladas *Fixtures Marketing*, C-202/12 *Innoweb*, C-762/19 *CV-Online Latvia*.
+
+**Fuentes web consultadas hoy (2026-09-04):** `https://www.ceroacero.es/robots.txt` · `https://www.ceroacero.es/.well-known/tdmrep.json` (403) · BOE — Ley 34/2002 consolidada · Régimen sancionador LSSI (Mineco).
