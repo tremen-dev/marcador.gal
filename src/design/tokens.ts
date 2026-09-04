@@ -116,6 +116,41 @@ export const SPACE = [4, 8, 12, 16, 24, 32, 48] as const;
 /** The radii, DECLARED in `Main.dc.html`: «Radios 8 · 10 · 14 · 999». */
 export const RADIUS = { sm: 8, md: 10, lg: 14, pill: 999 } as const;
 
+/**
+ * THE MEASURES THAT WERE LIVING OUTSIDE THEIR HOME (F-SPEC-017-18, closed by
+ * SPEC-018 CA-15.2).
+ *
+ * SPEC-017 wrote five values straight into `src/admin/view/styles.ts` —a body
+ * leading, the maximum width of a form control, the minimum height of a text
+ * area, the maximum width of the page and the width of a rule— and the finding
+ * left its trigger written: «the first spec that touches
+ * `src/admin/view/styles.ts` or `src/design/` — the snapshot's». This is that
+ * spec, so they get a name here and the two stylesheets take them from one
+ * place. It is the same discipline `RN01_WEIGHTS` imposed on the weights of
+ * RN-01: ONE HOME, AND THEY ARE NOT COPIED.
+ *
+ * DECLARED WHERE IT BITES (ADR-016 §6): `docs/diseno/` DECLARES NONE OF THESE
+ * FIVE — it declares a spacing step, four radii and five typographic roles, and
+ * nothing else — so these values cannot be checked against the system the way
+ * the colours are. What naming them buys is not parity: it is that a second
+ * stylesheet cannot invent a sixth one in silence, and that revising any of
+ * them is a one-line diff. Their reconciliation with the system is EPIC-004's,
+ * with the thaw as its trigger (F-SPEC-017-10, which is NOT closed here).
+ */
+export const MEASURE = {
+  /** Body leading. Prose at this density stays readable on a phone (D-8). */
+  bodyLeading: 1.45,
+  /** The widest a form control gets, in rem: a field is not a page. */
+  fieldMaxRem: 22,
+  /** The shortest a text area gets, in rem: a motive is at least a sentence. */
+  textAreaMinRem: 5,
+  /** The widest the page gets, in rem: a table of a matchday, not a canvas. */
+  pageMaxRem: 60,
+} as const;
+
+/** The width of an ordinary rule. One pixel, named once. */
+export const HAIRLINE_PX = 1;
+
 /** One typographic role of the system, as `Main.dc.html` writes it. */
 export interface TypeRole {
   readonly px: number;

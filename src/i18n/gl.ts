@@ -22,10 +22,11 @@
  * served in the body of any page, so no presence test over the HTML could find
  * it. It is a DATUM each route declares, not markup the document emits.
  */
-import type { MatchQualifier } from '../model/qualifier';
 import type { AdminBundle } from './admin-bundle';
+import type { BoardBundle } from './board-bundle';
 import type { BotBundle } from './bot-bundle';
 import type { CrawlerBundle } from './crawler-bundle';
+import type { QualifiersBundle } from './qualifiers-bundle';
 import type { SiteBundle } from './site-bundle';
 import type { StatusesBundle } from './statuses-bundle';
 import type { TitlesBundle } from './titles-bundle';
@@ -125,7 +126,66 @@ export const gl = {
     confirmado: 'Confirmado',
     pendente_de_confirmar: 'Pendente de confirmar',
     sen_sinal: 'Sen sinal',
-  } satisfies Record<MatchQualifier, string>,
+  } satisfies QualifiersBundle,
+
+  /**
+   * The scoreboard (SPEC-018). *Sinal* / *señal* DO NOT appear here — they
+   * live only in `qualifiers` — and *actualizar* / *actualizado* do not
+   * appear there (ADR-027 §4.4). The two absences are one case.
+   */
+  board: {
+    heading: 'O marcador',
+
+    competitionHeading: '{competition}',
+    roundLabel: 'Xornada {round}',
+
+    colTime: 'Hora',
+    colHome: 'Casa',
+    colAway: 'Fóra',
+    colScore: 'Marcador',
+    colStatus: 'Estado',
+    colQualifier: 'Cualificador',
+    colLastData: 'Último dato',
+
+    statusInline: 'Estado',
+    qualifierInline: 'Cualificador',
+
+    noScoreYet: 'Sen marcador publicado',
+    suspendedReserve:
+      'Suspendido: o marcador non é definitivo ata que decida o Comité de Competición.',
+
+    lastDataNow: 'Agora mesmo',
+    lastDataMinutes: 'Hai {n} min',
+    lastDataNone: 'Aínda non',
+
+    refreshedNow: 'Actualizado agora mesmo',
+    refreshedMinutes: 'Actualizado hai {n} min',
+    refreshFailed: 'Non se puido actualizar. O que ves é de hai {n} min.',
+    reloadHint: 'Carga a páxina de novo.',
+    autoRefresh: 'Esta páxina actualízase soa cada {seconds} segundos.',
+
+    publishedNever: 'Aínda non se publicou ningún marcador.',
+    publishedAt: 'Última publicación: hai {n} min.',
+
+    emptyNoMatchday:
+      'Non hai ningunha xornada de medición declarada, así que non hai nada que amosar.',
+    emptyNoMatches: 'A xornada declarada non ten ningún partido.',
+
+    noticeHeading: 'Que é isto',
+    noticeMeasurement: 'Isto é unha medición, non un produto.',
+    noticeNotOfficial: 'Non é oficial: non vén da RFGF nin de futgal.es.',
+    noticeSingleSource:
+      'Hai unha soa fonte automática, así que o normal é que o marcador sexa provisional e que chegue con atraso.',
+    noticeSeveralSources:
+      'Hai {sources} fontes automáticas, así que o marcador pode chegar con atraso.',
+    noticeStop: 'Para pedir que pare, abonda con escribir a {mailbox}.',
+
+    crawlerLink: 'Como se len as páxinas públicas, e como pedir que pare',
+    projectLink: 'Que é marcador.gal',
+    mailboxLink: 'Escribir ao buzón',
+
+    otherLanguage: 'Castellano',
+  } satisfies BoardBundle,
 
   admin: {
     title: 'Panel do operador — marcador.gal',
@@ -195,6 +255,13 @@ export const gl = {
   titles: {
     project: 'O proxecto — marcador.gal',
     crawler: 'O rastrexador — marcador.gal',
+    /**
+     * `marcador.gal` A SECAS. Decidido por Alberto Fojo el 2026-09-04
+     * (SPEC-018 CA-13.5), descartando la forma `O marcador — marcador.gal`
+     * que sigue el patrón de las otras dos: la portada del marcador no
+     * repite el dominio detrás de un guion.
+     */
+    scoreboard: 'marcador.gal',
   } satisfies TitlesBundle,
 
   site: {

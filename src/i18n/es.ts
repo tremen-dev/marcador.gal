@@ -15,10 +15,11 @@
  * SPEC-015 wrote down (SPEC-017 CA-9.6). The literals come from
  * `docs/fundacion/dominio.md`, where the gate of 2026-09-03 wrote them.
  */
-import type { MatchQualifier } from '../model/qualifier';
 import type { AdminBundle } from './admin-bundle';
+import type { BoardBundle } from './board-bundle';
 import type { BotBundle } from './bot-bundle';
 import type { CrawlerBundle } from './crawler-bundle';
+import type { QualifiersBundle } from './qualifiers-bundle';
 import type { SiteBundle } from './site-bundle';
 import type { StatusesBundle } from './statuses-bundle';
 import type { TitlesBundle } from './titles-bundle';
@@ -132,7 +133,66 @@ export const es = {
     confirmado: 'Confirmado',
     pendente_de_confirmar: 'Pendiente de confirmar',
     sen_sinal: 'Sin señal',
-  } satisfies Record<MatchQualifier, string>,
+  } satisfies QualifiersBundle,
+
+  /**
+   * El marcador (SPEC-018). *Sinal* / *señal* NO aparecen aquí —viven solo en
+   * `qualifiers`— y *actualizar* / *actualizado* no aparecen allí
+   * (ADR-027 §4.4). Las dos ausencias son un caso.
+   */
+  board: {
+    heading: 'El marcador',
+
+    competitionHeading: '{competition}',
+    roundLabel: 'Jornada {round}',
+
+    colTime: 'Hora',
+    colHome: 'Casa',
+    colAway: 'Fuera',
+    colScore: 'Marcador',
+    colStatus: 'Estado',
+    colQualifier: 'Cualificador',
+    colLastData: 'Último dato',
+
+    statusInline: 'Estado',
+    qualifierInline: 'Cualificador',
+
+    noScoreYet: 'Sin marcador publicado',
+    suspendedReserve:
+      'Suspendido: el marcador no es definitivo hasta que decida el Comité de Competición.',
+
+    lastDataNow: 'Ahora mismo',
+    lastDataMinutes: 'Hace {n} min',
+    lastDataNone: 'Todavía no',
+
+    refreshedNow: 'Actualizado ahora mismo',
+    refreshedMinutes: 'Actualizado hace {n} min',
+    refreshFailed: 'No se ha podido actualizar. Lo que ves es de hace {n} min.',
+    reloadHint: 'Carga la página de nuevo.',
+    autoRefresh: 'Esta página se actualiza sola cada {seconds} segundos.',
+
+    publishedNever: 'Todavía no se ha publicado ningún marcador.',
+    publishedAt: 'Última publicación: hace {n} min.',
+
+    emptyNoMatchday:
+      'No hay ninguna jornada de medición declarada, así que no hay nada que mostrar.',
+    emptyNoMatches: 'La jornada declarada no tiene ningún partido.',
+
+    noticeHeading: 'Qué es esto',
+    noticeMeasurement: 'Esto es una medición, no un producto.',
+    noticeNotOfficial: 'No es oficial: no viene de la RFGF ni de futgal.es.',
+    noticeSingleSource:
+      'Hay una sola fuente automática, así que lo normal es que el marcador sea provisional y que llegue con retraso.',
+    noticeSeveralSources:
+      'Hay {sources} fuentes automáticas, así que el marcador puede llegar con retraso.',
+    noticeStop: 'Para pedir que pare, basta con escribir a {mailbox}.',
+
+    crawlerLink: 'Cómo se leen las páginas públicas, y cómo pedir que pare',
+    projectLink: 'Qué es marcador.gal',
+    mailboxLink: 'Escribir al buzón',
+
+    otherLanguage: 'Galego',
+  } satisfies BoardBundle,
 
   admin: {
     title: 'Panel del operador — marcador.gal',
@@ -202,6 +262,11 @@ export const es = {
   titles: {
     project: 'El proyecto — marcador.gal',
     crawler: 'El rastreador — marcador.gal',
+    /**
+     * `marcador.gal` A SECAS, igual que en galego. Decidido por Alberto Fojo
+     * el 2026-09-04 (SPEC-018 CA-13.5).
+     */
+    scoreboard: 'marcador.gal',
   } satisfies TitlesBundle,
 
   site: {

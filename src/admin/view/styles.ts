@@ -59,9 +59,11 @@
 import { rootBlock } from '@/design/system';
 import {
   FOCUS_RING_PX,
+  HAIRLINE_PX,
   INPUT_FONT_PX,
   LOADED_FACES,
   FONT_DIRECTORY,
+  MEASURE,
   RADIUS,
   SPACE,
   TOUCH_TARGET_PX,
@@ -115,13 +117,21 @@ body{
   color:var(--fg);
   font-family:var(--sans);
   font-size:${INPUT_FONT_PX}px;
-  line-height:1.45;
+  line-height:${MEASURE.bodyLeading};
   -webkit-font-smoothing:antialiased;
   text-rendering:optimizeLegibility;
   overflow-wrap:anywhere;
 }
 
-h1{margin:0 0 ${space(2)};${role('team')}font-size:20px}
+/*
+ * F-SPEC-017-18, CLOSED BY SPEC-018 CA-15.2. This used to repeat a bare 20.
+ * It now takes the size from the ONE role of the system that declares a 20 —
+ * score (20 / 600) — while keeping the family of team, because docs/diseno/
+ * declares five roles and NONE of them is a 20 px sans heading, and inventing
+ * a sixth role would be editing a frozen artefact (ADR-026 §3.7). The value is
+ * no longer written here; where it comes from is auditable.
+ */
+h1{margin:0 0 ${space(2)};${role('team')}font-size:${TYPE.score.px}px}
 h2{margin:${space(4)} 0 ${space(1)};${role('eyebrow')}color:var(--brand)}
 h3{margin:${space(2)} 0 ${space(0)};${role('eyebrow')}color:var(--fg-muted)}
 p{margin:0 0 ${space(1)}}
@@ -164,7 +174,7 @@ p{margin:0 0 ${space(1)}}
  * satisfied all the same: what scrolls is the container, never the body.
  */
 table{border-collapse:collapse;width:max-content;min-width:100%}
-th,td{padding:${space(1)};border-bottom:1px solid var(--line-row);text-align:left;white-space:nowrap;overflow-wrap:normal}
+th,td{padding:${space(1)};border-bottom:${HAIRLINE_PX}px solid var(--line-row);text-align:left;white-space:nowrap;overflow-wrap:normal}
 th{${role('eyebrow')}color:var(--fg-dim);background:var(--bg-step);white-space:nowrap}
 td{${role('team')}color:var(--fg)}
 tbody tr:hover{background:var(--bg-elevated)}
@@ -185,7 +195,7 @@ a:hover{color:var(--fg);text-decoration:underline}
 button{
   min-width:${TOUCH_TARGET_PX}px;
   padding:${space(1)} ${space(2)};
-  border:1px solid var(--brand);
+  border:${HAIRLINE_PX}px solid var(--brand);
   border-radius:${RADIUS.sm}px;
   background:var(--brand);
   color:var(--brand-ink);
@@ -198,9 +208,9 @@ label{display:block;margin:${space(1)} 0 ${space(0)};${role('status')}color:var(
 
 input,select,textarea{
   width:100%;
-  max-width:22rem;
+  max-width:${MEASURE.fieldMaxRem}rem;
   padding:${space(1)};
-  border:1px solid var(--line-strong);
+  border:${HAIRLINE_PX}px solid var(--line-strong);
   border-radius:${RADIUS.sm}px;
   background:var(--bg-step);
   color:var(--fg);
@@ -209,7 +219,7 @@ input,select,textarea{
   font-family:var(--sans);
 }
 
-textarea{min-height:5rem}
+textarea{min-height:${MEASURE.textAreaMinRem}rem}
 
 /*
  * ADR-025 §2.1, INTACT and now permanent (ADR-026 §5) — the system has NO
@@ -231,15 +241,15 @@ textarea{min-height:5rem}
 fieldset{
   margin:0 0 ${space(2)};
   padding:${space(1)};
-  border:1px solid var(--line);
+  border:${HAIRLINE_PX}px solid var(--line);
   border-radius:${RADIUS.lg}px;
   background:var(--bg-elevated);
 }
 legend{padding:0 ${space(0)};${role('eyebrow')}color:var(--brand)}
 
-.row{border-top:1px solid var(--line);padding:${space(1)} 0}
+.row{border-top:${HAIRLINE_PX}px solid var(--line);padding:${space(1)} 0}
 .notice{
-  border:1px solid var(--line-strong);
+  border:${HAIRLINE_PX}px solid var(--line-strong);
   border-radius:${RADIUS.md}px;
   padding:${space(1)};
   margin:0 0 ${space(2)};
@@ -247,5 +257,5 @@ legend{padding:0 ${space(0)};${role('eyebrow')}color:var(--brand)}
   color:var(--fg);
 }
 ul{margin:0;padding:0;list-style:none}
-main{max-width:60rem;margin:0 auto}
+main{max-width:${MEASURE.pageMaxRem}rem;margin:0 auto}
 `;

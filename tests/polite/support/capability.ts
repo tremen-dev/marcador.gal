@@ -400,6 +400,30 @@ export const ENTRY_POINTS: readonly string[] = [
   // panel's document (ADR-025 §4, SPEC-017 CA-10.6).
   'src/app/(es)/es/admin/route.ts',
   'src/app/(gl)/admin/route.ts',
+  // The three addresses of the scoreboard (SPEC-018 CA-1.3, ADR-027 §1):
+  // routes of `src/app/`, entry by the rule SPEC-008 CA-2.5 already declared.
+  // The two documents delegate whole in `src/board/handler.ts` and the JSON in
+  // `src/api/handler.ts`, and THEIR GRAPH DOES NOT REACH THE EXIT DOOR: THE
+  // SCOREBOARD ASKS NOBODY FOR ANYTHING, which is the reason RN-11 does not
+  // reach SPEC-018 at all (CA-1.4) — and it is the most important assertion of
+  // that spec, because an implementation that refreshed ON DEMAND would turn
+  // `N` readers into `N` requests to a third party and blow up RN-11 in the
+  // first minute without the number of the rule having changed. The door they
+  // use into `src/decide/` — `board-entry.ts`, to read the two logs in batch —
+  // composes the durable repository itself instead of borrowing
+  // `composeCyclePorts`, which would drag the platform fetcher in.
+  //
+  // The source registry IS on the graph of the two documents, through
+  // `src/board/sources.ts`: the degradation notice DERIVES the number of
+  // automatic sources from `DEFAULT_SOURCES` instead of typing it (CA-13.8).
+  // It reaches no exit door either, and that is asserted rather than assumed.
+  //
+  // They are route HANDLERS and not pages, which is also why no layout of the
+  // public site is on their graph: `src/app/globals.css` never loads on the
+  // scoreboard's document (ADR-025 §4.1, ADR-026 §3.6, SPEC-018 CA-15.8).
+  'src/app/(es)/es/marcador/route.ts',
+  'src/app/(gl)/marcador/route.ts',
+  'src/app/api/board/route.ts',
   'src/app/robots.txt/route.ts',
   // The commands of `package.json`.
   // `alias:cargar` (SPEC-011 CA-7): loads a declared alias catalogue against
