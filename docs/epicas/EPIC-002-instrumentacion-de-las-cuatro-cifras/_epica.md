@@ -130,9 +130,9 @@ puede medir sin referencia oficial.
 
 <!-- El estado por spec vive en el frontmatter de cada spec; el tablero agregado se regenera con /sdd-tablero (docs/tablero.md). No mantengas listas de specs a mano aquí. -->
 
-**Ocho specs entregadas: SPEC-008, SPEC-009, SPEC-010, SPEC-011, SPEC-012, 
-SPEC-013, SPEC-015 y SPEC-016**, todas `hecho` y verificadas GREEN entre el 2026-09-01 
-y el 2026-09-03. El estado fino vive en el tablero, no aquí.
+**Diez specs entregadas: SPEC-008, SPEC-009, SPEC-010, SPEC-011, SPEC-012,
+SPEC-013, SPEC-015, SPEC-016, SPEC-017 y SPEC-018**, todas `hecho` y verificadas GREEN entre el 2026-09-01
+y el 2026-09-04. El estado fino vive en el tablero, no aquí.
 
 Descomposición **orientativa** del resto, propuesta por `/sdd-arquitecto` el
 2026-09-01 y no vinculante: calendario y repositorios de `Observation`/`Decision`

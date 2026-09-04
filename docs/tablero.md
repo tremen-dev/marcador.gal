@@ -24,7 +24,7 @@ Actualizado: 2026-09-04
 | SPEC-015 — bot-de-telegram-del-corresponsal-el-llm-propone-dentro-de-una-lista-cerrada-y-la-persona-confirma | hecho | 2026-09-03 (sdd-verificador) |
 | SPEC-016 — el-catalogo-de-corresponsales-se-resuelve-en-compilacion-y-npm-run-build-pasa-a-ser-gate | hecho | 2026-09-03 (sdd-verificador) |
 | SPEC-017 — panel-del-operador-sesion-declarada-sin-usuarios-toda-correccion-como-observation-y-la-bandeja-que-alerts-no-tiene | hecho | 2026-09-03 (sdd-verificador) |
-| SPEC-018 — el-snapshot-del-marcador-y-la-pantalla-que-lo-lee-por-polling | aprobada | 2026-09-04 (Alberto Fojo) |
+| SPEC-018 — el-snapshot-del-marcador-y-la-pantalla-que-lo-lee-por-polling | hecho | 2026-09-04 (sdd-verificador) |
 
 ## EPIC-003 — paxina-de-proxecto-e-respaldo-publico-da-carta (hecho)
 
@@ -80,5 +80,4 @@ Actualizado: 2026-09-04
 
 ## Resumen
 
-- hecho: 17
-- aprobada: 1
+- hecho: 18
