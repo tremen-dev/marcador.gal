@@ -27,6 +27,7 @@ import { SITE_LOCALES } from '@/i18n/site';
 import type { SiteLocale } from '@/i18n/site-bundle';
 import { USER_AGENT } from '@/polite/user-agent';
 import { MAILBOX } from '@/site/contact';
+import { ACCESS_LOG_RETENTION, HOSTING_PROVIDER } from '@/site/hosting';
 import { CRAWLER_PATH } from '@/site/routes';
 
 const ROUTES = {
@@ -42,9 +43,22 @@ function render(locale: SiteLocale): string {
 const HTML = { gl: render('gl'), es: render('es') } as const;
 const LOCALES: readonly SiteLocale[] = ['gl', 'es'];
 
+/**
+ * Los tres huecos que un literal del rastreador puede llevar, rellenados con
+ * las constantes que la página interpola. Los tres son datos que viven en UN
+ * módulo de `src/site/` y no en los bundles, porque un bundle por lengua serían
+ * ya dos copias del mismo dato (SPEC-004 CA-13, y ahora SPEC-018 CA-18.2).
+ */
+function fill(value: string): string {
+  return value
+    .replaceAll('{mailbox}', MAILBOX)
+    .replaceAll('{provider}', HOSTING_PROVIDER)
+    .replaceAll('{retention}', ACCESS_LOG_RETENTION);
+}
+
 /** El texto de una clave, ya interpolado, tal y como se lee en la página. */
 function text(locale: SiteLocale, key: keyof CrawlerBundle): string {
-  return crawlerBundle(locale)[key].replaceAll('{mailbox}', MAILBOX);
+  return fill(crawlerBundle(locale)[key]);
 }
 
 /** Los tramos de un literal que NO están en el HTML, con la clave que falta. */
@@ -262,21 +276,221 @@ describe('CA-6 — las afirmaciones comprobables de la carta, publicadas', () =>
   });
 
   /**
-   * SPEC-018 CA-18.2 — la línea de privacidad, DENTRO de `/robot`: un solo
+   * SPEC-018 CA-18.2 — LA LÍNEA DE PRIVACIDAD, DENTRO de `/robot`: un solo
    * sitio honesto, una superficie menos. No es un aviso legal ni un banner.
+   *
+   * REESCRITO EL 2026-09-04 POR F-SPEC-018-V4, y el hallazgo es de este caso
+   * tanto como del texto. Se llamaba «qué registra el servidor, con qué base,
+   * CUÁNTO, y que no hay cookies ni analítica» y no tenía UNA SOLA ASERCIÓN
+   * sobre «cuánto» ni sobre quién procesa: por eso el literal podía publicar
+   * «o servidor onde está aloxado» —que no nombra a nadie— y «consérvase o
+   * tempo que ese rexistro dura» —que es circular y no da ningún plazo— y
+   * seguir verde. **Un elemento que no se afirma es un elemento que nadie
+   * escribe**, y aquí los huecos del caso coincidían exactamente con los
+   * huecos del texto.
+   *
+   * NO ES UN ENSANCHE POR CONVENIENCIA (CA-17.2 **(iii)**, no (i)): es la letra
+   * del criterio, que prometía tres cosas que no comprobaba.
+   *
+   * LO QUE ESTE MECANISMO NO ALCANZA, DECLARADO (ADR-016 §6): todas estas
+   * aserciones prueban que UNAS PALABRAS ESTÁN ESCRITAS, no que sean CIERTAS.
+   * Que el plazo sea de verdad el que se publica, que el plan de alojamiento
+   * siga siendo el que lo fija, que no se añada un desvío de registros ni
+   * analítica, NO LO VE NINGÚN TEST: va a
+   * `docs/procedimientos/calendario-de-compromisos.md`.
    */
-  test('12 quater. qué registra el servidor, con qué base, cuánto, y que no hay cookies ni analítica', () => {
-    for (const locale of LOCALES) {
-      const claim = deaccent(text(locale, 'privacy'));
+  const PRIVACY_KEYS: readonly (keyof CrawlerBundle)[] = [
+    'privacyNoTrackers',
+    'privacyLog',
+    'privacyProcessor',
+    'privacyBasis',
+    'privacyRetention',
+    'privacyController',
+    'privacyRights',
+    'privacyAuthority',
+    'privacyNotTheArchive',
+  ];
 
+  /** Las nueve afirmaciones juntas, ya interpoladas, como se leen en la página. */
+  function privacyText(locale: SiteLocale): string {
+    return deaccent(PRIVACY_KEYS.map((key) => text(locale, key)).join(' \n '));
+  }
+
+  test('12 quater. los nueve elementos de la línea de privacidad, uno a uno', () => {
+    for (const locale of LOCALES) {
+      const claim = privacyText(locale);
+
+      // E1 — ni cookies, ni analítica, ni terceros.
       expect(claim).toContain('cookies');
       expect(claim).toMatch(/analitica/);
       expect(claim).toMatch(/terceiros|terceros/);
+
+      // E2 — QUÉ se registra, las cinco cosas y no tres: el navegador y el
+      // referente faltaban, y el referente es el mismo en el que se apoya el
+      // disparador de re-dictamen (CA-19.4).
+      expect(claim).toMatch(/enderezo ip|direccion ip/);
+      expect(claim).toMatch(/, a hora,|, la hora,/);
+      expect(claim).toMatch(/paxina pedida|pagina pedida/);
+      expect(claim).toContain('navegador');
+      expect(claim).toMatch(/ligazon|enlace/);
+
+      // E3 — QUIÉN LO PROCESA, nombrado. Un encargado ES un destinatario
+      // (RGPD arts. 4.9 y 13.1.e) y una perífrasis no es una categoría: hay
+      // uno solo, y el nombre se comprueba desde fuera; la perífrasis no.
+      expect(claim).toContain(deaccent(HOSTING_PROVIDER));
+
+      // E4 — con qué base jurídica, y para qué.
       expect(claim).toMatch(/interese lexitimo|interes legitimo/);
+      expect(claim).toMatch(/manter o servizo|mantener el servicio/);
+
+      // E5 — CUÁNTO SE CONSERVA: un plazo, de quién es el plazo, y que el
+      // proyecto no se queda copia. Las tres piezas, porque el defecto que
+      // esto cierra ocupaba el sitio de la primera con una frase.
+      expect(claim).toContain(deaccent(ACCESS_LOG_RETENTION));
+      expect(claim).toMatch(/fixa ela|fija ella/);
+      expect(claim).toMatch(/non garda nada|no guarda nada/);
+      expect(claim).toMatch(/exporta copia/);
+
+      // E6 — el buzón y los CINCO derechos, con `limitación` incluida.
       expect(claim).toContain(deaccent(MAILBOX));
-      // Y no nombra a ninguna persona física, que la barrera de SPEC-007 vigila.
+      for (const right of [
+        'acceso',
+        'rectificacion',
+        'supresion',
+        'limitacion',
+        'oposicion',
+      ]) {
+        expect(claim).toContain(right);
+      }
+
+      // E7 — la autoridad de control ante la que se reclama (art. 13.2.d).
+      expect(claim).toContain('proteccion de datos');
+
+      // E8 — la transferencia fuera de la UE, en cuanto se nombra al
+      // proveedor, y con qué está amparada (art. 13.1.f).
+      expect(claim).toContain('estados unidos');
+      expect(claim).toContain('adecuacion');
+
+      // P6 — quién responde del sitio (art. 13.1.a), con el paraguas que
+      // ADR-012 §2 obliga a nombrar.
+      expect(claim).toContain('tremen.dev');
+    }
+  });
+
+  test('12 quinquies. las nueve claves existen, en las dos lenguas, y se sirven enteras', () => {
+    // Una afirmación, una clave. Es LA CAUSA RAÍZ del hallazgo: con seis
+    // afirmaciones dentro de una sola cadena, que falten dos no se ve ni en el
+    // diff ni en un test.
+    const missing = LOCALES.flatMap((locale) =>
+      PRIVACY_KEYS.flatMap((key) =>
+        missingFrom(HTML[locale], text(locale, key), `${locale}.${key}`),
+      ),
+    );
+
+    expect(missing).toEqual([]);
+
+    // Y los dos datos nuevos se INTERPOLAN, no se escriben: una definición y
+    // todo lo demás la referencia, igual que el buzón (caso 21).
+    for (const locale of LOCALES) {
+      const values = Object.values(crawlerBundle(locale));
+
+      expect(values.filter((value) => value.includes(HOSTING_PROVIDER))).toEqual([]);
+      expect(values.filter((value) => value.includes(ACCESS_LOG_RETENTION))).toEqual([]);
+      expect(HTML[locale]).toContain(HOSTING_PROVIDER);
+      expect(HTML[locale]).toContain(ACCESS_LOG_RETENTION);
+    }
+  });
+
+  /**
+   * Las dos formas exactas que hay que cazar son las que YA SE ESCRIBIERON una
+   * vez: una frase que ocupa el sitio de un plazo y otra que ocupa el sitio de
+   * un nombre. No falta información —eso se ve—: hay algo en el hueco.
+   */
+  const CIRCULAR_RETENTION = /o tempo que ese rexistro dura|el tiempo que ese registro dura/;
+  const SERVER_AS_SUBJECT = /o servidor onde esta aloxado|el servidor donde esta alojado/;
+
+  /** Ninguna llamada a la acción: es lo que mantiene el art. 10 LSSI fuera. */
+  const NO_CALL_TO_ACTION = ['patrocina', 'publicidade', 'publicidad', 'doar', 'subscri'];
+
+  test('12 sexies. las tres negativas: nada circular, nadie disfrazado de servidor, ninguna persona', () => {
+    for (const locale of LOCALES) {
+      const claim = privacyText(locale);
+
+      // (1) El plazo no puede definirse por sí mismo.
+      expect(claim).not.toMatch(CIRCULAR_RETENTION);
+
+      // (2) Un servidor no procesa datos: los procesa quien lo opera.
+      expect(claim).not.toMatch(SERVER_AS_SUBJECT);
+
+      // (3) Ninguna persona física —la barrera de SPEC-007 lo vigila también
+      // desde fuera— y ninguna llamada a la acción.
       expect(claim).not.toContain('alberto');
       expect(claim).not.toContain('fojo');
+      expect(NO_CALL_TO_ACTION.filter((term) => claim.includes(term))).toEqual([]);
+    }
+  });
+
+  test('12 septies. CONTROL POSITIVO: las dos fórmulas retiradas ponen rojo el caso anterior', () => {
+    // Sin esto, dos expresiones regulares mal escritas darían verde el caso de
+    // arriba sin comprobar nada. Las cadenas son las que el sitio SERVÍA hasta
+    // hoy, copiadas del hallazgo.
+    const served = deaccent(
+      'O servidor onde está aloxado deixa un rexistro técnico de acceso, e consérvase ' +
+        'o tempo que ese rexistro dura.',
+    );
+    const servedEs = deaccent(
+      'El servidor donde está alojado deja un registro técnico de acceso, y se conserva ' +
+        'el tiempo que ese registro dura.',
+    );
+
+    expect(served).toMatch(CIRCULAR_RETENTION);
+    expect(served).toMatch(SERVER_AS_SUBJECT);
+    expect(servedEs).toMatch(CIRCULAR_RETENTION);
+    expect(servedEs).toMatch(SERVER_AS_SUBJECT);
+
+    // Y la lista de llamadas a la acción tampoco puede vaciarse en silencio:
+    // los cinco términos muerden sobre una cadena sintética que no sirve nadie.
+    const control = deaccent('patrocina, publicidade, publicidad, doar, subscríbete');
+    expect(NO_CALL_TO_ACTION.filter((term) => control.includes(term))).toEqual([
+      ...NO_CALL_TO_ACTION,
+    ]);
+  });
+
+  /**
+   * LA BARRERA LÉXICA, con su excepción declarada.
+   *
+   * Los dos bloques hablan de cosas distintas —el registro técnico de acceso y
+   * el archivo de lo que se lee de otros sitios— con plazos distintos y a dos
+   * claves de distancia. Si comparten palabra, un lector razonable supondrá que
+   * los plazos de uno valen para el otro, que es justo lo que la cercanía
+   * invitaba a hacer.
+   *
+   * EXCEPCIÓN POR IDENTIDAD DE CLAVE: `privacyNotTheArchive`, cuyo trabajo
+   * entero es nombrar las dos cosas para distinguirlas. Sin ella la barrera
+   * pondría roja la clave que existe para arreglar el problema. No es una
+   * exención por nombre de fichero (ADR-016 §3.3): es una clave, y el caso
+   * exige además que use las dos palabras, así que la excepción no puede
+   * quedarse vacía sin que esto se vea.
+   */
+  const ARCHIVE_WORD = /arquivo|archivo/;
+  const LOG_WORD = /rexistro|registro/;
+
+  test('12 octies. `arquivo` no entra en la línea de privacidad y `rexistro` no entra en la de almacenamiento', () => {
+    for (const locale of LOCALES) {
+      const trespassers = PRIVACY_KEYS.filter(
+        (key) => key !== 'privacyNotTheArchive' && ARCHIVE_WORD.test(deaccent(text(locale, key))),
+      ).map((key) => `${locale}.${key}`);
+
+      expect(trespassers).toEqual([]);
+      expect(deaccent(text(locale, 'storage'))).not.toMatch(LOG_WORD);
+
+      // La excepción no es un agujero: la clave exenta usa las DOS palabras a
+      // propósito, y cita el otro bloque por el texto de su cabecera —no por
+      // su posición, que depende de la maquetación.
+      const disambiguation = deaccent(text(locale, 'privacyNotTheArchive'));
+      expect(disambiguation).toMatch(ARCHIVE_WORD);
+      expect(disambiguation).toMatch(LOG_WORD);
+      expect(disambiguation).toContain(deaccent(crawlerBundle(locale).storageHeading));
     }
   });
 
