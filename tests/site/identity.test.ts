@@ -30,6 +30,8 @@ import GlCrawlerPage from '@/app/(gl)/robot/page';
 import { es } from '@/i18n/es';
 import { gl } from '@/i18n/gl';
 import { SITE_LOCALES, siteBundle } from '@/i18n/site';
+import { boardDocument } from '@/board/handler';
+import { SCOREBOARD_PATH } from '@/site/routes';
 
 /**
  * Ninguna grafía ni capitalización: se busca sobre el texto desacentuado y en
@@ -60,17 +62,48 @@ function deaccent(text: string): string {
   return text.normalize('NFD').replaceAll(/\p{Diacritic}/gu, '').toLowerCase();
 }
 
-/** Los TRES espacios de nombres de un bundle, no solo el del sitio. */
+/**
+ * Los CUATRO espacios de nombres de un bundle, no solo el del sitio.
+ *
+ * ENSANCHADO EL 2026-09-04 — SPEC-018 CA-18.3, por ADR-015 y ADR-027 §3.c.
+ *
+ * Este caso fijaba EXACTAMENTE TRES espacios y CUATRO rutas. Con el marcador
+ * publicado aparece un QUINTO sitio con texto visible —el espacio `board` y las
+ * dos rutas `/marcador` y `/es/marcador`— y esta barrera NO SE PONÍA ROJA: se
+ * limitaba a DEJAR DE CUBRIRLO EN SILENCIO, que es peor que un rojo. No es una
+ * afirmación que se vuelva falsa, es una barrera que deja de cubrir; y la
+ * enmienda está escrita en el ledger de SPEC-007.
+ *
+ * NINGUNA ASERCIÓN SE DEBILITA: `NO_PERSON` y `NO_HEADCOUNT` son las mismas,
+ * el predicado es el mismo, y lo único que crece es el CENSO de lo que
+ * recorren. El caso 4 —que la barrera no sea vacua— actualiza sus dos números
+ * con el mismo diff, que es lo que lo mantiene honesto.
+ */
 const NAMESPACES = {
-  gl: [gl.site, gl.crawler, gl.titles],
-  es: [es.site, es.crawler, es.titles],
+  gl: [gl.site, gl.crawler, gl.titles, gl.board],
+  es: [es.site, es.crawler, es.titles, es.board],
 } as const;
 
 function everyLiteral(locale: 'gl' | 'es'): string {
   return NAMESPACES[locale].flatMap((ns) => Object.values(ns)).join(' \n ');
 }
 
-/** Las cuatro rutas del sitio, con su composición real (layout + página). */
+/**
+ * El documento que el marcador SIRVE, con la escena vacía: es la forma en que
+ * la barrera alcanza una ruta que no es una página de React sino un manejador
+ * de ruta (ADR-027 §1). Se afirma sobre lo servido byte a byte, que es
+ * exactamente lo que F-SPEC-004-7 pedía y esta forma da gratis.
+ */
+function scoreboardHtml(locale: 'gl' | 'es'): string {
+  return boardDocument(
+    locale,
+    { version: null, matchday_declared: false, matches: [] },
+    '2026-09-06T17:00:00.000Z',
+    '"x"',
+  );
+}
+
+/** Las SEIS rutas del sitio, con su composición real. */
 const HTML = {
   'gl /proxecto': renderToStaticMarkup(
     createElement(GlLayout, null, createElement(GlProjectPage)),
@@ -80,6 +113,8 @@ const HTML = {
   ),
   'gl /robot': renderToStaticMarkup(createElement(GlLayout, null, createElement(GlCrawlerPage))),
   'es /es/robot': renderToStaticMarkup(createElement(EsLayout, null, createElement(EsCrawlerPage))),
+  [`gl ${SCOREBOARD_PATH.gl}`]: scoreboardHtml('gl'),
+  [`es ${SCOREBOARD_PATH.es}`]: scoreboardHtml('es'),
 } as const;
 
 describe('CA-1 — el sitio no nombra a ninguna persona, ni dice cuántas son', () => {
@@ -112,16 +147,20 @@ describe('CA-1 — el sitio no nombra a ninguna persona, ni dice cuántas son', 
     expect(hits).toEqual([]);
   });
 
-  test('4. la barrera no es vacua: mira los tres espacios y las cuatro rutas', () => {
+  test('4. la barrera no es vacua: mira los cuatro espacios y las seis rutas', () => {
     // Sin esto, un `everyLiteral` que devolviera '' o un HTML vacío darían
     // verde los tres casos anteriores sin comprobar nada. Mismo motivo que el
     // caso 1 de `no-hardcoded-literals.test.ts`.
+    //
+    // LOS DOS NÚMEROS CRECEN CON SPEC-018 CA-18.3, y crecen AQUÍ y no en
+    // silencio: si el espacio del marcador o sus dos rutas se salieran del
+    // recorrido, este caso lo diría.
     for (const locale of SITE_LOCALES) {
-      expect(NAMESPACES[locale]).toHaveLength(3);
+      expect(NAMESPACES[locale]).toHaveLength(4);
       expect(everyLiteral(locale).length).toBeGreaterThan(1000);
     }
 
-    expect(Object.keys(HTML)).toHaveLength(4);
+    expect(Object.keys(HTML)).toHaveLength(6);
     for (const html of Object.values(HTML)) expect(html).toContain('<html lang=');
   });
 

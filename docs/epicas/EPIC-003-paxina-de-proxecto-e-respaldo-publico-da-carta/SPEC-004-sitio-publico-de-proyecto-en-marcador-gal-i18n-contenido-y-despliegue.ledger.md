@@ -985,3 +985,99 @@ por `meta`, ADR-024 y la nota §5 del gate—, así que «permite el rastreo del
 entero» sigue siendo cierto. Y `tests/site/no-hardcoded-literals.test.ts` sigue
 verde con las rutas del panel dentro de su alcance y **sin ninguna excepción
 nueva** (SPEC-017 CA-9.4).
+
+## Enmienda — 2026-09-04: SPEC-018 publica un marcador y `site.noProduct` deja de ser cierta (y `site.measuring` ya no lo era)
+
+> Escrita por `sdd-implementador` en el mismo cambio que publica la pantalla,
+> como exigen **ADR-027 §3.c** y **SPEC-018 CA-18**. **El cuerpo de SPEC-004 no
+> se edita y su frontmatter tampoco** (ADR-015 §1 y §4): sigue `hecho` y sigue
+> GREEN. Este encabezado es el índice: `grep -rn "^## Enmienda —" docs/epicas/`.
+
+**1. Qué afirmaba el CA, y por qué era razonable.**
+
+**CA-8.4** exige que `/proxecto` diga «todavía no hay producto, sin fecha y sin
+condicional», y el literal `site.noProduct` lo cumplía así: «Hoxe non hai nada
+que usar: **nin marcador público**, nin aplicación, nin conta que crear.» Era
+exactamente cierto y era además la mitigación del riesgo principal de EPIC-003
+—«deriva hacia la landing»—: la página no prometía nada porque no había nada.
+
+**CA-8.2** exige decir qué se va a medir, y `site.measuring` decía «**a medición
+aínda non comezou e non hai ningunha cifra**». Cuando se escribió, el 2026-08-31,
+era literalmente cierto: no había tick, ni motor, ni panel.
+
+**2. Qué lo invalida, citado por número.**
+
+- **`site.noProduct`**: **SPEC-018**, aprobada el 2026-09-04, publica el
+  marcador en `/marcador` y `/es/marcador` (**ADR-027 §1 y §3.a**), por decisión
+  de **Alberto Fojo del 2026-09-04** —la salida (B) del dictamen de
+  `sdd-legal-datos`, tomada con ese dictamen delante—. Desde el despliegue,
+  «nin marcador público» es **falsa**, y lo es en una página pública que
+  respalda la carta a la RFGF.
+- **`site.measuring`**: **ya era falsa antes de SPEC-018**, desde SPEC-012 (el
+  tick), SPEC-013 (el motor) y SPEC-017 (el panel). En la primera redacción de
+  SPEC-018 se aplazaba a EPIC-MEJORA; **el segundo dictamen de
+  `sdd-legal-datos` la subió a vinculante** y **SPEC-018 CA-18.1** la trae aquí.
+  El motivo es de forma: una afirmación falsa **en la misma página que ahora
+  enlaza el marcador público** es el mismo fallo, en el mismo sitio y con más
+  audiencia.
+
+**3. Con qué se sustituye, y si la red que queda es menor.**
+
+- **`noProduct`** deja de afirmar que no hay marcador público. Pasa a afirmar
+  que **hay una pantalla pública de medición**, que **enseña sólo los partidos
+  de las jornadas declaradas de dos competiciones y nada más**, que **es un
+  instrumento de medida**, que **lo normal es que vaya provisional y con
+  atraso**, y que **se apaga cuando la medición acaba**. Y **la enlaza**
+  (SPEC-018 CA-2.9), que es lo que convierte `noindex` en no-amplificación en
+  vez de en ocultación.
+  **Lo que NO cambió, porque es de carga:** «nin aplicación, nin conta que
+  crear» sigue ahí y **es exactamente lo que mantiene el art. 10 LSSI fuera**
+  (SPEC-018 CA-2.7). Quien edite este literal tiene que saber que esa mitad no
+  es prosa sobrante.
+- **`measuring`** deja de decir que la medición no ha empezado. Pasa a decir que
+  **el instrumento ya está construido y todavía no hay ninguna cifra porque no
+  se ha declarado ninguna jornada de medición**, que es lo que hoy es verdad.
+  **Se conserva intacto lo que costó tres vueltas** y que el caso 10 de
+  `tests/site/i18n.test.ts` sujeta: **la fuente oficial** de **las competiciones
+  que se quieren medir** **no se rastrea**, y **por qué** (`robots.txt`).
+- **`purpose`** se ajusta en una frase —«el resultado es un informe interno, no
+  un producto; lo que sí se puede ver es la pantalla donde se mide»— para que
+  no se lea como que no hay nada visible. **Sigue diciendo `viable` e `informe
+  interno`**, que es lo que el caso 12 de `pages.test.ts` exige, y ese caso
+  **pasa sin tocar una aserción**.
+
+**¿La red que queda es menor?** **No, y en un punto es mayor.** La red de CA-8.4
+—que la página no prometa producto— sigue entera: la lista negra del caso 8 de
+`pages.test.ts` (patrocinio, lista de espera, newsletter, lanzamiento…) no se
+toca, el caso 7 sigue prohibiendo formularios, campos e imágenes, y el caso 9
+sigue prohibiendo cualquier fecha. Lo que **crece** es lo comprobable: antes la
+página afirmaba una ausencia que nadie podía verificar; ahora afirma una
+pantalla que cualquiera puede abrir y contrastar en diez segundos. Y **se añade
+una barrera nueva** que antes no existía (SPEC-018 CA-18.5): ninguna clave de
+`site` ni de `crawler` puede volver a contener `marcador publico`.
+
+**Casos tocados, y ninguna aserción debilitada.** Ninguno de `pages.test.ts`
+cambia: **12 y 13 pasan sin tocar una aserción**, porque `purpose` conserva sus
+dos exigencias y `noProduct` se sigue sirviendo entero bajo su encabezado. De
+`i18n.test.ts`, **9 y 10 pasan sin tocar una aserción**: la redacción nueva no
+afirma una medición en curso —`NOT_MEASURING_YET` sigue vacío— y `measuring`
+conserva los tres tramos que el caso 10 exige. Lo que sí crecen son **censos de
+guardián**, permitido por SPEC-018 CA-17.2 (ii): `PAGES` en
+`titles-i18n.test.ts` y la lista de rutas de `robots.test.ts` caso 4, porque el
+sitio gana una página.
+
+**4. Si el veredicto sigue en pie.** **Sí.** SPEC-004 sigue `hecho` y GREEN. No
+se toca ni una aserción de sus casos, no se relaja ninguna barrera y no se abre
+ninguna excepción. Lo que cambia son **tres literales** y **dos claves nuevas**
+(`scoreboardHeading`, `scoreboardLink`), que la paridad del tipo `SiteBundle`
+obliga a tener en las dos lenguas y que los casos 2 y 5 obligan a servir en el
+cuerpo de `/proxecto`.
+
+**5. Qué la despierta.** **Cualquier cambio en el alcance de lo publicado**: una
+tercera jornada de medición, una competición fuera de `PUBLISHED_COMPETITIONS`,
+un dato nuevo, un histórico navegable, un acceso programático o cualquier
+monetización. Los ocho puntos están en `docs/procedimientos/calendario-de-compromisos.md`
+(SPEC-018 CA-19.3, ADR-027 §3.d) y **reabren el dictamen de `sdd-legal-datos`**.
+Y en sentido contrario: **si la publicación se apaga** —parar es vaciar
+`MEASUREMENT_WINDOWS`— este literal vuelve a ser falso por el otro lado y hay
+que corregirlo otra vez.

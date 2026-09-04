@@ -53,9 +53,62 @@ export interface CrawlerBundle {
   readonly robotsHeading: string;
   readonly robots: string;
 
-  /** Claim 4 — nobody's data is republished. */
+  /**
+   * Claim 4 — WHAT IS NOT DONE WITH WHAT IS READ.
+   *
+   * AMENDED ON 2026-09-04 BY SPEC-018 CA-18.2 (ADR-015, ADR-027 §3.c). It used
+   * to say «non republicamos os datos de ninguén», «o resultado é un informe
+   * interno» and «non hai marcador público», and the three stopped being true
+   * the day the scoreboard was published. THE SENTENCE GOES; THE PROMISE IS
+   * REBUILT, and what is left is bigger and more auditable than what is
+   * retired: no bulk redistribution — no file, no dump, no feed, no API, no
+   * widget, no export —, no history, two competitions and only the declared
+   * matchdays with their number, four things per match and no more, not one
+   * personal datum, no monetisation, and the retention does not move. ANYBODY
+   * CAN OPEN THE SCREEN AND CHECK IT IN TEN SECONDS, which is more than could
+   * be done with «non republicamos».
+   *
+   * WHAT WAS NOT ALLOWED, and the ruling closes it twice: narrowing the
+   * sentence so the case stays green («non republicamos… salvo unha pantalla
+   * de medición»), or reinterpreting it over personal data — which would have
+   * been literally true and would have been worse.
+   */
   readonly noRepublishHeading: string;
   readonly noRepublish: string;
+
+  /**
+   * SPEC-018 CA-2.9 — the link to the scoreboard, from the page a third party
+   * audits. `noindex` is not hiding BECAUSE it does not travel alone: the two
+   * public pages link the screen, the literals say it exists, and the RFGF is
+   * told (ADR-027 §3.a and §3.e).
+   */
+  readonly scoreboardHeading: string;
+  readonly scoreboardLink: string;
+
+  /**
+   * SPEC-018 CA-18.2 — THE SILENCE, DECLARED IN A LINE, which is what makes it
+   * a position instead of a concealment.
+   *
+   * The source is still not named, here either: there is no duty of
+   * attribution and naming it would be the first disclosure, written and dated
+   * by us. So the page says instead that we do not name the sites we read, and
+   * that if you think we read yours, you write and we stop.
+   */
+  readonly noNamesHeading: string;
+  readonly noNames: string;
+
+  /**
+   * SPEC-018 CA-18.2 — THE PRIVACY LINE. Not a legal notice and not a banner:
+   * what the server logs, with what basis, how long it is kept, THAT THERE ARE
+   * NO COOKIES, NO ANALYTICS AND NO THIRD PARTIES, and the mailbox for arts.
+   * 15-22 GDPR.
+   *
+   * It goes INSIDE `/robot`, which already carries the block of what is stored
+   * and for how long: one honest place, one surface fewer. AND IT NAMES NO
+   * NATURAL PERSON, which the barrier of SPEC-007 already watches.
+   */
+  readonly privacyHeading: string;
+  readonly privacy: string;
 
   /** Claim 5 — what is stored, and for how long. */
   readonly storageHeading: string;

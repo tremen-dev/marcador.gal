@@ -24,7 +24,7 @@ import { otherLocale } from '@/i18n/site';
 import type { SiteLocale } from '@/i18n/site-bundle';
 import { USER_AGENT } from '@/polite/user-agent';
 import { withMailbox } from '@/site/mailbox-link';
-import { CRAWLER_PATH } from '@/site/routes';
+import { CRAWLER_PATH, SCOREBOARD_PATH } from '@/site/routes';
 
 export function CrawlerPage({ locale }: { locale: SiteLocale }) {
   const t = crawlerBundle(locale);
@@ -60,9 +60,27 @@ export function CrawlerPage({ locale }: { locale: SiteLocale }) {
         <p>{t.noRepublish}</p>
       </section>
 
+      {/* SPEC-018 CA-2.9: la pantalla se enlaza desde la página que un tercero audita. */}
+      <section>
+        <h2>{t.scoreboardHeading}</h2>
+        <p>
+          <a href={SCOREBOARD_PATH[locale]}>{t.scoreboardLink}</a>
+        </p>
+      </section>
+
+      <section>
+        <h2>{t.noNamesHeading}</h2>
+        <p>{withMailbox(t.noNames)}</p>
+      </section>
+
       <section>
         <h2>{t.storageHeading}</h2>
         <p>{t.storage}</p>
+      </section>
+
+      <section>
+        <h2>{t.privacyHeading}</h2>
+        <p>{withMailbox(t.privacy)}</p>
       </section>
 
       <section>

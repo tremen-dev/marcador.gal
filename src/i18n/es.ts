@@ -284,21 +284,28 @@ export const es = {
     measuring:
       'El objeto del estudio son las opciones de obtener los resultados del fútbol ' +
       'gallego: qué vías hay para leerlos y cuánto trabajo llevan. ' +
-      'La medición todavía no ha empezado y no hay ninguna cifra. ' +
+      'El instrumento ya está construido y todavía no hay ninguna cifra: no se ha ' +
+      'declarado ninguna jornada de medición. ' +
       'La fuente oficial de las competiciones que se quieren medir no se rastrea, ' +
       'porque su fichero robots.txt no lo permite y respetarlo es una norma del ' +
-      'proyecto: esa es una de las razones por las que el estudio está parado.',
+      'proyecto.',
 
     purposeHeading: 'Para qué',
     purpose:
       'La medición sirve para decidir una sola cosa: si el proyecto es viable. ' +
-      'El resultado es un informe interno, no un producto.',
+      'El resultado es un informe interno, no un producto; lo que sí se puede ver es ' +
+      'la pantalla donde se mide.',
 
     noProductHeading: 'Todavía no hay producto',
     noProduct:
-      'Hoy no hay nada que usar: ni marcador público, ni aplicación, ni cuenta que ' +
-      'crear. Esta página existe para decir quién está detrás y qué se va a medir, ' +
-      'y nada más.',
+      'Hoy no hay producto: ni aplicación, ni cuenta que crear. ' +
+      'Sí hay una pantalla pública de medición, el marcador, que muestra los partidos ' +
+      'de las jornadas declaradas de dos competiciones y nada más. ' +
+      'Es un instrumento de medida: lo normal es que el marcador vaya provisional y ' +
+      'que llegue con retraso, y se apaga cuando la medición termina.',
+
+    scoreboardHeading: 'El marcador',
+    scoreboardLink: 'Ver la pantalla de medición',
 
     crawlerHeading: 'El rastreador',
     crawlerLink: 'Cómo se leen las páginas públicas, y cómo pedir que pare',
@@ -342,9 +349,28 @@ export const es = {
 
     noRepublishHeading: 'Qué no hacemos con lo que leemos',
     noRepublish:
-      'No republicamos los datos de nadie. Esto es una medición, y el resultado es un ' +
-      'informe interno. No hay marcador público, ni fichero de datos, ni nada que se pueda ' +
-      'consultar fuera del proyecto.',
+      'No hay redistribución en bloque: ni fichero de datos, ni volcado, ni feed, ni ' +
+      'API, ni widget, ni exportación. No hay histórico. ' +
+      'Hay una pantalla pública de medición que muestra dos competiciones y solo las ' +
+      'jornadas declaradas, como mucho dos, y de cada partido salen cuatro cosas: la ' +
+      'hora, los dos equipos, el marcador y el estado. ' +
+      'No sale ni un dato personal, no hay monetización y la retención no se mueve.',
+
+    scoreboardHeading: 'La pantalla de medición',
+    scoreboardLink: 'Ver lo que se publica',
+
+    noNamesHeading: 'A quién leemos',
+    noNames:
+      'No nombramos los sitios que leemos. Si crees que leemos el tuyo, escribe a ' +
+      '{mailbox} y paramos: no hace falta que lo confirmemos antes.',
+
+    privacyHeading: 'Qué se registra de quien visita',
+    privacy:
+      'No hay cookies, ni analítica, ni ningún componente de terceros en las páginas ' +
+      'de este sitio. El servidor donde está alojado deja un registro técnico de ' +
+      'acceso —dirección IP, hora y página pedida— con el interés legítimo de mantener ' +
+      'el servicio en pie, y se conserva el tiempo que ese registro dura. Para acceder, ' +
+      'rectificar, suprimir u oponerte, escribe a {mailbox}.',
 
     storageHeading: 'Qué guardamos y cuánto tiempo',
     storage:
@@ -355,8 +381,10 @@ export const es = {
 
     stopHeading: 'Cómo pedir que pare',
     stop:
-      'Escribe a {mailbox} y paramos. Basta con pedirlo. También sirve añadir una regla en ' +
-      'tu propio robots.txt: lo leemos antes de cada ventana de observación y lo respetamos.',
+      'Escribe a {mailbox} y paramos. Basta con pedirlo, y vale tanto para dejar de leer ' +
+      'tu sitio como para dejar de publicar nada que salga de él. También sirve añadir ' +
+      'una regla en tu propio robots.txt: lo leemos antes de cada ventana de observación ' +
+      'y lo respetamos.',
 
     otherLanguage: 'Galego',
   } satisfies CrawlerBundle,

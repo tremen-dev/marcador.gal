@@ -185,12 +185,100 @@ describe('CA-6 — las afirmaciones comprobables de la carta, publicadas', () =>
     }
   });
 
-  test('12. no se republica el dato de terceros: esto es medición y el resultado es un informe interno', () => {
+  /**
+   * ENMENDADO EL 2026-09-04 — SPEC-018 CA-18.2, por ADR-015 y ADR-027 §3.c.
+   *
+   * Este caso exigía literalmente `non republicamos` / `no republicamos` e
+   * `informe interno`. Las dos afirmaciones DEJARON DE SER CIERTAS el día que
+   * SPEC-018 publicó el marcador, y `/robot` es la página que un tercero
+   * audita, la que viaja dentro del `User-Agent` (ADR-011) y la que respalda la
+   * carta a la RFGF. Mantener el caso verde exigiría o bien no publicar, o bien
+   * ESTRECHAR LA FRASE hasta que siguiera pasando —«non republicamos… salvo
+   * unha pantalla de medición»—, que es exactamente lo que el dictamen de
+   * `sdd-legal-datos` cierra dos veces y lo que ADR-027 §3.c prohíbe.
+   *
+   * NO ES UN DEBILITAMIENTO: es la corrección obligatoria de CA-17.2 (iii), y
+   * lo que se exige ahora es MÁS y MÁS COMPROBABLE que lo que se retira.
+   * Cualquiera puede abrir la pantalla y verificarlo en diez segundos, que es
+   * más de lo que se podía hacer con «non republicamos». La enmienda está
+   * escrita en el ledger de SPEC-005.
+   */
+  test('12. la promesa reconstruida: sin redistribución en bloque, sin histórico, dos competiciones y cuatro cosas por partido', () => {
     for (const locale of LOCALES) {
       const claim = deaccent(text(locale, 'noRepublish'));
 
-      expect(claim).toMatch(/non republicamos|no republicamos/);
-      expect(claim).toContain('informe interno');
+      // (a) La frase vieja SE FUE, y no puede volver estrechada.
+      expect(claim).not.toMatch(/non republicamos|no republicamos/);
+      expect(claim).not.toContain('informe interno');
+      expect(claim).not.toMatch(/non hai marcador publico|no hay marcador publico/);
+
+      // (b) Sin redistribución en bloque, con las seis formas enumeradas.
+      expect(claim).toMatch(/redistribucion en bloque/);
+      for (const shape of ['ficheiro de datos', 'fichero de datos']) {
+        if (claim.includes(shape)) expect(claim).toContain(shape);
+      }
+      for (const shape of ['feed', 'api', 'widget', 'exportacion']) {
+        expect(claim).toContain(shape);
+      }
+
+      // (c) Sin histórico.
+      expect(claim).toMatch(/non hai historico|no hay historico/);
+
+      // (d) Dos competiciones, sólo las jornadas declaradas, con su número.
+      expect(claim).toMatch(/duas competicions|dos competiciones/);
+      expect(claim).toMatch(/xornadas declaradas|jornadas declaradas/);
+      expect(claim).toMatch(/como moito duas|como mucho dos/);
+
+      // (e) Cuatro cosas por partido y ninguna más.
+      expect(claim).toMatch(/catro cousas|cuatro cosas/);
+
+      // (f) Ni un dato personal, cero monetización, y la retención no se mueve.
+      expect(claim).toMatch(/nin un dato persoal|ni un dato personal/);
+      expect(claim).toMatch(/monetizacion/);
+      expect(claim).toMatch(/retencion non se move|retencion no se mueve/);
+    }
+  });
+
+  /**
+   * SPEC-018 CA-18.2 — LA ADICIÓN MÁS IMPORTANTE DE TODO EL CAMBIO EN
+   * `/robot`: «abonda con pedilo» cubría el RASTREO y pasa a cubrir también LA
+   * PUBLICACIÓN. La publicación no puede prometer menos que la captura.
+   */
+  test('12 bis. la promesa de parar cubre ahora también lo que se publica', () => {
+    for (const locale of LOCALES) {
+      const claim = deaccent(text(locale, 'stop'));
+
+      expect(claim).toMatch(/abonda con pedilo|basta con pedirlo/);
+      expect(claim).toMatch(/deixar de publicar|dejar de publicar/);
+    }
+  });
+
+  /** SPEC-018 CA-18.2 — el silencio se declara, que es lo que lo hace postura. */
+  test('12 ter. la página dice que no nombra los sitios que lee, y qué hacer si crees que es el tuyo', () => {
+    for (const locale of LOCALES) {
+      const claim = deaccent(text(locale, 'noNames'));
+
+      expect(claim).toMatch(/non nomeamos os sitios que lemos|no nombramos los sitios que leemos/);
+      expect(claim).toContain(deaccent(MAILBOX));
+    }
+  });
+
+  /**
+   * SPEC-018 CA-18.2 — la línea de privacidad, DENTRO de `/robot`: un solo
+   * sitio honesto, una superficie menos. No es un aviso legal ni un banner.
+   */
+  test('12 quater. qué registra el servidor, con qué base, cuánto, y que no hay cookies ni analítica', () => {
+    for (const locale of LOCALES) {
+      const claim = deaccent(text(locale, 'privacy'));
+
+      expect(claim).toContain('cookies');
+      expect(claim).toMatch(/analitica/);
+      expect(claim).toMatch(/terceiros|terceros/);
+      expect(claim).toMatch(/interese lexitimo|interes legitimo/);
+      expect(claim).toContain(deaccent(MAILBOX));
+      // Y no nombra a ninguna persona física, que la barrera de SPEC-007 vigila.
+      expect(claim).not.toContain('alberto');
+      expect(claim).not.toContain('fojo');
     }
   });
 

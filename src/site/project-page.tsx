@@ -15,7 +15,7 @@
 import { otherLocale, siteBundle } from '@/i18n/site';
 import type { SiteLocale } from '@/i18n/site-bundle';
 import { withMailbox } from '@/site/mailbox-link';
-import { CRAWLER_PATH, PROJECT_PATH } from '@/site/routes';
+import { CRAWLER_PATH, PROJECT_PATH, SCOREBOARD_PATH } from '@/site/routes';
 import { UMBRELLA_URL } from '@/site/umbrella';
 
 export function ProjectPage({ locale }: { locale: SiteLocale }) {
@@ -47,6 +47,18 @@ export function ProjectPage({ locale }: { locale: SiteLocale }) {
       <section>
         <h2>{t.noProductHeading}</h2>
         <p>{t.noProduct}</p>
+      </section>
+
+      {/*
+        SPEC-018 CA-2.9. NO ES NAVEGACIÓN: es lo que convierte `noindex` en
+        no-amplificación en vez de en ocultación. Publicar, no indexar y no
+        enlazar sería esconderse, y leería fatal al lado de la carta.
+      */}
+      <section>
+        <h2>{t.scoreboardHeading}</h2>
+        <p>
+          <a href={SCOREBOARD_PATH[locale]}>{t.scoreboardLink}</a>
+        </p>
       </section>
 
       <section>

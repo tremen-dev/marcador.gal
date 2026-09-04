@@ -708,3 +708,104 @@ condiciones:
 
 Mientras ninguna se dé, la ausencia es **conocida, aceptada y con fecha**, no un
 descuido.
+
+## Enmienda — 2026-09-04: SPEC-018 publica un marcador y `crawler.noRepublish` deja de ser cierta
+
+> Escrita por `sdd-implementador` en el mismo cambio que publica la pantalla,
+> como exigen **ADR-027 §3.c** y **SPEC-018 CA-18**. **El cuerpo de SPEC-005 no
+> se edita y su frontmatter tampoco** (ADR-015 §1 y §4): sigue `hecho` y sigue
+> GREEN.
+
+**1. Qué afirmaba el CA, y por qué era razonable.**
+
+**CA-6** publica las seis afirmaciones comprobables de la carta a la RFGF, una
+por clave, para que un tercero pueda contrastarlas con sus propios registros. La
+cuarta, `crawler.noRepublish`, decía tres cosas: «**Non republicamos os datos de
+ninguén.** Isto é unha medición, e **o resultado é un informe interno**. **Non
+hai marcador público**, nin ficheiro de datos, nin nada que se poida consultar
+fóra do proxecto.»
+
+Era razonable y era **la respuesta más fuerte posible** a «¿qué hacéis con lo que
+leéis?»: *nada*. Y `/robot` no es una página cualquiera — **es la que viaja
+dentro del `User-Agent` de cada petición** (ADR-011), la que sostiene RN-11
+frente a terceros y la que respalda la carta enviada el 2026-09-01.
+
+**2. Qué lo invalida, citado por número.**
+
+**SPEC-018**, aprobada el 2026-09-04, publica el marcador (**ADR-027 §1, §3.a**),
+por decisión de **Alberto Fojo del 2026-09-04**. Desde el despliegue, las tres
+afirmaciones son **falsas**. `sdd-lingua` §6.1 y `sdd-legal-datos` llegaron al
+mismo hallazgo el mismo día y por su cuenta, que es la razón de que no se
+despachara como un detalle de redacción.
+
+**Lo que expresamente NO valía, y el dictamen lo cierra dos veces:** matizar la
+frase para que el caso siguiera verde —«non republicamos… salvo unha pantalla de
+medición»— ni reinterpretarla sobre datos personales, que sería literalmente
+cierto y sería peor. **La frase se va; la promesa se reconstruye.**
+
+**Y una contradicción que ya existía antes de esta spec** (SPEC-018 CA-18.7): el
+bundle del **bot** lleva desde SPEC-015 «se procede, **sae no marcador**»
+(`ackNotPublication`) y «o interese lexítimo de poder auditar **un marcador
+publicado**» (`noticeLegalBasis`). Es decir, **`noRepublish` y el bot ya se
+contradecían el 2026-09-03**, y nadie lo vio porque el marcador no existía. Se
+anota aquí como lo que es: la prueba de que esta corrección estaba pendiente
+antes de que SPEC-018 la hiciera urgente.
+
+**3. Con qué se sustituye, y si la red que queda es menor.**
+
+La frase se retira y la promesa se reconstruye con **ocho afirmaciones que son
+más auditables que la que se va**: que **no hay redistribución en bloque** —ni
+fichero, ni volcado, ni feed, ni API, ni widget, ni exportación—; que **no hay
+histórico**; que son **dos competiciones y sólo las jornadas declaradas, como
+mucho dos**; que por partido salen **cuatro cosas y ninguna más** —la hora, los
+dos equipos, el marcador y el estado—; que **no sale ni un dato personal**; que
+**no hay monetización**; y que **la retención no se mueve**.
+
+**Y la promesa de parar se ensancha, que es la adición más importante del cambio:**
+«abonda con pedilo» cubría el **rastreo** y pasa a cubrir también **la
+publicación** (`crawler.stop`). *La publicación no puede prometer menos que la
+captura.*
+
+**Se añaden además dos claves vecinas** que la publicación obliga:
+- **`noNames`** — el silencio se declara en una línea, que es lo que lo hace una
+  postura en vez de una ocultación: **no nombramos los sitios que leemos**, y si
+  crees que leemos el tuyo, escribe y paramos. **La fuente sigue sin nombrarse**:
+  no hay deber de atribución y nombrarla sería la primera divulgación, escrita y
+  fechada por nosotros. El caso 18 (CA-13) **pasa sin tocar una aserción**.
+- **`privacy`** — qué registra el servidor, con qué base, cuánto se conserva,
+  **que no hay cookies ni analítica ni terceros**, y el buzón para los arts.
+  15-22 RGPD. Va **dentro de `/robot`**, que ya tiene el bloque de qué se guarda
+  y cuánto: un solo lugar honesto, una superficie menos. **Sin nombrar a ninguna
+  persona física**, que la barrera de SPEC-007 vigila y que un caso nuevo
+  reafirma aquí.
+
+**¿La red que queda es menor?** **En un sentido sí, y no se disimula:** hasta hoy
+la respuesta era «nada, es un informe interno», que es la más fuerte posible;
+después es una respuesta más larga y por tanto más débil. **Es el coste directo
+de la decisión** (ADR-027 §Consecuencias negativas). **En todo lo demás es
+mayor:** ocho afirmaciones que cualquiera puede verificar abriendo la pantalla,
+frente a una ausencia que nadie podía comprobar; la promesa de parar cubriendo
+ahora también la publicación; y una barrera nueva (SPEC-018 CA-18.5) que impide
+que la frase vieja vuelva por copiar-pegar.
+
+**Caso tocado, y por qué no es un debilitamiento.** `tests/site/crawler-page.test.ts`
+**caso 12**, que exigía literalmente `non republicamos` / `no republicamos` e
+`informe interno`. Se reescribe para exigir las ocho afirmaciones nuevas **y para
+prohibir expresamente las tres viejas**, incluida la versión estrechada. Es la
+corrección obligatoria de SPEC-018 CA-17.2 (iii): la spec repara el daño que ella
+misma causa. **Ningún otro caso de este fichero se toca**: 10, 11, 13, 14, 15,
+16, 17, 18, 19, 20, 21 y 22 pasan sin tocar una aserción, y se añaden cuatro
+casos nuevos —12 bis, ter y quater— para las claves nuevas.
+
+**4. Si el veredicto sigue en pie.** **Sí.** SPEC-005 sigue `hecho` y GREEN. El
+user-agent no se toca, el ritmo no se toca, `robots.txt` no se toca, el buzón
+sigue en el primer bloque y sigue siendo el mismo. Lo que cambia es **un
+literal** y **seis claves nuevas** (`scoreboardHeading`, `scoreboardLink`,
+`noNamesHeading`, `noNames`, `privacyHeading`, `privacy`).
+
+**5. Qué la despierta.** Los ocho puntos del disparador de re-dictamen
+(`docs/procedimientos/calendario-de-compromisos.md`, SPEC-018 CA-19.3,
+ADR-027 §3.d) — y en particular **cualquier acceso programático ofrecido a un
+tercero**, que es lo que volvería falsa la afirmación «no hay redistribución en
+bloque». Y **si ZOS, Lda. o la RFGF piden que se pare**: se para primero y se
+dictamina después, y parar es **vaciar `MEASUREMENT_WINDOWS`**.

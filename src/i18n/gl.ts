@@ -279,21 +279,27 @@ export const gl = {
     measuring:
       'O obxecto do estudo son as opcións de obter os resultados do fútbol galego: ' +
       'que vías hai para lelos e canto traballo levan. ' +
-      'A medición aínda non comezou e non hai ningunha cifra. ' +
+      'O instrumento xa está construído e aínda non hai ningunha cifra: non se ' +
+      'declarou ningunha xornada de medición. ' +
       'A fonte oficial das competicións que se queren medir non se rastrexa, porque ' +
-      'o seu ficheiro robots.txt non o permite e respectalo é unha norma do proxecto: ' +
-      'esa é unha das razóns polas que o estudo está parado.',
+      'o seu ficheiro robots.txt non o permite e respectalo é unha norma do proxecto.',
 
     purposeHeading: 'Para que',
     purpose:
       'A medición serve para decidir unha soa cousa: se o proxecto é viable. ' +
-      'O resultado é un informe interno, non un produto.',
+      'O resultado é un informe interno, non un produto; o que si se pode ver é a ' +
+      'pantalla onde se mide.',
 
     noProductHeading: 'Aínda non hai produto',
     noProduct:
-      'Hoxe non hai nada que usar: nin marcador público, nin aplicación, nin conta que ' +
-      'crear. Esta páxina existe para dicir quen está detrás e que se vai medir, ' +
-      'e nada máis.',
+      'Hoxe non hai produto: nin aplicación, nin conta que crear. ' +
+      'Si hai unha pantalla pública de medición, o marcador, que amosa os partidos ' +
+      'das xornadas declaradas de dúas competicións e nada máis. ' +
+      'É un instrumento de medida: o normal é que o marcador vaia provisional e que ' +
+      'chegue con atraso, e apágase cando a medición remata.',
+
+    scoreboardHeading: 'O marcador',
+    scoreboardLink: 'Ver a pantalla de medición',
 
     crawlerHeading: 'O rastrexador',
     crawlerLink: 'Como se len as páxinas públicas, e como pedir que pare',
@@ -336,9 +342,28 @@ export const gl = {
 
     noRepublishHeading: 'Que non facemos co que lemos',
     noRepublish:
-      'Non republicamos os datos de ninguén. Isto é unha medición, e o resultado é un ' +
-      'informe interno. Non hai marcador público, nin ficheiro de datos, nin nada que se ' +
-      'poida consultar fóra do proxecto.',
+      'Non hai redistribución en bloque: nin ficheiro de datos, nin volcado, nin feed, ' +
+      'nin API, nin widget, nin exportación. Non hai histórico. ' +
+      'Hai unha pantalla pública de medición que amosa dúas competicións e só as ' +
+      'xornadas declaradas, como moito dúas, e de cada partido saen catro cousas: a ' +
+      'hora, os dous equipos, o marcador e o estado. ' +
+      'Non sae nin un dato persoal, non hai monetización e a retención non se move.',
+
+    scoreboardHeading: 'A pantalla de medición',
+    scoreboardLink: 'Ver o que se publica',
+
+    noNamesHeading: 'A quen lemos',
+    noNames:
+      'Non nomeamos os sitios que lemos. Se cres que lemos o teu, escribe a {mailbox} ' +
+      'e paramos: non fai falta que o confirmemos antes.',
+
+    privacyHeading: 'Que se rexistra de quen visita',
+    privacy:
+      'Non hai cookies, nin analítica, nin ningún compoñente de terceiros nas páxinas ' +
+      'deste sitio. O servidor onde está aloxado deixa un rexistro técnico de acceso ' +
+      '—enderezo IP, hora e páxina pedida— co interese lexítimo de manter o servizo en ' +
+      'pé, e consérvase o tempo que ese rexistro dura. Para acceder, rectificar, ' +
+      'suprimir ou opoñerte, escribe a {mailbox}.',
 
     storageHeading: 'Que gardamos e canto tempo',
     storage:
@@ -349,8 +374,10 @@ export const gl = {
 
     stopHeading: 'Como pedir que pare',
     stop:
-      'Escribe a {mailbox} e paramos. Abonda con pedilo. Tamén serve engadir unha regra no ' +
-      'teu propio robots.txt: lémolo antes de cada xanela de observación e respectámolo.',
+      'Escribe a {mailbox} e paramos. Abonda con pedilo, e vale tanto para deixar de ler ' +
+      'o teu sitio como para deixar de publicar nada que saia del. Tamén serve engadir ' +
+      'unha regra no teu propio robots.txt: lémolo antes de cada xanela de observación e ' +
+      'respectámolo.',
 
     otherLanguage: 'Castellano',
   } satisfies CrawlerBundle,
