@@ -979,3 +979,80 @@ sí hace el diff más fácil de leer. Deja de ser criterio.
   F-SPEC-005-4 y F-SPEC-006-3, que son la misma ausencia; disparador: el día que
   exista CI.** Hasta entonces **lo comprueba el verificador, a mano, y eso está
   escrito en vez de supuesto.**
+
+## V4 — la línea de privacidad: el diagnóstico, y es peor de lo que dice el hallazgo
+
+**El hallazgo es correcto y llega a tiempo: este texto se publica el 2026-09-08**,
+en las dos lenguas, en la página que un tercero audita. Y al medir el caso que
+dice vigilarlo aparece algo que el hallazgo no cuenta: **el caso 12 quater de
+`tests/site/crawler-page.test.ts` no comprueba TRES de los elementos que su propio
+nombre anuncia**, no dos.
+
+El caso se llama «*qué registra el servidor, con qué base, **cuánto**, y que no hay
+cookies ni analítica*». Sus aserciones, medidas: `cookies`, `analitica`,
+`terceiros|terceros`, `interese lexitimo|interes legitimo`, el buzón, y dos
+negativas de nombre propio. Es decir:
+
+| Elemento | ¿Lo nombra el caso? | ¿Lo afirma? |
+|---|---|---|
+| No hay cookies, analítica ni terceros | sí | **sí** |
+| Con qué base jurídica | sí | **sí** |
+| El buzón para ejercer derechos | no | **sí** |
+| **Qué registra el servidor** (IP, hora, página) | **sí, en el título** | **NO** |
+| **Cuánto se conserva** | **sí, en el título** | **NO** |
+| **Quién lo procesa** | no lo nombra siquiera | **NO** |
+
+**Los tres huecos coinciden exactamente con las tres cosas que el texto contesta
+mal o no contesta**, y eso no es casualidad: **un criterio que no afirma un
+elemento es un elemento que nadie escribe.** «Qué registra» sobrevivió por suerte
+—el texto sí enumera IP, hora y página pedida— y los otros dos no.
+
+**Y la forma del fallo tiene nombre y conviene ponérselo, porque es la misma dos
+veces:** no es que falte información, es que **hay una frase en el sitio donde
+debería estar la información**, y una frase ocupa el hueco lo bastante bien como
+para que nadie note que falta. «*O servidor onde está aloxado*» ocupa el sitio de
+un nombre; «*consérvase o tempo que ese rexistro dura*» ocupa el sitio de un plazo
+**y además es circular**: dice que se conserva mientras se conserva. Un lector que
+quiera saber cuánto tiempo se guarda su IP **no puede saberlo**, y está a dos
+claves de `crawler.storage`, que sí da 30 y 90 días — pero de **otra cosa**, del
+raw store (ADR-009, ADR-020). **La cercanía empeora el defecto**: invita a suponer
+que esos plazos también valen aquí.
+
+### V4 — qué tiene que decir la línea, y qué tiene que afirmar el caso
+
+**Los seis elementos son los de CA-18.2 y no cambian.** Lo que cambia es que
+**cada uno pasa a tener una aserción**, porque el diagnóstico de arriba muestra
+que lo que no se afirma no se escribe. La lista es **cerrada**: un elemento que no
+esté aquí no entra en el texto, y ninguno de los seis puede faltar.
+
+| # | Elemento | Hoy | Aserción exigida |
+|---|---|---|---|
+| 1 | No hay cookies, ni analítica, ni componentes de terceros | ✅ | `cookies` · `analitica` · `terceiros\|terceros` |
+| 2 | Qué registra el servidor: IP, hora y página pedida | ✅ **sin aserción** | las tres cosas, por separado |
+| 3 | **Quién lo procesa** | ❌ disfrazado | **el nombre del proveedor, literal** |
+| 4 | Con qué base jurídica | ✅ | `interese lexitimo\|interes legitimo` |
+| 5 | **Cuánto se conserva** | ❌ circular | **un plazo, y que no sea el propio registro** |
+| 6 | El buzón para ejercer derechos | ✅ **con aserción** | el buzón, y los cuatro verbos |
+
+Y **dos aserciones negativas nuevas**, que son las que impiden que el defecto
+vuelva por donde vino:
+
+- **Nada de circularidad en el plazo.** El texto **no** puede contener
+  `o tempo que ese rexistro dura` / `el tiempo que ese registro dura` ni ninguna
+  fórmula que defina la conservación por sí misma. Es la forma exacta que hay que
+  cazar, porque es la que ya se escribió una vez.
+- **Nada de rodeos para el encargado.** El texto **no** puede contener
+  `o servidor onde está aloxado` / `el servidor donde está alojado` como sujeto de
+  la frase del registro. Un servidor no procesa datos: los procesa **quien lo
+  opera**, y ésa es la pregunta que el art. 13.1.e obliga a contestar.
+
+**Y una tercera, de coherencia interna**, que sale del propio diagnóstico: el
+plazo de esta línea y el de `crawler.storage` son de **cosas distintas** —el
+registro técnico de acceso y el raw store— y están a dos claves. **El texto tiene
+que hacer esa distinción explícita**, y un caso tiene que afirmar que la hace, o
+un lector razonable supondrá que los 30/90 días también valen aquí.
+
+**Lo que este ensanche NO es:** conveniencia. `tests/site/crawler-page.test.ts`
+ya está abierto por CA-18.2, y esto es **la letra del criterio, que hoy promete
+tres cosas que no comprueba** — es CA-17.2 **(iii)**, corregir lo que esta misma
+decisión vuelve falso, no **(i)**. El verificador lo dice con las mismas palabras.
