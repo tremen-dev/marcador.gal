@@ -476,3 +476,120 @@ el árbol real intacto, `git status` vacío antes y después). Está resumido en
 Si al implementar aparece que **hay que modificar un test de SPEC-004 o de
 SPEC-005**, la instrucción de CA-4 es **parar y devolver a arquitectura**, no
 añadir una excepción.
+
+---
+
+## Enmienda — 2026-09-04: el título del marcador ES el nombre del dominio, y dos aserciones de esta spec dejan de poder ser universales
+
+**Escrita por `sdd-arquitecto` el 2026-09-04**, a instancia de **F-SPEC-018-1**,
+que el implementador de SPEC-018 levantó y **paró en vez de resolver por su
+cuenta** — que es exactamente lo que la última línea de este ledger le pedía:
+«no añadir una excepción» sin volver a arquitectura. Volvió. Esto es la
+respuesta.
+
+### 1. Qué afirmaban las dos aserciones, y por qué eran razonables
+
+- **`tests/site/titles-i18n.test.ts` caso 6** — «ningún título es un valor de los
+  que el sitio sí sirve en su cuerpo». Refuerza **CA-3(c)**. Su motivo está
+  escrito en el propio caso y es bueno: si un título volviera al namespace del
+  sitio por otra puerta, los casos 2 y 5 de `pages.test.ts` —que exigen que
+  **cada** clave del sitio aparezca en el cuerpo de `/proxecto`— empezarían a
+  mentir.
+- **`tests/site/title-source.test.ts` caso 3** — «cada título vive en el bundle de
+  su lengua y en ningún otro punto de `src/`». Sostiene el propósito de **CA-2**:
+  que nadie transcriba a mano un título que sale de i18n.
+
+Las dos eran razonables porque, con dos páginas, **ningún título se parecía a
+ninguna otra cadena del sistema**: *O proxecto — marcador.gal* y *O rastrexador —
+marcador.gal* son cadenas que no existen en ninguna otra parte por ningún otro
+motivo.
+
+### 2. Qué las invalida
+
+**El gate humano del 2026-09-04** decidió, sobre la nota §3 de SPEC-018, que el
+título de la pantalla del marcador es **`marcador.gal` a secas** —descartando
+expresamente `O marcador — marcador.gal`, que es la forma que sigue el patrón de
+las otras dos y que `sdd-lingua` §1.1 había dejado abierta como decisión de
+producto—. Lo recoge **SPEC-018 CA-13.5** y **ADR-027 §1**.
+
+Ese valor **es el nombre del dominio**, y de ahí salen las dos colisiones, que
+son **estructurales y no un descuido**:
+
+1. **`site.heading` también es `marcador.gal`**: es el `<h1>` de `/proxecto` desde
+   SPEC-004. Un título igual al nombre del sitio choca por fuerza con el caso 6.
+2. **El dominio aparece por construcción en once ficheros de `src/`** que no
+   tienen nada que ver con un título —`polite/user-agent.ts`, `site/contact.ts`,
+   `site/routes.ts`, `site/robots-txt.ts`, `api/freshness.ts`…—, así que el caso 3
+   se pone rojo **por una coincidencia de cadena y no por el defecto que vigila**.
+
+**No hay forma de implementar la decisión del gate sin tocar las dos.** No es
+elegible por diseño: cualquier título que sea el nombre del sitio produce las dos
+colisiones, hoy y siempre.
+
+### 3. Con qué se sustituye, y dónde hay menos red que antes
+
+En cada caso se añade **una colisión declarada por identidad de clave Y de
+valor** —`{ key: 'scoreboard', value: 'marcador.gal' }`— con su motivo escrito, y
+**una aserción nueva que la ata**: `scoreboard` vuelve a ser rojo en cuanto deje
+de valer `marcador.gal`. **No se relaja el predicado y no se exime ninguna otra
+clave**: cualquier otro título que coincida con un valor del sitio, o que aparezca
+fuera de su bundle, **sigue siendo rojo**.
+
+**Y hay que decir, sin suavizarlo, dónde queda menos red:**
+
+- **Caso 6: no queda menos.** Lo que ese caso protege de verdad —que un título no
+  **vuelva** al namespace del sitio— lo sigue afirmando el **caso 5**, intacto y
+  sin exención. `scoreboard` vive en `titles`, no en `site`, y `site.heading` se
+  sigue sirviendo en el cuerpo de `/proxecto` exactamente igual, así que los
+  casos 2 y 5 de `pages.test.ts` no empiezan a mentir. **La exención es sobre una
+  coincidencia de valor, no sobre la propiedad que sostiene CA-3(c).**
+- **Caso 3: aquí sí queda menos, y es el único sitio.** A partir de ahora,
+  **alguien que escriba a mano `marcador.gal` como título en un módulo de `src/`
+  que no sea de ruta no lo detectaría este caso**. Lo que sigue cubriéndolo, y por
+  eso el hueco es estrecho: el **caso 2** —ningún módulo de ruta declara un título
+  como literal, que es la letra de CA-2— y el **caso 5 de
+  `tests/site/document-titles.test.ts`**, que afirma sobre el **HTML servido** que
+  el documento del marcador toma su título de `titlesBundle(locale).scoreboard`.
+  El camino realista está cubierto; el rebuscado, no.
+
+**Y una precisión que hace la enmienda más leve de lo que parece: la letra de
+CA-2 y la de CA-3 siguen satisfechas enteras.** CA-2 dice «ningún título
+declarado por una ruta es una cadena escrita a mano» —caso 2, intacto—; CA-3(c)
+dice «el namespace del sitio ya no contiene el título» —caso 5, intacto—. Lo que
+se acota son **dos aserciones que iban más allá de la letra de su CA**, que es la
+clase de guardián más valiosa y también la que primero choca con un caso que
+nadie previó.
+
+**Lo que NO cambia, y conviene enumerarlo porque es casi todo:** el censo de
+páginas del caso 4 crece de dos a tres —eso **no es una enmienda**, es el dato de
+un guardián cuyo dato cambió, y SPEC-018 CA-13.6 y CA-17.2(ii) lo distinguen
+expresamente—; la paridad de lenguas por tipo y en ejecución; que ninguna clave
+esté vacía; el caso 2; el caso 5; y **CA-4 entero**, porque los dos ficheros
+tocados son **de esta spec**, no de SPEC-004 ni de SPEC-005, y ninguno de aquéllos
+se ha modificado.
+
+### 4. El veredicto sigue en pie
+
+**GREEN del 2026-09-01 intacto, y con más margen del habitual en una enmienda:**
+no se invalida ningún CA en su letra (§3, último párrafo), no se retira ninguna
+aserción, no se relaja ningún predicado y no se toca el cuerpo de la spec ni su
+frontmatter (ADR-015 §1 y §4). `hecho` sigue siendo `hecho`. Lo que hay es **una
+excepción nominal, atada por una aserción propia**, en dos guardianes que esta
+misma spec escribió.
+
+### 5. Qué lo despierta
+
+- **El título del marcador deja de valer `marcador.gal`.** Las dos exenciones
+  quedan sin sujeto y **hay que retirarlas**, no dejarlas por si acaso: una
+  exención sin caso que la use es la puerta que alguien reutiliza. Las aserciones
+  añadidas en §3 lo ponen rojo el mismo día.
+- **Aparece un segundo título que colisiona con un valor del sitio o con una
+  cadena de `src/`.** Entonces esto deja de ser una colisión y pasa a ser un
+  patrón, y lo que toca **no es una tercera exención**: es rehacer el mecanismo del
+  caso 3 para que distinga «una cadena que aparece» de «una cadena usada como
+  título», que es lo que de verdad quiere vigilar.
+- **El día que exista CI** (F-SPEC-004-3 · F-SPEC-005-4). Hoy nada de esto se pone
+  rojo si nadie corre `npm run gates`.
+
+**Referencias:** SPEC-018 CA-13.5, CA-13.6, CA-17.2 y CA-18 · ADR-027 §1 ·
+ADR-015 §1, §2, §3 y §4 · F-SPEC-018-1.
