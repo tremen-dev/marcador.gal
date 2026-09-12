@@ -1,9 +1,11 @@
 ---
 id: EPIC-005
 tipo: epica
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-12, por: sdd-producto}
+  - {estado: aprobada, fecha: 2026-09-12, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # EPIC-005 — Radio Galega como fuente automática de goles
 

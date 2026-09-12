@@ -144,8 +144,8 @@ otra** — autorización escrita de la RFGF, o un `robots.txt` que nos permita.
 Mientras tanto **no hay ninguna fuente automática de peso ≥ 0.9**, y la primera
 vía de RN-02 queda cerrada para todo lo que no sea una persona.
 
-- **EPIC-005 — Radio Galega como fuente automática de goles.** `borrador` el
-  2026-09-12, a la espera del gate. Nace de una idea de Alberto Fojo y de un
+- **EPIC-005 — Radio Galega como fuente automática de goles.** **`aprobada` el
+  2026-09-12**, firmada por Alberto Fojo el mismo día en que nació. Nace de una idea de Alberto Fojo y de un
   hecho que cambia la aritmética de arriba: **hay consentimiento expreso de la
   CRTVG** para transcribir en directo *Galicia en goles* y leer los goles. Es
   la primera candidata a **segunda fuente automática independiente** que no bebe
