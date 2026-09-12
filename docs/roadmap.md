@@ -144,6 +144,25 @@ otra** — autorización escrita de la RFGF, o un `robots.txt` que nos permita.
 Mientras tanto **no hay ninguna fuente automática de peso ≥ 0.9**, y la primera
 vía de RN-02 queda cerrada para todo lo que no sea una persona.
 
+- **EPIC-005 — Radio Galega como fuente automática de goles.** `borrador` el
+  2026-09-12, a la espera del gate. Nace de una idea de Alberto Fojo y de un
+  hecho que cambia la aritmética de arriba: **hay consentimiento expreso de la
+  CRTVG** para transcribir en directo *Galicia en goles* y leer los goles. Es
+  la primera candidata a **segunda fuente automática independiente** que no bebe
+  de futgal ni de ceroacero —tiene una persona en el campo— y que además es
+  capturable, que es justo lo que le falta a `futgal.es`.
+
+  **Sube a *Ahora* por el criterio de corte, no por entusiasmo:** la cifra de
+  conflictos de EPIC-002 «puede no medir nada» con una sola fuente automática, y
+  con una segunda independiente mide; y la de operación manual baja si el motor
+  confirma sin persona. Las dos cifras del corte duro cambian con esta épica y
+  nada más del roadmap las mueve. **No relaja RN-09:** la radio es corroboración
+  automática, nunca publica sola, y no entra en la lista de pares independientes
+  de ADR-021 §7 sin un veredicto medido. Precondiciones escritas en su
+  `_epica.md`: el consentimiento archivado con su alcance en `docs/legal/` y un
+  spike técnico desechable que diga si el galego radiofónico se transcribe bien
+  y si el stream cabe en una función larga de Vercel.
+
 ## Después (comprometido, sin empezar)
 
 - **Decisión go / no-go.** Es un gate humano, no una épica: puede matar el
