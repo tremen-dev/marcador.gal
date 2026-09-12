@@ -241,3 +241,66 @@ misma enmienda el día de `0006`». Es F-SPEC-012-3 llegando a su vencimiento.
 
 Registrado por `sdd-implementador` de SPEC-013 (quien invalida, registra,
 ADR-015 §5).
+
+## Enmienda — 2026-09-12: ADR-029 añade el cron de la radio, y CA-8 («declara **un** cron») deja de poder ser cierto
+
+**Esto es una enmienda, no una reapertura.** SPEC-012 sigue en `hecho`, su
+veredicto sigue siendo GREEN y no se toca una línea del cuerpo de la spec. La
+forma es la de ADR-015 §2 y §3, y quien la registra es quien invalida (ADR-015
+§5): **ADR-029 §5 nombra CA-8 por su identificador en su propia decisión**, y
+la enmienda del 2026-09-02 de este mismo ledger lo dejó previsto palabra por
+palabra —«ese día `vercel.json` declararía dos crones y CA-8 dejaría de ser
+cierto de verdad, lo que exigiría su propia enmienda»—. **Ese día es este.**
+Registrada por `sdd-arquitecto` al aprobarse ADR-029 (Alberto Fojo,
+2026-09-12).
+
+1. **Qué afirmaba CA-8 y por qué era razonable.** CA-8 exige que `vercel.json`
+   declare **un** cron, con `schedule` exactamente `* * * * *` y `path` la ruta
+   de CA-7, comparada contra `CRON_INGEST_PATH` y no contra un segundo literal;
+   su guardián es `tests/ingest/vercel-cron.test.ts` (caso 1, `toHaveLength(1)`).
+   Cuando se escribió, el tick de ingesta era **todo** lo que la plataforma
+   invocaba, y «un cron» era la forma más fuerte de afirmar que no había
+   ningún otro emisor de peticiones (RN-11) ni ningún otro disparador del
+   motor (ADR-021 §4 se apoyó en ese hecho).
+
+2. **Qué lo invalida.** **ADR-029 §1 y §5** (aprobado por Alberto Fojo el
+   2026-09-12): el oyente de la Radio Galega es una función larga invocada por
+   **un segundo cron**, `/api/cron/radio`, con `schedule: "*/10 * * * *"` y
+   `maxDuration` 800. **No es un cron para el motor** —ADR-021 §4 sigue intacto,
+   y ADR-029 §5 lo argumenta—: es un cron para **una fuente** que no se sondea
+   sino que se escucha (ADR-028 §1, ADR-029 §2). Lo que ADR-021 usó como apoyo
+   —un solo cron, un solo emisor— era un hecho que SPEC-012 CA-8 decidió, y
+   por eso lo que se enmienda es este CA.
+
+3. **Con qué se sustituye, y si la red que queda es menor.** La spec que añada
+   el cron —la segunda de EPIC-005 (ADR-028 §12)— **edita el test** por ADR-011
+   §6, con referencia cruzada en este ledger, para que afirme **el conjunto
+   declarado**: cada cron contra su constante —`CRON_INGEST_PATH` con
+   `* * * * *`, `CRON_RADIO_PATH` con `*/10 * * * *`— y **sin un tercero**. La
+   sustancia de CA-8 queda entera: el cron de ingesta sigue declarado
+   exactamente como estaba, su `path` sigue comparándose contra la constante
+   de `src/ingest/cron.ts`, y el fichero de la ruta sigue existiendo donde ella
+   dice. **La red que queda es igual de estrecha en lo que CA-8 protegía y se
+   dice sin suavizar qué pierde:** «exactamente uno» era también una
+   afirmación de que no había ningún otro emisor de peticiones a terceros y
+   ningún otro camino hasta el motor; desde ADR-029 hay dos de cada, a
+   propósito, y esa exclusividad **no vuelve** —lo que la sustituye es la
+   lista cerrada de dos con su constante cada uno, y el guardián de RN-08 que
+   ya alcanza todo `src/` (ADR-029 §4)—.
+
+4. **El veredicto sigue en pie.** El GREEN de SPEC-012 (2026-09-02) juzgó que
+   el cron de ingesta está declarado como ADR-019 §1 manda, y eso sigue siendo
+   cierto. **Hoy, 2026-09-12, `vercel.json` sigue declarando un cron y el caso
+   1 sigue en verde**: esta enmienda registra que la afirmación **ha dejado de
+   ser una decisión vigente para ser un estado transitorio con fecha de
+   caducidad escrita** —el día en que la segunda spec de EPIC-005 declare el
+   segundo cron—, y que ese día el test se edita con motivo y no se «arregla».
+   Hasta entonces, nada cambia en el repositorio.
+
+5. **Qué lo despierta.** Dos cosas. (a) **Un tercer cron**: la lista cerrada de
+   dos es el nuevo guardián, y añadir uno más exige su propio ADR y su propia
+   enmienda aquí. (b) **Que ADR-029 §9 se dispare** —que el spike (SPEC-019)
+   demuestre que la función no sostiene el stream y un ADR nuevo lleve el
+   oyente a un worker fuera de Vercel—: ese día `vercel.json` volvería a
+   declarar un cron y CA-8 volvería a ser cierto tal como se escribió, y habría
+   que anotarlo aquí en vez de dejar esta enmienda huérfana.

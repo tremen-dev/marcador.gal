@@ -26,6 +26,22 @@ propio orden de desempate.
   **operador humano 1.0** · RFGF 1.0 · API de pago 0.9 · corresponsal confirmado 0.8 ·
   BeSoccer / ceroacero / resultados-futbol.com 0.7 · tuit de club 0.5.
 
+  **Emisora transcrita (Radio Galega) 0.7, derivada de máquina.** Una emisora
+  con una persona en el campo cuyo audio se transcribe y se lee por máquina es
+  una fuente automática más, con el peso de un agregador: lo que observa es
+  comparable —alguien vio el gol— y su cadena entera hasta la `Observation`
+  es máquina, que es lo que la aclaración de RN-09 acota. **Su peso está en el
+  umbral de la segunda vía de RN-02 a propósito**: por debajo de 0.7 no podría
+  corroborar a nadie y no serviría para lo único que se le pide.
+
+  <!-- Decidido por Alberto Fojo en el gate del 2026-09-12, firmando ADR-028 §1
+       (EPIC-005, la Radio Galega como fuente). No es un umbral que se mueva:
+       es una fila nueva en la tabla, con una categoría que no existía porque
+       hasta hoy ninguna fuente llegaba al motor por audio. El peso 0.7 no
+       concede a esta fila lo que concede a un agregador —publicar sola,
+       provisional—: eso lo retira la aclaración de RN-09 de la misma fecha,
+       que hay que leer junto a esta fila. -->
+
   **Precedencia del operador.** El operador humano y la RFGF comparten peso 1.0,
   pero no son intercambiables: **si discrepan, gana el operador**, y la Decision
   registra que se resolvió por precedencia humana. Sin esta cláusula el empate lo
@@ -186,6 +202,21 @@ propio orden de desempate.
        El primero solo era inofensivo mientras se esperase que alguna fuente
        automática llegara a *confirmado*; ADR-008 §1 lo impidió. -->
 
+  **Con una fuente derivada de máquina: alerta sí, retención no.** Si una de
+  las dos fuentes que discrepan es derivada de máquina (RN-09, aclaración del
+  2026-09-12), la alerta **se escribe** —es la materia prima de la cifra de
+  conflictos— y la `Decision` **sigue saliendo de la fuente que puede
+  sostenerla**: esta regla no retiene nada por una discrepancia con una fuente
+  que no puede publicar sola.
+
+  <!-- Decidido por Alberto Fojo en el gate del 2026-09-12, firmando ADR-028
+       §2.3 (EPIC-005). El veto —que la discrepancia con la radio retuviera la
+       Decision vigente, como esta regla dice literalmente— era la alternativa
+       fuerte y fue rechazado en ese gate: daría a una fuente de precisión no
+       medida el poder de bloquear a la única que hoy publica, contra RN-03.
+       Vuelve a la mesa con la cifra de precisión de la cuarta spec de
+       EPIC-005 delante. No es un umbral nuevo. -->
+
 - **RN-06 — Transiciones de estado.**
   `scheduled → live` con la primera observación de juego después de kickoff − 2 min.
   `live → finished` con fuente oficial, dos fuentes coincidentes, o kickoff + 110 min
@@ -223,6 +254,14 @@ propio orden de desempate.
 - **RN-07 — Silencio.** Partido `live` sin observación nueva en 15 min → estado
   *sen sinal* visible al usuario y alerta al panel.
 
+  **Una observación de fuente derivada de máquina no acalla el silencio.** El
+  reloj de *sen sinal* cuenta observaciones que podrían sostener lo publicado,
+  y una fuente que no puede publicar sola (RN-09, aclaración del 2026-09-12)
+  tampoco puede certificar que hay señal.
+
+  <!-- Decidido por Alberto Fojo en el gate del 2026-09-12, firmando ADR-028
+       §2.5 (EPIC-005). No mueve los 15 min: fija a quién cuenta el reloj. -->
+
 ## Invariantes del proyecto
 
 - **RN-08 — El motor es la única puerta.** Ninguna fuente publica un marcador sin
@@ -234,6 +273,40 @@ propio orden de desempate.
   JSON validada y **confirmación humana**. Nunca se publica un resultado sobre un
   equipo sin alias confirmado por una persona.
 
+  **Una fuente derivada de máquina nunca sostiene sola una `Decision`, ni
+  provisional.** Hay fuentes cuya cadena entera hasta la `Observation` es
+  máquina —audio transcrito por un ASR y leído por un LLM, como la emisora
+  transcrita de RN-01—. Su `Observation` **existe y se escribe** (es lo que la
+  fuente dijo, un hecho histórico, RN-13), pero el marcador que lleva **nunca se
+  publica sin una segunda fuente que no sea derivada de máquina**: eso es
+  «nunca es la única fuente de un marcador», dicho para una fuente y no para
+  una llamada. En el reducer, una `Observation` así **no puede ser la
+  observación que manda**: no abre `scheduled → live`, no publica un marcador
+  ni provisional, y no mueve nada por sí sola. **Lo que sí hace es sumar:**
+  cuenta como segunda fuente donde las reglas piden una —la que libera un salto
+  retenido en RN-04, las «dos fuentes coincidentes» de RN-06— y como la segunda
+  de las «dos independientes» de RN-02 **solo** si el par está declarado
+  independiente (ADR-021 §7). **Y nunca resta:** una discrepancia con ella
+  genera la alerta de RN-05 —que es lo que la cifra de conflictos cuenta— pero
+  **no retiene** la `Decision` que la otra fuente sostiene, y su `Observation`
+  **no acalla** el silencio de RN-07: el reloj de *sen sinal* cuenta
+  observaciones que podrían sostener lo publicado, y ésta no puede. La
+  confirmación humana que esta regla exige para el LLM se cumple, para una
+  fuente así, en el **catálogo de alias declarado** de sus nombres orales
+  (ADR-018) y en que ninguna persona necesita confirmar un gol que la máquina
+  **no puede publicar sola**.
+
+  <!-- Decidido por Alberto Fojo en el gate del 2026-09-12, firmando ADR-028 §2
+       (EPIC-005). No relaja RN-09: la restringe a un caso que la regla no
+       contemplaba —una fuente entera, no un parser de mensajes— y fija cuál de
+       dos lecturas vale. Reinterpreta D-4 en un punto y lo dice: D-4 enumera
+       dos usos del LLM con confirmación humana; éste es un tercero, en el que
+       la confirmación humana por gol se sustituye por la incapacidad
+       estructural de publicar solo. Solo un ADR aceptado puede hacerlo
+       (FOUNDATION.md), y éste lo es desde esta firma. En el mismo gate se
+       rechazó el veto en RN-05 y se ratificó que no acalla RN-07: las dos
+       lecturas llevan su propio párrafo fechado bajo esas reglas. -->
+
 - **RN-10 — Raw antes de parsear.** Toda respuesta cruda (HTML/JSON) se guarda con
   timestamp en el raw store **antes** de parsearse. Es lo que permite reprocesar
   con un parser corregido y reproducir una jornada entera en tests.
@@ -241,6 +314,29 @@ propio orden de desempate.
 - **RN-11 — Scraping cortés.** Respetar robots.txt, identificar el user-agent y no
   bajar de 1 petición por minuto por competición. En el spike es medición, no
   producción.
+
+  **Un stream consentido se consume a la cadencia que el stream declara, con
+  `User-Agent` y `robots.txt` como siempre; el ritmo por competición es del
+  rastreo de páginas.** El tope de una petición por minuto está escrito para el
+  rastreo de páginas —un par (fuente, competición) y una URL que se refresca—.
+  Un stream HLS se consume a la cadencia que **el propio stream** fija —una
+  lista de reproducción y un segmento cada pocos segundos—, sobre un origen y
+  sin competición, y a ese ritmo lo escucha cualquier oyente humano. El oyente
+  pide al stream a la cadencia que la lista de reproducción declara y **nunca
+  por encima de ella**, no pide más de una lista por segmento, **no rastrea
+  ninguna página** del titular, sale por la única puerta (ADR-014 §4) con el
+  `User-Agent` de ADR-011, y el `robots.txt` del host del stream se consulta y
+  se archiva con fallo cerrado: si lo prohíbe, no se puentea con el
+  consentimiento por defecto (ADR-028 §9). Esa cadencia se registra para que la
+  cifra «peticiones al tercero por jornada» exista.
+
+  <!-- Decidido por Alberto Fojo en el gate del 2026-09-12, firmando ADR-028 §9
+       (EPIC-005): la frase entra aquí y no se queda solo en el ADR. No mueve
+       el tope de una petición por minuto por competición, que sigue rigiendo
+       todo rastreo de páginas: fija que un stream no es un rastreo y a qué
+       ritmo se escucha. Lo que protege —identificarse y no pedir de más—
+       queda intacto, y así lo dictaminó sdd-legal-datos el mismo día
+       (dictamenes-EPIC-005.md §1). -->
 
 - **RN-12 — Trazabilidad de cada Decision.** Cada `Decision` registra la regla
   aplicada (RN-xx) y las observaciones que la sostienen. Una Decision sin `rule`
