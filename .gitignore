@@ -22,3 +22,7 @@ raw/*
 # embebidos en el commit. Nunca estuvo aqui; la prosa de EPIC-004 daba por
 # "excluido" un worktree que solo lo estaba porque nadie lo habia commiteado.
 .claude/worktrees/
+
+# SPEC-019: el material del spike de la Radio Galega (audio, respuestas crudas,
+# corpus, transcripciones) nunca entra en git (ADR-009 §3, spec §1 y §3).
+spikes/*/data/

@@ -1,0 +1,7 @@
+# SPEC-019 §1 y §3: nada real de terceros entra en git (ADR-009 §3).
+data/
+node_modules/
+.vercel/
+.env
+.env.local
+*.tsbuildinfo

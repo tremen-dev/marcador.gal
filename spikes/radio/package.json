@@ -1,0 +1,31 @@
+{
+  "name": "marcador-spike-radio",
+  "version": "0.0.0",
+  "private": true,
+  "description": "SPEC-019 — spike desechable: el stream de la Radio Galega dentro de una función de Vercel y dos motores de ASR con galego. Se borra al cerrar la épica.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.15"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "robots": "node --env-file-if-exists=.env.local src/cli/robots.ts",
+    "listen": "node --env-file-if-exists=.env.local src/cli/listen.ts",
+    "pull": "node --env-file-if-exists=.env.local src/cli/pull.ts",
+    "chunk": "node --env-file-if-exists=.env.local src/cli/chunk.ts",
+    "transcribe": "node --env-file-if-exists=.env.local src/cli/transcribe.ts",
+    "relay": "node --env-file-if-exists=.env.local src/cli/relay.ts",
+    "judge": "node --env-file-if-exists=.env.local src/cli/judge.ts",
+    "report": "node --env-file-if-exists=.env.local src/cli/report.ts",
+    "purge": "node --env-file-if-exists=.env.local src/cli/purge.ts"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  }
+}

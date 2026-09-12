@@ -27,6 +27,7 @@
     "/dist/",
     "/coverage/",
     "/raw/",
-    "/docs/diseno/"
+    "/docs/diseno/",
+    "/spikes/"
   ]
 }
