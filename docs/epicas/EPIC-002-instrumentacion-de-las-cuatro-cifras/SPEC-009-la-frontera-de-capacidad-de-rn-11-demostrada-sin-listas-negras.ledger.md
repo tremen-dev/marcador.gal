@@ -693,3 +693,81 @@ cambie entre ambos (~ms): la causa plausible es un fichero transitorio bajo
 `src/` durante la resolución del conflicto (editor, `.DS_Store`), ya
 desaparecido — `git status` limpio. Si reaparece, el diff de la aserción
 nombra el fichero intruso; con eso se diagnostica en el acto.
+
+## Enmienda — 2026-09-13: SPEC-019 añade la exclusión `spikes/` al guardián de CA-2.6
+
+Escrita por `sdd-arquitecto` ejecutando la decisión de Alberto Fojo en el gate
+de SPEC-019 del 2026-09-13 (F-SPEC-019-1), por ADR-015 §2 y §5. El estado de
+esta spec no cambia (ADR-015 §4).
+
+**1. Qué afirmaba el CA y por qué era razonable.** CA-2 de esta spec exige que
+todo fichero de código del árbol entero que quede fuera de `SCAN_ROOTS` lo haga
+por **una raíz o una exclusión declaradas con su motivo**, nunca por una regla
+escrita para otra cosa. Su guardián son los casos 1, 2j y 2l de
+`tests/polite/architecture.test.ts` y la lista `SCAN_EXCLUSIONS` de
+`tests/polite/support/capability.ts`, que el caso 2b enumera **literalmente**
+—ocho rutas: `node_modules/`, `docs/diseno/`, `tests/`, `.git/`, `.next/`,
+`.claude/`, `raw/`, `next-env.d.ts`— y comprueba que cada una lleva motivo. Era
+razonable, y sigue siéndolo: el día del GREEN (2026-09-02) no había código
+versionado fuera de `src/` que no fuera una de esas ocho cosas, y la lista se
+cerró contra el árbol real. El mecanismo está diseñado **precisamente** para que
+un directorio nuevo con código ponga el guardián en rojo hasta que alguien
+declare, con motivo, si se lee o si queda fuera.
+
+**2. Qué lo invalida.** **SPEC-019 §1** (EPIC-005, `en-revision`), con
+**ADR-029** detrás: el spike técnico de la Radio Galega versiona su código
+desechable en `spikes/radio/` —43 ficheros `.ts`, más `spikes/radio/node_modules/`
+con sus symlinks de `.bin/`—, fuera de `src/` y de `rutasVigiladas`, y su CA-7.1
+prohibía tocar `tests/`. Medido por el implementador el 2026-09-13: caso 1 rojo
+con los 43 ficheros, 2j con ~2 200 de `node_modules/`, 2l con 7 symlinks. La
+spec daba por hecho que «fuera de `src/`» bastaba para quedar fuera del
+escaneo, y no basta: eso es exactamente lo que CA-2 pone en rojo. **La decisión
+del gate del 2026-09-13** (Alberto Fojo): enmendar SPEC-019 CA-7.1 para que el
+spike pueda tocar los dos ficheros de este guardián con el diff mínimo.
+
+**3. Con qué se sustituye, y si hay menos red.** La lista gana **una entrada**,
+`{ path: 'spikes/', motive: … }`, con el motivo escrito —código desechable de
+spikes, fuera de despliegue a producción y de `rutasVigiladas`, se borra al
+cerrar la épica— y el caso 2b gana la línea `'spikes/'` en su enumeración.
+**Nada más cambia**: ni el paseo, ni `scannedSources`, ni las listas de globales
+y paquetes, ni la trampa del socket. Es la salida que el propio guardián nombra
+(«stopping being red is deleting it or declaring an exclusion with its
+motive») y es una **frontera de directorio con motivo**, como `docs/diseno/`,
+no una exención por nombre de fichero (ADR-016 §3).
+
+**Y hay menos red, dicho sin suavizar:** todo lo que viva bajo `spikes/` queda
+**fuera del cierre de capacidad de SPEC-008 y de esta spec**. Un fichero ahí
+puede importar `node:http`, pedir a un tercero sin `politeFetch`, construir su
+propio `User-Agent` y leer `robots.txt` con un segundo parser — y de hecho lo
+hace: `spikes/radio/src/robots.ts` es un segundo parser RFC 9309 (F-SPEC-019-6)
+y el spike habla con el host del stream con su propia cortesía (SPEC-019 §3).
+Lo que lo acota, y es lo único que lo acota: ese código **no se despliega en
+`marcador-gal`** (proyecto temporal aparte, SPEC-019 §1 y CA-7.5), **no entra en
+`typecheck`, `lint` ni `build`** (las tres líneas de raíz de SPEC-019 §1), y se
+**borra al cerrar EPIC-005**. La promesa de `/robot` —solo `src/polite/` habla
+con una fuente— sigue siendo cierta **del producto**, y deja de ser una
+afirmación sobre el repositorio entero mientras `spikes/` exista.
+
+**4. El veredicto sigue en pie.** El GREEN del 2026-09-02 está intacto: el
+predicado de CA-2 —quedar fuera es una decisión declarada— no cambia una letra,
+y lo que ha pasado es la demostración de que funciona: un directorio nuevo con
+código puso el guardián en rojo, y sale del rojo con un diff de una entrada y
+su motivo que un revisor lee. Los controles positivos (2k, E12a) no se tocan.
+
+**5. Qué lo despierta.** Tres cosas, cualquiera de ellas: (i) que un fichero de
+`src/` importe algo de `spikes/` —la exclusión deja entonces de ser una frontera
+y pasa a ser un agujero; hay que retirarla y meter ese código bajo las raíces—;
+(ii) que un spike se despliegue en `marcador-gal` o comparta proyecto con el
+producto; (iii) que EPIC-005 cierre y `spikes/` **no** se borre. Y una
+obligación de cierre: **cuando `spikes/` se borre, la entrada se retira en el
+mismo commit** — una exclusión de algo que no existe es un silencio con motivo,
+que es lo que esta lista existe para no tener.
+
+**Dónde vive el cambio.** Autoridad: **SPEC-019 CA-7.1 (a) y (b)**, enmendado el
+2026-09-13 (ADR-011 §6: código de una spec cerrada se toca bajo una spec en
+curso). Diff: `tests/polite/support/capability.ts` (una entrada) y
+`tests/polite/architecture.test.ts` (una línea en el caso 2b). Lo escribe el
+implementador de SPEC-019 y lo juzga el verificador de SPEC-019 (su CA-7.2 exige
+`npm run gates` en verde con salida literal). Origen de la lista: SPEC-008
+CA-2.6, cuyo CA-2 quedó ⚠️ y cuya frontera se mudó aquí (§Resumen de esta spec);
+por eso la constancia va en este ledger y no en el de SPEC-008.

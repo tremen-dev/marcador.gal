@@ -1871,3 +1871,58 @@ escribir, no quién responde— y **ADR-012 §1 impide darlo en este repositorio
 salida limpia no toca ningún literal de aquí: **publicar la identificación en
 `tremen.dev`**, que es otro sitio. **Destino: el gate; disparador: ya está
 disparado —el rol legal lo pide hoy— y no bloquea el 08.**
+
+## Enmienda — 2026-09-13: el calendario de compromisos creció con EPIC-005 y CA-19.5 cambia de números
+
+Escrita por `sdd-arquitecto` ejecutando la decisión de Alberto Fojo en el gate
+de SPEC-019 del 2026-09-13 (F-SPEC-019-2), por ADR-015 §2 y §5. El estado de
+esta spec no cambia (ADR-015 §4).
+
+**1. Qué afirmaba el CA y por qué era razonable.** CA-19.5 pide que el párrafo
+de cierre de `docs/procedimientos/calendario-de-compromisos.md` **cuadre con la
+tabla**: que la cuenta de fechas sin red que el párrafo declara sea la de las
+filas que hay. Su guardián es el caso 8 de `tests/board/runbook.test.ts`, que
+afirma **los dos datos**: la frase «Nueve de estas diez fechas» y **diez** filas
+de fecha (una expresión regular sobre `| **…** |`). Era razonable, y el propio
+caso lo dice en su comentario: «la cuenta crece AQUÍ y no en silencio» — el test
+existe para que añadir una fila obligue a tocar el párrafo y el número en el
+mismo cambio.
+
+**2. Qué lo invalida.** El commit `dd16eec` del 2026-09-12 (docs de EPIC-005,
+`sdd-arquitecto`) añadió **cuatro filas** al calendario —las constancias de
+CA-0 de SPEC-019, la purga del spike, la copia del consentimiento de la CRTVG y
+el re-dictamen de la tercera spec— y reescribió el párrafo como «Nueve de las
+diez fechas originales…», que ya no contiene la frase afirmada. **Quien
+invalidó no registró** (ADR-015 §5): el rojo lo encontró el implementador de
+SPEC-019 al correr `npm run gates` el 2026-09-13. Hoy la tabla tiene **catorce**
+filas de fecha, y trece de ellas no las vigila ningún test (la única con red
+externa sigue siendo la del dominio).
+
+**3. Con qué se sustituye, y si hay menos red.** El párrafo del calendario
+**ya dice** «Trece de estas catorce fechas no las vigila ningún test» (corregido
+el 2026-09-13 en el mismo commit que esta enmienda). El caso 8 pasa a afirmar
+**esa frase y `toHaveLength(14)`**, y gana una línea fechada en su comentario;
+`not.toContain('Cuatro de estas cinco fechas')`, la expresión regular y el
+predicado —el párrafo cuadra con la tabla— no cambian. **No hay menos red: es el
+dato de un guardián cuyo dato cambió**, la misma clase de cambio que el propio
+caso 7 documenta para «al día siguiente» → «el mismo día» y que CA-17.2(ii) de
+esta spec distingue de una enmienda de fondo. Se registra igual porque el
+fichero es de esta spec, está `hecho`, y ADR-011 §6 exige la referencia cruzada.
+
+**4. El veredicto sigue en pie.** El GREEN de SPEC-018 está intacto: CA-19.5
+sigue diciendo lo mismo y sigue sostenido por el mismo caso con el mismo
+predicado; lo que cambia son dos literales que el caso afirma **a propósito**
+para que crezcan a la vista.
+
+**5. Qué lo despierta.** La próxima fila que entre en el calendario: quien la
+añada cambia el párrafo y los dos literales del caso 8 **en el mismo commit**,
+como el caso pide. Si alguna vez el párrafo y la tabla vuelven a divergir en
+`main` sin que nadie lo vea, el guardián ha dejado de correr —el proyecto no
+tiene CI (F-SPEC-004-3 · F-SPEC-005-4)— y eso, no el número, es lo que hay que
+arreglar.
+
+**Dónde vive el cambio.** Autoridad: **SPEC-019 CA-7.1 (c)**, enmendado el
+2026-09-13 (ADR-011 §6). Diff: `tests/board/runbook.test.ts`, caso 8, los dos
+números y la frase. Lo escribe el implementador de SPEC-019 y lo juzga su
+verificador (CA-7.2). El párrafo del calendario lo corrigió `sdd-arquitecto` el
+2026-09-13.
