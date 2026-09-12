@@ -9,6 +9,8 @@ historial:
   - {estado: aprobada, fecha: 2026-09-12, por: Alberto Fojo}
   - {estado: en-progreso, fecha: 2026-09-12, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-09-13, por: sdd-implementador}
+  - {estado: en-progreso, fecha: 2026-09-13, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-09-13, por: sdd-implementador}
 ---
 # SPEC-019 — Spike técnico de la Radio Galega — el stream dentro de una función de Vercel y dos motores de ASR con galego, medidos sobre media hora real
 
