@@ -2,10 +2,11 @@
 id: SPEC-019
 tipo: spec
 epica: EPIC-005
-estado: borrador
-aprobada-por:
+estado: aprobada
+aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-09-12, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-12, por: Alberto Fojo}
 ---
 # SPEC-019 — Spike técnico de la Radio Galega — el stream dentro de una función de Vercel y dos motores de ASR con galego, medidos sobre media hora real
 

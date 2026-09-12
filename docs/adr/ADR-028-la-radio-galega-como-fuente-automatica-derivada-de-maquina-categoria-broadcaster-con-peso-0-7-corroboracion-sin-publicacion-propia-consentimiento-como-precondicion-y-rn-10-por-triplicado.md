@@ -1,9 +1,11 @@
 ---
 id: ADR-028
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-12, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-12, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # ADR-028: La Radio Galega como fuente automática derivada de máquina — categoría broadcaster con peso 0.7, corroboración sin publicación propia, consentimiento como precondición y RN-10 por triplicado
 

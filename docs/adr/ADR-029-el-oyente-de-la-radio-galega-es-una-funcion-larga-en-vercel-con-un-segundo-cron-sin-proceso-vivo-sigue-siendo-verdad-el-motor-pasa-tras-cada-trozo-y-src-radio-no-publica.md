@@ -1,9 +1,11 @@
 ---
 id: ADR-029
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-12, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-12, por: Alberto Fojo}
+aprobada-por: Alberto Fojo
 ---
 # ADR-029: El oyente de la Radio Galega es una función larga en Vercel con un segundo cron — sin proceso vivo sigue siendo verdad, el motor pasa tras cada trozo y src/radio/ no publica
 
