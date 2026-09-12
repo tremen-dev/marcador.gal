@@ -71,7 +71,10 @@ sobre la publicación misma sí la detiene**. Lo decide una persona.
 
 ## Por qué existe este documento
 
-**Nueve de las diez fechas originales no las vigila ningún test** —y ninguna de las cuatro filas de EPIC-005 añadidas el 2026-09-12 tampoco—, y el proyecto no
+**Trece de estas catorce fechas no las vigila ningún test** —las nueve
+originales sin red más las cuatro filas de EPIC-005 añadidas el 2026-09-12;
+la cuenta se corrige el 2026-09-13 bajo SPEC-019 CA-7.1, porque el caso 8 de
+`tests/board/runbook.test.ts` afirma este número y esta frase—, y el proyecto no
 tiene CI (`F-SPEC-004-3` · `F-SPEC-005-4`): nadie va a enterarse en rojo de que
 se pasó un plazo. La única con cierta red es la del dominio, y esa red es
 externa (el registrador, no este repositorio). Este documento no sustituye esa

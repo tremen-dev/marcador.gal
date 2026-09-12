@@ -28,7 +28,12 @@ historial:
 > **No toca `src/`, ni `docs/fundacion/reglas.md`, ni `INDEPENDENT_PAIRS`, ni
 > `vercel.json`**, y no declara ninguna jornada de medición. Lo único del
 > repositorio que cambia fuera de `spikes/` y `docs/` son **tres líneas de
-> configuración de raíz** (§1), para que el spike no entre en `npm run gates`.
+> configuración de raíz** (§1), para que el spike no entre en `npm run gates`,
+> **y —desde la enmienda del 2026-09-13, CA-7.1— tres diffs mínimos en
+> `tests/`**: los que el guardián de SPEC-009 CA-2.6 exige para que quedar
+> fuera del escaneo sea una decisión declarada y no un silencio, y el que
+> pone al día los números de un caso de SPEC-018 que la propia épica dejó
+> atrás.
 
 ## Problema
 
@@ -116,7 +121,13 @@ no ignora `spikes/`: **sin dos exclusiones explícitas, el spike entraría en
 en dos ficheros de raíz** —`"spikes"` en `exclude` de `tsconfig.json`,
 `"/spikes/"` en `ignorePatterns` de `.oxlintrc.json`— más una en `.gitignore`
 (`spikes/*/data/`), y son **lo único** que el spike cambia fuera de `spikes/` y
-de `docs/` (CA-7).
+de `docs/` (CA-7) — **con una salvedad escrita el 2026-09-13**: esas tres
+líneas sacan el spike de `typecheck`, `lint` y `build`, pero **no de `npm
+test`**, porque el guardián de SPEC-009 CA-2 recorre el árbol entero y pone
+en rojo todo código que quede fuera de `SCAN_ROOTS` sin una exclusión
+declarada con motivo (F-SPEC-019-1). La salida es la que ese guardián nombra:
+una entrada `spikes/` en `SCAN_EXCLUSIONS`, y CA-7.1 la admite con su diff
+mínimo.
 
 **Un proyecto de Vercel aparte y temporal, no el de producción.** Una función
 de Vercel tiene que ser una ruta de un proyecto, y la única forma de tenerla
@@ -202,7 +213,11 @@ en la misma sesión; no se hacen dos sesiones.
 
 - **CA-1 — El stream dentro de una función de Vercel con `maxDuration` 800.**
   Dado el proyecto temporal desplegado en vista previa con
-  `api/listen.ts` y `maxDuration: 800`,
+  `api/listen.ts` y `maxDuration: 800` —**lo crea y lo despliega el operador,
+  o el implementador con la CLI de Vercel autenticada**, siguiendo
+  `spikes/radio/README.md`; no se da por hecho que sea el implementador
+  (*nota del 2026-09-13, a raíz de F-SPEC-019-4: la CLI no está instalada ni
+  autenticada en la máquina del implementador*)—,
   cuando se invoca con su secreto y `minutes=11` durante un programa en
   directo con partidos en ventana,
   entonces:
@@ -327,17 +342,32 @@ en la misma sesión; no se hacen dos sesiones.
     por verificar), diciendo si coinciden;
   - **CA-5.2** la **proyección por jornada**: minutos de escucha = unión de
     las ventanas de partido (`[kickoff − 10 min, kickoff + 150 min)`, ADR-019
-    §2) de una jornada real del calendario declarado de las dos competiciones
-    (se toma la jornada 1 de `calendario/2026-27/`), **más el 10 % del
+    §2) de **una jornada escrita a mano en el informe** —los partidos de
+    Preferente Futgal G1 y de Terceira RFEF G1 de la tarde de captura (o, si
+    esa tarde no tiene jornada completa, de la jornada completa más próxima),
+    cada uno con su hora de comienzo, **tecleados por una persona desde la
+    web pública de la RFGF** (RN-11 gobierna la petición automatizada, no la
+    lectura humana: `carga-del-calendario.md`), guardados en
+    `spikes/radio/data/` y copiados enteros en el informe—, **más el 10 % del
     solape** de ADR-029 §3; y con ella el coste **por jornada, por las dos
-    jornadas de la épica y por temporada** (34 jornadas), por motor;
+    jornadas de la épica y por temporada** (34 jornadas), por motor. **La
+    cifra va marcada como estimación** en la tabla y en el resumen, y la
+    tabla dice **de dónde salió la lista**: la URL pública consultada y la
+    fecha de consulta. **No se lee ningún calendario declarado versionado**:
+    `calendario/2026-27/` no existe (F-SPEC-010-1 sigue abierto) y este spike
+    no lo crea.
+    *Enmendado el 2026-09-13, decidido por Alberto Fojo en el gate a raíz de
+    F-SPEC-019-3. El texto original decía «de una jornada real del calendario
+    declarado de las dos competiciones (se toma la jornada 1 de
+    `calendario/2026-27/`)», y ese directorio no existe.*
   - **CA-5.3** el **coste de la función** por invocación de 11 minutos,
     leído del panel de uso de Vercel del proyecto temporal (memoria
     provisionada y CPU activa), y su proyección por jornada con seis
     invocaciones por hora de ventana.
   **Test:** las cifras citan la captura de pantalla o la exportación del
   panel en `data/` (no versionada) y el cálculo de CA-5.2 está en
-  `src/report.ts` con la jornada usada nombrada.
+  `src/report.ts` con la jornada usada nombrada, marcada como estimación y
+  con la fuente de la lista escrita.
 
 - **CA-6 — El informe, con la recomendación y la respuesta a ADR-029 §9.**
   Dado todo lo anterior,
@@ -373,10 +403,48 @@ en la misma sesión; no se hacen dos sesiones.
   cuando se compara con `main`,
   entonces:
   - **CA-7.1** `git diff main --stat` muestra cambios **solo** bajo
-    `spikes/`, `docs/`, y las tres líneas de §1 en `tsconfig.json`,
-    `.oxlintrc.json` y `.gitignore`; **ningún fichero de `src/`, `tests/`,
-    `migrations/`, `vercel.json`, `package.json` ni `docs/fundacion/reglas.md`
-    cambia**;
+    `spikes/`, `docs/`, las tres líneas de §1 en `tsconfig.json`,
+    `.oxlintrc.json` y `.gitignore`, **y exactamente tres ficheros de
+    `tests/`, cada uno con el diff mínimo que admite y nada más**:
+    - **(a)** `tests/polite/support/capability.ts`: **una entrada** nueva al
+      final de `SCAN_EXCLUSIONS`, `{ path: 'spikes/', motive: … }`, cuyo
+      motivo escrito dice que es **código desechable de spikes, fuera de
+      despliegue a producción y fuera de `rutasVigiladas`** (ADR-029,
+      SPEC-019 §1), que se borra al cerrar la épica y que se declara aquí
+      porque SPEC-009 CA-2 exige que quedar fuera sea una decisión y no un
+      silencio. Nada más cambia en ese fichero.
+    - **(b)** `tests/polite/architecture.test.ts`, **caso 2b y solo él**: la
+      enumeración literal de rutas de `SCAN_EXCLUSIONS` gana la línea
+      `'spikes/'` en la posición de la entrada nueva. Es el reflejo que el
+      propio caso exige —enumera la lista completa con `toEqual`— y sin él la
+      entrada de (a) pondría rojo el caso que la vigila. Nada más cambia en
+      ese fichero.
+    - **(c)** `tests/board/runbook.test.ts`, **caso 8 y solo él**: los dos
+      números y la frase. `expect(rows).toHaveLength(10)` pasa a
+      `expect(rows).toHaveLength(14)`; la frase afirmada pasa de
+      `'Nueve de estas diez fechas'` a **`'Trece de estas catorce fechas'`**,
+      que es la que `docs/procedimientos/calendario-de-compromisos.md` dice
+      desde el 2026-09-13; y el comentario del caso gana una línea fechada:
+      la cuenta creció el 2026-09-12 con las cuatro filas de EPIC-005 (commit
+      `dd16eec`) y crece aquí, no en silencio. El predicado —que el párrafo
+      cuadre con la tabla— no cambia una letra. Las aserciones
+      `not.toContain('Cuatro de estas cinco fechas')` y la expresión regular
+      que cuenta filas quedan como están.
+    **Ningún fichero de `src/`, `migrations/`, `vercel.json`, `package.json`
+    ni `docs/fundacion/reglas.md` cambia, y ningún otro fichero de `tests/`
+    tampoco.** La autoridad del cambio en (a), (b) y (c) es esta spec (ADR-011
+    §6: código de una spec cerrada se toca bajo una spec en curso); la
+    constancia va en los ledgers de SPEC-009 y de SPEC-018 como
+    `## Enmienda — 2026-09-13: …` por ADR-015.
+    *Enmendado el 2026-09-13, decidido por Alberto Fojo en el gate a raíz de
+    F-SPEC-019-1 y F-SPEC-019-2. El texto original prohibía tocar `tests/` sin
+    excepción, y con eso CA-7.1, CA-7.2 y CA-7.3 no podían ser ciertos a la
+    vez: el guardián de SPEC-009 CA-2.6 (casos 1, 2j y 2l) pone en rojo todo
+    código versionado fuera de `SCAN_ROOTS` sin exclusión declarada, y el
+    §Entidades de esta spec daba por hecho lo contrario. El gate habló de «dos
+    ficheros de `tests/`»; son tres porque la enumeración literal del caso 2b
+    vive en `architecture.test.ts` y no en `capability.ts`, y sin esa línea la
+    entrada de (a) deja rojo el guardián que la vigila.*
   - **CA-7.2** `npm run gates` (typecheck → lint → build → test) sale en
     `exit=0` en la raíz, con la salida literal en el ledger, y el spike **no
     aparece** en ninguna de las cuatro salidas;
@@ -389,8 +457,11 @@ en la misma sesión; no se hacen dos sesiones.
   - **CA-7.4** `MEASUREMENT_WINDOWS` sigue vacía e `INDEPENDENT_PAIRS` también
     (son ficheros de `src/`, cubiertos por CA-7.1, y se nombran porque son los
     dos que la épica prohíbe tocar aquí);
-  - **CA-7.5** el proyecto temporal de Vercel está **borrado** y el ledger lo
-    acusa con fecha; el proyecto `marcador-gal` **no tiene ningún despliegue**
+  - **CA-7.5** el proyecto temporal de Vercel está **borrado** —lo borra
+    quien lo creó: **el operador, o el implementador con la CLI de Vercel
+    autenticada** (*nota del 2026-09-13, F-SPEC-019-4*)— y el ledger lo acusa
+    con fecha; si nunca llegó a crearse, el ledger lo dice con esas palabras y
+    el acuse es ese; el proyecto `marcador-gal` **no tiene ningún despliegue**
     originado en esta rama.
   **Test:** CA-7.1 a CA-7.4 son comandos con salida literal en el ledger;
   CA-7.5 es un acuse del operador que el verificador lee.
@@ -417,8 +488,17 @@ en la misma sesión; no se hacen dos sesiones.
 - **ADR-010** — no se reabre: el proyecto temporal no es sitio ni producto y
   se borra (§1, CA-7.5).
 - **ADR-016** — esta spec **no escribe ningún test de arquitectura** y
-  tampoco relaja ninguno: el spike queda fuera de `SCAN_ROOTS` porque está
-  fuera de `src/`, no por una exención por nombre.
+  tampoco relaja ninguno. *Corregido el 2026-09-13 (F-SPEC-019-1, gate de
+  Alberto Fojo):* el texto original decía que «el spike queda fuera de
+  `SCAN_ROOTS` porque está fuera de `src/`», y **no es así** — SPEC-009 CA-2
+  recorre el árbol entero y exige que todo lo que quede fuera lo haga por una
+  raíz o una exclusión **declaradas con su motivo**. El spike queda fuera por
+  la entrada `spikes/` de `SCAN_EXCLUSIONS` (CA-7.1 a), que es una **frontera
+  de directorio con motivo**, como la de `docs/diseno/`, y no una exención
+  por nombre de fichero (ADR-016 §3). Y lo que esa frontera **no** cubre va
+  dicho: nada de lo que viva bajo `spikes/` pasa por el cierre de capacidad de
+  SPEC-008/SPEC-009 —ni `politeFetch`, ni la lista de globales, ni la trampa
+  del socket—; la cortesía del spike (§3) es suya y se borra con él.
 - **`.sdd.json`** — `rutasVigiladas` son `src/` y `tests/`; `spikes/` queda
   fuera a propósito y por eso el código desechable no exige la cadena de
   verificación de producto.
