@@ -111,6 +111,7 @@ describe('CA-2.6 — el escaneo cubre todo el código, no solo `src/`', () => {
       '.claude/',
       'raw/',
       'next-env.d.ts',
+      'spikes/',
     ]);
     for (const exclusion of SCAN_EXCLUSIONS) {
       expect(exclusion.motive, `${exclusion.path} sin motivo`).toBeTruthy();
