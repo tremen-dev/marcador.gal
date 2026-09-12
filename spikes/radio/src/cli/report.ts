@@ -1,6 +1,6 @@
 /**
  * `npm run report -- --sessions <id>[,<id>,<id>] [--corpus <id>]
- *   [--calendar ../../calendario/2026-27] [--costs data/costs.json]`
+ *   [--matchday data/matchday.json] [--costs data/costs.json]`
  *
  * Writes `data/report/<stamp>.md` with the tables of CA-1..CA-5 from the
  * archive, each with the files that sustain it named. The operator pastes
@@ -10,12 +10,19 @@
  * `costs.json` shape (written by the operator after reading the panels):
  *   { "engines": { "google:chirp_2": { "usdPerMinute": 0.016, "consultedOn": "2026-..", "evidence": "data/costs/google.png" } },
  *     "functionUsdPerInvocation": 0.0123, "functionEvidence": "data/costs/vercel.png" }
+ *
+ * `matchday.json` shape (CA-5.2, amended 2026-09-13: typed BY A PERSON from
+ * the RFGF's public web, never a declared calendar; the projection is an
+ * ESTIMATE and the report says where the list came from):
+ *   { "source": { "url": "https://…", "consultedOn": "2026-09-.." },
+ *     "timezone": "Europe/Madrid",
+ *     "competitions": [ { "id": "futgal-preferente-g1", "matchday": "xornada 3",
+ *       "matches": [ { "home": "…", "away": "…", "kickoff": "2026-09-20 17:00" } ] } ] }
  */
-import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { readExchanges } from '../asr/run.ts';
 import { type Corpus, unblind, werRows, type Sheet, type SheetKey } from '../corpus.ts';
-import { type DeclaredCalendar, kickoffsOfRound } from '../cost.ts';
+import type { HandWrittenMatchday } from '../cost.ts';
 import { containerTable, gapsTable, hitRateTable, invocationsTable, latencyTable, type MeasuredCosts, overlapTable, parametersTable, priceTable, projectionTable, werTable } from '../report.ts';
 import { args, DATA_ROOT, disk, listenReports, need, readJson, readJsonFile, stamp } from './common.ts';
 
@@ -55,15 +62,13 @@ parts.push('', '## CA-4 — Latencia por trozo', '', 'Fuente: `sentAt`/`received
 parts.push('', '## CA-5 — Coste', '');
 const costs: MeasuredCosts = a.has('costs') ? await readJsonFile<MeasuredCosts>(a.get('costs')!) : { engines: {}, functionUsdPerInvocation: null, functionEvidence: null };
 parts.push(priceTable(costs), '');
-const calendars: DeclaredCalendar[] = [];
-const calendarDir = a.get('calendar') ?? join(DATA_ROOT, '..', '..', '..', 'calendario', '2026-27');
+const matchdayPath = a.get('matchday') ?? join(DATA_ROOT, 'matchday.json');
 try {
-  for (const f of (await readdir(calendarDir)).filter((f) => f.endsWith('.json')).sort()) calendars.push(await readJsonFile<DeclaredCalendar>(join(calendarDir, f)));
-} catch {
-  parts.push(`_No se pudo leer el calendario declarado en \`${calendarDir}\`: la proyección de CA-5.2 queda sin jornada._`, '');
+  const matchday = await readJsonFile<HandWrittenMatchday>(matchdayPath);
+  parts.push(projectionTable(matchday, costs));
+} catch (error) {
+  parts.push(`_Sin jornada escrita a mano en \`${matchdayPath}\` (${error instanceof Error ? error.message : String(error)}): la proyección de CA-5.2 queda sin cifra. Forma en \`src/cli/report.ts\`._`);
 }
-const { kickoffsMs, used } = kickoffsOfRound(calendars, 1);
-parts.push(projectionTable(kickoffsMs, used, costs));
 
 const key = `report/${stamp()}.md`;
 await archive.put(key, new TextEncoder().encode(parts.join('\n')), 'text/markdown');

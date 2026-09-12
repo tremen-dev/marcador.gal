@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { ExchangeMeta } from '../src/asr/run.ts';
-import { kickoffsOfRound, listeningMinutes, projectCost, projectFunctionCost, unionMinutes, wallTimeToEpochMs } from '../src/cost.ts';
+import { kickoffsOfMatchday, listeningMinutes, projectCost, projectFunctionCost, unionMinutes, wallTimeToEpochMs } from '../src/cost.ts';
 import { latencyRows, percentile } from '../src/latency.ts';
-import { preferente, terceira } from './fixtures/calendar.ts';
+import { matchday } from './fixtures/matchday.ts';
 
 function meta(over: Partial<ExchangeMeta>): ExchangeMeta {
   return {
@@ -61,13 +61,19 @@ describe('cost projection (CA-5.2, CA-5.3)', () => {
     expect(new Date(wallTimeToEpochMs('2026-12-19 17:00', 'Europe/Madrid')).toISOString()).toBe('2026-12-19T16:00:00.000Z');
   });
 
-  it('round 1 of both competitions → union of windows, plus 10 % overlap', () => {
-    const { kickoffsMs, used } = kickoffsOfRound([preferente, terceira], 1);
-    expect(used).toEqual(['futgal-preferente-g1 2026/27 jornada 1 (3 partidos)', 'terceira-rfef-g1 2026/27 jornada 1 (3 partidos)']);
+  it('the hand-written matchday of both competitions → union of windows, plus 10 % overlap (CA-5.2)', () => {
+    const { kickoffsMs, used } = kickoffsOfMatchday(matchday);
+    expect(used).toEqual(['futgal-preferente-g1 xornada 3 (3 partidos)', 'terceira-rfef-g1 xornada 3 (3 partidos)']);
     const m = listeningMinutes(kickoffsMs);
     // Saturday: 17:00 ×3 and 18:30 → [16:50, 21:00) = 250 min. Sunday: 12:00 → 160 min; 17:00 → 160 min. Total 570.
     expect(m.windowMinutes).toBe(570);
     expect(m.withOverlapMinutes).toBeCloseTo(627, 6);
+  });
+
+  it('refuses a hand-written matchday that does not say where the list came from (CA-5.2)', () => {
+    expect(() => kickoffsOfMatchday({ ...matchday, source: { url: '', consultedOn: '2026-09-13' } })).toThrow(/source/);
+    expect(() => kickoffsOfMatchday({ ...matchday, source: { url: 'https://example.invalid', consultedOn: '' } })).toThrow(/source/);
+    expect(() => kickoffsOfMatchday({ ...matchday, competitions: [] })).toThrow(/matches/);
   });
 
   it('projects per matchday, épica (2) and season (34)', () => {

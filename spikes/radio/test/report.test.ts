@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { ListenReport } from '../src/listen.ts';
 import { containerTable, overlapBetween, priceTable, projectionTable, table } from '../src/report.ts';
-import { kickoffsOfRound } from '../src/cost.ts';
 import type { ExchangeMeta } from '../src/asr/run.ts';
-import { preferente, terceira } from './fixtures/calendar.ts';
+import { matchday } from './fixtures/matchday.ts';
 
 function report(sessionId: string, first: number, last: number): ListenReport {
   return {
@@ -70,10 +69,15 @@ describe('tables', () => {
     expect(t).toContain('| openai:gpt-4o-transcribe | 0.0060 | — | — | — | — | — |');
   });
 
-  it('projection names the round used and the minutes with overlap (CA-5.2)', () => {
-    const { kickoffsMs, used } = kickoffsOfRound([preferente, terceira], 1);
-    const t = projectionTable(kickoffsMs, used, { engines: {}, functionUsdPerInvocation: 0.01, functionEvidence: 'data/costs/vercel.png' });
-    expect(t).toContain('futgal-preferente-g1 2026/27 jornada 1 (3 partidos) + terceira-rfef-g1 2026/27 jornada 1 (3 partidos)');
+  it('projection is marked as an estimate, names the hand-written matchday, its source and the minutes with overlap (CA-5.2)', () => {
+    const t = projectionTable(matchday, { engines: {}, functionUsdPerInvocation: 0.01, functionEvidence: 'data/costs/vercel.png' });
+    expect(t).toContain('**Estimación**');
+    expect(t).toContain('futgal-preferente-g1 xornada 3 (3 partidos) + terceira-rfef-g1 xornada 3 (3 partidos)');
+    expect(t).toContain('https://example.invalid/rfgf/xornada-3');
+    expect(t).toContain('consultada el 2026-09-13');
+    // The list is copied whole into the report: every match with its kickoff.
+    expect(t).toContain('| futgal-preferente-g1 | Sintético A – Sintético B | 2026-09-19 17:00 |');
+    expect(t).toContain('| terceira-rfef-g1 | Sintético K – Sintético L | 2026-09-20 17:00 |');
     expect(t).toContain('**570**');
     expect(t).toContain('**627**');
     expect(t).toContain('| google:chirp_2 | 0.0160 | lista | 10.03 | 20.06 | 341.09 |');

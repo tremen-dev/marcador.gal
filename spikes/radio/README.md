@@ -83,7 +83,12 @@ npm run judge -- --session inv-1 tally
 
 # CA-5: leer los paneles de facturación DESPUÉS de la sesión y escribir data/costs.json
 #   (forma en src/cli/report.ts), guardando capturas en data/costs/.
-npm run report -- --sessions inv-1,inv-2,inv-3 --corpus inv-1 --costs data/costs.json --calendar ../../calendario/2026-27
+#   Y una persona teclea la jornada en data/matchday.json desde la web pública de la RFGF
+#   (forma en src/cli/report.ts: URL y fecha de consulta obligatorias): los partidos de
+#   Preferente Futgal G1 y Terceira RFEF G1 de la tarde de captura, o de la jornada completa
+#   más próxima. La proyección es una ESTIMACIÓN y el informe lo dice; no se lee ningún
+#   calendario declarado (CA-5.2, enmienda del 2026-09-13).
+npm run report -- --sessions inv-1,inv-2,inv-3 --corpus inv-1 --costs data/costs.json --matchday data/matchday.json
 #   → data/report/<fecha>.md: pegar las tablas en hallazgos/spike-radio-galega.md y escribir CA-6.3..6.6 a mano.
 ```
 

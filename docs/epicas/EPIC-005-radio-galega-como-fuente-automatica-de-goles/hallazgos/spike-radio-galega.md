@@ -65,7 +65,24 @@ Normalización del WER: minúsculas, sin acentos, sin puntuación (`src/wer.ts`)
 
 ### CA-5 — Coste
 
-⟨tablas⟩
+⟨tabla de precios: lista vs medido, CA-5.1⟩
+
+**Estimación (CA-5.2).** La proyección por jornada **no sale de un calendario
+declarado** —`calendario/2026-27/` no existe— sino de **una jornada escrita a
+mano**: los partidos de Preferente Futgal G1 y Terceira RFEF G1 de la tarde
+de captura (o de la jornada completa más próxima), con su hora de comienzo,
+**tecleados por una persona desde la web pública de la RFGF** y guardados en
+`spikes/radio/data/matchday.json`. La cifra es una **estimación** aquí y en
+el resumen de §4.
+
+- **Fuente de la lista:** ⟨URL pública de la RFGF consultada⟩, consultada el
+  ⟨YYYY-MM-DD⟩.
+- **Jornada usada:** ⟨competición y jornada, número de partidos⟩.
+
+⟨tabla de la jornada copiada entera: competición, partido, comienzo⟩
+
+⟨tabla de proyección por motor, marcada como estimación: por jornada, dos
+jornadas de la épica, temporada de 34; más el coste de la función, CA-5.3⟩
 
 ## §3. ¿Sostiene la función el stream? (CA-6.3)
 
@@ -82,10 +99,10 @@ que supondría en la función⟩.
 
 ## §4. Recomendación de proveedor de ASR (CA-6.4)
 
-| Motor | Acierto en frases de gol | WER | p95 (20 s / 30 s, desde Vercel) | $/min medido | DPA | Contenedor aceptado |
-|---|---|---|---|---|---|---|
-| ⟨google chirp_2⟩ | ⟨%⟩ | ⟨%⟩ | ⟨ms / ms⟩ | ⟨$⟩ | ⟨adjunto / pendiente / no disponible⟩ | ⟨…⟩ |
-| ⟨openai gpt-4o-transcribe⟩ | ⟨%⟩ | ⟨%⟩ | ⟨ms / ms⟩ | ⟨$⟩ | ⟨…⟩ | ⟨…⟩ |
+| Motor | Acierto en frases de gol | WER | p95 (20 s / 30 s, desde Vercel) | $/min medido | $/jornada (estimación, CA-5.2) | DPA | Contenedor aceptado |
+|---|---|---|---|---|---|---|---|
+| ⟨google chirp_2⟩ | ⟨%⟩ | ⟨%⟩ | ⟨ms / ms⟩ | ⟨$⟩ | ⟨$⟩ | ⟨adjunto / pendiente / no disponible⟩ | ⟨…⟩ |
+| ⟨openai gpt-4o-transcribe⟩ | ⟨%⟩ | ⟨%⟩ | ⟨ms / ms⟩ | ⟨$⟩ | ⟨$⟩ | ⟨…⟩ | ⟨…⟩ |
 
 **Recomendación:** ⟨motor⟩, con trozo de ⟨20 / 30⟩ s, porque ⟨…⟩. Es lo que
 la segunda spec fija en `src/radio/schedule.ts` (ADR-029 §3).

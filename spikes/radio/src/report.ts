@@ -6,7 +6,7 @@
  */
 import type { ExchangeMeta } from './asr/run.ts';
 import { type HitRateRow, type WerRow } from './corpus.ts';
-import { type CostProjection, LIST_PRICES_USD_PER_MIN, listeningMinutes, projectCost, projectFunctionCost } from './cost.ts';
+import { type CostProjection, type HandWrittenMatchday, kickoffsOfMatchday, LIST_PRICES_USD_PER_MIN, listeningMinutes, projectCost, projectFunctionCost } from './cost.ts';
 import { latencyRows } from './latency.ts';
 import type { ListenReport } from './listen.ts';
 
@@ -169,7 +169,9 @@ export function priceTable(measured: MeasuredCosts): string {
   );
 }
 
-export function projectionTable(kickoffsMs: readonly number[], used: readonly string[], measured: MeasuredCosts): string {
+/** CA-5.2 (amended 2026-09-13): an ESTIMATE over a hand-written matchday, copied whole, with its source named. */
+export function projectionTable(matchday: HandWrittenMatchday, measured: MeasuredCosts): string {
+  const { kickoffsMs, used } = kickoffsOfMatchday(matchday);
   const minutes = listeningMinutes(kickoffsMs);
   const projections: CostProjection[] = [];
   for (const [k, v] of Object.entries(LIST_PRICES_USD_PER_MIN)) {
@@ -177,11 +179,18 @@ export function projectionTable(kickoffsMs: readonly number[], used: readonly st
     projections.push(m === undefined ? projectCost(k, v.price, 'list', minutes.withOverlapMinutes) : projectCost(k, m.usdPerMinute, 'measured', minutes.withOverlapMinutes));
   }
   const head = [
-    `Jornada usada: ${used.join(' + ') || '(ningún calendario cargado)'}.`,
+    '**Estimación** — proyección sobre una jornada escrita a mano, no sobre un calendario declarado (SPEC-019 CA-5.2, enmienda del 2026-09-13).',
+    `Jornada usada: ${used.join(' + ')}. Lista tecleada por una persona desde ${matchday.source.url}, consultada el ${matchday.source.consultedOn}; copiada entera:`,
+    '',
+    table(
+      ['Competición', 'Partido', `Comienzo (${matchday.timezone})`],
+      matchday.competitions.flatMap((c) => c.matches.map((m) => [c.id, `${m.home} – ${m.away}`, m.kickoff])),
+    ),
+    '',
     `Minutos de ventana (unión de [kickoff − 10, kickoff + 150)): **${minutes.windowMinutes.toFixed(0)}**; con el 10 % de solape de ADR-029 §3: **${minutes.withOverlapMinutes.toFixed(0)}**.`,
   ].join('\n');
   const body = table(
-    ['Motor', '$/min', 'Origen del precio', 'Por jornada ($)', 'Dos jornadas de la épica ($)', 'Temporada, 34 jornadas ($)'],
+    ['Motor', '$/min', 'Origen del precio', 'Por jornada ($, estimación)', 'Dos jornadas de la épica ($, estimación)', 'Temporada, 34 jornadas ($, estimación)'],
     projections.map((p) => [p.engine, p.usdPerMinute, p.source === 'measured' ? 'medido' : 'lista', p.perMatchdayUsd, p.perEpicUsd, p.perSeasonUsd]),
   );
   const fn =

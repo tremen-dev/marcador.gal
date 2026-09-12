@@ -3,9 +3,16 @@
  * measured price per minute the operator reads from each billing panel after
  * the session, and the projection per matchday: minutes of listening = the
  * UNION of the match windows `[kickoff − 10 min, kickoff + 150 min)` (ADR-019
- * §2) of round 1 of the declared calendar of the two competitions, plus 10 %
- * of overlap (ADR-029 §3); then per matchday, per the two matchdays of the
- * épica, and per season (34 matchdays), per engine.
+ * §2) of ONE MATCHDAY WRITTEN BY HAND —the matches of Preferente Futgal G1
+ * and Terceira RFEF G1 of the capture afternoon, typed by a person from the
+ * RFGF's public web into `data/matchday.json`— plus 10 % of overlap (ADR-029
+ * §3); then per matchday, per the two matchdays of the épica, and per season
+ * (34 matchdays), per engine. THE FIGURE IS AN ESTIMATE and the table says
+ * so, and says where the list came from (URL and date of consultation).
+ *
+ * No declared calendar is read: `calendario/2026-27/` does not exist
+ * (F-SPEC-010-1) and this spike does not create it. CA-5.2 was amended on
+ * 2026-09-13 (F-SPEC-019-3) to say exactly this.
  *
  * The window numbers are COPIED from `src/ingest/windows.ts` (PRE 10 min,
  * POST 150 min) on 2026-09-12, for the same reason the User-Agent is: the
@@ -90,12 +97,22 @@ export function projectFunctionCost(usdPerInvocation: number, windowMinutesPerMa
   return { invocationsPerMatchday, perMatchdayUsd, perSeasonUsd: perMatchdayUsd * MATCHDAYS_IN_SEASON };
 }
 
-// ── The declared calendar (SPEC-010 shape), read here without importing src/ ──
+// ── The hand-written matchday (CA-5.2, amended 2026-09-13) ──
 
-export interface DeclaredCalendar {
-  readonly competition: { readonly id: string; readonly season: string };
+/**
+ * One matchday typed by a person from the RFGF's public web. Lives in
+ * `data/matchday.json` (gitignored) and is copied whole into the report.
+ * `source` is mandatory: the table has to say where the list came from.
+ */
+export interface HandWrittenMatchday {
+  readonly source: { readonly url: string; readonly consultedOn: string };
   readonly timezone: string;
-  readonly rounds: readonly { readonly round: number; readonly matches: readonly { readonly kickoff: string }[] }[];
+  readonly competitions: readonly {
+    readonly id: string;
+    /** As the RFGF names it, e.g. `xornada 3`. */
+    readonly matchday: string;
+    readonly matches: readonly { readonly home: string; readonly away: string; readonly kickoff: string }[];
+  }[];
 }
 
 /**
@@ -119,15 +136,15 @@ export function wallTimeToEpochMs(wall: string, timeZone: string): number {
   return guess;
 }
 
-/** Kickoffs (epoch ms) of one round across several declared calendars. */
-export function kickoffsOfRound(calendars: readonly DeclaredCalendar[], round: number): { readonly kickoffsMs: number[]; readonly used: string[] } {
+/** Kickoffs (epoch ms) of the hand-written matchday, and what it names. Refuses a list without its source. */
+export function kickoffsOfMatchday(matchday: HandWrittenMatchday): { readonly kickoffsMs: number[]; readonly used: string[] } {
+  if (!matchday.source?.url || !matchday.source.consultedOn) throw new Error('the hand-written matchday must say its source: url and consultedOn');
   const kickoffsMs: number[] = [];
   const used: string[] = [];
-  for (const cal of calendars) {
-    const r = cal.rounds.find((x) => x.round === round);
-    if (r === undefined) continue;
-    used.push(`${cal.competition.id} ${cal.competition.season} jornada ${round} (${r.matches.length} partidos)`);
-    for (const match of r.matches) kickoffsMs.push(wallTimeToEpochMs(match.kickoff, cal.timezone));
+  for (const c of matchday.competitions) {
+    used.push(`${c.id} ${c.matchday} (${c.matches.length} partidos)`);
+    for (const match of c.matches) kickoffsMs.push(wallTimeToEpochMs(match.kickoff, matchday.timezone));
   }
+  if (kickoffsMs.length === 0) throw new Error('the hand-written matchday has no matches');
   return { kickoffsMs, used };
 }
