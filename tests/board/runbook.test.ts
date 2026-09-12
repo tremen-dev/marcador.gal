@@ -131,11 +131,14 @@ describe('CA-19 — los compromisos que ningún test sostiene, en el calendario'
     // plan de alojamiento antes de desplegar—, y crece AQUÍ y no en silencio.
     // Es el dato de un guardián cuyo dato cambió: el predicado sigue siendo
     // que el párrafo cuadre con la tabla, y por eso se afirman los dos.
-    expect(commitments).toContain('Nueve de estas diez fechas');
+    // Y VUELVE A CRECER EL 2026-09-12 CON LAS CUATRO FILAS DE EPIC-005 (commit
+    // dd16eec): de diez a catorce. Se enmienda aquí bajo SPEC-019 CA-7.1 (c),
+    // con constancia en el ledger de SPEC-018 (`## Enmienda — 2026-09-13`).
+    expect(commitments).toContain('Trece de estas catorce fechas');
 
-    // La cuenta cuadra con la tabla: diez filas de fecha.
+    // La cuenta cuadra con la tabla: catorce filas de fecha.
     const rows = [...commitments.matchAll(/^\| \*\*[^|]+\*\*[^|]*\|/gm)];
-    expect(rows).toHaveLength(10);
+    expect(rows).toHaveLength(14);
   });
 
   test('9. CA-19.6 — y se declara que NO son barreras', async () => {
